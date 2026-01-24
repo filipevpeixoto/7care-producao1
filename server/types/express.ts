@@ -37,9 +37,9 @@ export interface ExtendedRequest extends Request {
  */
 export interface UserExtraFields {
   engajamento?: 'alto' | 'medio' | 'baixo' | null;
-  classificacao?: 'ativo' | 'regular' | 'irregular' | 'inativo' | null;
-  dizimistaType?: 'fiel' | 'regular' | 'irregular' | 'nao' | null;
-  ofertanteType?: 'generoso' | 'regular' | 'ocasional' | 'nao' | null;
+  classificacao?: string | null;
+  dizimistaType?: string | null;
+  ofertanteType?: string | null;
   tempoBatismoAnos?: number | null;
   temLicao?: boolean | null;
   totalPresenca?: number | null;
@@ -54,7 +54,7 @@ export interface UserExtraFields {
 /**
  * User com campos extras
  */
-export interface UserWithExtras extends User, UserExtraFields {}
+export type UserWithExtras = User & Partial<UserExtraFields>;
 
 /**
  * Tipos para pontos

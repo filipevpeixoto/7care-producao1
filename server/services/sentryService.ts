@@ -179,8 +179,9 @@ export function startTransaction(name: string, op: string): Sentry.Span | undefi
  * Middleware para adicionar contexto do usuário automaticamente
  */
 export function sentryUserContext(req: Request, _res: Response, next: NextFunction): void {
-  const userId = (req as any).userId;
-  const user = (req as any).user;
+  const extReq = req as Request & { userId?: number; user?: { id?: number; email?: string; role?: string } };
+  const userId = extReq.userId;
+  const user = extReq.user;
 
   if (userId || user) {
     setUser({

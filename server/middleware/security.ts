@@ -92,8 +92,9 @@ export function auditLog(
   success: boolean = true
 ): void {
   const { ip, userAgent } = getRequestInfo(req);
-  const userId = (req as any).userId || null;
-  const userEmail = (req as any).user?.email || null;
+  const extReq = req as Request & { userId?: number | null; user?: { email?: string } };
+  const userId = extReq.userId || null;
+  const userEmail = extReq.user?.email || null;
 
   const entry: AuditLogEntry = {
     timestamp: new Date().toISOString(),

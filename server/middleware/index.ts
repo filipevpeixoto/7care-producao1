@@ -430,3 +430,18 @@ export const requireDistrictAccess = (getDistrictId: (req: AuthenticatedRequest)
 
 // Exportar middleware de CSRF
 export { csrfCookie, csrfProtection, csrfTokenEndpoint, generateCsrfToken } from './csrf';
+
+// Exportar middleware de CSP e headers de segurança
+export { cspMiddleware, securityHeadersMiddleware, fullSecurityMiddleware } from './cspHeaders';
+
+// Exportar rate limiters
+export { 
+  authRateLimiter, 
+  apiRateLimiter, 
+  uploadRateLimiter, 
+  sensitiveRateLimiter,
+  searchRateLimiter,
+  webhookRateLimiter,
+  createUserBasedRateLimiter,
+  rateLimiters 
+} from './rateLimiters';

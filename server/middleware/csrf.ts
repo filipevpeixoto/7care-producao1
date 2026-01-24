@@ -89,10 +89,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
       hasHeader: !!headerToken
     });
     
-    return res.status(403).json({
+    res.status(403).json({
       error: 'CSRF token ausente',
       code: 'CSRF_TOKEN_MISSING'
     });
+    return;
   }
   
   // Comparação segura contra timing attacks
@@ -105,10 +106,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
       method: req.method 
     });
     
-    return res.status(403).json({
+    res.status(403).json({
       error: 'CSRF token inválido',
       code: 'CSRF_TOKEN_INVALID'
     });
+    return;
   }
   
   next();

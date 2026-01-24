@@ -23,6 +23,21 @@ interface VerifyResult {
 }
 
 /**
+ * Interface para campos de 2FA no usuário
+ */
+interface UserTwoFactorFields {
+  twoFactorEnabled?: boolean | null;
+  twoFactorSecret?: string | null;
+  twoFactorPendingSecret?: string | null;
+  twoFactorRecoveryCodes?: string | null;
+}
+
+/**
+ * Tipo para atualização de campos 2FA
+ */
+type TwoFactorUpdate = Partial<UserTwoFactorFields>;
+
+/**
  * Gera um novo secret TOTP para o usuário
  */
 export async function generateTwoFactorSecret(
@@ -74,7 +89,7 @@ export async function savePendingTwoFactorSecret(
     .update(schema.users)
     .set({
       twoFactorPendingSecret: encryptedSecret,
-    } as any)
+    } as TwoFactorUpdate)
     .where(eq(schema.users.id, userId));
 }
 
@@ -96,7 +111,8 @@ export async function enableTwoFactor(
     return { valid: false, message: 'Usuário não encontrado' };
   }
   
-  const pendingSecret = (user as any).twoFactorPendingSecret;
+  const userWith2FA = user as typeof user & UserTwoFactorFields;
+  const pendingSecret = userWith2FA.twoFactorPendingSecret;
   
   if (!pendingSecret) {
     return { valid: false, message: 'Nenhum 2FA pendente para ativar' };
@@ -122,7 +138,7 @@ export async function enableTwoFactor(
       twoFactorPendingSecret: null,
       twoFactorEnabled: true,
       twoFactorRecoveryCodes: JSON.stringify(hashedRecoveryCodes),
-    } as any)
+    } as TwoFactorUpdate)
     .where(eq(schema.users.id, userId));
   
   return {
@@ -153,7 +169,7 @@ export async function disableTwoFactor(
       twoFactorPendingSecret: null,
       twoFactorEnabled: false,
       twoFactorRecoveryCodes: null,
-    } as any)
+    } as TwoFactorUpdate)
     .where(eq(schema.users.id, userId));
   
   return {
@@ -179,7 +195,7 @@ export async function verifyTwoFactorToken(
     return { valid: false, message: 'Usuário não encontrado' };
   }
   
-  const userWithTwoFactor = user as any;
+  const userWithTwoFactor = user as typeof user & UserTwoFactorFields;
   
   if (!userWithTwoFactor.twoFactorEnabled || !userWithTwoFactor.twoFactorSecret) {
     return { valid: false, message: '2FA não está ativado' };
@@ -215,7 +231,7 @@ export async function verifyRecoveryCode(
     return { valid: false, message: 'Usuário não encontrado' };
   }
   
-  const userWithTwoFactor = user as any;
+  const userWithTwoFactor = user as typeof user & UserTwoFactorFields;
   
   if (!userWithTwoFactor.twoFactorRecoveryCodes) {
     return { valid: false, message: 'Nenhum código de recuperação disponível' };
@@ -237,7 +253,7 @@ export async function verifyRecoveryCode(
     .update(schema.users)
     .set({
       twoFactorRecoveryCodes: JSON.stringify(hashedCodes),
-    } as any)
+    } as TwoFactorUpdate)
     .where(eq(schema.users.id, userId));
   
   return {
@@ -268,7 +284,7 @@ export async function regenerateRecoveryCodes(
     .update(schema.users)
     .set({
       twoFactorRecoveryCodes: JSON.stringify(hashedRecoveryCodes),
-    } as any)
+    } as TwoFactorUpdate)
     .where(eq(schema.users.id, userId));
   
   return { codes: recoveryCodes };
@@ -292,7 +308,7 @@ export async function checkTwoFactorStatus(userId: number): Promise<{
     return { enabled: false, hasRecoveryCodes: false, recoveryCodesCount: 0 };
   }
   
-  const userWithTwoFactor = user as any;
+  const userWithTwoFactor = user as typeof user & UserTwoFactorFields;
   
   let recoveryCodesCount = 0;
   if (userWithTwoFactor.twoFactorRecoveryCodes) {

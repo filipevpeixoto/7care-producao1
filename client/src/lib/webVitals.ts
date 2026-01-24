@@ -85,9 +85,15 @@ function sendToAnalytics(metric: WebVitalMetric): void {
     });
   }
 
+  // Tipo para window extendido
+  const extWindow = window as unknown as { 
+    Sentry?: { addBreadcrumb: (b: object) => void }; 
+    gtag?: (cmd: string, action: string, params: object) => void 
+  };
+
   // Enviar para Sentry como breadcrumb (se disponível)
-  if (typeof window !== 'undefined' && (window as any).Sentry) {
-    (window as any).Sentry.addBreadcrumb({
+  if (typeof window !== 'undefined' && extWindow.Sentry) {
+    extWindow.Sentry.addBreadcrumb({
       category: 'web-vital',
       message: `${metric.name}: ${metric.value.toFixed(2)}`,
       level: metric.rating === 'poor' ? 'warning' : 'info',
@@ -96,8 +102,8 @@ function sendToAnalytics(metric: WebVitalMetric): void {
   }
 
   // Enviar para Google Analytics (se disponível)
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', metric.name, {
+  if (typeof window !== 'undefined' && extWindow.gtag) {
+    extWindow.gtag('event', metric.name, {
       event_category: 'Web Vitals',
       event_label: metric.id,
       value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),

@@ -88,5 +88,5 @@ export async function testOfflineData() {
 
 // Exportar para uso no console
 if (typeof window !== 'undefined') {
-  (window as any).testOfflineData = testOfflineData;
+  (window as unknown as { testOfflineData: typeof testOfflineData }).testOfflineData = testOfflineData;
 }

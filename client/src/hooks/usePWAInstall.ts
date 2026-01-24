@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ExtendedNavigator } from '@/types/extensions';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -23,7 +24,7 @@ export const usePWAInstall = () => {
       const isMinimalUI = window.matchMedia('(display-mode: minimal-ui)').matches;
       
       // Check for iOS standalone mode
-      const isIOSStandalone = (window.navigator as any).standalone === true;
+      const isIOSStandalone = (window.navigator as ExtendedNavigator).standalone === true;
       
       setIsInstalled(isStandalone || isFullscreen || isMinimalUI || isIOSStandalone);
     };
