@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(npm run check:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls -la server/routes/*.ts)",
+      "Bash(npm run build:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(for file in /Users/filipevpeixoto/Downloads/7care-producao-sem-offline-main/server/routes/*.ts)",
+      "Bash(do)",
+      "Bash(if ! grep -q \"import.*logger\" \"$file\")",
+      "Bash(then)",
+      "Bash(basename:*)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(curl:*)",
+      "Bash(npm test:*)",
+      "Bash(find:*)"
+    ]
+  }
+}

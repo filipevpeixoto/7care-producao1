@@ -1,0 +1,24 @@
+/* Estilos para a logo do sistema */
+.logo-container {
+  background: transparent !important;
+}
+
+.logo-container img {
+  background: transparent !important;
+  mix-blend-mode: normal;
+}
+
+/* Garantir que a logo apareça sem fundo em todos os contextos */
+img[alt="7care"],
+img[alt="Logo"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Remover qualquer fundo que possa interferir */
+.sidebar img,
+.mobile-header img,
+.login-container img {
+  background: transparent !important;
+}
+
