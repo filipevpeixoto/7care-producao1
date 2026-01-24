@@ -65,7 +65,7 @@ async function createSuperAdmin() {
       observations: 'Super administrador do sistema',
       firstAccess: false,
       status: 'active'
-    } as any);
+    });
     
     console.log('✅ Super admin criado com sucesso!');
     console.log(`\n📋 Dados do super admin:`);

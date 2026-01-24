@@ -57,18 +57,21 @@ export class UserRepository {
    */
   async createUser(userData: InsertUser): Promise<User> {
     try {
-      const [user] = await db.insert(schema.users).values({
-        name: (userData as any).name,
-        email: (userData as any).email,
-        password: (userData as any).password || 'temp123',
-        role: (userData as any).role || 'member',
-        church: (userData as any).church,
-        churchCode: (userData as any).churchCode,
-        districtId: (userData as any).districtId,
-        points: (userData as any).points || 0,
+      // Construir dados de inserção tipados
+      const insertData: Record<string, unknown> = {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password ?? 'temp123',
+        role: userData.role ?? 'member',
+        church: userData.church ?? null,
+        churchCode: userData.churchCode ?? null,
+        districtId: userData.districtId ?? null,
+        points: userData.points ?? 0,
         createdAt: new Date(),
         updatedAt: new Date()
-      } as any).returning();
+      };
+
+      const [user] = await db.insert(schema.users).values(insertData).returning();
       return this.mapUserRecord(user);
     } catch (error) {
       console.error('Erro ao criar usuário:', error);

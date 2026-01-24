@@ -34,7 +34,7 @@ export const relationshipRoutes = (app: Express): void => {
       const userIdNum = userId ? parseInt(userId) : null;
       
       // Se não for admin, filtrar por igreja do usuário
-      if (!hasAdminAccess({ role: userRole as any }) && userId) {
+      if (!hasAdminAccess({ role: userRole }) && userId) {
         const currentUser = await storage.getUserById(parseInt(userId));
         if (currentUser?.church) {
           userChurch = currentUser.church;

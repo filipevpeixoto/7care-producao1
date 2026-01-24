@@ -224,41 +224,41 @@ export type InsertRelationship = Omit<Relationship, 'id' | 'createdAt' | 'update
 
 export interface Meeting {
   id: number;
-  requesterId: number;
-  assignedToId: number;
-  typeId: number;
+  requesterId?: number | null;
+  assignedToId?: number | null;
+  typeId?: number | null;
   title: string;
-  description: string;
+  description?: string | null;
   scheduledAt: string;
   duration: number;
-  location: string;
+  location?: string | null;
   priority: string;
   isUrgent: boolean;
   status: string;
-  notes: string;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Message {
   id: number;
-  conversationId: number;
-  senderId: number;
+  conversationId?: number | null;
+  senderId?: number | null;
   content: string;
-  messageType: string;
-  isRead: boolean;
+  messageType?: string;
+  isRead?: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface Conversation {
   id: number;
-  title: string;
-  type: string;
-  isGroup: boolean;
+  title?: string | null;
+  type?: string;
+  isGroup?: boolean;
   createdBy?: number | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface VideoCallSession {
@@ -275,11 +275,12 @@ export interface VideoCallSession {
 export interface MeetingType {
   id: number;
   name: string;
-  description: string;
-  duration: number;
-  isActive: boolean;
+  description?: string | null;
+  duration?: number;
+  isActive?: boolean;
+  color?: string | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface Notification {
@@ -295,22 +296,24 @@ export interface Notification {
 export interface Achievement {
   id: number;
   name: string;
-  description: string;
-  icon: string;
-  requiredPoints: number;
-  requiredConditions: string;
-  badgeColor: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  description?: string | null;
+  icon?: string | null;
+  requiredPoints?: number;
+  pointsRequired?: number;
+  requiredConditions?: string | null;
+  badgeColor?: string | null;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PointActivity {
   id: number;
-  userId: number;
-  pointId: number;
+  userId?: number | null;
+  pointId?: number | null;
+  activity?: string;
   points: number;
-  description: string;
+  description?: string | null;
   createdAt: string;
 }
 

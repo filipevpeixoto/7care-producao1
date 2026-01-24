@@ -214,10 +214,12 @@ export class ConversationRepository {
    */
   async update(id: number, updates: Partial<Conversation>): Promise<Conversation | null> {
     try {
+      // Remover createdAt do updates para evitar conflito de tipos
+      const { createdAt, ...safeUpdates } = updates;
       const [conversation] = await db
         .update(schema.conversations)
         .set({
-          ...updates,
+          ...safeUpdates,
           updatedAt: new Date(),
         })
         .where(eq(schema.conversations.id, id))

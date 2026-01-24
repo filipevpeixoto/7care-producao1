@@ -62,7 +62,7 @@ export async function getVisitedUsers(): Promise<User[]> {
   const rows = await db
     .select()
     .from(schema.users)
-    .where(eq(schema.users.status, 'visited' as any))
+    .where(drizzleSql`${schema.users.status} = 'visited'`)
     .orderBy(desc(schema.users.createdAt));
   return rows.map((row) => toUser(row as Record<string, unknown>));
 }
@@ -124,7 +124,7 @@ export async function getUsersByRole(role: string): Promise<User[]> {
   const rows = await db
     .select()
     .from(schema.users)
-    .where(eq(schema.users.role, role as any))
+    .where(drizzleSql`${schema.users.role} = ${role}`)
     .orderBy(asc(schema.users.name));
   return rows.map((row) => toUser(row as Record<string, unknown>));
 }
@@ -137,17 +137,30 @@ export async function createUser(userData: CreateUserInput): Promise<User> {
     ? await bcrypt.hash(userData.password, 10)
     : await bcrypt.hash('temp123', 10);
 
-  const { createdAt, updatedAt, ...data } = userData as any;
+  // Extrair dados válidos para inserção
+  const insertData: Record<string, unknown> = {
+    name: userData.name,
+    email: userData.email,
+    password: hashedPassword,
+    role: userData.role ?? 'member',
+    status: userData.status ?? 'active',
+    church: userData.church ?? null,
+    churchCode: userData.churchCode ?? null,
+    districtId: userData.districtId ?? null,
+    points: userData.points ?? 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // Adicionar campos opcionais se existirem
+  if (userData.phone !== undefined) insertData.phone = userData.phone;
+  if (userData.address !== undefined) insertData.address = userData.address;
+  if (userData.birthDate !== undefined) insertData.birthDate = userData.birthDate;
+  if (userData.avatarUrl !== undefined) insertData.avatarUrl = userData.avatarUrl;
+
   const [inserted] = await db
     .insert(schema.users)
-    .values({
-      ...data,
-      password: hashedPassword,
-      role: userData.role as any,
-      status: (userData.status || 'active') as any,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any)
+    .values(insertData)
     .returning();
 
   return toUser(inserted as Record<string, unknown>);
@@ -233,7 +246,7 @@ export async function countUsersByStatus(status: string): Promise<number> {
   const result = await db
     .select({ count: drizzleSql<number>`count(*)` })
     .from(schema.users)
-    .where(eq(schema.users.status, status as any));
+    .where(drizzleSql`${schema.users.status} = ${status}`);
   return Number(result[0]?.count ?? 0);
 }
 
@@ -252,17 +265,17 @@ export async function getUsersPaginated(
   }
 ): Promise<{ users: User[]; total: number; pages: number }> {
   const offset = (page - 1) * limit;
-  const conditions: any[] = [];
+  const conditions: ReturnType<typeof eq>[] = [];
 
   // churchId não existe na tabela users, usar districtId como filtro primário
   if (filters?.districtId) {
     conditions.push(eq(schema.users.districtId, filters.districtId));
   }
   if (filters?.role) {
-    conditions.push(eq(schema.users.role, filters.role as any));
+    conditions.push(drizzleSql`${schema.users.role} = ${filters.role}`);
   }
   if (filters?.status) {
-    conditions.push(eq(schema.users.status, filters.status as any));
+    conditions.push(drizzleSql`${schema.users.status} = ${filters.status}`);
   }
   if (filters?.search) {
     conditions.push(

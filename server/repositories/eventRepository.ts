@@ -40,20 +40,23 @@ export class EventRepository {
    */
   async createEvent(eventData: InsertEvent): Promise<Event> {
     try {
-      const [event] = await db.insert(schema.events).values({
-        title: (eventData as any).title || 'Evento',
-        type: (eventData as any).type || 'general',
-        date: (eventData as any).date ? new Date((eventData as any).date) : new Date(),
-        description: (eventData as any).description,
-        endDate: (eventData as any).endDate ? new Date((eventData as any).endDate) : null,
-        location: (eventData as any).location,
-        churchId: (eventData as any).churchId,
-        createdBy: (eventData as any).createdBy,
-        isRecurring: (eventData as any).isRecurring || false,
-        recurrencePattern: (eventData as any).recurrencePattern,
+      // Construir dados de inserção tipados
+      const insertData: Record<string, unknown> = {
+        title: eventData.title ?? 'Evento',
+        type: eventData.type ?? 'general',
+        date: eventData.date ? new Date(String(eventData.date)) : new Date(),
+        description: eventData.description ?? null,
+        endDate: eventData.endDate ? new Date(String(eventData.endDate)) : null,
+        location: eventData.location ?? null,
+        churchId: eventData.churchId ?? null,
+        createdBy: eventData.createdBy ?? null,
+        isRecurring: eventData.isRecurring ?? false,
+        recurrencePattern: eventData.recurrencePattern ?? null,
         createdAt: new Date(),
         updatedAt: new Date()
-      } as any).returning();
+      };
+
+      const [event] = await db.insert(schema.events).values(insertData).returning();
       return this.mapEventRecord(event);
     } catch (error) {
       console.error('Erro ao criar evento:', error);

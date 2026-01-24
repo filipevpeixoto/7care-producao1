@@ -214,9 +214,11 @@ export class PointsRepository {
    */
   async updateAchievement(id: number, updates: Partial<Achievement>): Promise<Achievement | null> {
     try {
+      // Remover createdAt do updates para evitar conflito de tipos
+      const { createdAt, ...safeUpdates } = updates;
       const [achievement] = await db
         .update(schema.achievements)
-        .set(updates)
+        .set(safeUpdates)
         .where(eq(schema.achievements.id, id))
         .returning();
       return achievement ? this.mapAchievementRecord(achievement) : null;
@@ -247,10 +249,10 @@ export class PointsRepository {
   private mapActivityRecord(record: Record<string, unknown>): PointActivity {
     return {
       id: Number(record.id),
-      userId: record.userId ? Number(record.userId) : undefined,
+      userId: record.userId ? Number(record.userId) : null,
       activity: String(record.activity || ''),
       points: Number(record.points || 0),
-      description: record.description ? String(record.description) : undefined,
+      description: record.description ? String(record.description) : null,
       createdAt: record.createdAt instanceof Date 
         ? record.createdAt.toISOString() 
         : String(record.createdAt || ''),
@@ -264,9 +266,9 @@ export class PointsRepository {
     return {
       id: Number(record.id),
       name: String(record.name || ''),
-      description: record.description ? String(record.description) : undefined,
+      description: record.description ? String(record.description) : null,
       pointsRequired: Number(record.pointsRequired || 0),
-      icon: record.icon ? String(record.icon) : undefined,
+      icon: record.icon ? String(record.icon) : null,
       createdAt: record.createdAt instanceof Date 
         ? record.createdAt.toISOString() 
         : String(record.createdAt || ''),

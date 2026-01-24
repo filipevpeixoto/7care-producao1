@@ -125,81 +125,97 @@ export type CreateActivityInput = Omit<Activity, 'id'>;
 export type UpdateActivityInput = Partial<Omit<Activity, 'id'>>;
 
 // Tipos para configuração de pontos
+export interface PointsConfigurationActivity {
+  id: string;
+  name: string;
+  points: number;
+  category: string;
+}
+
+export interface PointsConfigurationLevel {
+  id: string;
+  name: string;
+  minPoints: number;
+  maxPoints: number;
+}
+
 export interface PointsConfiguration {
-  basicPoints: number;
-  attendancePoints: number;
-  eventPoints: number;
-  donationPoints: number;
-  engajamento: {
+  basicPoints?: number;
+  attendancePoints?: number;
+  eventPoints?: number;
+  donationPoints?: number;
+  activities?: PointsConfigurationActivity[];
+  levels?: PointsConfigurationLevel[];
+  engajamento?: {
     baixo: number;
     medio: number;
     alto: number;
   };
-  classificacao: {
+  classificacao?: {
     frequente: number;
     naoFrequente: number;
   };
-  dizimista: {
+  dizimista?: {
     naoDizimista: number;
     pontual: number;
     sazonal: number;
     recorrente: number;
   };
-  ofertante: {
+  ofertante?: {
     naoOfertante: number;
     pontual: number;
     sazonal: number;
     recorrente: number;
   };
-  tempoBatismo: {
+  tempoBatismo?: {
     doisAnos: number;
     cincoAnos: number;
     dezAnos: number;
     vinteAnos: number;
     maisVinte: number;
   };
-  cargos: {
+  cargos?: {
     umCargo: number;
     doisCargos: number;
     tresOuMais: number;
   };
-  nomeUnidade: {
+  nomeUnidade?: {
     comUnidade: number;
     semUnidade: number;
   };
-  temLicao: {
+  temLicao?: {
     comLicao: number;
   };
-  pontuacaoDinamica: {
+  pontuacaoDinamica?: {
     multiplicador: number;
   };
-  totalPresenca: {
+  totalPresenca?: {
     zeroATres: number;
     quatroASete: number;
     oitoATreze: number;
   };
-  presenca: {
+  presenca?: {
     multiplicador: number;
   };
-  escolaSabatina: {
+  escolaSabatina?: {
     comunhao: number;
     missao: number;
     estudoBiblico: number;
     batizouAlguem: number;
     discipuladoPosBatismo: number;
   };
-  batizouAlguem: {
+  batizouAlguem?: {
     sim: number;
     nao: number;
   };
-  discipuladoPosBatismo: {
+  discipuladoPosBatismo?: {
     multiplicador: number;
   };
-  cpfValido: {
+  cpfValido?: {
     valido: number;
     invalido: number;
   };
-  camposVaziosACMS: {
+  camposVaziosACMS?: {
     completos: number;
     incompletos: number;
   };

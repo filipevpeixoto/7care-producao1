@@ -45,7 +45,7 @@ export const discipleshipRoutes = (app: Express): void => {
       let userChurch: string | null = null;
       
       // Se não for admin, filtrar por igreja do usuário
-      if (!hasAdminAccess({ role: userRole as any }) && userId) {
+      if (!hasAdminAccess({ role: userRole }) && userId) {
         const currentUser = await storage.getUserById(parseInt(userId));
         if (currentUser?.church) {
           userChurch = currentUser.church;

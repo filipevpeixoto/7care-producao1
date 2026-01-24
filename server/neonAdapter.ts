@@ -1391,8 +1391,17 @@ export class NeonAdapter implements IStorage {
 
         let totalPoints = 0;
 
+        // Helper para acessar campos com fallback para extraData
+        const getField = <T>(field: keyof User, defaultValue?: T): T | undefined => {
+          const directValue = userData[field];
+          if (directValue !== undefined && directValue !== null) {
+            return directValue as T;
+          }
+          return (extraData?.[field] ?? defaultValue) as T | undefined;
+        };
+
         // 1. ENGAJAMENTO
-        const engajamentoValue = (userData as any).engajamento || extraData?.engajamento;
+        const engajamentoValue = getField<string>('engajamento');
         if (engajamentoValue) {
           const engajamento = String(engajamentoValue).toLowerCase();
           if (engajamento.includes('baixo')) {
@@ -1405,7 +1414,7 @@ export class NeonAdapter implements IStorage {
         }
 
         // 2. CLASSIFICAÇÃO
-        const classificacaoValue = (userData as any).classificacao || extraData?.classificacao;
+        const classificacaoValue = getField<string>('classificacao');
         if (classificacaoValue) {
           const classificacao = String(classificacaoValue).toLowerCase();
           if (classificacao.includes('frequente') && !classificacao.includes('não')) {
@@ -1416,7 +1425,7 @@ export class NeonAdapter implements IStorage {
         }
 
         // 3. DIZIMISTA
-        const dizimistaValue = (userData as any).dizimistaType || extraData?.dizimistaType;
+        const dizimistaValue = getField<string>('dizimistaType');
         if (dizimistaValue) {
           const dizimista = String(dizimistaValue).toLowerCase();
           if (dizimista.includes('não dizimista') || dizimista.includes('nao dizimista')) {
@@ -1431,7 +1440,7 @@ export class NeonAdapter implements IStorage {
         }
 
         // 4. OFERTANTE
-        const ofertanteValue = (userData as any).ofertanteType || extraData?.ofertanteType;
+        const ofertanteValue = getField<string>('ofertanteType');
         if (ofertanteValue) {
           const ofertante = String(ofertanteValue).toLowerCase();
           if (ofertante.includes('não ofertante') || ofertante.includes('nao ofertante')) {
@@ -1446,7 +1455,7 @@ export class NeonAdapter implements IStorage {
         }
 
         // 5. TEMPO DE BATISMO
-        const tempoBatismo = (userData as any).tempoBatismoAnos || extraData?.tempoBatismoAnos;
+        const tempoBatismo = getField<number>('tempoBatismoAnos');
         if (tempoBatismo !== null && tempoBatismo !== undefined) {
           const anos = Number(tempoBatismo);
           if (!isNaN(anos) && pointsConfig.tempoBatismo) {
@@ -1465,13 +1474,13 @@ export class NeonAdapter implements IStorage {
         }
 
         // 6. TEM LIÇÃO
-        const temLicao = (userData as any).temLicao ?? extraData?.temLicao;
+        const temLicao = getField<boolean>('temLicao');
         if (temLicao === true && pointsConfig.temLicao) {
           totalPoints += pointsConfig.temLicao.comLicao ?? 0;
         }
 
         // 7. TOTAL PRESENÇA (usa multiplicador)
-        const totalPresenca = (userData as any).totalPresenca ?? extraData?.totalPresenca;
+        const totalPresenca = getField<number>('totalPresenca');
         if (totalPresenca !== null && totalPresenca !== undefined) {
           const presencas = Number(totalPresenca);
           if (!isNaN(presencas) && pointsConfig.presenca) {
@@ -1480,7 +1489,7 @@ export class NeonAdapter implements IStorage {
         }
 
         // 8. CPF VÁLIDO
-        const cpfValido = (userData as any).cpfValido ?? extraData?.cpfValido;
+        const cpfValido = getField<boolean>('cpfValido');
         if (cpfValido !== undefined && pointsConfig.cpfValido) {
           if (cpfValido === true) {
             totalPoints += pointsConfig.cpfValido.valido ?? 0;
@@ -1490,7 +1499,7 @@ export class NeonAdapter implements IStorage {
         }
 
         // 9. CAMPOS VAZIOS
-        const camposVazios = (userData as any).camposVazios ?? extraData?.camposVazios;
+        const camposVazios = getField<boolean>('camposVazios');
         if (camposVazios !== undefined && pointsConfig.camposVaziosACMS) {
           if (camposVazios === false) {
             totalPoints += pointsConfig.camposVaziosACMS.completos ?? 0;
@@ -1500,7 +1509,7 @@ export class NeonAdapter implements IStorage {
         }
 
         // 10. BATIZOU ALGUÉM
-        const batizouAlguem = (userData as any).batizouAlguem ?? extraData?.batizouAlguem;
+        const batizouAlguem = getField<boolean>('batizouAlguem');
         if (batizouAlguem === true && pointsConfig.batizouAlguem) {
           totalPoints += pointsConfig.batizouAlguem.sim ?? 0;
         }

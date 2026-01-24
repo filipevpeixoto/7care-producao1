@@ -215,13 +215,13 @@ export async function getChurchStats(churchId: number): Promise<{
       .from(schema.users)
       .where(and(
         eq(schema.users.districtId, churchId),
-        eq(schema.users.status, 'active' as any)
+        drizzleSql`${schema.users.status} = 'active'`
       )),
     db.select({ count: drizzleSql<number>`count(*)` })
       .from(schema.users)
       .where(and(
         eq(schema.users.districtId, churchId),
-        eq(schema.users.status, 'visited' as any)
+        drizzleSql`${schema.users.status} = 'visited'`
       )),
     db.select({ count: drizzleSql<number>`count(*)` })
       .from(schema.events)

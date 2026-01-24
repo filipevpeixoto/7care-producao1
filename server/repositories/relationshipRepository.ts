@@ -104,10 +104,12 @@ export class RelationshipRepository {
    */
   async update(id: number, updates: Partial<Relationship>): Promise<Relationship | null> {
     try {
+      // Remover createdAt do updates para evitar conflito de tipos
+      const { createdAt, ...safeUpdates } = updates;
       const [relationship] = await db
         .update(schema.relationships)
         .set({
-          ...updates,
+          ...safeUpdates,
           updatedAt: new Date(),
         })
         .where(eq(schema.relationships.id, id))

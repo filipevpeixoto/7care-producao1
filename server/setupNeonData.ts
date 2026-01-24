@@ -64,7 +64,7 @@ export async function setupNeonData() {
     observations: 'Super administrador do sistema',
     firstAccess: false,
     status: 'active'
-  } as any);
+  });
   
   console.log('✅ Super admin criado:', admin.name);
   
@@ -205,7 +205,7 @@ export async function setupNeonData() {
     const user = await storage.createUser({
       ...userData,
       password: hashedPassword
-    } as any);
+    });
     console.log(`✅ Usuário criado: ${user.name} (${user.email})`);
   }
   

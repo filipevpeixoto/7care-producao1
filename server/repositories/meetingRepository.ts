@@ -197,8 +197,8 @@ export class MeetingRepository {
     return {
       id: Number(record.id),
       name: String(record.name || ''),
-      description: record.description ? String(record.description) : undefined,
-      color: record.color ? String(record.color) : undefined,
+      description: record.description ? String(record.description) : null,
+      color: record.color ? String(record.color) : null,
       createdAt: record.createdAt instanceof Date 
         ? record.createdAt.toISOString() 
         : String(record.createdAt || ''),
