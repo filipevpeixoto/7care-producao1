@@ -418,7 +418,6 @@ export const requireDistrictAccess = (getDistrictId: (req: AuthenticatedRequest)
       };
       res.status(403).json(errorResponse);
     } catch (error) {
-      console.error('Error in requireDistrictAccess middleware:', error);
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authorization error',
@@ -428,3 +427,6 @@ export const requireDistrictAccess = (getDistrictId: (req: AuthenticatedRequest)
     }
   };
 };
+
+// Exportar middleware de CSRF
+export { csrfCookie, csrfProtection, csrfTokenEndpoint, generateCsrfToken } from './csrf';

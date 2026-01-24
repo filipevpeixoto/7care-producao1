@@ -72,7 +72,7 @@ export const userRoutes = (app: Express): void => {
    */
   app.get("/api/users", async (req: Request, res: Response) => {
     try {
-      console.log('🔍 [GET /api/users] Iniciando busca de usuários');
+      logger.debug('🔍 [GET /api/users] Iniciando busca de usuários');
       const { role, status, church } = req.query;
       
       // Paginação
@@ -82,7 +82,7 @@ export const userRoutes = (app: Express): void => {
       
       const requestingUserId = parseInt(req.headers['x-user-id'] as string || '0');
       
-      console.log('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
+      logger.debug('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
       
       // Buscar dados do usuário que está fazendo a requisição
       let requestingUser = null;
@@ -91,7 +91,7 @@ export const userRoutes = (app: Express): void => {
       }
       
       let users = await storage.getAllUsers();
-      console.log(`✅ ${users.length} usuários encontrados no banco`);
+      logger.debug(`✅ ${users.length} usuários encontrados no banco`);
 
       if (role) {
         users = users.filter(u => u.role === role);
@@ -195,7 +195,7 @@ export const userRoutes = (app: Express): void => {
       }));
 
       const safeUsers = usersWithPoints.map(({ password, ...user }) => user);
-      console.log(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
+      logger.debug(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
       
       res.json({
         data: safeUsers,
@@ -207,7 +207,7 @@ export const userRoutes = (app: Express): void => {
         }
       });
     } catch (error) {
-      console.error('❌ Erro na rota GET /api/users:', error);
+      logger.error('❌ Erro na rota GET /api/users:', error);
       handleError(res, error, "Get users");
     }
   });

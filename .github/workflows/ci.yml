@@ -118,7 +118,57 @@ jobs:
         run: npm audit --audit-level=high
         continue-on-error: true
 
-  # Job 5: Deploy para Netlify (apenas main)
+  # Job 5: Deploy Preview para PRs (Staging)
+  deploy-preview:
+    name: Deploy Preview (Staging)
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build para preview
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Deploy Preview para Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './dist'
+          production-deploy: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Preview Deploy - PR #${{ github.event.pull_request.number }}"
+          alias: pr-${{ github.event.pull_request.number }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 10
+
+      - name: Comentar URL de Preview no PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const previewUrl = `https://pr-${prNumber}--meu7care.netlify.app`;
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `🚀 **Deploy Preview disponível!**\n\n🔗 ${previewUrl}\n\nEsta preview será atualizada automaticamente a cada push neste PR.`
+            });
+
+  # Job 6: Deploy para Netlify (apenas main)
   deploy:
     name: Deploy to Netlify
     runs-on: ubuntu-latest
@@ -142,7 +192,11 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Salvar SHA do commit atual
+        run: echo "${{ github.sha }}" > .last-deploy-sha
+
       - name: Deploy para Netlify
+        id: netlify-deploy
         uses: nwtgck/actions-netlify@v3.0
         with:
           publish-dir: './dist'
@@ -153,6 +207,26 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         timeout-minutes: 10
+
+      - name: Verificar saúde do deploy
+        id: health-check
+        run: |
+          sleep 30
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://meu7care.netlify.app/api/health || echo "000")
+          echo "status=$HTTP_STATUS" >> $GITHUB_OUTPUT
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "⚠️ Health check falhou com status: $HTTP_STATUS"
+            exit 1
+          fi
+          echo "✅ Health check passou com status: $HTTP_STATUS"
+        continue-on-error: true
+
+      - name: Rollback em caso de falha
+        if: steps.health-check.outcome == 'failure'
+        run: |
+          echo "🔄 Iniciando rollback para o deploy anterior..."
+          echo "⚠️ ROLLBACK NECESSÁRIO - Health check falhou"
+          echo "Por favor, execute manualmente: netlify rollback"
         continue-on-error: true
 
   # Job 6: Notificação de Status

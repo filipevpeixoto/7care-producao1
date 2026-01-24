@@ -40,8 +40,8 @@ npm run dev
 
 ### Acesso Local
 - **URL:** http://localhost:3065
-- **Login Admin:** admin@7care.com
-- **Senha:** meu7care
+- **Login Admin:** Configure nas variáveis de ambiente
+- **Credenciais:** Consulte a documentação interna ou o administrador do sistema
 
 ## 📦 Scripts Disponíveis
 

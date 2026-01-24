@@ -33,10 +33,10 @@ import { debugRoutes } from './debugRoutes';
 import { analyticsRoutes } from './analyticsRoutes';
 import twoFactorRouter from './twoFactorRoutes';
 
-// Rotas já separadas (existentes)
-import { electionRoutes } from '../electionRoutes';
-import { districtRoutes } from '../districtRoutes';
-import { importRoutes } from '../importRoutes';
+// Rotas movidas para pasta routes
+import { electionRoutes } from './electionRoutes';
+import { districtRoutes } from './districtRoutes';
+import { importRoutes } from './importRoutes';
 
 /**
  * Registra todas as rotas da aplicação
