@@ -90,6 +90,13 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   const token = localStorage.getItem('7care_token');
   const userId = getUserId();
 
+  // Debug log para verificar se token existe
+  if (!token) {
+    console.warn('[fetchWithAuth] Token JWT não encontrado no localStorage. URL:', url);
+  } else {
+    console.log('[fetchWithAuth] Token JWT encontrado. URL:', url);
+  }
+
   const headers = {
     ...options.headers,
     'Content-Type': 'application/json',
