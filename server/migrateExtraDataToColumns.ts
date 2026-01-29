@@ -12,7 +12,7 @@ async function migrateExtraDataToColumns() {
   try {
     // 1. Adicionar novas colunas na tabela users
     console.log('📋 Passo 1: Adicionando novas colunas...');
-    
+
     await sql`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS engajamento TEXT,
@@ -32,7 +32,7 @@ async function migrateExtraDataToColumns() {
       ADD COLUMN IF NOT EXISTS cpf_valido BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS campos_vazios BOOLEAN DEFAULT true
     `;
-    
+
     console.log('✅ Colunas adicionadas com sucesso!\n');
 
     // 2. Buscar todos os usuários
@@ -47,8 +47,8 @@ async function migrateExtraDataToColumns() {
 
     for (const user of users) {
       try {
-        let extraData: any = {};
-        
+        let extraData: Record<string, unknown> = {};
+
         // Parsear extra_data
         if (user.extra_data) {
           if (typeof user.extra_data === 'string') {
@@ -68,7 +68,11 @@ async function migrateExtraDataToColumns() {
         const temLicao = extraData.temLicao === true || extraData.temLicao === 'Sim';
         const batizouAlguem = extraData.batizouAlguem === 'Sim' || extraData.batizouAlguem === true;
         const cpfValido = extraData.cpfValido === 'Sim' || extraData.cpfValido === true;
-        const camposVazios = !(extraData.camposVazios === 0 || extraData.camposVazios === false || extraData.camposVazios === '0');
+        const camposVazios = !(
+          extraData.camposVazios === 0 ||
+          extraData.camposVazios === false ||
+          extraData.camposVazios === '0'
+        );
 
         // Atualizar usuário
         await sql`
@@ -93,11 +97,10 @@ async function migrateExtraDataToColumns() {
         `;
 
         migratedCount++;
-        
+
         if (migratedCount % 50 === 0) {
           console.log(`   ✓ ${migratedCount} usuários migrados...`);
         }
-
       } catch (error) {
         console.error(`   ❌ Erro ao migrar usuário ${user.name}:`, error);
       }
@@ -109,16 +112,15 @@ async function migrateExtraDataToColumns() {
 
     // 4. Criar índices para melhorar performance
     console.log('\n📋 Passo 4: Criando índices...');
-    
+
     await sql`CREATE INDEX IF NOT EXISTS idx_users_engajamento ON users(engajamento)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_users_classificacao ON users(classificacao)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_users_dizimista_type ON users(dizimista_type)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_users_tempo_batismo_anos ON users(tempo_batismo_anos)`;
-    
+
     console.log('✅ Índices criados!\n');
 
     console.log('🎉 Migração completa com sucesso!');
-
   } catch (error) {
     console.error('❌ Erro na migração:', error);
     throw error;
@@ -131,8 +133,7 @@ migrateExtraDataToColumns()
     console.log('\n✅ Script finalizado com sucesso!');
     process.exit(0);
   })
-  .catch((error) => {
+  .catch(error => {
     console.error('\n❌ Script falhou:', error);
     process.exit(1);
   });
-

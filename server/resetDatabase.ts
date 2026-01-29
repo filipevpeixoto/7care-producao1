@@ -21,17 +21,17 @@ async function resetDatabase() {
     // 2. Limpar todos os dados INCLUINDO ADMIN
     console.log('🧹 Etapa 2: Limpando TODOS os dados...');
     const storage = new NeonAdapter();
-    
+
     // Deletar todos os usuários, sem exceção
     try {
       await db.execute('DELETE FROM users');
       console.log('  🗑️ Todos os usuários deletados');
-    } catch (e: any) {
-      if (!e.message.includes('does not exist')) {
+    } catch (e: unknown) {
+      if (!(e instanceof Error) || !e.message.includes('does not exist')) {
         throw e;
       }
     }
-    
+
     // Limpar dados das outras tabelas
     await storage.clearAllData();
     console.log('✅ Todos os dados foram limpos com sucesso!\n');
@@ -43,7 +43,7 @@ async function resetDatabase() {
 
     console.log('🎉 Reset do banco de dados concluído com sucesso!');
     console.log('📊 Você pode fazer login com: admin@7care.com / meu7care');
-    
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Erro ao resetar banco de dados:', error);

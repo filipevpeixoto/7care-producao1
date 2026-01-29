@@ -3,10 +3,11 @@
  * Métodos relacionados a eventos extraídos do NeonAdapter
  */
 
-import { eq, desc, sql, and, gte, lte, or, like, count } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, count } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import * as schema from '../schema';
 import type { Event, InsertEvent, UpdateEvent } from '../../shared/schema';
+import { logger } from '../utils/logger';
 
 export class EventRepository {
   /**
@@ -17,7 +18,7 @@ export class EventRepository {
       const events = await db.select().from(schema.events).orderBy(desc(schema.events.date));
       return events.map(this.mapEventRecord);
     } catch (error) {
-      console.error('Erro ao buscar eventos:', error);
+      logger.error('Erro ao buscar eventos', error);
       return [];
     }
   }
@@ -27,10 +28,14 @@ export class EventRepository {
    */
   async getEventById(id: number): Promise<Event | null> {
     try {
-      const [event] = await db.select().from(schema.events).where(eq(schema.events.id, id)).limit(1);
+      const [event] = await db
+        .select()
+        .from(schema.events)
+        .where(eq(schema.events.id, id))
+        .limit(1);
       return event ? this.mapEventRecord(event) : null;
     } catch (error) {
-      console.error('Erro ao buscar evento por ID:', error);
+      logger.error('Erro ao buscar evento por ID', error);
       return null;
     }
   }
@@ -53,13 +58,16 @@ export class EventRepository {
         isRecurring: eventData.isRecurring ?? false,
         recurrencePattern: eventData.recurrencePattern ?? null,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      const [event] = await db.insert(schema.events).values(insertData).returning();
+      const [event] = await db
+        .insert(schema.events)
+        .values(insertData as any)
+        .returning();
       return this.mapEventRecord(event);
     } catch (error) {
-      console.error('Erro ao criar evento:', error);
+      logger.error('Erro ao criar evento', error);
       throw error;
     }
   }
@@ -69,7 +77,7 @@ export class EventRepository {
    */
   async updateEvent(id: number, eventData: UpdateEvent): Promise<Event | null> {
     try {
-      const { createdAt, ...data } = eventData as Record<string, unknown>;
+      const { createdAt: _createdAt, ...data } = eventData as Record<string, unknown>;
       // Converter date se for string
       if (data.date && typeof data.date === 'string') {
         data.date = new Date(data.date);
@@ -78,13 +86,13 @@ export class EventRepository {
         .update(schema.events)
         .set({
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         } as Record<string, unknown>)
         .where(eq(schema.events.id, id))
         .returning();
       return event ? this.mapEventRecord(event) : null;
     } catch (error) {
-      console.error('Erro ao atualizar evento:', error);
+      logger.error('Erro ao atualizar evento', error);
       return null;
     }
   }
@@ -97,7 +105,7 @@ export class EventRepository {
       const result = await db.delete(schema.events).where(eq(schema.events.id, id));
       return (result.rowCount ?? 0) > 0;
     } catch (error) {
-      console.error('Erro ao deletar evento:', error);
+      logger.error('Erro ao deletar evento', error);
       return false;
     }
   }
@@ -119,7 +127,7 @@ export class EventRepository {
         .orderBy(desc(schema.events.date));
       return events.map(this.mapEventRecord);
     } catch (error) {
-      console.error('Erro ao buscar eventos por período:', error);
+      logger.error('Erro ao buscar eventos por período', error);
       return [];
     }
   }
@@ -129,9 +137,8 @@ export class EventRepository {
    */
   async getEventsByChurch(churchIdOrName: string | number): Promise<Event[]> {
     try {
-      const churchId = typeof churchIdOrName === 'number' 
-        ? churchIdOrName 
-        : parseInt(churchIdOrName, 10);
+      const churchId =
+        typeof churchIdOrName === 'number' ? churchIdOrName : parseInt(churchIdOrName, 10);
       const events = await db
         .select()
         .from(schema.events)
@@ -139,7 +146,7 @@ export class EventRepository {
         .orderBy(desc(schema.events.date));
       return events.map(this.mapEventRecord);
     } catch (error) {
-      console.error('Erro ao buscar eventos por igreja:', error);
+      logger.error('Erro ao buscar eventos por igreja', error);
       return [];
     }
   }
@@ -156,7 +163,7 @@ export class EventRepository {
         .orderBy(desc(schema.events.date));
       return events.map(this.mapEventRecord);
     } catch (error) {
-      console.error('Erro ao buscar eventos por tipo:', error);
+      logger.error('Erro ao buscar eventos por tipo', error);
       return [];
     }
   }
@@ -175,7 +182,7 @@ export class EventRepository {
         .limit(limit);
       return events.map(this.mapEventRecord);
     } catch (error) {
-      console.error('Erro ao buscar próximos eventos:', error);
+      logger.error('Erro ao buscar próximos eventos', error);
       return [];
     }
   }
@@ -188,7 +195,7 @@ export class EventRepository {
       const [result] = await db.select({ count: count() }).from(schema.events);
       return result?.count || 0;
     } catch (error) {
-      console.error('Erro ao contar eventos:', error);
+      logger.error('Erro ao contar eventos', error);
       return 0;
     }
   }
@@ -201,9 +208,7 @@ export class EventRepository {
       id: record.id as number,
       title: record.title as string | undefined,
       description: record.description as string | null | undefined,
-      date: record.date instanceof Date 
-        ? record.date.toISOString() 
-        : String(record.date || ''),
+      date: record.date instanceof Date ? record.date.toISOString() : String(record.date || ''),
       time: record.time as string | undefined,
       location: record.location as string | null | undefined,
       type: record.type as string | undefined,
@@ -213,12 +218,14 @@ export class EventRepository {
       createdBy: record.createdBy as number | null | undefined,
       isRecurring: record.isRecurring as boolean | undefined,
       recurrencePattern: record.recurrencePattern as string | null | undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : record.createdAt as string | undefined,
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : record.updatedAt as string | undefined,
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : (record.createdAt as string | undefined),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : (record.updatedAt as string | undefined),
     };
   }
 }

@@ -3,7 +3,7 @@
  * Métodos relacionados a pontos, conquistas e gamificação
  */
 
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
@@ -16,7 +16,12 @@ const DEFAULT_POINTS_CONFIG: PointsConfiguration = {
     { id: 'cadastro_completo', name: 'Cadastro Completo', points: 100, category: 'perfil' },
     { id: 'foto_perfil', name: 'Foto de Perfil', points: 50, category: 'perfil' },
     { id: 'presenca_culto', name: 'Presença no Culto', points: 20, category: 'participacao' },
-    { id: 'participacao_evento', name: 'Participação em Evento', points: 30, category: 'participacao' },
+    {
+      id: 'participacao_evento',
+      name: 'Participação em Evento',
+      points: 30,
+      category: 'participacao',
+    },
     { id: 'estudo_biblico', name: 'Estudo Bíblico', points: 40, category: 'educacao' },
     { id: 'convidar_amigo', name: 'Convidar Amigo', points: 50, category: 'evangelismo' },
     { id: 'dizimo', name: 'Dízimo', points: 30, category: 'contribuicao' },
@@ -42,7 +47,7 @@ export class PointsRepository {
         .from(schema.systemConfig)
         .where(eq(schema.systemConfig.key, 'points_configuration'))
         .limit(1);
-      
+
       if (config && config.value) {
         return config.value as unknown as PointsConfiguration;
       }
@@ -73,12 +78,10 @@ export class PointsRepository {
           })
           .where(eq(schema.systemConfig.key, 'points_configuration'));
       } else {
-        await db
-          .insert(schema.systemConfig)
-          .values({
-            key: 'points_configuration',
-            value: config as unknown as Record<string, unknown>,
-          });
+        await db.insert(schema.systemConfig).values({
+          key: 'points_configuration',
+          value: config as unknown as Record<string, unknown>,
+        });
       }
     } catch (error) {
       logger.error('Erro ao salvar configuração de pontos:', error);
@@ -103,14 +106,12 @@ export class PointsRepository {
    */
   async resetAllUserPoints(): Promise<{ success: boolean; message: string }> {
     try {
-      await db
-        .update(schema.users)
-        .set({
-          points: 0,
-          level: 'Iniciante',
-          updatedAt: new Date(),
-        });
-      
+      await db.update(schema.users).set({
+        points: 0,
+        level: 'Iniciante',
+        updatedAt: new Date(),
+      });
+
       return { success: true, message: 'Pontos resetados com sucesso' };
     } catch (error) {
       logger.error('Erro ao resetar pontos dos usuários:', error);
@@ -215,7 +216,7 @@ export class PointsRepository {
   async updateAchievement(id: number, updates: Partial<Achievement>): Promise<Achievement | null> {
     try {
       // Remover createdAt do updates para evitar conflito de tipos
-      const { createdAt, ...safeUpdates } = updates;
+      const { createdAt: _createdAt, ...safeUpdates } = updates;
       const [achievement] = await db
         .update(schema.achievements)
         .set(safeUpdates)
@@ -233,9 +234,7 @@ export class PointsRepository {
    */
   async deleteAchievement(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(schema.achievements)
-        .where(eq(schema.achievements.id, id));
+      await db.delete(schema.achievements).where(eq(schema.achievements.id, id));
       return true;
     } catch (error) {
       logger.error('Erro ao deletar conquista:', error);
@@ -253,9 +252,10 @@ export class PointsRepository {
       activity: String(record.activity || ''),
       points: Number(record.points || 0),
       description: record.description ? String(record.description) : null,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
     };
   }
 
@@ -269,9 +269,10 @@ export class PointsRepository {
       description: record.description ? String(record.description) : null,
       pointsRequired: Number(record.pointsRequired || 0),
       icon: record.icon ? String(record.icon) : null,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
     };
   }
 }

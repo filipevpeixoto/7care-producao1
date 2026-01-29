@@ -3,10 +3,6 @@
  * Classe abstrata com operações CRUD genéricas
  */
 
-import { db } from '../neonConfig';
-import { sql } from 'drizzle-orm';
-import { logger } from '../utils/logger';
-
 export interface PaginationOptions {
   page: number;
   limit: number;
@@ -52,10 +48,7 @@ export function createPaginatedResult<T>(
 /**
  * Pagina um array em memória
  */
-export function paginateArray<T>(
-  items: T[],
-  options?: PaginationOptions
-): PaginatedResult<T> {
+export function paginateArray<T>(items: T[], options?: PaginationOptions): PaginatedResult<T> {
   const page = options?.page || 1;
   const limit = options?.limit || 50;
   const total = items.length;

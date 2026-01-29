@@ -1,13 +1,12 @@
 import { db } from './neonConfig';
-import { schema } from './schema';
 
 export async function migrateToNeon() {
   console.log('🚀 Iniciando migração para Neon Database...');
-  
+
   try {
     // Criar tabelas
     console.log('📋 Criando tabelas...');
-    
+
     // Tabela de usuários
     await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -173,10 +172,37 @@ export async function migrateToNeon() {
       CREATE TABLE IF NOT EXISTS emotional_checkins (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id),
-        mood TEXT NOT NULL,
+        emotional_score INTEGER,
+        mood TEXT,
+        prayer_request TEXT,
         notes TEXT,
-        created_at TIMESTAMP DEFAULT NOW()
+        is_private BOOLEAN DEFAULT FALSE,
+        allow_church_members BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
       );
+    `);
+
+    // Adicionar colunas faltantes se tabela já existir
+    await db.execute(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emotional_checkins' AND column_name = 'emotional_score') THEN
+          ALTER TABLE emotional_checkins ADD COLUMN emotional_score INTEGER;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emotional_checkins' AND column_name = 'prayer_request') THEN
+          ALTER TABLE emotional_checkins ADD COLUMN prayer_request TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emotional_checkins' AND column_name = 'is_private') THEN
+          ALTER TABLE emotional_checkins ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emotional_checkins' AND column_name = 'allow_church_members') THEN
+          ALTER TABLE emotional_checkins ADD COLUMN allow_church_members BOOLEAN DEFAULT TRUE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emotional_checkins' AND column_name = 'updated_at') THEN
+          ALTER TABLE emotional_checkins ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
+        END IF;
+      END $$;
     `);
 
     // Tabela de configurações de pontos
@@ -343,20 +369,20 @@ export async function migrateToNeon() {
     `);
 
     console.log('✅ Tabelas criadas com sucesso!');
-    
+
     // Criar super administrador se não existir
     console.log('👤 Verificando super administrador...');
-    
+
     const existingAdmin = await db.execute(`
       SELECT id FROM users WHERE email = 'admin@7care.com' LIMIT 1
     `);
-    
+
     if (existingAdmin.rows.length === 0) {
       console.log('🔐 Criando super administrador...');
-      
+
       const bcrypt = await import('bcryptjs');
       const hashedPassword = await bcrypt.hash('meu7care', 10);
-      
+
       const extraData = JSON.stringify({
         superAdmin: true,
         permanent: true,
@@ -373,7 +399,7 @@ export async function migrateToNeon() {
         batizouAlguem: true,
         discPosBatismal: 3,
         cpfValido: true,
-        camposVaziosACMS: false
+        camposVaziosACMS: false,
       });
 
       await db.execute(`
@@ -391,14 +417,13 @@ export async function migrateToNeon() {
           '${extraData}', 'Super administrador permanente do sistema', false, 'approved'
         )
       `);
-      
+
       console.log('✅ Super administrador criado!');
     } else {
       console.log('✅ Super administrador já existe!');
     }
-    
+
     console.log('🎉 Migração para Neon Database concluída com sucesso!');
-    
   } catch (error) {
     console.error('❌ Erro na migração:', error);
     throw error;

@@ -5,19 +5,52 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
+// Mock types for tests
+interface MockDiscipleshipRequest {
+  id: number;
+  interestedId: number;
+  missionaryId?: number;
+  status?: string;
+  message?: string;
+  notes?: string;
+  createdAt?: string;
+  interestedName?: string;
+  missionaryName?: string;
+}
+
+interface MockRelationship {
+  id?: number;
+  interestedId: number;
+  missionaryId: number;
+  status?: string;
+}
+
+interface MockUser {
+  id: number;
+  name?: string;
+  email?: string;
+}
+
 // Mock do NeonAdapter
 const mockStorage = {
-  getAllDiscipleshipRequests: jest.fn<() => Promise<any[]>>(),
-  getDiscipleshipRequestById: jest.fn<(id: number) => Promise<any | null>>(),
-  createDiscipleshipRequest: jest.fn<(data: any) => Promise<any>>(),
-  updateDiscipleshipRequest: jest.fn<(id: number, data: any) => Promise<any | null>>(),
+  getAllDiscipleshipRequests: jest.fn<() => Promise<MockDiscipleshipRequest[]>>(),
+  getDiscipleshipRequestById: jest.fn<(id: number) => Promise<MockDiscipleshipRequest | null>>(),
+  createDiscipleshipRequest:
+    jest.fn<(data: Partial<MockDiscipleshipRequest>) => Promise<MockDiscipleshipRequest>>(),
+  updateDiscipleshipRequest:
+    jest.fn<
+      (
+        id: number,
+        data: Partial<MockDiscipleshipRequest>
+      ) => Promise<MockDiscipleshipRequest | null>
+    >(),
   deleteDiscipleshipRequest: jest.fn<(id: number) => Promise<boolean>>(),
-  createRelationship: jest.fn<(data: any) => Promise<any>>(),
-  getUserById: jest.fn<(id: number) => Promise<any | null>>()
+  createRelationship: jest.fn<(data: MockRelationship) => Promise<MockRelationship>>(),
+  getUserById: jest.fn<(id: number) => Promise<MockUser | null>>(),
 };
 
 jest.mock('../../neonAdapter', () => ({
-  NeonAdapter: jest.fn().mockImplementation(() => mockStorage)
+  NeonAdapter: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 const mockRequests = [
@@ -29,7 +62,7 @@ const mockRequests = [
     message: 'Gostaria de ser discipulado',
     createdAt: '2025-01-20T10:00:00',
     interestedName: 'João Silva',
-    missionaryName: 'Pastor Pedro'
+    missionaryName: 'Pastor Pedro',
   },
   {
     id: 2,
@@ -39,7 +72,7 @@ const mockRequests = [
     message: 'Preciso de orientação espiritual',
     createdAt: '2025-01-19T10:00:00',
     interestedName: 'Maria Santos',
-    missionaryName: 'Pastor Pedro'
+    missionaryName: 'Pastor Pedro',
   },
   {
     id: 3,
@@ -49,8 +82,8 @@ const mockRequests = [
     message: 'Quero estudar a Bíblia',
     createdAt: '2025-01-18T10:00:00',
     interestedName: 'Ana Costa',
-    missionaryName: 'Missionária Clara'
-  }
+    missionaryName: 'Missionária Clara',
+  },
 ];
 
 describe('Discipleship Integration Tests', () => {
@@ -114,14 +147,14 @@ describe('Discipleship Integration Tests', () => {
       const newRequest = {
         interestedId: 13,
         missionaryId: 7,
-        message: 'Quero conhecer mais sobre a fé'
+        message: 'Quero conhecer mais sobre a fé',
       };
 
       mockStorage.createDiscipleshipRequest.mockResolvedValueOnce({
         id: 4,
         ...newRequest,
         status: 'pending',
-        createdAt: '2025-01-20T15:00:00'
+        createdAt: '2025-01-20T15:00:00',
       });
 
       const created = await mockStorage.createDiscipleshipRequest(newRequest);
@@ -133,12 +166,12 @@ describe('Discipleship Integration Tests', () => {
 
     it('deve validar campos obrigatórios', () => {
       const validRequest = { interestedId: 1, missionaryId: 2 };
-      const invalidRequest = { interestedId: 1 };
+      const invalidRequest: { interestedId: number; missionaryId?: number } = { interestedId: 1 };
 
       expect(validRequest.interestedId).toBeDefined();
       expect(validRequest.missionaryId).toBeDefined();
       expect(invalidRequest.interestedId).toBeDefined();
-      expect((invalidRequest as any).missionaryId).toBeUndefined();
+      expect(invalidRequest.missionaryId).toBeUndefined();
     });
 
     it('deve rejeitar IDs inválidos', () => {
@@ -157,14 +190,14 @@ describe('Discipleship Integration Tests', () => {
     it('deve aprovar solicitação', async () => {
       mockStorage.updateDiscipleshipRequest.mockResolvedValueOnce({
         ...mockRequests[0],
-        status: 'approved'
+        status: 'approved',
       });
 
       mockStorage.createRelationship.mockResolvedValueOnce({
         id: 1,
         interestedId: 10,
         missionaryId: 5,
-        status: 'active'
+        status: 'active',
       });
 
       const updated = await mockStorage.updateDiscipleshipRequest(1, { status: 'approved' });
@@ -175,7 +208,7 @@ describe('Discipleship Integration Tests', () => {
     it('deve rejeitar solicitação', async () => {
       mockStorage.updateDiscipleshipRequest.mockResolvedValueOnce({
         ...mockRequests[0],
-        status: 'rejected'
+        status: 'rejected',
       });
 
       const updated = await mockStorage.updateDiscipleshipRequest(1, { status: 'rejected' });
@@ -186,11 +219,11 @@ describe('Discipleship Integration Tests', () => {
     it('deve permitir adicionar notas', async () => {
       mockStorage.updateDiscipleshipRequest.mockResolvedValueOnce({
         ...mockRequests[0],
-        notes: 'Aprovado após entrevista'
+        notes: 'Aprovado após entrevista',
       });
 
       const updated = await mockStorage.updateDiscipleshipRequest(1, {
-        notes: 'Aprovado após entrevista'
+        notes: 'Aprovado após entrevista',
       });
 
       expect(updated?.notes).toBe('Aprovado após entrevista');
@@ -246,12 +279,12 @@ describe('Discipleship Integration Tests', () => {
       const relationship = {
         interestedId: 10,
         missionaryId: 5,
-        status: 'active'
+        status: 'active',
       };
 
       mockStorage.createRelationship.mockResolvedValueOnce({
         id: 1,
-        ...relationship
+        ...relationship,
       });
 
       const created = await mockStorage.createRelationship(relationship);

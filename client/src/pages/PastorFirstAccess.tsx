@@ -8,9 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Database, Lock, CheckCircle2, ArrowRight, ArrowLeft, Upload, Eye, EyeOff, Building2 } from 'lucide-react';
+import {
+  Database,
+  Lock,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Upload,
+  Eye,
+  EyeOff,
+  Building2,
+} from 'lucide-react';
 import { isPastor } from '@/lib/permissions';
-import * as XLSX from 'xlsx';
+import { readExcelFile } from '@/lib/excel';
 
 const STEPS = [
   {
@@ -18,22 +28,22 @@ const STEPS = [
     title: 'Configurar Distrito',
     description: 'Informe o nome do seu distrito',
     icon: Building2,
-    color: 'bg-purple-500'
+    color: 'bg-purple-500',
   },
   {
     id: 2,
     title: 'Importar Banco de Dados',
     description: 'Importe os dados da sua igreja para começar a usar o sistema',
     icon: Database,
-    color: 'bg-blue-500'
+    color: 'bg-blue-500',
   },
   {
     id: 3,
     title: 'Trocar Senha',
     description: 'Por segurança, altere sua senha padrão',
     icon: Lock,
-    color: 'bg-green-500'
-  }
+    color: 'bg-green-500',
+  },
 ];
 
 export default function PastorFirstAccess() {
@@ -41,22 +51,22 @@ export default function PastorFirstAccess() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  
+
   // Estado do passo 1 (Configurar Distrito)
   const [districtName, setDistrictName] = useState('');
   const [districtCode, setDistrictCode] = useState('');
   const [isCreatingDistrict, setIsCreatingDistrict] = useState(false);
   const [districtCreated, setDistrictCreated] = useState(false);
-  
+
   // Estado do passo 2 (Importação)
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importCompleted, setImportCompleted] = useState(false);
-  
+
   // Estado do passo 3 (Troca de senha)
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -79,9 +89,9 @@ export default function PastorFirstAccess() {
   const handleCreateDistrict = async () => {
     if (!districtName.trim()) {
       toast({
-        title: "Nome obrigatório",
-        description: "Por favor, informe o nome do distrito",
-        variant: "destructive",
+        title: 'Nome obrigatório',
+        description: 'Por favor, informe o nome do distrito',
+        variant: 'destructive',
       });
       return;
     }
@@ -90,24 +100,26 @@ export default function PastorFirstAccess() {
 
     try {
       // Gerar código do distrito se não fornecido
-      const code = districtCode.trim() || districtName
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/g, '-')
-        .substring(0, 20);
+      const code =
+        districtCode.trim() ||
+        districtName
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]/g, '-')
+          .substring(0, 20);
 
       const response = await fetch('/api/districts/pastor/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || ''
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           name: districtName.trim(),
           code: code,
-          pastorId: user?.id
-        })
+          pastorId: user?.id,
+        }),
       });
 
       const data = await response.json();
@@ -116,7 +128,7 @@ export default function PastorFirstAccess() {
         setDistrictCreated(true);
         setCompletedSteps([...completedSteps, 1]);
         toast({
-          title: "Distrito criado!",
+          title: 'Distrito criado!',
           description: `Distrito "${districtName}" configurado com sucesso`,
         });
         // Atualizar dados do usuário
@@ -127,9 +139,9 @@ export default function PastorFirstAccess() {
     } catch (error: any) {
       console.error('Erro ao criar distrito:', error);
       toast({
-        title: "Erro ao criar distrito",
-        description: error.message || "Não foi possível criar o distrito",
-        variant: "destructive",
+        title: 'Erro ao criar distrito',
+        description: error.message || 'Não foi possível criar o distrito',
+        variant: 'destructive',
       });
     } finally {
       setIsCreatingDistrict(false);
@@ -143,9 +155,9 @@ export default function PastorFirstAccess() {
         setImportFile(file);
       } else {
         toast({
-          title: "Formato inválido",
-          description: "Por favor, selecione um arquivo Excel (.xlsx ou .xls)",
-          variant: "destructive",
+          title: 'Formato inválido',
+          description: 'Por favor, selecione um arquivo Excel (.xlsx ou .xls)',
+          variant: 'destructive',
         });
       }
     }
@@ -154,9 +166,9 @@ export default function PastorFirstAccess() {
   const handleImport = async () => {
     if (!importFile) {
       toast({
-        title: "Nenhum arquivo selecionado",
-        description: "Por favor, selecione um arquivo para importar",
-        variant: "destructive",
+        title: 'Nenhum arquivo selecionado',
+        description: 'Por favor, selecione um arquivo para importar',
+        variant: 'destructive',
       });
       return;
     }
@@ -165,12 +177,9 @@ export default function PastorFirstAccess() {
     setImportProgress(0);
 
     try {
-      // Ler arquivo Excel
-      const arrayBuffer = await importFile.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      // Ler arquivo Excel usando excelUtils
+      const { headers, rows } = await readExcelFile(importFile);
+      const jsonData = rows;
 
       if (!jsonData || jsonData.length === 0) {
         throw new Error('Nenhum dado encontrado no arquivo');
@@ -193,8 +202,10 @@ export default function PastorFirstAccess() {
           if (!tipo) return 'member';
           const tipoStr = tipo.toString().toLowerCase();
           if (tipoStr.includes('admin') || tipoStr.includes('pastor')) return 'member'; // Pastores não podem ser criados via import
-          if (tipoStr.includes('missionary') || tipoStr.includes('missionário')) return 'missionary';
-          if (tipoStr.includes('interested') || tipoStr.includes('interessado')) return 'interested';
+          if (tipoStr.includes('missionary') || tipoStr.includes('missionário'))
+            return 'missionary';
+          if (tipoStr.includes('interested') || tipoStr.includes('interessado'))
+            return 'interested';
           return 'member';
         };
 
@@ -210,12 +221,16 @@ export default function PastorFirstAccess() {
           }
         };
 
-        const originalPhone = row.Celular || row.celular || row.telefone || row.Telefone || row.phone;
+        const originalPhone =
+          row.Celular || row.celular || row.telefone || row.Telefone || row.phone;
         const formattedPhone = formatPhoneNumber(originalPhone);
 
         return {
           name: row.Nome || row.nome || row.name || 'Usuário Importado',
-          email: row.Email || row.email || `${(row.Nome || row.nome || 'usuario').toLowerCase().replace(/\s+/g, '.')}@igreja.com`,
+          email:
+            row.Email ||
+            row.email ||
+            `${(row.Nome || row.nome || 'usuario').toLowerCase().replace(/\s+/g, '.')}@igreja.com`,
           password: '123456', // Senha padrão
           role: getRole(row.Tipo || row.tipo || row.role),
           church: row.Igreja || row.igreja || row.church || user?.church || 'Igreja Principal',
@@ -239,22 +254,22 @@ export default function PastorFirstAccess() {
 
       for (let i = 0; i < usersToImport.length; i += batchSize) {
         const batch = usersToImport.slice(i, i + batchSize);
-        
+
         const response = await fetch('/api/users/bulk-import', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': user?.id?.toString() || ''
+            'x-user-id': user?.id?.toString() || '',
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             users: batch,
-            allowUpdates: false
-          })
+            allowUpdates: false,
+          }),
         });
 
         const result = await response.json();
         lastResult = result;
-        
+
         if (response.ok) {
           totalImported += result.imported || 0;
           setImportProgress(60 + ((i + batchSize) / usersToImport.length) * 30);
@@ -266,17 +281,17 @@ export default function PastorFirstAccess() {
       setImportProgress(100);
       setImportCompleted(true);
       setCompletedSteps([...completedSteps, 2]);
-      
+
       toast({
-        title: "Importação concluída!",
+        title: 'Importação concluída!',
         description: lastResult?.message || `${totalImported} usuários importados com sucesso`,
       });
     } catch (error: any) {
       console.error('Erro na importação:', error);
       toast({
-        title: "Erro na importação",
-        description: error.message || "Não foi possível importar o arquivo",
-        variant: "destructive",
+        title: 'Erro na importação',
+        description: error.message || 'Não foi possível importar o arquivo',
+        variant: 'destructive',
       });
     } finally {
       setIsImporting(false);
@@ -286,27 +301,27 @@ export default function PastorFirstAccess() {
   const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos de senha",
-        variant: "destructive",
+        title: 'Campos obrigatórios',
+        description: 'Preencha todos os campos de senha',
+        variant: 'destructive',
       });
       return;
     }
 
     if (newPassword !== confirmPassword) {
       toast({
-        title: "Senhas não coincidem",
-        description: "As senhas digitadas não são iguais",
-        variant: "destructive",
+        title: 'Senhas não coincidem',
+        description: 'As senhas digitadas não são iguais',
+        variant: 'destructive',
       });
       return;
     }
 
     if (newPassword.length < 6) {
       toast({
-        title: "Senha muito curta",
-        description: "A senha deve ter pelo menos 6 caracteres",
-        variant: "destructive",
+        title: 'Senha muito curta',
+        description: 'A senha deve ter pelo menos 6 caracteres',
+        variant: 'destructive',
       });
       return;
     }
@@ -322,7 +337,7 @@ export default function PastorFirstAccess() {
         body: JSON.stringify({
           userId: user?.id,
           currentPassword,
-          newPassword
+          newPassword,
         }),
       });
 
@@ -332,17 +347,17 @@ export default function PastorFirstAccess() {
         setPasswordChanged(true);
         setCompletedSteps([...completedSteps, 3]);
         toast({
-          title: "Senha alterada!",
-          description: "Sua senha foi alterada com sucesso",
+          title: 'Senha alterada!',
+          description: 'Sua senha foi alterada com sucesso',
         });
       } else {
         throw new Error(data.message || 'Erro ao alterar senha');
       }
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: error.message || "Erro ao alterar senha",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Erro ao alterar senha',
+        variant: 'destructive',
       });
     } finally {
       setIsChangingPassword(false);
@@ -372,11 +387,11 @@ export default function PastorFirstAccess() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': user.id.toString()
+            'x-user-id': user.id.toString(),
           },
           body: JSON.stringify({
-            firstAccess: false
-          })
+            firstAccess: false,
+          }),
         });
 
         if (response.ok) {
@@ -415,7 +430,9 @@ export default function PastorFirstAccess() {
           {/* Header */}
           <Card className="bg-white/95 backdrop-blur-sm">
             <CardHeader className="text-center space-y-4">
-              <div className={`w-20 h-20 mx-auto ${currentStepData.color} rounded-full flex items-center justify-center`}>
+              <div
+                className={`w-20 h-20 mx-auto ${currentStepData.color} rounded-full flex items-center justify-center`}
+              >
                 <StepIcon className="w-10 h-10 text-white" />
               </div>
               <CardTitle className="text-2xl">
@@ -433,8 +450,8 @@ export default function PastorFirstAccess() {
                       index === currentStep
                         ? 'bg-blue-600'
                         : completedSteps.includes(step.id)
-                        ? 'bg-green-500'
-                        : 'bg-gray-300'
+                          ? 'bg-green-500'
+                          : 'bg-gray-300'
                     }`}
                   />
                 ))}
@@ -471,7 +488,7 @@ export default function PastorFirstAccess() {
                         <Input
                           id="district-name"
                           value={districtName}
-                          onChange={(e) => setDistrictName(e.target.value)}
+                          onChange={e => setDistrictName(e.target.value)}
                           placeholder="Ex: Santana do Livramento"
                           className="mt-2"
                           disabled={districtCreated || isCreatingDistrict}
@@ -486,7 +503,7 @@ export default function PastorFirstAccess() {
                         <Input
                           id="district-code"
                           value={districtCode}
-                          onChange={(e) => setDistrictCode(e.target.value)}
+                          onChange={e => setDistrictCode(e.target.value)}
                           placeholder="Ex: santana-livramento"
                           className="mt-2"
                           disabled={districtCreated || isCreatingDistrict}
@@ -505,7 +522,8 @@ export default function PastorFirstAccess() {
 
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <p className="text-sm text-blue-800">
-                          <strong>Importante:</strong> O distrito é necessário para organizar as igrejas e membros sob sua administração.
+                          <strong>Importante:</strong> O distrito é necessário para organizar as
+                          igrejas e membros sob sua administração.
                         </p>
                       </div>
                     </>
@@ -537,7 +555,8 @@ export default function PastorFirstAccess() {
                       </Button>
                       {importFile && (
                         <div className="text-sm text-muted-foreground">
-                          Arquivo selecionado: {importFile.name} ({(importFile.size / 1024).toFixed(2)} KB)
+                          Arquivo selecionado: {importFile.name} (
+                          {(importFile.size / 1024).toFixed(2)} KB)
                         </div>
                       )}
                     </div>
@@ -562,7 +581,8 @@ export default function PastorFirstAccess() {
 
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p className="text-sm text-blue-800">
-                      <strong>Dica:</strong> Você pode pular esta etapa e importar os dados depois nas Configurações.
+                      <strong>Dica:</strong> Você pode pular esta etapa e importar os dados depois
+                      nas Configurações.
                     </p>
                   </div>
                 </div>
@@ -574,9 +594,9 @@ export default function PastorFirstAccess() {
                     <Label>Senha Atual</Label>
                     <div className="relative mt-2">
                       <Input
-                        type={showCurrentPassword ? "text" : "password"}
+                        type={showCurrentPassword ? 'text' : 'password'}
                         value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        onChange={e => setCurrentPassword(e.target.value)}
                         placeholder="Digite sua senha atual"
                       />
                       <Button
@@ -586,7 +606,11 @@ export default function PastorFirstAccess() {
                         className="absolute right-0 top-0 h-full px-3"
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                       >
-                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -595,9 +619,9 @@ export default function PastorFirstAccess() {
                     <Label>Nova Senha</Label>
                     <div className="relative mt-2">
                       <Input
-                        type={showNewPassword ? "text" : "password"}
+                        type={showNewPassword ? 'text' : 'password'}
                         value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        onChange={e => setNewPassword(e.target.value)}
                         placeholder="Digite sua nova senha"
                       />
                       <Button
@@ -607,7 +631,11 @@ export default function PastorFirstAccess() {
                         className="absolute right-0 top-0 h-full px-3"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                       >
-                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -616,9 +644,9 @@ export default function PastorFirstAccess() {
                     <Label>Confirmar Nova Senha</Label>
                     <div className="relative mt-2">
                       <Input
-                        type={showConfirmPassword ? "text" : "password"}
+                        type={showConfirmPassword ? 'text' : 'password'}
                         value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onChange={e => setConfirmPassword(e.target.value)}
                         placeholder="Confirme sua nova senha"
                       />
                       <Button
@@ -628,7 +656,11 @@ export default function PastorFirstAccess() {
                         className="absolute right-0 top-0 h-full px-3"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -642,7 +674,8 @@ export default function PastorFirstAccess() {
 
                   <div className="bg-amber-50 p-4 rounded-lg">
                     <p className="text-sm text-amber-800">
-                      <strong>Importante:</strong> Por segurança, você deve alterar sua senha padrão antes de continuar.
+                      <strong>Importante:</strong> Por segurança, você deve alterar sua senha padrão
+                      antes de continuar.
                     </p>
                   </div>
                 </div>
@@ -651,16 +684,12 @@ export default function PastorFirstAccess() {
               {/* Botões de navegação */}
               <div className="flex gap-2 pt-4">
                 {currentStep > 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={handlePrevious}
-                    className="flex-1"
-                  >
+                  <Button variant="outline" onClick={handlePrevious} className="flex-1">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Anterior
                   </Button>
                 )}
-                
+
                 {currentStep === 0 && !hasDistrict && !districtCreated && (
                   <Button
                     onClick={handleCreateDistrict}
@@ -677,25 +706,27 @@ export default function PastorFirstAccess() {
                     disabled={isImporting || importCompleted}
                     className="flex-1"
                   >
-                    {isImporting ? 'Importando...' : importCompleted ? 'Importado' : 'Importar Dados'}
+                    {isImporting
+                      ? 'Importando...'
+                      : importCompleted
+                        ? 'Importado'
+                        : 'Importar Dados'}
                   </Button>
                 )}
 
                 {currentStep === 2 && !passwordChanged && (
                   <Button
                     onClick={handleChangePassword}
-                    disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                    disabled={
+                      isChangingPassword || !currentPassword || !newPassword || !confirmPassword
+                    }
                     className="flex-1"
                   >
                     {isChangingPassword ? 'Alterando...' : 'Alterar Senha'}
                   </Button>
                 )}
 
-                <Button
-                  onClick={handleNext}
-                  disabled={!canProceed()}
-                  className="flex-1"
-                >
+                <Button onClick={handleNext} disabled={!canProceed()} className="flex-1">
                   {currentStep === STEPS.length - 1 ? 'Finalizar' : 'Próximo'}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -707,4 +738,3 @@ export default function PastorFirstAccess() {
     </MobileLayout>
   );
 }
-

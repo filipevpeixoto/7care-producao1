@@ -1,17 +1,31 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Plus, Edit, Trash2, Users, MapPin, Search, Eye } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Building2, Plus, Edit, Trash2, Users, MapPin, Search, Link2, Eye } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { isSuperAdmin } from '@/lib/permissions';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,21 +54,28 @@ export default function Districts() {
   const [editingDistrict, setEditingDistrict] = useState<District | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [districtToDelete, setDistrictToDelete] = useState<District | null>(null);
-  
+  const [linkChurchesDialogOpen, setLinkChurchesDialogOpen] = useState(false);
+  const [selectedDistrictForLink, setSelectedDistrictForLink] = useState<District | null>(null);
+  const [selectedChurchIds, setSelectedChurchIds] = useState<number[]>([]);
+
   const [formData, setFormData] = useState({
     name: '',
     code: '',
     pastorId: '',
-    description: ''
+    description: '',
   });
 
   // Buscar distritos
-  const { data: districts = [], isLoading, error: districtsError } = useQuery<District[]>({
+  const {
+    data: districtsData = [] as District[],
+    isLoading,
+    error: districtsError,
+  } = useQuery<District[]>({
     queryKey: ['/api/districts', user?.id],
     queryFn: async () => {
       console.log('🔍 Districts: Buscando distritos para usuário:', user?.id);
       const userId = user?.id?.toString() || '';
-      
+
       if (!userId) {
         console.warn('⚠️ Districts: Usuário não autenticado');
         throw new Error('Usuário não autenticado');
@@ -62,21 +83,21 @@ export default function Districts() {
 
       const response = await fetch('/api/districts', {
         headers: {
-          'x-user-id': userId
-        }
+          'x-user-id': userId,
+        },
       });
-      
+
       console.log('🔍 Districts: Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Districts: Erro na resposta:', response.status, errorText);
         throw new Error(`Erro ao buscar distritos: ${response.status} - ${errorText}`);
       }
-      
+
       const data = await response.json();
       console.log('🔍 Districts: Distritos recebidos:', data);
-      
+
       if (!Array.isArray(data)) {
         console.error('❌ Districts: Resposta não é um array:', data);
         return [];
@@ -89,7 +110,7 @@ export default function Districts() {
           pastor_id: district.pastor_id,
           pastor_name: district.pastor_name,
           pastor_email: district.pastor_email,
-          hasPastor: !!district.pastor_id
+          hasPastor: !!district.pastor_id,
         });
       });
 
@@ -99,8 +120,8 @@ export default function Districts() {
           try {
             const churchesResponse = await fetch(`/api/districts/${district.id}/churches`, {
               headers: {
-                'x-user-id': userId
-              }
+                'x-user-id': userId,
+              },
             });
             if (churchesResponse.ok) {
               const churches = await churchesResponse.json();
@@ -113,14 +134,17 @@ export default function Districts() {
           return { ...district, churchesCount: 0, churches: [] };
         })
       );
-      
+
       console.log('✅ Districts: Total de distritos processados:', districtsWithChurches.length);
       return districtsWithChurches;
     },
     enabled: !!user?.id, // Só executar se o usuário estiver autenticado
     retry: 2,
-    staleTime: 30000 // 30 segundos
+    staleTime: 30000, // 30 segundos
   });
+
+  // Garantir que districts seja sempre um array tipado
+  const districts: District[] = districtsData ?? [];
 
   // Buscar pastores (para seleção)
   const { data: pastors = [] } = useQuery({
@@ -128,13 +152,28 @@ export default function Districts() {
     queryFn: async () => {
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': user?.id?.toString() || ''
-        }
+          'x-user-id': user?.id?.toString() || '',
+        },
       });
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: isSuperAdmin(user)
+    enabled: isSuperAdmin(user),
+  });
+
+  // Buscar igrejas sem distrito
+  const { data: unassignedChurches = [], refetch: refetchUnassignedChurches } = useQuery({
+    queryKey: ['/api/churches/unassigned'],
+    queryFn: async () => {
+      const response = await fetch('/api/churches/unassigned', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+        },
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: isSuperAdmin(user),
   });
 
   // Criar distrito
@@ -144,9 +183,9 @@ export default function Districts() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || ''
+          'x-user-id': user?.id?.toString() || '',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -157,31 +196,31 @@ export default function Districts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: "Distrito criado",
-        description: "O distrito foi criado com sucesso.",
+        title: 'Distrito criado',
+        description: 'O distrito foi criado com sucesso.',
       });
       setIsCreateDialogOpen(false);
       setFormData({ name: '', code: '', pastorId: '', description: '' });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível criar o distrito.",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Não foi possível criar o distrito.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Atualizar distrito
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const response = await fetch(`/api/districts/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || ''
+          'x-user-id': user?.id?.toString() || '',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -192,8 +231,8 @@ export default function Districts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: "Distrito atualizado",
-        description: "O distrito foi atualizado com sucesso.",
+        title: 'Distrito atualizado',
+        description: 'O distrito foi atualizado com sucesso.',
       });
       setIsEditDialogOpen(false);
       setEditingDistrict(null);
@@ -201,11 +240,11 @@ export default function Districts() {
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível atualizar o distrito.",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Não foi possível atualizar o distrito.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Deletar distrito
@@ -214,8 +253,8 @@ export default function Districts() {
       const response = await fetch(`/api/districts/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': user?.id?.toString() || ''
-        }
+          'x-user-id': user?.id?.toString() || '',
+        },
       });
       if (!response.ok) {
         const error = await response.json();
@@ -226,19 +265,56 @@ export default function Districts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: "Distrito deletado",
-        description: "O distrito foi deletado com sucesso.",
+        title: 'Distrito deletado',
+        description: 'O distrito foi deletado com sucesso.',
       });
       setDeleteDialogOpen(false);
       setDistrictToDelete(null);
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível deletar o distrito.",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Não foi possível deletar o distrito.',
+        variant: 'destructive',
       });
-    }
+    },
+  });
+
+  // Vincular igrejas ao distrito
+  const linkChurchesMutation = useMutation({
+    mutationFn: async ({ districtId, churchIds }: { districtId: number; churchIds: number[] }) => {
+      const response = await fetch(`/api/districts/${districtId}/churches/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id?.toString() || '',
+        },
+        body: JSON.stringify({ churchIds }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao vincular igrejas');
+      }
+      return response.json();
+    },
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/churches/unassigned'] });
+      toast({
+        title: 'Igrejas vinculadas',
+        description: data.message || 'As igrejas foram vinculadas ao distrito com sucesso.',
+      });
+      setLinkChurchesDialogOpen(false);
+      setSelectedDistrictForLink(null);
+      setSelectedChurchIds([]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível vincular as igrejas.',
+        variant: 'destructive',
+      });
+    },
   });
 
   const handleCreate = () => {
@@ -246,7 +322,7 @@ export default function Districts() {
       name: formData.name,
       code: formData.code,
       pastorId: formData.pastorId ? parseInt(formData.pastorId) : null,
-      description: formData.description || null
+      description: formData.description || null,
     });
   };
 
@@ -256,7 +332,7 @@ export default function Districts() {
       name: district.name,
       code: district.code,
       pastorId: district.pastor_id?.toString() || '',
-      description: district.description || ''
+      description: district.description || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -269,8 +345,8 @@ export default function Districts() {
         name: formData.name,
         code: formData.code,
         pastorId: formData.pastorId ? parseInt(formData.pastorId) : null,
-        description: formData.description || null
-      }
+        description: formData.description || null,
+      },
     });
   };
 
@@ -285,32 +361,54 @@ export default function Districts() {
     }
   };
 
+  const handleOpenLinkChurches = (district: District) => {
+    setSelectedDistrictForLink(district);
+    setSelectedChurchIds([]);
+    refetchUnassignedChurches();
+    setLinkChurchesDialogOpen(true);
+  };
+
+  const handleToggleChurch = (churchId: number) => {
+    setSelectedChurchIds(prev =>
+      prev.includes(churchId) ? prev.filter(id => id !== churchId) : [...prev, churchId]
+    );
+  };
+
+  const handleLinkChurches = () => {
+    if (selectedDistrictForLink && selectedChurchIds.length > 0) {
+      linkChurchesMutation.mutate({
+        districtId: selectedDistrictForLink.id,
+        churchIds: selectedChurchIds,
+      });
+    }
+  };
+
   const handleViewAsPastor = async (district: District) => {
     // Tentar encontrar o pastor_id de diferentes formas
     const pastorId = district.pastor_id || (district as any).pastorId;
-    
+
     if (!pastorId && !district.pastor_name) {
       toast({
-        title: "Aviso",
-        description: "Este distrito não tem um pastor associado.",
-        variant: "destructive",
+        title: 'Aviso',
+        description: 'Este distrito não tem um pastor associado.',
+        variant: 'destructive',
       });
       return;
     }
 
     try {
       let pastor;
-      
-      // Se temos pastor_id, buscar dados completos
+
+      // Se temos pastor_id, buscar dados completos do usuário (não necessariamente com role='pastor')
       if (pastorId) {
-        const response = await fetch(`/api/pastors/${pastorId}`, {
+        const response = await fetch(`/api/users/${pastorId}`, {
           headers: {
-            'x-user-id': user?.id?.toString() || ''
-          }
+            'x-user-id': user?.id?.toString() || '',
+          },
         });
 
         if (!response.ok) {
-          throw new Error('Erro ao buscar dados do pastor');
+          throw new Error('Erro ao buscar dados do responsável pelo distrito');
         }
 
         pastor = await response.json();
@@ -318,9 +416,10 @@ export default function Districts() {
         // Se não temos pastor_id mas temos pastor_name, tentar buscar por email ou nome
         // Por enquanto, vamos apenas mostrar erro
         toast({
-          title: "Aviso",
-          description: "Não foi possível identificar o pastor. Edite o distrito para associar um pastor.",
-          variant: "destructive",
+          title: 'Aviso',
+          description:
+            'Não foi possível identificar o pastor. Edite o distrito para associar um pastor.',
+          variant: 'destructive',
         });
         return;
       }
@@ -334,16 +433,16 @@ export default function Districts() {
           email: pastor.email,
           role: 'pastor',
           districtId: district.id,
-          districtName: district.name
+          districtName: district.name,
         },
         isImpersonating: true,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       localStorage.setItem('7care_impersonation', JSON.stringify(impersonationContext));
 
       toast({
-        title: "Visualizando como Pastor",
+        title: 'Visualizando como Pastor',
         description: `Você está visualizando como ${pastor.name}. Use o botão "Voltar ao Superadmin" para retornar.`,
       });
 
@@ -352,16 +451,17 @@ export default function Districts() {
     } catch (error: any) {
       console.error('Erro ao visualizar como pastor:', error);
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível visualizar como pastor.",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Não foi possível visualizar como pastor.',
+        variant: 'destructive',
       });
     }
   };
 
-  const filteredDistricts = districts.filter(d =>
-    d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.code.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDistricts = districts.filter(
+    d =>
+      d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (!isSuperAdmin(user)) {
@@ -383,10 +483,22 @@ export default function Districts() {
             <h1 className="text-2xl font-bold">Distritos</h1>
             <p className="text-muted-foreground">Gerencie os distritos e suas igrejas</p>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Distrito
-          </Button>
+          <div className="flex gap-2">
+            {unassignedChurches.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setLinkChurchesDialogOpen(true)}
+                className="text-orange-600 border-orange-300 hover:bg-orange-50"
+              >
+                <Link2 className="h-4 w-4 mr-2" />
+                Igrejas sem Distrito ({unassignedChurches.length})
+              </Button>
+            )}
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Distrito
+            </Button>
+          </div>
         </div>
 
         <div className="relative">
@@ -394,7 +506,7 @@ export default function Districts() {
           <Input
             placeholder="Buscar distritos..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -426,7 +538,7 @@ export default function Districts() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {filteredDistricts.map((district) => (
+            {filteredDistricts.map(district => (
               <Card key={district.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -435,9 +547,7 @@ export default function Districts() {
                         <Building2 className="h-5 w-5" />
                         {district.name}
                       </CardTitle>
-                      <CardDescription className="mt-1">
-                        Código: {district.code}
-                      </CardDescription>
+                      <CardDescription className="mt-1">Código: {district.code}</CardDescription>
                     </div>
                     <div className="flex gap-2">
                       {(district.pastor_id || district.pastor_name) && (
@@ -455,15 +565,16 @@ export default function Districts() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEdit(district)}
+                        onClick={() => handleOpenLinkChurches(district)}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Vincular igrejas a este distrito"
                       >
+                        <Link2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(district)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(district)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(district)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -471,9 +582,7 @@ export default function Districts() {
                 </CardHeader>
                 <CardContent>
                   {district.description && (
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {district.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground mb-3">{district.description}</p>
                   )}
                   <div className="space-y-2">
                     {district.pastor_name && (
@@ -490,7 +599,8 @@ export default function Districts() {
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Igrejas:</span>
                       <Badge variant="secondary">
-                        {district.churchesCount || 0} {district.churchesCount === 1 ? 'igreja' : 'igrejas'}
+                        {district.churchesCount || 0}{' '}
+                        {district.churchesCount === 1 ? 'igreja' : 'igrejas'}
                       </Badge>
                     </div>
                   </div>
@@ -505,16 +615,14 @@ export default function Districts() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Criar Distrito</DialogTitle>
-              <DialogDescription>
-                Crie um novo distrito para organizar igrejas
-              </DialogDescription>
+              <DialogDescription>Crie um novo distrito para organizar igrejas</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Nome do Distrito</Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ex: Santana do Livramento"
                 />
               </div>
@@ -522,15 +630,17 @@ export default function Districts() {
                 <Label>Código</Label>
                 <Input
                   value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                   placeholder="Ex: SLIV001"
                 />
               </div>
               <div>
                 <Label>Pastor (Opcional)</Label>
                 <Select
-                  value={formData.pastorId || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, pastorId: value === "none" ? "" : value })}
+                  value={formData.pastorId || 'none'}
+                  onValueChange={value =>
+                    setFormData({ ...formData, pastorId: value === 'none' ? '' : value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um pastor" />
@@ -549,7 +659,7 @@ export default function Districts() {
                 <Label>Descrição (Opcional)</Label>
                 <Textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Descrição do distrito"
                 />
               </div>
@@ -570,30 +680,30 @@ export default function Districts() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Editar Distrito</DialogTitle>
-              <DialogDescription>
-                Atualize as informações do distrito
-              </DialogDescription>
+              <DialogDescription>Atualize as informações do distrito</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Nome do Distrito</Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div>
                 <Label>Código</Label>
                 <Input
                   value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 />
               </div>
               <div>
                 <Label>Pastor (Opcional)</Label>
                 <Select
-                  value={formData.pastorId || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, pastorId: value === "none" ? "" : value })}
+                  value={formData.pastorId || 'none'}
+                  onValueChange={value =>
+                    setFormData({ ...formData, pastorId: value === 'none' ? '' : value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um pastor" />
@@ -612,7 +722,7 @@ export default function Districts() {
                 <Label>Descrição (Opcional)</Label>
                 <Textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
             </div>
@@ -633,8 +743,8 @@ export default function Districts() {
             <DialogHeader>
               <DialogTitle>Confirmar Exclusão</DialogTitle>
               <DialogDescription>
-                Tem certeza que deseja deletar o distrito "{districtToDelete?.name}"?
-                Esta ação não pode ser desfeita.
+                Tem certeza que deseja deletar o distrito "{districtToDelete?.name}"? Esta ação não
+                pode ser desfeita.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -647,8 +757,141 @@ export default function Districts() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de Vincular Igrejas */}
+        <Dialog
+          open={linkChurchesDialogOpen}
+          onOpenChange={open => {
+            setLinkChurchesDialogOpen(open);
+            if (!open) {
+              setSelectedDistrictForLink(null);
+              setSelectedChurchIds([]);
+            }
+          }}
+        >
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Link2 className="h-5 w-5" />
+                Vincular Igrejas{' '}
+                {selectedDistrictForLink
+                  ? `ao Distrito ${selectedDistrictForLink.name}`
+                  : 'sem Distrito'}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedDistrictForLink
+                  ? `Selecione as igrejas que deseja vincular ao distrito "${selectedDistrictForLink.name}".`
+                  : 'Selecione um distrito e as igrejas que deseja vincular.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto space-y-4 py-4">
+              {!selectedDistrictForLink && districts.length > 0 && (
+                <div>
+                  <Label>Selecione o Distrito</Label>
+                  <Select
+                    value=""
+                    onValueChange={value => {
+                      // Type assertion para evitar inferência never
+                      const districtList = districts as unknown as District[];
+                      const found = districtList.find(d => d.id === parseInt(value));
+                      setSelectedDistrictForLink(found || null);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um distrito" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(districts as unknown as District[]).map(district => (
+                        <SelectItem key={district.id} value={district.id.toString()}>
+                          {district.name} ({district.churchesCount || 0} igrejas)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {unassignedChurches.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Não há igrejas sem distrito para vincular.</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label>Igrejas sem Distrito ({unassignedChurches.length})</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (selectedChurchIds.length === unassignedChurches.length) {
+                          setSelectedChurchIds([]);
+                        } else {
+                          setSelectedChurchIds(unassignedChurches.map((c: any) => c.id));
+                        }
+                      }}
+                    >
+                      {selectedChurchIds.length === unassignedChurches.length
+                        ? 'Desmarcar Todas'
+                        : 'Selecionar Todas'}
+                    </Button>
+                  </div>
+                  <div className="border rounded-lg max-h-[300px] overflow-y-auto">
+                    {unassignedChurches.map((church: any) => (
+                      <div
+                        key={church.id}
+                        className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
+                        onClick={() => handleToggleChurch(church.id)}
+                      >
+                        <Checkbox
+                          id={`church-${church.id}`}
+                          checked={selectedChurchIds.includes(church.id)}
+                          onCheckedChange={() => handleToggleChurch(church.id)}
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium">{church.name}</p>
+                          {church.address && (
+                            <p className="text-sm text-muted-foreground">{church.address}</p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {church.code || 'Sem código'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex-shrink-0">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setLinkChurchesDialogOpen(false);
+                  setSelectedDistrictForLink(null);
+                  setSelectedChurchIds([]);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleLinkChurches}
+                disabled={
+                  !selectedDistrictForLink ||
+                  selectedChurchIds.length === 0 ||
+                  linkChurchesMutation.isPending
+                }
+              >
+                {linkChurchesMutation.isPending
+                  ? 'Vinculando...'
+                  : `Vincular ${selectedChurchIds.length} Igreja(s)`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MobileLayout>
   );
 }
-

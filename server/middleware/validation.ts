@@ -18,9 +18,9 @@ export interface ValidatedRequest<T> extends Request {
  * Formata erros do Zod para resposta amigável
  */
 const formatZodErrors = (error: ZodError): { field: string; message: string }[] => {
-  return error.errors.map((err) => ({
+  return error.errors.map(err => ({
     field: err.path.join('.') || 'body',
-    message: err.message
+    message: err.message,
   }));
 };
 
@@ -45,7 +45,7 @@ export const validateBody = <T>(schema: ZodSchema<T>) => {
           success: false,
           error: 'Erro de validação',
           code: ErrorCodes.VALIDATION_ERROR,
-          details: formatZodErrors(result.error)
+          details: formatZodErrors(result.error),
         });
         return;
       }
@@ -53,11 +53,11 @@ export const validateBody = <T>(schema: ZodSchema<T>) => {
       // Adiciona os dados validados ao request
       (req as ValidatedRequest<T>).validatedBody = result.data;
       next();
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         error: 'Erro interno de validação',
-        code: ErrorCodes.INTERNAL_ERROR
+        code: ErrorCodes.INTERNAL_ERROR,
       });
     }
   };
@@ -76,7 +76,7 @@ export const validateQuery = <T>(schema: ZodSchema<T>) => {
           success: false,
           error: 'Parâmetros de consulta inválidos',
           code: ErrorCodes.VALIDATION_ERROR,
-          details: formatZodErrors(result.error)
+          details: formatZodErrors(result.error),
         });
         return;
       }
@@ -84,11 +84,11 @@ export const validateQuery = <T>(schema: ZodSchema<T>) => {
       // Substitui query pelos dados validados
       req.query = result.data as Record<string, string>;
       next();
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         error: 'Erro interno de validação',
-        code: ErrorCodes.INTERNAL_ERROR
+        code: ErrorCodes.INTERNAL_ERROR,
       });
     }
   };
@@ -107,18 +107,18 @@ export const validateParams = <T>(schema: ZodSchema<T>) => {
           success: false,
           error: 'Parâmetros de rota inválidos',
           code: ErrorCodes.VALIDATION_ERROR,
-          details: formatZodErrors(result.error)
+          details: formatZodErrors(result.error),
         });
         return;
       }
 
       req.params = result.data as Record<string, string>;
       next();
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         error: 'Erro interno de validação',
-        code: ErrorCodes.INTERNAL_ERROR
+        code: ErrorCodes.INTERNAL_ERROR,
       });
     }
   };
@@ -138,12 +138,14 @@ export const validateParams = <T>(schema: ZodSchema<T>) => {
  * );
  * ```
  */
-export const combineValidations = (...validators: ((req: Request, res: Response, next: NextFunction) => void)[]) => {
+export const combineValidations = (
+  ...validators: ((req: Request, res: Response, next: NextFunction) => void)[]
+) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     for (const validator of validators) {
       let hasError = false;
 
-      await new Promise<void>((resolve) => {
+      await new Promise<void>(resolve => {
         validator(req, res, (err?: unknown) => {
           if (err) {
             hasError = true;

@@ -1,19 +1,19 @@
-import { NeonAdapter } from "./neonAdapter";
+import { NeonAdapter } from './neonAdapter';
 import * as bcrypt from 'bcryptjs';
 
 export async function setupNeonData() {
   const storage = new NeonAdapter();
-  
+
   console.log('🚀 Configurando dados iniciais no Neon Database...');
-  
-  // Verificar se já existem usuários além do admin
+
+  // Verificar se já existem usuários além do superadmin
   const existingUsers = await storage.getAllUsers();
-  const nonAdminUsers = existingUsers.filter(u => u.role !== 'admin' && u.role !== 'superadmin');
+  const nonAdminUsers = existingUsers.filter(u => u.role !== 'superadmin');
   if (nonAdminUsers.length > 0) {
     console.log('✅ Dados já existem no Neon Database');
     return;
   }
-  
+
   console.log('👑 Criando super admin...');
   const adminPassword = await bcrypt.hash('meu7care', 10);
   const admin = await storage.createUser({
@@ -58,16 +58,16 @@ export async function setupNeonData() {
         missao: 8,
         estudoBiblico: 9,
         batizouAlguem: true,
-        discipuladoPosBatismo: 5
-      }
+        discipuladoPosBatismo: 5,
+      },
     }),
     observations: 'Super administrador do sistema',
     firstAccess: false,
-    status: 'active'
+    status: 'active',
   });
-  
+
   console.log('✅ Super admin criado:', admin.name);
-  
+
   // Criar usuários do Armour
   const armourUsers = [
     {
@@ -76,24 +76,24 @@ export async function setupNeonData() {
       password: 'armour123',
       role: 'admin',
       church: 'Armour',
-      church_code: 'ARM001',
-      departments: ['Pastoral'],
-      birth_date: '1975-05-15',
-      civil_status: 'Casado',
+      churchCode: 'ARM001',
+      departments: 'Pastoral',
+      birthDate: '1975-05-15',
+      civilStatus: 'Casado',
       occupation: 'Pastor',
       education: 'Superior',
       address: 'Rua da Igreja, 456',
-      baptism_date: '1990-06-15',
-      previous_religion: 'Católico',
-      biblical_instructor: 'Pastor Antônio',
-      interested_situation: 'Aprovado',
-      is_donor: true,
-      is_tither: true,
-      is_approved: true,
+      baptismDate: '1990-06-15',
+      previousReligion: 'Católico',
+      biblicalInstructor: 'Pastor Antônio',
+      interestedSituation: 'Aprovado',
+      isDonor: true,
+      isTither: true,
+      isApproved: true,
       points: 850,
       level: 'Prata',
       attendance: 95,
-      extra_data: JSON.stringify({
+      extraData: JSON.stringify({
         engajamento: 'Alto',
         classificacao: 'Frequente',
         dizimista: 'Pontual',
@@ -106,11 +106,11 @@ export async function setupNeonData() {
         batizouAlguem: true,
         discipuladoPosBatismo: 10,
         cpfValido: true,
-        camposVaziosACMS: false
+        camposVaziosACMS: false,
       }),
       observations: 'Pastor da igreja Armour',
-      first_access: false,
-      status: 'active'
+      firstAccess: false,
+      status: 'active',
     },
     {
       name: 'Maria Santos',
@@ -118,24 +118,24 @@ export async function setupNeonData() {
       password: 'armour123',
       role: 'member',
       church: 'Armour',
-      church_code: 'ARM001',
-      departments: ['Música', 'Evangelismo'],
-      birth_date: '1985-03-20',
-      civil_status: 'Casada',
+      churchCode: 'ARM001',
+      departments: 'Música, Evangelismo',
+      birthDate: '1985-03-20',
+      civilStatus: 'Casada',
       occupation: 'Professora',
       education: 'Superior',
       address: 'Av. Central, 789',
-      baptism_date: '2005-08-20',
-      previous_religion: 'Evangélica',
-      biblical_instructor: 'Pastor João',
-      interested_situation: 'Aprovado',
-      is_donor: true,
-      is_tither: true,
-      is_approved: true,
+      baptismDate: '2005-08-20',
+      previousReligion: 'Evangélica',
+      biblicalInstructor: 'Pastor João',
+      interestedSituation: 'Aprovado',
+      isDonor: true,
+      isTither: true,
+      isApproved: true,
       points: 650,
       level: 'Bronze',
       attendance: 90,
-      extra_data: JSON.stringify({
+      extraData: JSON.stringify({
         engajamento: 'Médio',
         classificacao: 'Frequente',
         dizimista: 'Sazonal',
@@ -148,11 +148,11 @@ export async function setupNeonData() {
         batizouAlguem: false,
         discipuladoPosBatismo: 2,
         cpfValido: true,
-        camposVaziosACMS: false
+        camposVaziosACMS: false,
       }),
       observations: 'Membro ativo da igreja Armour',
-      first_access: false,
-      status: 'active'
+      firstAccess: false,
+      status: 'active',
     },
     {
       name: 'Carlos Oliveira',
@@ -160,24 +160,24 @@ export async function setupNeonData() {
       password: 'armour123',
       role: 'member',
       church: 'Armour',
-      church_code: 'ARM001',
-      departments: ['Jovens'],
-      birth_date: '1995-12-10',
-      civil_status: 'Solteiro',
+      churchCode: 'ARM001',
+      departments: 'Jovens',
+      birthDate: '1995-12-10',
+      civilStatus: 'Solteiro',
       occupation: 'Estudante',
       education: 'Superior',
       address: 'Rua Nova, 321',
-      baptism_date: '2015-12-10',
-      previous_religion: 'Nenhuma',
-      biblical_instructor: 'Pastor João',
-      interested_situation: 'Aprovado',
-      is_donor: false,
-      is_tither: false,
-      is_approved: true,
+      baptismDate: '2015-12-10',
+      previousReligion: 'Nenhuma',
+      biblicalInstructor: 'Pastor João',
+      interestedSituation: 'Aprovado',
+      isDonor: false,
+      isTither: false,
+      isApproved: true,
       points: 400,
       level: 'Bronze',
       attendance: 80,
-      extra_data: JSON.stringify({
+      extraData: JSON.stringify({
         engajamento: 'Baixo',
         classificacao: 'Frequente',
         dizimista: 'Não dizimista',
@@ -190,25 +190,26 @@ export async function setupNeonData() {
         batizouAlguem: false,
         discipuladoPosBatismo: 0,
         cpfValido: true,
-        camposVaziosACMS: false
+        camposVaziosACMS: false,
       }),
       observations: 'Jovem membro da igreja Armour',
-      first_access: false,
-      status: 'active'
-    }
+      firstAccess: false,
+      status: 'active',
+    },
   ];
-  
+
   console.log('👥 Criando usuários do Armour...');
-  
+
   for (const userData of armourUsers) {
     const hashedPassword = await bcrypt.hash(userData.password, 10);
+
     const user = await storage.createUser({
       ...userData,
-      password: hashedPassword
-    });
+      password: hashedPassword,
+    } as Parameters<typeof storage.createUser>[0]);
     console.log(`✅ Usuário criado: ${user.name} (${user.email})`);
   }
-  
+
   // Criar igreja Armour
   console.log('⛪ Criando igreja Armour...');
   const church = await storage.createChurch({
@@ -225,11 +226,11 @@ export async function setupNeonData() {
     established_date: '1990-01-01',
     status: 'active',
     districtId: null,
-    isActive: true
+    isActive: true,
   });
-  
+
   console.log('✅ Igreja Armour criada:', church.name);
-  
+
   // Criar alguns eventos da Armour
   console.log('📅 Criando eventos da Armour...');
   const events = [
@@ -240,9 +241,9 @@ export async function setupNeonData() {
       time: '09:00',
       location: 'Igreja Armour',
       type: 'Culto',
-      church_id: church.id,
-      max_participants: 200,
-      status: 'active'
+      churchId: church.id,
+      maxParticipants: 200,
+      status: 'active',
     },
     {
       title: 'Reunião de Jovens',
@@ -251,9 +252,9 @@ export async function setupNeonData() {
       time: '19:30',
       location: 'Igreja Armour - Sala dos Jovens',
       type: 'Reunião',
-      church_id: church.id,
-      max_participants: 50,
-      status: 'active'
+      churchId: church.id,
+      maxParticipants: 50,
+      status: 'active',
     },
     {
       title: 'Escola Sabatina',
@@ -262,28 +263,28 @@ export async function setupNeonData() {
       time: '08:00',
       location: 'Igreja Armour - Salas de Classe',
       type: 'Estudo',
-      church_id: church.id,
-      max_participants: 100,
-      status: 'active'
-    }
+      churchId: church.id,
+      maxParticipants: 100,
+      status: 'active',
+    },
   ];
-  
+
   for (const eventData of events) {
     const event = await storage.createEvent(eventData);
     console.log(`✅ Evento criado: ${event.title}`);
   }
-  
+
   console.log('🎉 Setup do Neon Database concluído com sucesso!');
   console.log('📊 Resumo:');
   console.log('   - 1 Super Admin (admin@7care.com)');
   console.log('   - 3 Usuários da Armour');
   console.log('   - 1 Igreja Armour');
   console.log('   - 3 Eventos da Armour');
-  
+
   return {
     admin,
     church,
     users: armourUsers.length,
-    events: events.length
+    events: events.length,
   };
 }

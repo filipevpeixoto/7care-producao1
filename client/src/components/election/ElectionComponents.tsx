@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Vote,
-  Clock,
   Users,
   CheckCircle,
   Play,
@@ -20,13 +19,20 @@ import {
   Church,
   Calendar,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 
 /**
  * Tipos de status de eleição
  */
-export type ElectionStatus = 'draft' | 'active' | 'paused' | 'finished' | 'cancelled' | 'pending' | 'closed';
+export type ElectionStatus =
+  | 'draft'
+  | 'active'
+  | 'paused'
+  | 'finished'
+  | 'cancelled'
+  | 'pending'
+  | 'closed';
 
 /**
  * Interface base para eleição
@@ -110,30 +116,24 @@ interface ElectionStatCardProps {
 /**
  * Card de estatística de eleição
  */
-export function ElectionStatCard({ 
-  title, 
-  value, 
-  icon, 
+export function ElectionStatCard({
+  title,
+  value,
+  icon,
   description,
-  className = '' 
+  className = '',
 }: ElectionStatCardProps) {
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {title}
-          </CardTitle>
-          <div className="text-muted-foreground">
-            {icon}
-          </div>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <div className="text-muted-foreground">{icon}</div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
+        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
       </CardContent>
     </Card>
   );
@@ -150,9 +150,9 @@ interface ElectionLoadingProps {
 /**
  * Componente de loading para páginas de eleição
  */
-export function ElectionLoading({ 
-  message = 'Carregando...', 
-  className = '' 
+export function ElectionLoading({
+  message = 'Carregando...',
+  className = '',
 }: ElectionLoadingProps) {
   return (
     <div className={`p-4 flex items-center justify-center min-h-[400px] ${className}`}>
@@ -184,7 +184,7 @@ export function ElectionEmptyState({
   description,
   icon = <Vote className="h-12 w-12 text-muted-foreground" />,
   action,
-  className = ''
+  className = '',
 }: ElectionEmptyStateProps) {
   return (
     <Card className={className}>
@@ -194,11 +194,7 @@ export function ElectionEmptyState({
         {description && (
           <p className="text-sm text-muted-foreground text-center mb-4">{description}</p>
         )}
-        {action && (
-          <Button onClick={action.onClick}>
-            {action.label}
-          </Button>
-        )}
+        {action && <Button onClick={action.onClick}>{action.label}</Button>}
       </CardContent>
     </Card>
   );
@@ -229,7 +225,7 @@ export function ElectionListItem({
   onStart,
   onPause,
   showActions = true,
-  className = ''
+  className = '',
 }: ElectionListItemProps) {
   return (
     <Card className={`hover:shadow-md transition-shadow ${className}`}>
@@ -266,7 +262,7 @@ export function ElectionListItem({
             </div>
           )}
         </div>
-        
+
         {showActions && (
           <div className="flex gap-2">
             {onView && (
@@ -332,7 +328,7 @@ export function ActiveElectionCard({
   election,
   onVote,
   hasVoted = false,
-  className = ''
+  className = '',
 }: ActiveElectionCardProps) {
   return (
     <Card className={`border-2 border-primary/20 ${className}`}>
@@ -395,11 +391,7 @@ interface ElectionErrorAlertProps {
 /**
  * Alerta de erro para operações de eleição
  */
-export function ElectionErrorAlert({
-  message,
-  onRetry,
-  className = ''
-}: ElectionErrorAlertProps) {
+export function ElectionErrorAlert({ message, onRetry, className = '' }: ElectionErrorAlertProps) {
   return (
     <Card className={`border-destructive ${className}`}>
       <CardContent className="flex items-center justify-between py-4">
@@ -426,7 +418,7 @@ export function formatDate(dateString: string): string {
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 }
 
@@ -437,6 +429,6 @@ export function formatShortDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   });
 }

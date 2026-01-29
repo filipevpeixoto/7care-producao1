@@ -12,7 +12,6 @@ import {
   BarChart3,
   Users,
   Clock,
-  CheckCircle,
   AlertCircle,
   Loader2,
   Play,
@@ -24,7 +23,7 @@ import {
   Plus,
   ArrowRight,
   Church,
-  Calendar
+  Calendar,
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useNavigate } from 'react-router-dom';
@@ -39,7 +38,7 @@ interface ElectionConfig {
   election_created_at?: string;
   voters: number[];
   positions: string[];
-  criteria: any;
+  criteria: Record<string, unknown>;
 }
 
 interface ActiveElection {
@@ -58,7 +57,7 @@ export default function UnifiedElection() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [configs, setConfigs] = useState<ElectionConfig[]>([]);
   const [activeElections, setActiveElections] = useState<ActiveElection[]>([]);
@@ -77,10 +76,7 @@ export default function UnifiedElection() {
 
   const loadData = async () => {
     try {
-      await Promise.all([
-        loadConfigs(),
-        loadActiveElections()
-      ]);
+      await Promise.all([loadConfigs(), loadActiveElections()]);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -93,8 +89,8 @@ export default function UnifiedElection() {
       const response = await fetch('/api/elections/configs', {
         headers: {
           'Cache-Control': 'no-cache',
-          'x-user-id': user?.id?.toString() || ''
-        }
+          'x-user-id': user?.id?.toString() || '',
+        },
       });
       if (response.ok) {
         const data = await response.json();
@@ -115,9 +111,9 @@ export default function UnifiedElection() {
       const response = await fetch('/api/elections/active', {
         headers: {
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'x-user-id': user.id.toString()
-        }
+          Pragma: 'no-cache',
+          'x-user-id': user.id.toString(),
+        },
       });
 
       if (response.ok) {
@@ -125,17 +121,19 @@ export default function UnifiedElection() {
         const elections = Array.isArray(data.elections)
           ? data.elections
           : data.election
-            ? [{
-                election_id: data.election.id,
-                config_id: data.election.config_id,
-                church_name: data.election.church_name,
-                title: data.election.title,
-                status: 'active',
-                current_position: data.election.current_position,
-                positions: data.election.positions,
-                voters: data.election.voters || [],
-                created_at: data.election.created_at || new Date().toISOString()
-              }]
+            ? [
+                {
+                  election_id: data.election.id,
+                  config_id: data.election.config_id,
+                  church_name: data.election.church_name,
+                  title: data.election.title,
+                  status: 'active',
+                  current_position: data.election.current_position,
+                  positions: data.election.positions,
+                  voters: data.election.voters || [],
+                  created_at: data.election.created_at || new Date().toISOString(),
+                },
+              ]
             : [];
         setActiveElections(elections);
       } else {
@@ -154,60 +152,62 @@ export default function UnifiedElection() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ configId })
+        body: JSON.stringify({ configId }),
       });
 
       if (response.ok) {
         toast({
-          title: "Nomeação iniciada",
-          description: "A nomeação foi iniciada com sucesso!",
+          title: 'Nomeação iniciada',
+          description: 'A nomeação foi iniciada com sucesso!',
         });
         loadData();
       } else {
         const errorData = await response.json();
         if (response.status === 400 && errorData.error.includes('Já existe uma eleição ativa')) {
           toast({
-            title: "Nomeação já ativa",
-            description: "Esta configuração já possui uma eleição em andamento.",
-            variant: "destructive",
+            title: 'Nomeação já ativa',
+            description: 'Esta configuração já possui uma eleição em andamento.',
+            variant: 'destructive',
           });
         } else {
           throw new Error('Erro ao iniciar nomeação');
         }
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: "Erro",
-        description: "Não foi possível iniciar a nomeação.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível iniciar a nomeação.',
+        variant: 'destructive',
       });
     }
   };
 
   const handleDeleteConfig = async (configId: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta configuração? Esta ação não pode ser desfeita.')) {
+    if (
+      !confirm('Tem certeza que deseja excluir esta configuração? Esta ação não pode ser desfeita.')
+    ) {
       return;
     }
 
     try {
       const response = await fetch(`/api/elections/config/${configId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       if (response.ok) {
         toast({
-          title: "Configuração excluída",
-          description: "A configuração foi excluída com sucesso!",
+          title: 'Configuração excluída',
+          description: 'A configuração foi excluída com sucesso!',
         });
         loadData();
       } else {
         throw new Error('Erro ao excluir configuração');
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir a configuração.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível excluir a configuração.',
+        variant: 'destructive',
       });
     }
   };
@@ -256,7 +256,7 @@ export default function UnifiedElection() {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -280,16 +280,14 @@ export default function UnifiedElection() {
             <Vote className="h-8 w-8 text-blue-600" />
             <div>
               <h1 className="text-2xl font-bold">Sistema de Nomeações</h1>
-              <p className="text-muted-foreground">Gerencie e participe das eleições de liderança</p>
+              <p className="text-muted-foreground">
+                Gerencie e participe das eleições de liderança
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
               <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
               {autoRefresh ? 'Pausar' : 'Atualizar'}
             </Button>
@@ -342,20 +340,23 @@ export default function UnifiedElection() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {configs.map((config) => (
+                {configs.map(config => (
                   <Card key={config.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <CardTitle className="text-lg">{config.title || config.church_name}</CardTitle>
+                          <CardTitle className="text-lg">
+                            {config.title || config.church_name}
+                          </CardTitle>
                           <CardDescription>
-                            {config.church_name} • {config.positions.length} cargos • {config.voters.length} votantes
+                            {config.church_name} • {config.positions.length} cargos •{' '}
+                            {config.voters.length} votantes
                           </CardDescription>
                         </div>
                         {getStatusBadge(config)}
                       </div>
                     </CardHeader>
-                    
+
                     <CardContent className="pt-0">
                       <div className="space-y-3">
                         <div className="flex flex-wrap gap-2">
@@ -452,7 +453,7 @@ export default function UnifiedElection() {
                               </Button>
                             </>
                           )}
-                          
+
                           <Button
                             size="sm"
                             variant="destructive"
@@ -473,21 +474,20 @@ export default function UnifiedElection() {
           {/* Voting Tab */}
           <TabsContent value="voting" className="space-y-4">
             <h2 className="text-xl font-semibold">Nomeações Ativas</h2>
-            
+
             {activeElections.length === 0 ? (
               <Card>
                 <CardContent className="pt-6 text-center">
                   <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                   <h2 className="text-xl font-semibold mb-2">Nenhuma Nomeação Disponível</h2>
                   <p className="text-muted-foreground mb-4">
-                    {!user?.id 
-                      ? "Você precisa estar logado para ver suas nomeações."
-                      : "Você não está incluído em nenhuma nomeação ativa no momento."
-                    }
+                    {!user?.id
+                      ? 'Você precisa estar logado para ver suas nomeações.'
+                      : 'Você não está incluído em nenhuma nomeação ativa no momento.'}
                   </p>
                   {!user?.id && (
-                    <Button 
-                      onClick={() => window.location.href = '/login'}
+                    <Button
+                      onClick={() => (window.location.href = '/login')}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       Fazer Login
@@ -497,38 +497,40 @@ export default function UnifiedElection() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {activeElections.map((election) => (
+                {activeElections.map(election => (
                   <Card key={election.election_id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <Church className="h-6 w-6 text-blue-600" />
                           <div>
-                          <CardTitle className="text-lg">{election.title || election.church_name}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            {election.church_name} • Iniciada em {formatDate(election.created_at)}
-                          </CardDescription>
+                            <CardTitle className="text-lg">
+                              {election.title || election.church_name}
+                            </CardTitle>
+                            <CardDescription className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                              <Calendar className="h-4 w-4" />
+                              {election.church_name} • Iniciada em {formatDate(election.created_at)}
+                            </CardDescription>
                           </div>
                         </div>
-                        <Badge className="bg-blue-100 text-blue-800">
-                          Nomeação Ativa
-                        </Badge>
+                        <Badge className="bg-blue-100 text-blue-800">Nomeação Ativa</Badge>
                       </div>
                     </CardHeader>
-                    
+
                     <CardContent className="space-y-4">
                       {/* Progresso */}
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Cargo Atual</span>
-                          <span>{election.current_position + 1} de {election.positions.length}</span>
+                          <span>
+                            {election.current_position + 1} de {election.positions.length}
+                          </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-500" 
-                            style={{ 
-                              width: `${((election.current_position + 1) / election.positions.length) * 100}%` 
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${((election.current_position + 1) / election.positions.length) * 100}%`,
                             }}
                           ></div>
                         </div>
@@ -554,7 +556,7 @@ export default function UnifiedElection() {
                       </div>
 
                       {/* Botão de acesso */}
-                      <Button 
+                      <Button
                         onClick={() => handleAccessElection(election)}
                         className="w-full bg-blue-600 hover:bg-blue-700"
                         size="lg"
@@ -578,10 +580,18 @@ export default function UnifiedElection() {
               </CardHeader>
               <CardContent>
                 <div className="text-blue-700 space-y-2">
-                  <p><strong>1.</strong> Clique em "Acessar Nomeação" na eleição da sua igreja</p>
-                  <p><strong>2.</strong> Siga as instruções na tela do seu celular</p>
-                  <p><strong>3.</strong> Indique ou vote conforme solicitado</p>
-                  <p><strong>4.</strong> Acompanhe os resultados em tempo real</p>
+                  <p>
+                    <strong>1.</strong> Clique em "Acessar Nomeação" na eleição da sua igreja
+                  </p>
+                  <p>
+                    <strong>2.</strong> Siga as instruções na tela do seu celular
+                  </p>
+                  <p>
+                    <strong>3.</strong> Indique ou vote conforme solicitado
+                  </p>
+                  <p>
+                    <strong>4.</strong> Acompanhe os resultados em tempo real
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -603,8 +613,8 @@ export default function UnifiedElection() {
             <Alert>
               <Settings className="h-4 w-4" />
               <AlertDescription>
-                <strong>Configuração de Nomeações:</strong> Acesse a página de configuração para criar e gerenciar 
-                os parâmetros das eleições de liderança da sua igreja.
+                <strong>Configuração de Nomeações:</strong> Acesse a página de configuração para
+                criar e gerenciar os parâmetros das eleições de liderança da sua igreja.
               </AlertDescription>
             </Alert>
 
@@ -614,9 +624,7 @@ export default function UnifiedElection() {
                   <Settings className="h-5 w-5" />
                   Acesso Rápido
                 </CardTitle>
-                <CardDescription>
-                  Gerencie as configurações de nomeação
-                </CardDescription>
+                <CardDescription>Gerencie as configurações de nomeação</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button
@@ -627,7 +635,7 @@ export default function UnifiedElection() {
                   <Settings className="h-4 w-4 mr-2" />
                   Configurar Nomeação
                 </Button>
-                
+
                 <Button
                   onClick={() => navigate('/election-dashboard')}
                   className="w-full"

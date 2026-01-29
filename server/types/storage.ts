@@ -16,7 +16,7 @@ import {
   Relationship,
   DiscipleshipRequest,
   MissionaryProfile,
-  MeetingType
+  MeetingType,
 } from '../../shared/schema';
 
 // Tipos de entrada (sem id e timestamps automáticos)
@@ -45,7 +45,10 @@ export type UpdateNotificationInput = Partial<Omit<Notification, 'id' | 'created
 export type CreateRelationshipInput = Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateRelationshipInput = Partial<Omit<Relationship, 'id' | 'createdAt'>>;
 
-export type CreateDiscipleshipRequestInput = Omit<DiscipleshipRequest, 'id' | 'createdAt' | 'updatedAt'> & {
+export type CreateDiscipleshipRequestInput = Omit<
+  DiscipleshipRequest,
+  'id' | 'createdAt' | 'updatedAt'
+> & {
   requestedMissionaryId?: number | null;
 };
 export type UpdateDiscipleshipRequestInput = Partial<Omit<DiscipleshipRequest, 'id' | 'createdAt'>>;
@@ -80,7 +83,10 @@ export interface Prayer {
   updatedAt: string;
 }
 
-export type CreatePrayerInput = Omit<Prayer, 'id' | 'createdAt' | 'updatedAt' | 'isAnswered' | 'answeredAt' | 'testimony'>;
+export type CreatePrayerInput = Omit<
+  Prayer,
+  'id' | 'createdAt' | 'updatedAt' | 'isAnswered' | 'answeredAt' | 'testimony'
+>;
 
 // Tipos para push subscriptions
 export interface PushSubscriptionPayload {
@@ -221,6 +227,152 @@ export interface PointsConfiguration {
   };
 }
 
+/**
+ * Interface com todos os campos obrigatórios para cálculo de pontos
+ * Use getRequiredPointsConfig() para converter PointsConfiguration
+ */
+export interface RequiredPointsConfiguration {
+  basicPoints: number;
+  attendancePoints: number;
+  eventPoints: number;
+  donationPoints: number;
+  engajamento: {
+    baixo: number;
+    medio: number;
+    alto: number;
+  };
+  classificacao: {
+    frequente: number;
+    naoFrequente: number;
+  };
+  dizimista: {
+    naoDizimista: number;
+    pontual: number;
+    sazonal: number;
+    recorrente: number;
+  };
+  ofertante: {
+    naoOfertante: number;
+    pontual: number;
+    sazonal: number;
+    recorrente: number;
+  };
+  tempoBatismo: {
+    doisAnos: number;
+    cincoAnos: number;
+    dezAnos: number;
+    vinteAnos: number;
+    maisVinte: number;
+  };
+  cargos: {
+    umCargo: number;
+    doisCargos: number;
+    tresOuMais: number;
+  };
+  nomeUnidade: {
+    comUnidade: number;
+    semUnidade: number;
+  };
+  temLicao: {
+    comLicao: number;
+  };
+  pontuacaoDinamica: {
+    multiplicador: number;
+  };
+  totalPresenca: {
+    zeroATres: number;
+    quatroASete: number;
+    oitoATreze: number;
+  };
+  presenca: {
+    multiplicador: number;
+  };
+  escolaSabatina: {
+    comunhao: number;
+    missao: number;
+    estudoBiblico: number;
+    batizouAlguem: number;
+    discipuladoPosBatismo: number;
+  };
+  batizouAlguem: {
+    sim: number;
+    nao: number;
+  };
+  discipuladoPosBatismo: {
+    multiplicador: number;
+  };
+  cpfValido: {
+    valido: number;
+    invalido: number;
+  };
+  camposVaziosACMS: {
+    completos: number;
+    incompletos: number;
+  };
+}
+
+/**
+ * Valores padrão para configuração de pontos
+ */
+export const DEFAULT_POINTS_CONFIG: RequiredPointsConfiguration = {
+  basicPoints: 25,
+  attendancePoints: 25,
+  eventPoints: 50,
+  donationPoints: 75,
+  engajamento: { baixo: 25, medio: 50, alto: 75 },
+  classificacao: { frequente: 75, naoFrequente: 25 },
+  dizimista: { naoDizimista: 0, pontual: 50, sazonal: 75, recorrente: 100 },
+  ofertante: { naoOfertante: 0, pontual: 50, sazonal: 75, recorrente: 100 },
+  tempoBatismo: { doisAnos: 50, cincoAnos: 75, dezAnos: 100, vinteAnos: 150, maisVinte: 200 },
+  cargos: { umCargo: 50, doisCargos: 75, tresOuMais: 100 },
+  nomeUnidade: { comUnidade: 50, semUnidade: 0 },
+  temLicao: { comLicao: 50 },
+  pontuacaoDinamica: { multiplicador: 1 },
+  totalPresenca: { zeroATres: 25, quatroASete: 50, oitoATreze: 100 },
+  presenca: { multiplicador: 1 },
+  escolaSabatina: {
+    comunhao: 25,
+    missao: 25,
+    estudoBiblico: 25,
+    batizouAlguem: 50,
+    discipuladoPosBatismo: 25,
+  },
+  batizouAlguem: { sim: 100, nao: 0 },
+  discipuladoPosBatismo: { multiplicador: 1 },
+  cpfValido: { valido: 25, invalido: 0 },
+  camposVaziosACMS: { completos: 50, incompletos: 0 },
+};
+
+/**
+ * Converte PointsConfiguration para RequiredPointsConfiguration
+ * Preenche valores faltantes com defaults
+ */
+export function getRequiredPointsConfig(config: PointsConfiguration): RequiredPointsConfiguration {
+  return {
+    basicPoints: config.basicPoints ?? DEFAULT_POINTS_CONFIG.basicPoints,
+    attendancePoints: config.attendancePoints ?? DEFAULT_POINTS_CONFIG.attendancePoints,
+    eventPoints: config.eventPoints ?? DEFAULT_POINTS_CONFIG.eventPoints,
+    donationPoints: config.donationPoints ?? DEFAULT_POINTS_CONFIG.donationPoints,
+    engajamento: config.engajamento ?? DEFAULT_POINTS_CONFIG.engajamento,
+    classificacao: config.classificacao ?? DEFAULT_POINTS_CONFIG.classificacao,
+    dizimista: config.dizimista ?? DEFAULT_POINTS_CONFIG.dizimista,
+    ofertante: config.ofertante ?? DEFAULT_POINTS_CONFIG.ofertante,
+    tempoBatismo: config.tempoBatismo ?? DEFAULT_POINTS_CONFIG.tempoBatismo,
+    cargos: config.cargos ?? DEFAULT_POINTS_CONFIG.cargos,
+    nomeUnidade: config.nomeUnidade ?? DEFAULT_POINTS_CONFIG.nomeUnidade,
+    temLicao: config.temLicao ?? DEFAULT_POINTS_CONFIG.temLicao,
+    pontuacaoDinamica: config.pontuacaoDinamica ?? DEFAULT_POINTS_CONFIG.pontuacaoDinamica,
+    totalPresenca: config.totalPresenca ?? DEFAULT_POINTS_CONFIG.totalPresenca,
+    presenca: config.presenca ?? DEFAULT_POINTS_CONFIG.presenca,
+    escolaSabatina: config.escolaSabatina ?? DEFAULT_POINTS_CONFIG.escolaSabatina,
+    batizouAlguem: config.batizouAlguem ?? DEFAULT_POINTS_CONFIG.batizouAlguem,
+    discipuladoPosBatismo:
+      config.discipuladoPosBatismo ?? DEFAULT_POINTS_CONFIG.discipuladoPosBatismo,
+    cpfValido: config.cpfValido ?? DEFAULT_POINTS_CONFIG.cpfValido,
+    camposVaziosACMS: config.camposVaziosACMS ?? DEFAULT_POINTS_CONFIG.camposVaziosACMS,
+  };
+}
+
 // Tipos para configuração do Google Drive
 export interface GoogleDriveConfig {
   spreadsheetUrl: string;
@@ -317,7 +469,10 @@ export interface IStorage {
   getAllDiscipleshipRequests(): Promise<DiscipleshipRequest[]>;
   getDiscipleshipRequestById(id: number): Promise<DiscipleshipRequest | null>;
   createDiscipleshipRequest(data: CreateDiscipleshipRequestInput): Promise<DiscipleshipRequest>;
-  updateDiscipleshipRequest(id: number, updates: UpdateDiscipleshipRequestInput): Promise<DiscipleshipRequest | null>;
+  updateDiscipleshipRequest(
+    id: number,
+    updates: UpdateDiscipleshipRequestInput
+  ): Promise<DiscipleshipRequest | null>;
   deleteDiscipleshipRequest(id: number): Promise<boolean>;
 
   // ===== MENSAGENS =====
@@ -351,7 +506,13 @@ export interface IStorage {
   createPushSubscription(data: CreatePushSubscriptionInput): Promise<PushSubscription>;
   togglePushSubscription(id: number): Promise<PushSubscription | null>;
   deletePushSubscription(id: number): Promise<boolean>;
-  sendPushNotifications(data: { userIds: number[]; title: string; body: string; icon?: string; url?: string }): Promise<{ sent: number; failed: number }>;
+  sendPushNotifications(data: {
+    userIds: number[];
+    title: string;
+    body: string;
+    icon?: string;
+    url?: string;
+  }): Promise<{ sent: number; failed: number }>;
 
   // ===== ORAÇÕES =====
   getAllPrayers(): Promise<Prayer[]>;
@@ -359,7 +520,10 @@ export interface IStorage {
   createPrayer(data: CreatePrayerInput): Promise<Prayer>;
   markPrayerAsAnswered(id: number, testimony?: string): Promise<Prayer | null>;
   deletePrayer(id: number): Promise<boolean>;
-  addIntercessor(prayerId: number, intercessorId: number): Promise<{ prayerId: number; intercessorId: number }>;
+  addIntercessor(
+    prayerId: number,
+    intercessorId: number
+  ): Promise<{ prayerId: number; intercessorId: number }>;
   removeIntercessor(prayerId: number, intercessorId: number): Promise<boolean>;
   getIntercessorsByPrayer(prayerId: number): Promise<User[]>;
   getPrayersUserIsInterceding(userId: number): Promise<Prayer[]>;
@@ -374,7 +538,10 @@ export interface IStorage {
   getMissionaryProfileById(id: number): Promise<MissionaryProfile | null>;
   getMissionaryProfileByUserId(userId: number): Promise<MissionaryProfile | null>;
   createMissionaryProfile(data: Partial<MissionaryProfile>): Promise<MissionaryProfile>;
-  updateMissionaryProfile(id: number, updates: Partial<MissionaryProfile>): Promise<MissionaryProfile | null>;
+  updateMissionaryProfile(
+    id: number,
+    updates: Partial<MissionaryProfile>
+  ): Promise<MissionaryProfile | null>;
   deleteMissionaryProfile(id: number): Promise<boolean>;
   getUsersWithMissionaryProfile(): Promise<User[]>;
 

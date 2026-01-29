@@ -1,6 +1,6 @@
 /**
  * Migration: Adicionar índices de performance
- * 
+ *
  * Este script adiciona índices para otimizar as queries mais comuns.
  * Execute com: npx tsx server/migrations/add-performance-indexes.ts
  */
@@ -49,21 +49,21 @@ const indexes = [
   'CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at DESC)',
 
   // Índices para tabela push_subscriptions
-  'CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)'
+  'CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)',
 ];
 
 async function runMigration() {
   const databaseUrl = process.env.DATABASE_URL;
-  
+
   if (!databaseUrl) {
     console.error('❌ DATABASE_URL não definida');
     process.exit(1);
   }
 
   const sql = neon(databaseUrl);
-  
+
   console.log('🚀 Iniciando criação de índices de performance...\n');
-  
+
   let success = 0;
   let failed = 0;
 
@@ -74,22 +74,22 @@ async function runMigration() {
       await sql`${indexQuery}`;
       console.log(`   ✅ Sucesso!\n`);
       success++;
-    } catch (error: any) {
-      if (error.message?.includes('already exists')) {
+    } catch (error: unknown) {
+      if ((error as Error).message?.includes('already exists')) {
         console.log(`   ⏭️ Índice já existe\n`);
         success++;
       } else {
-        console.error(`   ❌ Erro: ${error.message}\n`);
+        console.error(`   ❌ Erro: ${(error as Error).message}\n`);
         failed++;
       }
     }
   }
 
-  console.log('\n' + '='.repeat(50));
+  console.log(`\n${'='.repeat(50)}`);
   console.log(`📊 Resumo da migração:`);
   console.log(`   ✅ Sucesso: ${success}`);
   console.log(`   ❌ Falhas: ${failed}`);
-  console.log('='.repeat(50) + '\n');
+  console.log(`${'='.repeat(50)}\n`);
 
   if (failed > 0) {
     process.exit(1);

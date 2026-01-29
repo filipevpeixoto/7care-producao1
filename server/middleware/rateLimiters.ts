@@ -28,7 +28,7 @@ function createLimitHandler(type: keyof typeof errorMessages) {
       path: req.path,
       method: req.method,
     });
-    
+
     res.status(429).json({
       error: errorMessages[type],
       retryAfter: res.getHeader('Retry-After'),
@@ -47,8 +47,7 @@ export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: createLimitHandler('auth'),
-  keyGenerator: (req) => req.ip || 'unknown',
-  skip: (req) => process.env.NODE_ENV === 'test',
+  skip: _req => process.env.NODE_ENV === 'test',
 });
 
 /**
@@ -62,7 +61,7 @@ export const apiRateLimiter: RateLimitRequestHandler = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: createLimitHandler('api'),
-  skip: (req) => process.env.NODE_ENV === 'test',
+  skip: _req => process.env.NODE_ENV === 'test',
 });
 
 /**
@@ -76,7 +75,7 @@ export const uploadRateLimiter: RateLimitRequestHandler = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: createLimitHandler('upload'),
-  skip: (req) => process.env.NODE_ENV === 'test',
+  skip: _req => process.env.NODE_ENV === 'test',
 });
 
 /**
@@ -90,7 +89,7 @@ export const sensitiveRateLimiter: RateLimitRequestHandler = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: createLimitHandler('sensitive'),
-  skip: (req) => process.env.NODE_ENV === 'test',
+  skip: _req => process.env.NODE_ENV === 'test',
 });
 
 /**
@@ -103,7 +102,7 @@ export const searchRateLimiter: RateLimitRequestHandler = rateLimit({
   message: errorMessages.default,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV === 'test',
+  skip: _req => process.env.NODE_ENV === 'test',
 });
 
 /**
@@ -135,10 +134,11 @@ export function createUserBasedRateLimiter(
     message: errorMessages.default,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
+    keyGenerator: req => {
       const userId = (req as Request & { userId?: number }).userId;
       return userId ? `user:${userId}` : req.ip || 'unknown';
     },
+    validate: { ip: false },
   });
 }
 

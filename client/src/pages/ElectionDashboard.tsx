@@ -5,14 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   BarChart3,
   Users,
   Vote,
   Clock,
-  CheckCircle,
   Play,
   Pause,
   Edit,
@@ -22,7 +34,7 @@ import {
   Loader2,
   Plus,
   Settings,
-  FileText
+  FileText,
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useNavigate } from 'react-router-dom';
@@ -44,7 +56,7 @@ export default function ElectionDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [configs, setConfigs] = useState<ElectionConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -66,23 +78,26 @@ export default function ElectionDashboard() {
     try {
       const response = await fetch('/api/elections/configs');
       if (response.ok) {
-        const data = await response.json();
-        
+        const rawData = await response.json();
+        // A API pode retornar { data: [] } ou array diretamente
+        const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
+
         // Remover duplicatas baseado no ID (caso o backend ainda retorne duplicatas)
-        const uniqueConfigs = data.filter((config: ElectionConfig, index: number, self: ElectionConfig[]) => 
-          index === self.findIndex((c: ElectionConfig) => c.id === config.id)
+        const uniqueConfigs = data.filter(
+          (config: ElectionConfig, index: number, self: ElectionConfig[]) =>
+            index === self.findIndex((c: ElectionConfig) => c.id === config.id)
         );
-        
+
         console.log(`📋 Carregadas ${data.length} configurações, ${uniqueConfigs.length} únicas`);
-        
+
         setConfigs(uniqueConfigs);
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao carregar configurações de nomeação",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Erro ao carregar configurações de nomeação',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -97,23 +112,23 @@ export default function ElectionDashboard() {
         setVoteLog(data);
         setSelectedElectionId(electionId);
         setShowVoteLog(true);
-        
+
         toast({
-          title: "Log de Votos Carregado",
+          title: 'Log de Votos Carregado',
           description: `${data.length} voto(s) registrado(s)`,
         });
       } else {
         toast({
-          title: "Erro",
-          description: "Não foi possível carregar o log de votos.",
-          variant: "destructive",
+          title: 'Erro',
+          description: 'Não foi possível carregar o log de votos.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar o log de votos.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível carregar o log de votos.',
+        variant: 'destructive',
       });
     }
   };
@@ -125,22 +140,22 @@ export default function ElectionDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ configId })
+        body: JSON.stringify({ configId }),
       });
 
       if (response.ok) {
         toast({
-          title: "Nomeação iniciada",
-          description: "A nomeação foi iniciada com sucesso!",
+          title: 'Nomeação iniciada',
+          description: 'A nomeação foi iniciada com sucesso!',
         });
         loadConfigs();
       } else {
         const errorData = await response.json();
         if (response.status === 400 && errorData.error.includes('Já existe uma eleição ativa')) {
           toast({
-            title: "Nomeação já ativa",
-            description: "Esta configuração já possui uma eleição em andamento.",
-            variant: "destructive",
+            title: 'Nomeação já ativa',
+            description: 'Esta configuração já possui uma eleição em andamento.',
+            variant: 'destructive',
           });
         } else {
           throw new Error('Erro ao iniciar nomeação');
@@ -148,27 +163,29 @@ export default function ElectionDashboard() {
       }
     } catch (error) {
       toast({
-        title: "Erro",
-        description: "Não foi possível iniciar a nomeação.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível iniciar a nomeação.',
+        variant: 'destructive',
       });
     }
   };
 
   const handleDeleteConfig = async (configId: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta configuração? Esta ação não pode ser desfeita.')) {
+    if (
+      !confirm('Tem certeza que deseja excluir esta configuração? Esta ação não pode ser desfeita.')
+    ) {
       return;
     }
 
     try {
       const response = await fetch(`/api/elections/config/${configId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       if (response.ok) {
         toast({
-          title: "Configuração excluída",
-          description: "A configuração foi excluída com sucesso!",
+          title: 'Configuração excluída',
+          description: 'A configuração foi excluída com sucesso!',
         });
         loadConfigs();
       } else {
@@ -176,9 +193,9 @@ export default function ElectionDashboard() {
       }
     } catch (error) {
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir a configuração.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível excluir a configuração.',
+        variant: 'destructive',
       });
     }
   };
@@ -229,7 +246,10 @@ export default function ElectionDashboard() {
           <span>Ativa</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: '100%' }}></div>
+          <div
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            style={{ width: '100%' }}
+          ></div>
         </div>
       </div>
     );
@@ -272,17 +292,13 @@ export default function ElectionDashboard() {
               <p className="text-muted-foreground">Gerencie todas as nomeações da igreja</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
               <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
               {autoRefresh ? 'Pausar' : 'Atualizar'}
             </Button>
-            
+
             <Button
               onClick={() => navigate('/election-config')}
               className="bg-blue-600 hover:bg-blue-700"
@@ -309,20 +325,23 @@ export default function ElectionDashboard() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {configs.map((config) => (
+            {configs.map(config => (
               <Card key={config.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg">{config.title || config.church_name}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {config.title || config.church_name}
+                      </CardTitle>
                       <CardDescription className="text-sm text-muted-foreground">
-                        {config.church_name} • {config.positions.length} cargos • {config.voters.length} votantes
+                        {config.church_name} • {config.positions.length} cargos •{' '}
+                        {config.voters.length} votantes
                       </CardDescription>
                     </div>
                     {getStatusBadge(config)}
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="pt-0">
                   <div className="space-y-3">
                     <div className="flex flex-wrap gap-2">
@@ -359,24 +378,26 @@ export default function ElectionDashboard() {
                             onClick={async () => {
                               // Buscar o electionId da configuração
                               try {
-                                const response = await fetch(`/api/elections/dashboard/${config.id}`);
+                                const response = await fetch(
+                                  `/api/elections/dashboard/${config.id}`
+                                );
                                 if (response.ok) {
                                   const data = await response.json();
                                   if (data.election?.id) {
                                     loadVoteLog(data.election.id);
                                   } else {
                                     toast({
-                                      title: "Erro",
-                                      description: "Eleição não encontrada.",
-                                      variant: "destructive",
+                                      title: 'Erro',
+                                      description: 'Eleição não encontrada.',
+                                      variant: 'destructive',
                                     });
                                   }
                                 }
                               } catch (error) {
                                 toast({
-                                  title: "Erro",
-                                  description: "Não foi possível carregar o log.",
-                                  variant: "destructive",
+                                  title: 'Erro',
+                                  description: 'Não foi possível carregar o log.',
+                                  variant: 'destructive',
                                 });
                               }
                             }}
@@ -445,7 +466,7 @@ export default function ElectionDashboard() {
                           </Button>
                         </>
                       )}
-                      
+
                       <Button
                         size="sm"
                         variant="destructive"
@@ -466,8 +487,9 @@ export default function ElectionDashboard() {
           <Alert>
             <BarChart3 className="h-4 w-4" />
             <AlertDescription>
-              <strong>Múltiplas Nomeações Simultâneas:</strong> Ative, pause e retome nomeações de forma independente. 
-              Ao pausar, a nomeação some para os votantes mas os dados permanecem intactos. Use os botões "Pausar" e "Continuar" conforme necessário.
+              <strong>Múltiplas Nomeações Simultâneas:</strong> Ative, pause e retome nomeações de
+              forma independente. Ao pausar, a nomeação some para os votantes mas os dados
+              permanecem intactos. Use os botões "Pausar" e "Continuar" conforme necessário.
             </AlertDescription>
           </Alert>
         )}
@@ -482,7 +504,7 @@ export default function ElectionDashboard() {
               Histórico completo de todos os votos e indicações registrados nesta eleição.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="mt-4">
             {voteLog.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -496,7 +518,7 @@ export default function ElectionDashboard() {
                     Total: <strong>{voteLog.length}</strong> registro(s)
                   </p>
                 </div>
-                
+
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -509,7 +531,7 @@ export default function ElectionDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {voteLog.map((vote) => (
+                    {voteLog.map(vote => (
                       <TableRow key={vote.id}>
                         <TableCell className="font-mono text-xs">#{vote.id}</TableCell>
                         <TableCell>
@@ -520,23 +542,33 @@ export default function ElectionDashboard() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{vote.candidate_name || 'Desconhecido'}</div>
-                            <div className="text-xs text-muted-foreground">ID: {vote.candidate_id}</div>
+                            <div className="font-medium">
+                              {vote.candidate_name || 'Desconhecido'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              ID: {vote.candidate_id}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{vote.position_id}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={vote.vote_type === 'nomination' ? 'secondary' : 'default'}
-                            className={vote.vote_type === 'nomination' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}
+                            className={
+                              vote.vote_type === 'nomination'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-green-100 text-green-800'
+                            }
                           >
                             {vote.vote_type === 'nomination' ? 'Indicação' : 'Voto'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
-                          {vote.created_at ? new Date(vote.created_at).toLocaleString('pt-BR') : '-'}
+                          {vote.created_at
+                            ? new Date(vote.created_at).toLocaleString('pt-BR')
+                            : '-'}
                         </TableCell>
                       </TableRow>
                     ))}

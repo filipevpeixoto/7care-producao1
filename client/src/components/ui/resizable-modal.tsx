@@ -1,12 +1,7 @@
-import { useState, useRef, useEffect, ReactNode } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { 
-  Move,
-  Maximize2,
-  Minimize2,
-  RotateCcw
-} from "lucide-react";
+import { useState, useRef, useEffect, ReactNode } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 
 interface ResizableModalProps {
   isOpen: boolean;
@@ -18,14 +13,14 @@ interface ResizableModalProps {
   className?: string;
 }
 
-const ResizableModal = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
+const ResizableModal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
   description,
   defaultSize = { width: 400, height: 600 },
-  className = ""
+  className = '',
 }: ResizableModalProps) => {
   // Estados para redimensionamento e movimento
   const modalRef = useRef<HTMLDivElement>(null);
@@ -52,7 +47,7 @@ const ResizableModal = ({
       setIsDragging(true);
       setDragStart({
         x: e.clientX - position.x,
-        y: e.clientY - position.y
+        y: e.clientY - position.y,
       });
     }
   };
@@ -61,24 +56,24 @@ const ResizableModal = ({
     if (isDragging && !isMaximized) {
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
-      
+
       // Limitar movimento dentro da viewport
       const maxX = window.innerWidth - size.width;
       const maxY = window.innerHeight - size.height;
-      
+
       setPosition({
         x: Math.max(0, Math.min(newX, maxX)),
-        y: Math.max(0, Math.min(newY, maxY))
+        y: Math.max(0, Math.min(newY, maxY)),
       });
     }
-    
+
     if (isResizing && !isMaximized) {
       const newWidth = resizeStart.width + (e.clientX - resizeStart.x);
       const newHeight = resizeStart.height + (e.clientY - resizeStart.y);
-      
+
       setSize({
         width: Math.max(300, Math.min(newWidth, window.innerWidth - position.x)),
-        height: Math.max(300, Math.min(newHeight, window.innerHeight - position.y))
+        height: Math.max(300, Math.min(newHeight, window.innerHeight - position.y)),
       });
     }
   };
@@ -95,7 +90,7 @@ const ResizableModal = ({
       x: e.clientX,
       y: e.clientY,
       width: size.width,
-      height: size.height
+      height: size.height,
     });
   };
 
@@ -133,8 +128,8 @@ const ResizableModal = ({
   }, [isDragging, isResizing, dragStart, resizeStart]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent 
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent
         ref={modalRef}
         className={`p-0 overflow-hidden ${isMaximized ? 'w-full h-full max-w-none' : ''} ${className}`}
         style={{
@@ -143,29 +138,27 @@ const ResizableModal = ({
           transform: isMaximized ? 'none' : `translate(${position.x}px, ${position.y}px)`,
           left: isMaximized ? '0' : '50%',
           top: isMaximized ? '0' : '50%',
-          margin: isMaximized ? '0' : `-${size.height/2}px 0 0 -${size.width/2}px`,
+          margin: isMaximized ? '0' : `-${size.height / 2}px 0 0 -${size.width / 2}px`,
           position: 'fixed',
           maxHeight: 'none',
           maxWidth: 'none',
           gridTemplateRows: 'auto 1fr',
-          zIndex: 60
+          zIndex: 60,
         }}
-        aria-describedby={description ? "modal-description" : undefined}
+        aria-describedby={description ? 'modal-description' : undefined}
       >
         {/* Barra de título com controles */}
-        <DialogHeader 
+        <DialogHeader
           className="flex flex-row items-center justify-between bg-background border-b p-3 cursor-move select-none"
           onMouseDown={handleMouseDown}
         >
-          <DialogTitle className="text-sm font-semibold">
-            {title}
-          </DialogTitle>
+          <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
           {description && (
             <div id="modal-description" className="sr-only">
               {description}
             </div>
           )}
-          
+
           {/* Controles de janela */}
           <div className="flex items-center gap-2">
             {/* Controles de redimensionamento */}
@@ -184,18 +177,20 @@ const ResizableModal = ({
                 size="sm"
                 onClick={toggleMaximize}
                 className="h-6 w-6 p-0"
-                title={isMaximized ? "Restaurar" : "Maximizar"}
+                title={isMaximized ? 'Restaurar' : 'Maximizar'}
               >
-                {isMaximized ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+                {isMaximized ? (
+                  <Minimize2 className="h-3 w-3" />
+                ) : (
+                  <Maximize2 className="h-3 w-3" />
+                )}
               </Button>
             </div>
           </div>
         </DialogHeader>
 
         {/* Área de conteúdo com scroll */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto p-4">{children}</div>
 
         {/* Redimensionador no canto inferior direito */}
         {!isMaximized && (
@@ -203,7 +198,8 @@ const ResizableModal = ({
             className="absolute bottom-0 right-0 w-4 h-4 cursor-nw-resize opacity-30 hover:opacity-60 transition-opacity"
             onMouseDown={handleResizeStart}
             style={{
-              background: 'linear-gradient(-45deg, transparent 30%, #ccc 30%, #ccc 40%, transparent 40%, transparent 60%, #ccc 60%, #ccc 70%, transparent 70%)'
+              background:
+                'linear-gradient(-45deg, transparent 30%, #ccc 30%, #ccc 40%, transparent 40%, transparent 60%, #ccc 60%, #ccc 70%, transparent 70%)',
             }}
           />
         )}

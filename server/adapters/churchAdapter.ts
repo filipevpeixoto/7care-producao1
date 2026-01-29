@@ -22,8 +22,10 @@ export function toChurch(row: Record<string, unknown>): Church {
     email: row.email == null ? null : String(row.email),
     pastor: row.pastor == null ? null : String(row.pastor),
     districtId: row.districtId == null ? null : Number(row.districtId),
-    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
-    updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt ?? ''),
+    createdAt:
+      row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
+    updatedAt:
+      row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt ?? ''),
   };
 }
 
@@ -32,9 +34,7 @@ export function toChurch(row: Record<string, unknown>): Church {
  */
 export async function generateChurchCode(): Promise<string> {
   const prefix = 'CH';
-  const result = await db
-    .select({ count: drizzleSql<number>`count(*)` })
-    .from(schema.churches);
+  const result = await db.select({ count: drizzleSql<number>`count(*)` }).from(schema.churches);
   const count = Number(result[0]?.count ?? 0) + 1;
   return `${prefix}${count.toString().padStart(5, '0')}`;
 }
@@ -43,22 +43,15 @@ export async function generateChurchCode(): Promise<string> {
  * Busca todas as igrejas
  */
 export async function getAllChurches(): Promise<Church[]> {
-  const rows = await db
-    .select()
-    .from(schema.churches)
-    .orderBy(asc(schema.churches.name));
-  return rows.map((row) => toChurch(row as Record<string, unknown>));
+  const rows = await db.select().from(schema.churches).orderBy(asc(schema.churches.name));
+  return rows.map(row => toChurch(row as Record<string, unknown>));
 }
 
 /**
  * Busca igreja por ID
  */
 export async function getChurchById(id: number): Promise<Church | null> {
-  const rows = await db
-    .select()
-    .from(schema.churches)
-    .where(eq(schema.churches.id, id))
-    .limit(1);
+  const rows = await db.select().from(schema.churches).where(eq(schema.churches.id, id)).limit(1);
   if (rows.length === 0) return null;
   return toChurch(rows[0] as Record<string, unknown>);
 }
@@ -85,7 +78,7 @@ export async function getChurchesByDistrictId(districtId: number): Promise<Churc
     .from(schema.churches)
     .where(eq(schema.churches.districtId, districtId))
     .orderBy(asc(schema.churches.name));
-  return rows.map((row) => toChurch(row as Record<string, unknown>));
+  return rows.map(row => toChurch(row as Record<string, unknown>));
 }
 
 /**
@@ -93,18 +86,15 @@ export async function getChurchesByDistrictId(districtId: number): Promise<Churc
  */
 export async function getChurchesByStatus(_status: string): Promise<Church[]> {
   // status não existe na tabela churches
-  const rows = await db
-    .select()
-    .from(schema.churches)
-    .orderBy(asc(schema.churches.name));
-  return rows.map((row) => toChurch(row as Record<string, unknown>));
+  const rows = await db.select().from(schema.churches).orderBy(asc(schema.churches.name));
+  return rows.map(row => toChurch(row as Record<string, unknown>));
 }
 
 /**
  * Cria nova igreja
  */
 export async function createChurch(churchData: CreateChurchInput): Promise<Church> {
-  const code = churchData.code || await generateChurchCode();
+  const code = churchData.code || (await generateChurchCode());
 
   const [inserted] = await db
     .insert(schema.churches)
@@ -161,7 +151,7 @@ export async function deleteChurch(id: number): Promise<boolean> {
  * Conta igrejas
  */
 export async function countChurches(districtId?: number): Promise<number> {
-  const conditions: any[] = [];
+  const conditions: ReturnType<typeof eq>[] = [];
 
   if (districtId) {
     conditions.push(eq(schema.churches.districtId, districtId));
@@ -201,38 +191,35 @@ export async function getChurchStats(churchId: number): Promise<{
   upcomingEvents: number;
 }> {
   // churchId não existe na tabela users, usando districtId como proxy
-  const [
-    totalMembers,
-    activeMembers,
-    visitedMembers,
-    totalEvents,
-    upcomingEvents,
-  ] = await Promise.all([
-    db.select({ count: drizzleSql<number>`count(*)` })
-      .from(schema.users)
-      .where(eq(schema.users.districtId, churchId)),
-    db.select({ count: drizzleSql<number>`count(*)` })
-      .from(schema.users)
-      .where(and(
-        eq(schema.users.districtId, churchId),
-        drizzleSql`${schema.users.status} = 'active'`
-      )),
-    db.select({ count: drizzleSql<number>`count(*)` })
-      .from(schema.users)
-      .where(and(
-        eq(schema.users.districtId, churchId),
-        drizzleSql`${schema.users.status} = 'visited'`
-      )),
-    db.select({ count: drizzleSql<number>`count(*)` })
-      .from(schema.events)
-      .where(eq(schema.events.churchId, churchId)),
-    db.select({ count: drizzleSql<number>`count(*)` })
-      .from(schema.events)
-      .where(and(
-        eq(schema.events.churchId, churchId),
-        drizzleSql`${schema.events.date} >= NOW()`
-      )),
-  ]);
+  const [totalMembers, activeMembers, visitedMembers, totalEvents, upcomingEvents] =
+    await Promise.all([
+      db
+        .select({ count: drizzleSql<number>`count(*)` })
+        .from(schema.users)
+        .where(eq(schema.users.districtId, churchId)),
+      db
+        .select({ count: drizzleSql<number>`count(*)` })
+        .from(schema.users)
+        .where(
+          and(eq(schema.users.districtId, churchId), drizzleSql`${schema.users.status} = 'active'`)
+        ),
+      db
+        .select({ count: drizzleSql<number>`count(*)` })
+        .from(schema.users)
+        .where(
+          and(eq(schema.users.districtId, churchId), drizzleSql`${schema.users.status} = 'visited'`)
+        ),
+      db
+        .select({ count: drizzleSql<number>`count(*)` })
+        .from(schema.events)
+        .where(eq(schema.events.churchId, churchId)),
+      db
+        .select({ count: drizzleSql<number>`count(*)` })
+        .from(schema.events)
+        .where(
+          and(eq(schema.events.churchId, churchId), drizzleSql`${schema.events.date} >= NOW()`)
+        ),
+    ]);
 
   return {
     totalMembers: Number(totalMembers[0]?.count ?? 0),
@@ -256,35 +243,38 @@ export async function getChurchesPaginated(
   }
 ): Promise<{ churches: Church[]; total: number; pages: number }> {
   const offset = (page - 1) * limit;
-  const conditions: any[] = [];
+  const conditions: (ReturnType<typeof eq> | ReturnType<typeof drizzleSql>)[] = [];
 
   if (filters?.districtId) {
     conditions.push(eq(schema.churches.districtId, filters.districtId));
   }
   // status não existe na tabela churches
   if (filters?.search) {
-    conditions.push(
-      drizzleSql`${schema.churches.name} ILIKE ${'%' + filters.search + '%'}`
-    );
+    conditions.push(drizzleSql`${schema.churches.name} ILIKE ${`%${filters.search}%`}`);
   }
 
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  const whereClause =
+    conditions.length > 0
+      ? and(...(conditions as [(typeof conditions)[0], ...(typeof conditions)[0][]]))
+      : undefined;
 
   const [countResult, rows] = await Promise.all([
-    db.select({ count: drizzleSql<number>`count(*)` })
+    db
+      .select({ count: drizzleSql<number>`count(*)` })
       .from(schema.churches)
       .where(whereClause),
-    db.select()
+    db
+      .select()
       .from(schema.churches)
       .where(whereClause)
       .orderBy(asc(schema.churches.name))
       .limit(limit)
-      .offset(offset)
+      .offset(offset),
   ]);
 
   const total = Number(countResult[0]?.count ?? 0);
   const pages = Math.ceil(total / limit);
-  const churches = rows.map((row) => toChurch(row as Record<string, unknown>));
+  const churches = rows.map(row => toChurch(row as Record<string, unknown>));
 
   return { churches, total, pages };
 }

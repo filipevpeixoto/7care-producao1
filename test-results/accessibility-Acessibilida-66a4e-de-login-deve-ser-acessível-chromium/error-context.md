@@ -1,0 +1,48 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+    - link "Pular para o conteúdo principal" [ref=e3] [cursor=pointer]:
+        - /url: '#main-content'
+    - region "Notifications (F8)":
+        - list
+    - region "Notifications alt+T"
+    - main [ref=e4]:
+        - generic [ref=e5]:
+            - alert [ref=e7]:
+                - img [ref=e8]
+                - generic [ref=e11]:
+                    - generic [ref=e12]:
+                        - paragraph [ref=e13]: 📱 Instale o app!
+                        - generic [ref=e14]:
+                            - paragraph [ref=e15]: 'Desktop:'
+                            - paragraph [ref=e16]: 1. Clique no ícone de instalação na barra de endereços
+                            - paragraph [ref=e17]: 2. Ou acesse o menu do navegador e selecione "Instalar 7care"
+                        - button "Ver Instruções" [ref=e18] [cursor=pointer]:
+                            - img
+                            - text: Ver Instruções
+                    - button [ref=e19] [cursor=pointer]:
+                        - img
+            - generic [ref=e20]:
+                - img "Logo" [ref=e24]
+                - generic [ref=e25]:
+                    - generic [ref=e26]:
+                        - heading "Entre na sua conta" [level=3] [ref=e28]
+                        - generic [ref=e30]:
+                            - generic [ref=e31]:
+                                - text: Email ou Usuário
+                                - generic [ref=e32]:
+                                    - img [ref=e33]
+                                    - textbox "Email ou Usuário" [ref=e36]:
+                                        - /placeholder: seu@email.com ou seu.usuario
+                            - generic [ref=e37]:
+                                - text: Senha
+                                - generic [ref=e38]:
+                                    - img [ref=e39]
+                                    - textbox "Senha" [ref=e42]:
+                                        - /placeholder: ••••••••
+                                    - button [ref=e43] [cursor=pointer]:
+                                        - img
+                            - button "Entrar" [ref=e44] [cursor=pointer]
+                    - button "Não tem conta? Cadastre-se" [ref=e46] [cursor=pointer]
+```

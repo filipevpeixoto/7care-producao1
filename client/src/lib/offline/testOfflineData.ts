@@ -3,8 +3,7 @@
  * Execute no console do navegador
  */
 
-import { db } from './database';
-import { getUsersOffline, getEventsOffline, getTasksOffline } from './database';
+import { db, getUsersOffline, getEventsOffline, getTasksOffline } from './database';
 
 export async function testOfflineData() {
   console.log('=== TESTE DE DADOS OFFLINE ===\n');
@@ -14,7 +13,7 @@ export async function testOfflineData() {
     console.log('📋 Testando usuários...');
     const usersFromDB = await db.users.toArray();
     console.log(`  - Registros na tabela users: ${usersFromDB.length}`);
-    
+
     if (usersFromDB.length > 0) {
       console.log('  - Primeiro registro:', {
         id: usersFromDB[0].id,
@@ -34,7 +33,7 @@ export async function testOfflineData() {
     console.log('\n📅 Testando eventos...');
     const eventsFromDB = await db.events.toArray();
     console.log(`  - Registros na tabela events: ${eventsFromDB.length}`);
-    
+
     const events = await getEventsOffline();
     console.log(`  - Eventos parseados: ${events.length}`);
     if (events.length > 0) {
@@ -45,7 +44,7 @@ export async function testOfflineData() {
     console.log('\n✅ Testando tarefas...');
     const tasksFromDB = await db.tasks.toArray();
     console.log(`  - Registros na tabela tasks: ${tasksFromDB.length}`);
-    
+
     const tasks = await getTasksOffline();
     console.log(`  - Tarefas parseadas: ${tasks.length}`);
 
@@ -88,5 +87,6 @@ export async function testOfflineData() {
 
 // Exportar para uso no console
 if (typeof window !== 'undefined') {
-  (window as unknown as { testOfflineData: typeof testOfflineData }).testOfflineData = testOfflineData;
+  (window as unknown as { testOfflineData: typeof testOfflineData }).testOfflineData =
+    testOfflineData;
 }

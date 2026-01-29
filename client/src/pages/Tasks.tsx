@@ -1,12 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, User, Tag, CheckCircle, Circle, AlertCircle, Clock, Trash2, Edit3, PlusCircle, CheckSquare2, RefreshCw, Settings, CloudOff } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Search,
+  User,
+  Tag,
+  CheckCircle,
+  Circle,
+  AlertCircle,
+  Clock,
+  Trash2,
+  Edit3,
+  PlusCircle,
+  CheckSquare2,
+  RefreshCw,
+  Settings,
+  CloudOff,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DialogWithModalTracking, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,53 +68,67 @@ interface User {
   church: string;
 }
 
+interface SheetTask {
+  id: number;
+  titulo: string;
+  descricao: string;
+  status: string;
+  prioridade: string;
+  responsavel: string;
+  criador: string;
+  igreja: string;
+  data_criacao: string;
+  data_vencimento?: string;
+  data_conclusao?: string;
+  tags?: string;
+}
+
 const priorityConfig = {
   high: {
     color: 'bg-red-50 text-red-700 border-red-200',
     icon: <AlertCircle className="h-3 w-3" />,
-    label: 'Alta'
+    label: 'Alta',
   },
   medium: {
     color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     icon: <Clock className="h-3 w-3" />,
-    label: 'Média'
+    label: 'Média',
   },
   low: {
     color: 'bg-green-50 text-green-700 border-green-200',
     icon: <Circle className="h-3 w-3" />,
-    label: 'Baixa'
-  }
+    label: 'Baixa',
+  },
 };
 
 const statusConfig = {
   pending: {
     color: 'bg-gray-50 text-gray-700 border-gray-200',
     icon: <Circle className="h-3 w-3" />,
-    label: 'Pendente'
+    label: 'Pendente',
   },
   in_progress: {
     color: 'bg-blue-50 text-blue-700 border-blue-200',
     icon: <Clock className="h-3 w-3" />,
-    label: 'Em Progresso'
+    label: 'Em Progresso',
   },
   completed: {
     color: 'bg-green-50 text-green-700 border-green-200',
     icon: <CheckCircle className="h-3 w-3" />,
-    label: 'Concluída'
-  }
+    label: 'Concluída',
+  },
 };
 
 // 🎯 CONFIGURAÇÃO DO GOOGLE SHEETS
 const GOOGLE_SHEETS_CONFIG = {
   proxyUrl: '/api/google-sheets/proxy', // Proxy no servidor (evita CORS)
   spreadsheetId: '1i-x-0KiciwACRztoKX-YHlXT4FsrAzaKwuH-hHkD8go',
-  sheetName: 'tarefas'
+  sheetName: 'tarefas',
 };
 
 export default function Tasks() {
   console.log('🚀 Tasks - Sistema de sincronização simplificado');
-  
-  const queryClient = useQueryClient();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -103,62 +144,76 @@ export default function Tasks() {
     due_date: '',
     assigned_to: 'none',
     church: '',
-    tags: [] as string[]
+    tags: [] as string[],
   });
-  
+
   // Verificação simples de conexão
   const isOnline = navigator.onLine;
 
   // Hook SIMPLIFICADO - buscar tarefas DIRETO DO GOOGLE SHEETS (fonte da verdade)
-  const { data: tasksData, isLoading: tasksLoading, refetch } = useQuery({
+  const {
+    data: tasksData,
+    isLoading: tasksLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
       console.log('📖 [TASKS] Buscando tarefas DO GOOGLE SHEETS (fonte da verdade)...');
-      
+
       // Buscar DIRETO do Google Sheets
       const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
         body: JSON.stringify({
           action: 'getTasks',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
-          sheetName: GOOGLE_SHEETS_CONFIG.sheetName
-        })
+          sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
+        }),
       });
-      
+
       if (!response.ok) throw new Error('Erro ao buscar tarefas do Google Sheets');
-      
+
       const data = await response.json();
       const tasks = data.tasks || [];
-      
+
       // Converter formato do Sheets para formato do app
-      const convertedTasks = tasks.map((sheetTask: any) => ({
+      const convertedTasks = tasks.map((sheetTask: SheetTask) => ({
         id: sheetTask.id,
         title: sheetTask.titulo || '',
         description: sheetTask.descricao || '',
-        status: sheetTask.status === 'Concluída' ? 'completed' : 
-                sheetTask.status === 'Em Progresso' ? 'in_progress' : 'pending',
-        priority: sheetTask.prioridade === 'Alta' ? 'high' :
-                  sheetTask.prioridade === 'Baixa' ? 'low' : 'medium',
+        status:
+          sheetTask.status === 'Concluída'
+            ? 'completed'
+            : sheetTask.status === 'Em Progresso'
+              ? 'in_progress'
+              : 'pending',
+        priority:
+          sheetTask.prioridade === 'Alta'
+            ? 'high'
+            : sheetTask.prioridade === 'Baixa'
+              ? 'low'
+              : 'medium',
         assigned_to_name: sheetTask.responsavel || '',
         created_by_name: sheetTask.criador || '',
         church: sheetTask.igreja || '',
-        created_at: sheetTask.data_criacao ? new Date(sheetTask.data_criacao.split('/').reverse().join('-')).toISOString() : new Date().toISOString(),
+        created_at: sheetTask.data_criacao
+          ? new Date(sheetTask.data_criacao.split('/').reverse().join('-')).toISOString()
+          : new Date().toISOString(),
         updated_at: new Date().toISOString(),
         due_date: sheetTask.data_vencimento || '',
         completed_at: sheetTask.data_conclusao || '',
-        tags: sheetTask.tags ? sheetTask.tags.split(',').filter(Boolean) : []
+        tags: sheetTask.tags ? sheetTask.tags.split(',').filter(Boolean) : [],
       }));
-      
+
       console.log(`✅ [TASKS] ${convertedTasks.length} tarefas carregadas DO GOOGLE SHEETS`);
       return convertedTasks;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos - dados não mudam tão frequentemente
     refetchInterval: 5 * 60 * 1000, // 5 minutos - menos frequente
-    refetchOnWindowFocus: false // Não refetch a cada foco
+    refetchOnWindowFocus: false, // Não refetch a cada foco
   });
 
   const allTasks = tasksData || [];
@@ -175,7 +230,7 @@ export default function Tasks() {
   // ========================================
   // 🎯 SINCRONIZAÇÃO COM GOOGLE SHEETS
   // ========================================
-  
+
   /**
    * Adiciona uma tarefa específica ao Google Sheets
    */
@@ -187,38 +242,43 @@ export default function Tasks() {
 
     try {
       console.log(`📤 [ADD] Adicionando tarefa ${task.id} ao Google Sheets...`);
-      
+
       const taskData = {
         id: task.id,
         titulo: task.title,
         descricao: task.description || '',
-        status: task.status === 'completed' ? 'Concluída' :
-               task.status === 'in_progress' ? 'Em Progresso' : 'Pendente',
-        prioridade: task.priority === 'high' ? 'Alta' :
-                   task.priority === 'low' ? 'Baixa' : 'Média',
+        status:
+          task.status === 'completed'
+            ? 'Concluída'
+            : task.status === 'in_progress'
+              ? 'Em Progresso'
+              : 'Pendente',
+        prioridade: task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baixa' : 'Média',
         responsavel: task.assigned_to_name || 'Sistema',
         criador: task.created_by_name || 'App',
         igreja: task.church || '',
         data_criacao: new Date(task.created_at).toLocaleDateString('pt-BR'),
         data_vencimento: task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : '',
-        data_conclusao: task.completed_at ? new Date(task.completed_at).toLocaleDateString('pt-BR') : '',
-        tags: task.tags?.join(',') || ''
+        data_conclusao: task.completed_at
+          ? new Date(task.completed_at).toLocaleDateString('pt-BR')
+          : '',
+        tags: task.tags?.join(',') || '',
       };
-      
+
       const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
         body: JSON.stringify({
           action: 'addTask',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
           sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-          taskData
-        })
+          taskData,
+        }),
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -245,41 +305,41 @@ export default function Tasks() {
 
     try {
       console.log(`📝 [UPDATE] Atualizando tarefa ${task.id} no Google Sheets...`);
-      
+
       // Verificar se a tarefa ainda existe no servidor antes de atualizar
       const checkResponse = await fetch(`/api/tasks`, {
-        headers: { 'x-user-id': '1' }
+        headers: { 'x-user-id': '1' },
       });
-      
+
       if (checkResponse.ok) {
         const checkData = await checkResponse.json();
         const tasks = checkData.tasks || [];
         const taskExists = tasks.find((t: Task) => t.id === task.id);
-        
+
         if (!taskExists) {
           console.log(`⚠️ [UPDATE] Tarefa ${task.id} não existe mais, cancelando atualização`);
           return;
         }
       }
-      
+
       // Deletar a linha antiga do Google Sheets
-      const deleteResult = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
+      await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
         body: JSON.stringify({
           action: 'deleteTask',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
           sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-          taskId: task.id
-        })
+          taskId: task.id,
+        }),
       });
-      
+
       // Adicionar com os dados atualizados
       await addTaskToGoogleSheets(task);
-      
+
       console.log(`✅ [UPDATE] Tarefa ${task.id} atualizada no Google Sheets!`);
     } catch (error) {
       console.error(`❌ [UPDATE] Erro ao atualizar tarefa ${task.id} no Google Sheets:`, error);
@@ -297,25 +357,27 @@ export default function Tasks() {
 
     try {
       console.log(`🗑️ [DELETE] Deletando tarefa ${taskId} do Google Sheets...`);
-      
+
       const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
         body: JSON.stringify({
           action: 'deleteTask',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
           sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-          taskId: taskId
-        })
+          taskId: taskId,
+        }),
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          console.log(`✅ [DELETE] Tarefa ${taskId} deletada do Google Sheets (linha ${result.linha})`);
+          console.log(
+            `✅ [DELETE] Tarefa ${taskId} deletada do Google Sheets (linha ${result.linha})`
+          );
         } else {
           console.warn(`⚠️ [DELETE] Falha ao deletar tarefa ${taskId}:`, result.error);
         }
@@ -340,9 +402,9 @@ export default function Tasks() {
     try {
       if (showToast) toast.info('Sincronizando...');
       console.log('🔄 [SYNC] Recarregando do Google Sheets...');
-      
+
       await refetch();
-      
+
       if (showToast) toast.success('Sincronizado!');
     } catch (error) {
       console.error('❌ [SYNC] Erro:', error);
@@ -359,22 +421,22 @@ export default function Tasks() {
   // ========================================
   // SINCRONIZAÇÃO COM GOOGLE SHEETS
   // ========================================
-  
+
   // ⚠️ SINCRONIZAÇÃO AUTOMÁTICA DESATIVADA
   // Motivo: Deletar tarefas usa função específica (deleteTaskFromGoogleSheets)
   // que deleta APENAS a linha da tarefa, sem relançar tudo
-  // 
+  //
   // Para sincronização completa manual, use o botão "Servidor"
-  
+
   // useEffect(() => {
   //   if (!isOnline || !allTasks) return;
-  //   
+  //
   //   // Debounce de 5 segundos para evitar múltiplas sincronizações
   //   const timer = setTimeout(() => {
   //     console.log('🔄 [AUTO-SYNC] Sincronização automática iniciada...');
   //     syncWithGoogleSheets();
   //   }, 5000); // 5 segundos de delay
-  //   
+  //
   //   return () => clearTimeout(timer);
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [allTasks?.length, isOnline]); // Apenas quando o número de tarefas mudar
@@ -391,17 +453,20 @@ export default function Tasks() {
 
     try {
       console.log('➕ [CREATE] Criando tarefa:', newTask.title);
-      
+
       const taskData = {
         title: newTask.title,
         description: newTask.description,
         priority: newTask.priority,
         due_date: newTask.due_date || undefined,
-        assigned_to: newTask.assigned_to && newTask.assigned_to !== 'none' ? parseInt(newTask.assigned_to) : undefined,
+        assigned_to:
+          newTask.assigned_to && newTask.assigned_to !== 'none'
+            ? parseInt(newTask.assigned_to)
+            : undefined,
         church: newTask.church || undefined,
         status: 'pending' as const,
         created_by: 1,
-        tags: newTask.tags
+        tags: newTask.tags,
       };
 
       // Criar no servidor
@@ -409,9 +474,9 @@ export default function Tasks() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
-        body: JSON.stringify(taskData)
+        body: JSON.stringify(taskData),
       });
 
       if (!response.ok) throw new Error('Erro ao criar tarefa');
@@ -436,7 +501,7 @@ export default function Tasks() {
         due_date: '',
         assigned_to: 'none',
         church: '',
-        tags: []
+        tags: [],
       });
 
       toast.success('Tarefa criada!');
@@ -449,7 +514,6 @@ export default function Tasks() {
           console.error('Erro ao enviar notificação:', error);
         }
       }
-
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
       toast.error('Erro ao criar tarefa');
@@ -466,7 +530,7 @@ export default function Tasks() {
 
     try {
       console.log('📝 [UPDATE] Atualizando tarefa:', editingTask.id);
-      
+
       const updates = {
         title: editingTask.title,
         description: editingTask.description,
@@ -474,7 +538,7 @@ export default function Tasks() {
         due_date: editingTask.due_date,
         assigned_to: editingTask.assigned_to,
         church: editingTask.church,
-        status: editingTask.status
+        status: editingTask.status,
       };
 
       // Atualizar no servidor
@@ -482,9 +546,9 @@ export default function Tasks() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
       });
 
       if (!response.ok) throw new Error('Erro ao atualizar tarefa');
@@ -510,11 +574,11 @@ export default function Tasks() {
 
     try {
       console.log(`🗑️ [DELETE] Deletando tarefa ${taskId}...`);
-      
+
       // Deletar do servidor
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
-        headers: { 'x-user-id': '1' }
+        headers: { 'x-user-id': '1' },
       });
 
       if (!response.ok && response.status !== 404) {
@@ -536,10 +600,8 @@ export default function Tasks() {
   };
 
   const handleToggleTaskSelection = (taskId: number) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) 
-        ? prev.filter(id => id !== taskId)
-        : [...prev, taskId]
+    setSelectedTasks(prev =>
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
     );
   };
 
@@ -562,21 +624,21 @@ export default function Tasks() {
 
     try {
       console.log(`🗑️ [MULTIPLE] Deletando ${count} tarefas...`);
-      
+
       for (const taskId of selectedTasks) {
         // Deletar do servidor
         await fetch(`/api/tasks/${taskId}`, {
           method: 'DELETE',
-          headers: { 'x-user-id': '1' }
+          headers: { 'x-user-id': '1' },
         });
-        
+
         // Deletar do Google Sheets
         await deleteTaskFromGoogleSheets(taskId);
       }
 
       // Recarregar lista
       await refetch();
-      
+
       setSelectedTasks([]);
       toast.success(`${count} tarefa${count > 1 ? 's deletadas' : ' deletada'}!`);
       console.log(`✅ [MULTIPLE] ${count} tarefas deletadas`);
@@ -587,20 +649,21 @@ export default function Tasks() {
   };
 
   const handleToggleStatus = async (task: Task) => {
-    const newStatus: 'pending' | 'completed' = task.status === 'completed' ? 'pending' : 'completed';
-    
+    const newStatus: 'pending' | 'completed' =
+      task.status === 'completed' ? 'pending' : 'completed';
+
     try {
       // Atualizar no servidor
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: newStatus,
-          completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined
-        })
+          completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined,
+        }),
       });
 
       if (!response.ok) throw new Error('Erro ao atualizar');
@@ -609,7 +672,7 @@ export default function Tasks() {
       const updatedTask = {
         ...task,
         status: newStatus,
-        completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined
+        completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined,
       };
       await updateTaskInGoogleSheets(updatedTask);
 
@@ -626,11 +689,11 @@ export default function Tasks() {
     queryKey: ['tasks-users'],
     queryFn: async () => {
       const response = await fetch('/api/tasks/users', {
-        headers: { 'x-user-id': '1' }
+        headers: { 'x-user-id': '1' },
       });
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       return response.json();
-    }
+    },
   });
 
   const users = usersData?.users || [];
@@ -638,15 +701,16 @@ export default function Tasks() {
   // Filtrar tarefas com verificações de segurança
   const filtered = allTasks.filter((task: Task) => {
     if (!task || !task.id) return false; // Ignorar tarefas inválidas
-    
-    const matchesSearch = (task.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (task.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (task.assigned_to_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (task.church || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+
+    const matchesSearch =
+      (task.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.assigned_to_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.church || '').toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesStatus = selectedStatus === 'all' || task.status === selectedStatus;
     const matchesPriority = selectedPriority === 'all' || task.priority === selectedPriority;
-    
+
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
@@ -671,11 +735,13 @@ export default function Tasks() {
   const TaskCard = ({ task }: { task: Task }) => {
     const isNotSynced = (task as any)._synced === false || (task as any)._localCreated === true;
     const isSelected = selectedTasks.includes(task.id);
-    
+
     return (
-      <Card className={`group relative overflow-hidden bg-white border-0 shadow-sm hover:shadow-md transition-shadow duration-200 mb-4 ${isNotSynced ? 'border-l-4 border-l-yellow-400' : ''} ${isSelected ? 'ring-2 ring-blue-500 shadow-xl' : ''}`}>
+      <Card
+        className={`group relative overflow-hidden bg-white border-0 shadow-sm hover:shadow-md transition-shadow duration-200 mb-4 ${isNotSynced ? 'border-l-4 border-l-yellow-400' : ''} ${isSelected ? 'ring-2 ring-blue-500 shadow-xl' : ''}`}
+      >
         <div className="absolute inset-0 bg-gradient-to-r from-gray-50/50 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        
+
         <CardContent className="p-6 relative z-10">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -690,9 +756,7 @@ export default function Tasks() {
                     <Circle className="h-5 w-5 text-gray-300 hover:text-gray-500" />
                   )}
                 </button>
-                <h3 className="text-lg font-semibold text-gray-900 truncate">
-                  {task.title}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 truncate">{task.title}</h3>
                 {isNotSynced && (
                   <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
                     <CloudOff className="h-2 w-2 mr-1" />
@@ -700,91 +764,100 @@ export default function Tasks() {
                   </Badge>
                 )}
               </div>
-            
-            {task.description && (
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                {task.description}
-              </p>
-            )}
-            
-            <div className="flex flex-wrap gap-2 mb-3">
-              <Badge className={`${statusConfig[task.status].color} border`}>
-                {statusConfig[task.status].icon}
-                <span className="ml-1">{statusConfig[task.status].label}</span>
-              </Badge>
-              
-              <Badge className={`${priorityConfig[task.priority].color} border`}>
-                {priorityConfig[task.priority].icon}
-                <span className="ml-1">{priorityConfig[task.priority].label}</span>
-              </Badge>
-              
-              {task.assigned_to_name && (
-                <Badge className="bg-blue-50 text-blue-700 border-blue-200">
-                  <User className="h-3 w-3 mr-1" />
-                  {task.assigned_to_name}
-                </Badge>
+
+              {task.description && (
+                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{task.description}</p>
               )}
-              
-              {task.church && (
-                <Badge className="bg-purple-50 text-purple-700 border-purple-200">
-                  🏛️ {task.church}
+
+              <div className="flex flex-wrap gap-2 mb-3">
+                <Badge className={`${statusConfig[task.status].color} border`}>
+                  {statusConfig[task.status].icon}
+                  <span className="ml-1">{statusConfig[task.status].label}</span>
                 </Badge>
-              )}
-            </div>
-            
-            {task.tags && task.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {task.tags.map((tag, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    <Tag className="h-2 w-2 mr-1" />
-                    {tag}
+
+                <Badge className={`${priorityConfig[task.priority].color} border`}>
+                  {priorityConfig[task.priority].icon}
+                  <span className="ml-1">{priorityConfig[task.priority].label}</span>
+                </Badge>
+
+                {task.assigned_to_name && (
+                  <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                    <User className="h-3 w-3 mr-1" />
+                    {task.assigned_to_name}
                   </Badge>
-                ))}
+                )}
+
+                {task.church && (
+                  <Badge className="bg-purple-50 text-purple-700 border-purple-200">
+                    🏛️ {task.church}
+                  </Badge>
+                )}
               </div>
-            )}
-          </div>
-          
-          <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => handleEditTask(task)}
-                variant="ghost"
-                size="sm"
-                className="h-9 px-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
-              >
-                <Edit3 className="h-4 w-4 mr-1.5" />
-                <span className="hidden sm:inline">Editar</span>
-              </Button>
-              
-              <Button
-                onClick={() => handleDeleteTask(task.id)}
-                variant="ghost"
-                size="sm"
-                className="h-9 px-3 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
-              >
-                <Trash2 className="h-4 w-4 mr-1.5" />
-                <span className="hidden sm:inline">Deletar</span>
-              </Button>
+
+              {task.tags && task.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {task.tags.map((tag, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      <Tag className="h-2 w-2 mr-1" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-            
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleToggleTaskSelection(task.id)}>
-              <span className="text-sm text-gray-600 hidden sm:inline">Selecionar</span>
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={() => handleToggleTaskSelection(task.id)}
-                className="flex-shrink-0"
-                aria-label={`Selecionar tarefa ${task.title}`}
-                onClick={(e) => e.stopPropagation()}
-              />
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => handleEditTask(task)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                >
+                  <Edit3 className="h-4 w-4 mr-1.5" />
+                  <span className="hidden sm:inline">Editar</span>
+                </Button>
+
+                <Button
+                  onClick={() => handleDeleteTask(task.id)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-3 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  <span className="hidden sm:inline">Deletar</span>
+                </Button>
+              </div>
+
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => handleToggleTaskSelection(task.id)}
+              >
+                <span className="text-sm text-gray-600 hidden sm:inline">Selecionar</span>
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => handleToggleTaskSelection(task.id)}
+                  className="flex-shrink-0"
+                  aria-label={`Selecionar tarefa ${task.title}`}
+                  onClick={e => e.stopPropagation()}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
     );
   };
 
-  const EmptyState = ({ icon: Icon, title, description }: { icon: any, title: string, description: string }) => (
+  const EmptyState = ({
+    icon: Icon,
+    title,
+    description,
+  }: {
+    icon: any;
+    title: string;
+    description: string;
+  }) => (
     <div className="text-center py-12">
       <div className="inline-flex p-4 rounded-full bg-gray-100 mb-4">
         <Icon className="h-8 w-8 text-gray-400" />
@@ -820,12 +893,10 @@ export default function Tasks() {
                   Tarefas
                 </h1>
               </div>
-              
-              <p className="text-gray-600 text-lg">
-                Organize e acompanhe suas tarefas
-              </p>
+
+              <p className="text-gray-600 text-lg">Organize e acompanhe suas tarefas</p>
             </div>
-            
+
             <div className="flex gap-3 flex-wrap">
               {/* Botão de sincronização manual */}
               <Button
@@ -838,7 +909,7 @@ export default function Tasks() {
                 <RefreshCw className="h-4 w-4" />
                 Sincronizar
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -848,10 +919,10 @@ export default function Tasks() {
                 <Settings className="h-4 w-4" />
                 Configurar
               </Button>
-            
-              <DialogWithModalTracking 
+
+              <DialogWithModalTracking
                 modalId="create-task-modal"
-                open={isCreateDialogOpen} 
+                open={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
               >
                 <DialogTrigger asChild>
@@ -864,35 +935,40 @@ export default function Tasks() {
                   <DialogHeader>
                     <DialogTitle className="text-xl font-semibold">Nova Tarefa</DialogTitle>
                   </DialogHeader>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <Label htmlFor="title">Título *</Label>
                       <Input
                         id="title"
                         value={newTask.title}
-                        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                        onChange={e => setNewTask({ ...newTask, title: e.target.value })}
                         placeholder="Digite o título da tarefa"
                         className="mt-1"
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="description">Descrição</Label>
                       <Textarea
                         id="description"
                         value={newTask.description}
-                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                        onChange={e => setNewTask({ ...newTask, description: e.target.value })}
                         placeholder="Descreva a tarefa em detalhes"
                         className="mt-1"
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="priority">Prioridade</Label>
-                        <Select value={newTask.priority} onValueChange={(value) => setNewTask({ ...newTask, priority: value as any })}>
+                        <Select
+                          value={newTask.priority}
+                          onValueChange={value =>
+                            setNewTask({ ...newTask, priority: value as any })
+                          }
+                        >
                           <SelectTrigger className="mt-1">
                             <SelectValue />
                           </SelectTrigger>
@@ -903,22 +979,25 @@ export default function Tasks() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="due_date">Vencimento</Label>
                         <Input
                           id="due_date"
                           type="date"
                           value={newTask.due_date}
-                          onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                          onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
                           className="mt-1"
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="assigned_to">Responsável</Label>
-                      <Select value={newTask.assigned_to} onValueChange={(value) => setNewTask({ ...newTask, assigned_to: value })}>
+                      <Select
+                        value={newTask.assigned_to}
+                        onValueChange={value => setNewTask({ ...newTask, assigned_to: value })}
+                      >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
@@ -932,23 +1011,20 @@ export default function Tasks() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="church">Igreja</Label>
                       <Input
                         id="church"
                         value={newTask.church}
-                        onChange={(e) => setNewTask({ ...newTask, church: e.target.value })}
+                        onChange={e => setNewTask({ ...newTask, church: e.target.value })}
                         placeholder="Digite o nome da igreja"
                         className="mt-1"
                       />
                     </div>
-                    
+
                     <div className="flex justify-end gap-3 pt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsCreateDialogOpen(false)}
-                      >
+                      <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                         Cancelar
                       </Button>
                       <Button
@@ -974,12 +1050,12 @@ export default function Tasks() {
                     <Input
                       placeholder="Buscar tarefas..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={e => setSearchTerm(e.target.value)}
                       className="pl-12 h-12 text-base"
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex gap-3 flex-wrap">
                   <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                     <SelectTrigger className="w-40">
@@ -992,7 +1068,7 @@ export default function Tasks() {
                       <SelectItem value="completed">Concluídas</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <Select value={selectedPriority} onValueChange={setSelectedPriority}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Prioridade" />
@@ -1004,7 +1080,7 @@ export default function Tasks() {
                       <SelectItem value="low">Baixa</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Ordenar por" />
@@ -1026,23 +1102,25 @@ export default function Tasks() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <Checkbox
-                      checked={selectedTasks.length === filteredTasks.length && filteredTasks.length > 0}
+                      checked={
+                        selectedTasks.length === filteredTasks.length && filteredTasks.length > 0
+                      }
                       onCheckedChange={handleSelectAllTasks}
                       className="flex-shrink-0"
                     />
                     <div>
                       <p className="font-semibold text-gray-900">
-                        {selectedTasks.length > 0 
+                        {selectedTasks.length > 0
                           ? `${selectedTasks.length} selecionada${selectedTasks.length > 1 ? 's' : ''}`
-                          : 'Selecionar todas'
-                        }
+                          : 'Selecionar todas'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {filteredTasks.length} tarefa{filteredTasks.length > 1 ? 's' : ''} disponível{filteredTasks.length > 1 ? 'is' : ''}
+                        {filteredTasks.length} tarefa{filteredTasks.length > 1 ? 's' : ''}{' '}
+                        disponível{filteredTasks.length > 1 ? 'is' : ''}
                       </p>
                     </div>
                   </div>
-                  
+
                   {selectedTasks.length > 0 && (
                     <div className="flex gap-2 w-full sm:w-auto">
                       <Button
@@ -1072,68 +1150,77 @@ export default function Tasks() {
           {/* Lista de Tarefas */}
           <Tabs defaultValue="pending" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 bg-white border shadow-sm">
-              <TabsTrigger value="pending" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <TabsTrigger
+                value="pending"
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+              >
                 <Circle className="h-4 w-4 mr-2" />
                 Pendentes ({pendingTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="in_progress" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <TabsTrigger
+                value="in_progress"
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+              >
                 <Clock className="h-4 w-4 mr-2" />
                 Em Progresso ({inProgressTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="completed" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+              <TabsTrigger
+                value="completed"
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+              >
                 <CheckSquare2 className="h-4 w-4 mr-2" />
                 Concluídas ({completedTasks.length})
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="pending" className="space-y-4">
               {pendingTasks.length === 0 ? (
-                <EmptyState 
+                <EmptyState
                   icon={Circle}
                   title="Nenhuma tarefa pendente"
                   description="Crie uma nova tarefa para começar"
                 />
               ) : (
-                pendingTasks.map((task) => <TaskCard key={task.id} task={task} />)
+                pendingTasks.map(task => <TaskCard key={task.id} task={task} />)
               )}
             </TabsContent>
-            
+
             <TabsContent value="in_progress" className="space-y-4">
               {inProgressTasks.length === 0 ? (
-                <EmptyState 
+                <EmptyState
                   icon={Clock}
                   title="Nenhuma tarefa em progresso"
                   description="Mova tarefas pendentes para começar"
                 />
               ) : (
-                inProgressTasks.map((task) => <TaskCard key={task.id} task={task} />)
+                inProgressTasks.map(task => <TaskCard key={task.id} task={task} />)
               )}
             </TabsContent>
-            
+
             <TabsContent value="completed" className="space-y-4">
               {completedTasks.length === 0 ? (
-                <EmptyState 
+                <EmptyState
                   icon={CheckSquare2}
                   title="Nenhuma tarefa concluída"
                   description="Complete tarefas para vê-las aqui"
                 />
               ) : (
-                completedTasks.map((task) => <TaskCard key={task.id} task={task} />)
+                completedTasks.map(task => <TaskCard key={task.id} task={task} />)
               )}
             </TabsContent>
           </Tabs>
 
           {/* Dialog de Edição */}
-          <DialogWithModalTracking 
+          <DialogWithModalTracking
             modalId="edit-task-modal"
-            open={isEditDialogOpen} 
+            open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
           >
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-xl font-semibold">Editar Tarefa</DialogTitle>
               </DialogHeader>
-              
+
               {editingTask && (
                 <div className="space-y-6">
                   <div>
@@ -1141,28 +1228,35 @@ export default function Tasks() {
                     <Input
                       id="edit-title"
                       value={editingTask.title}
-                      onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                      onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
                       placeholder="Digite o título"
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="edit-description">Descrição</Label>
                     <Textarea
                       id="edit-description"
                       value={editingTask.description || ''}
-                      onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                      onChange={e =>
+                        setEditingTask({ ...editingTask, description: e.target.value })
+                      }
                       placeholder="Descreva a tarefa"
                       className="mt-1"
                       rows={3}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="edit-priority">Prioridade</Label>
-                      <Select value={editingTask.priority} onValueChange={(value) => setEditingTask({ ...editingTask, priority: value as any })}>
+                      <Select
+                        value={editingTask.priority}
+                        onValueChange={value =>
+                          setEditingTask({ ...editingTask, priority: value as any })
+                        }
+                      >
                         <SelectTrigger className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
@@ -1173,22 +1267,27 @@ export default function Tasks() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="edit-due_date">Vencimento</Label>
                       <Input
                         id="edit-due_date"
                         type="date"
                         value={editingTask.due_date ? editingTask.due_date.split('T')[0] : ''}
-                        onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
+                        onChange={e => setEditingTask({ ...editingTask, due_date: e.target.value })}
                         className="mt-1"
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="edit-status">Status</Label>
-                    <Select value={editingTask.status} onValueChange={(value) => setEditingTask({ ...editingTask, status: value as any })}>
+                    <Select
+                      value={editingTask.status}
+                      onValueChange={value =>
+                        setEditingTask({ ...editingTask, status: value as any })
+                      }
+                    >
                       <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
@@ -1199,12 +1298,17 @@ export default function Tasks() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="edit-assigned_to">Responsável</Label>
-                    <Select 
-                      value={editingTask.assigned_to?.toString() || 'none'} 
-                      onValueChange={(value) => setEditingTask({ ...editingTask, assigned_to: value === 'none' ? undefined : parseInt(value) })}
+                    <Select
+                      value={editingTask.assigned_to?.toString() || 'none'}
+                      onValueChange={value =>
+                        setEditingTask({
+                          ...editingTask,
+                          assigned_to: value === 'none' ? undefined : parseInt(value),
+                        })
+                      }
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Selecione" />
@@ -1219,23 +1323,20 @@ export default function Tasks() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="edit-church">Igreja</Label>
                     <Input
                       id="edit-church"
                       value={editingTask.church || ''}
-                      onChange={(e) => setEditingTask({ ...editingTask, church: e.target.value })}
+                      onChange={e => setEditingTask({ ...editingTask, church: e.target.value })}
                       placeholder="Digite o nome da igreja"
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditDialogOpen(false)}
-                    >
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                       Cancelar
                     </Button>
                     <Button
@@ -1254,4 +1355,3 @@ export default function Tasks() {
     </MobileLayout>
   );
 }
-

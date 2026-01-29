@@ -3,7 +3,7 @@
  * Valida proteções contra ataques comuns
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 
 // Mock de funções de segurança
 const securityUtils = {
@@ -50,7 +50,7 @@ const securityUtils = {
   // Validação de senha forte
   isStrongPassword: (password: string): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
-    
+
     if (password.length < 8) {
       errors.push('Password must be at least 8 characters');
     }
@@ -87,7 +87,13 @@ const securityUtils = {
   },
 
   // Rate limiting check
-  isRateLimited: (requests: number, limit: number, windowMs: number, currentTime: number, windowStart: number): boolean => {
+  isRateLimited: (
+    requests: number,
+    limit: number,
+    windowMs: number,
+    currentTime: number,
+    windowStart: number
+  ): boolean => {
     if (currentTime - windowStart > windowMs) {
       return false; // Nova janela
     }
@@ -98,7 +104,7 @@ const securityUtils = {
   isValidJwtFormat: (token: string): boolean => {
     const parts = token.split('.');
     if (parts.length !== 3) return false;
-    
+
     try {
       parts.forEach(part => {
         // Base64url decode check
@@ -292,7 +298,8 @@ describe('Security Tests', () => {
   describe('JWT Format Validation', () => {
     it('should accept valid JWT format', () => {
       // Fake JWT with valid base64 parts
-      const validJwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+      const validJwt =
+        'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
       expect(securityUtils.isValidJwtFormat(validJwt)).toBe(true);
     });
 

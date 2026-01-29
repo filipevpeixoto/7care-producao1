@@ -1,0 +1,44 @@
+# Code Owners
+# Estes usuários/times serão automaticamente solicitados para review
+
+# Donos globais (fallback)
+* @7care-team
+
+# Frontend
+/client/ @frontend-team
+/client/src/components/ @frontend-team
+/client/src/pages/ @frontend-team
+
+# Backend
+/server/ @backend-team
+/server/routes/ @backend-team
+/server/services/ @backend-team
+/server/repositories/ @backend-team
+
+# Segurança (requer review de segurança)
+/server/middleware/security.ts @security-team
+/server/middleware/rateLimiter.ts @security-team
+/server/middleware/auth.ts @security-team
+/server/services/authService.ts @security-team
+
+# Banco de dados (requer review cuidadoso)
+/server/schema.ts @backend-team @database-team
+/server/neonAdapter.ts @backend-team @database-team
+/server/migrations/ @backend-team @database-team
+
+# Configurações críticas
+/.github/ @devops-team
+/netlify.toml @devops-team
+/vite.config.ts @frontend-team
+/tsconfig.json @tech-leads
+
+# Documentação
+/docs/ @tech-leads
+/README.md @tech-leads
+/CONTRIBUTING.md @tech-leads
+
+# Testes
+/tests/ @qa-team
+/e2e/ @qa-team
+/server/__tests__/ @backend-team @qa-team
+/client/src/**/*.test.* @frontend-team @qa-team

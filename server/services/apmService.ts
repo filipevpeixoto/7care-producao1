@@ -70,10 +70,14 @@ function generateSpanId(): string {
 /**
  * Incrementa contador
  */
-export function incrementCounter(name: string, value: number = 1, tags: Record<string, string> = {}): void {
+export function incrementCounter(
+  name: string,
+  value: number = 1,
+  tags: Record<string, string> = {}
+): void {
   const key = `${name}:${JSON.stringify(tags)}`;
   counters.set(key, (counters.get(key) || 0) + value);
-  
+
   metricsBuffer.push({
     name,
     value,
@@ -81,7 +85,7 @@ export function incrementCounter(name: string, value: number = 1, tags: Record<s
     tags,
     type: 'counter',
   });
-  
+
   checkBufferSize();
 }
 
@@ -91,7 +95,7 @@ export function incrementCounter(name: string, value: number = 1, tags: Record<s
 export function setGauge(name: string, value: number, tags: Record<string, string> = {}): void {
   const key = `${name}:${JSON.stringify(tags)}`;
   gauges.set(key, value);
-  
+
   metricsBuffer.push({
     name,
     value,
@@ -99,19 +103,23 @@ export function setGauge(name: string, value: number, tags: Record<string, strin
     tags,
     type: 'gauge',
   });
-  
+
   checkBufferSize();
 }
 
 /**
  * Registra valor em histograma
  */
-export function recordHistogram(name: string, value: number, tags: Record<string, string> = {}): void {
+export function recordHistogram(
+  name: string,
+  value: number,
+  tags: Record<string, string> = {}
+): void {
   const key = `${name}:${JSON.stringify(tags)}`;
   const values = histograms.get(key) || [];
   values.push(value);
   histograms.set(key, values);
-  
+
   metricsBuffer.push({
     name,
     value,
@@ -119,14 +127,18 @@ export function recordHistogram(name: string, value: number, tags: Record<string
     tags,
     type: 'histogram',
   });
-  
+
   checkBufferSize();
 }
 
 /**
  * Registra tempo de execução
  */
-export function recordTiming(name: string, durationMs: number, tags: Record<string, string> = {}): void {
+export function recordTiming(
+  name: string,
+  durationMs: number,
+  tags: Record<string, string> = {}
+): void {
   metricsBuffer.push({
     name,
     value: durationMs,
@@ -134,7 +146,7 @@ export function recordTiming(name: string, durationMs: number, tags: Record<stri
     tags,
     type: 'timing',
   });
-  
+
   checkBufferSize();
 }
 
@@ -152,10 +164,10 @@ function checkBufferSize(): void {
  */
 export async function flushMetrics(): Promise<void> {
   if (metricsBuffer.length === 0) return;
-  
+
   const metrics = [...metricsBuffer];
   metricsBuffer.length = 0;
-  
+
   // Log resumo de métricas
   const summary = {
     total: metrics.length,
@@ -164,21 +176,24 @@ export async function flushMetrics(): Promise<void> {
     histograms: metrics.filter(m => m.type === 'histogram').length,
     timings: metrics.filter(m => m.type === 'timing').length,
   };
-  
+
   logger.debug('Métricas flushed', summary);
-  
-  // TODO: Enviar para Datadog/NewRelic/Prometheus
-  // await sendToMonitoringBackend(metrics);
+
+  // NOTA: Integração com backend de monitoramento
+  // Para habilitar envio de métricas, configure as variáveis de ambiente:
+  // - DATADOG_API_KEY: Para Datadog (instalar 'datadog-metrics')
+  // - NEWRELIC_LICENSE_KEY: Para New Relic (instalar 'newrelic')
+  // - PROMETHEUS_GATEWAY_URL: Para Prometheus Pushgateway (instalar 'prom-client')
+  // Exemplo de integração:
+  // if (process.env.DATADOG_API_KEY) {
+  //   await sendToDatadog(metrics);
+  // }
 }
 
 /**
  * Inicia um span de tracing
  */
-export function startSpan(
-  operationName: string,
-  parentSpanId?: string,
-  traceId?: string
-): Span {
+export function startSpan(operationName: string, parentSpanId?: string, traceId?: string): Span {
   const span: Span = {
     traceId: traceId || generateTraceId(),
     spanId: generateSpanId(),
@@ -189,7 +204,7 @@ export function startSpan(
     logs: [],
     status: 'ok',
   };
-  
+
   return span;
 }
 
@@ -200,13 +215,13 @@ export function endSpan(span: Span, status: 'ok' | 'error' = 'ok'): void {
   span.endTime = Date.now();
   span.duration = span.endTime - span.startTime;
   span.status = status;
-  
+
   tracesBuffer.push(span);
-  
+
   if (tracesBuffer.length >= MAX_TRACES_BUFFER) {
     flushTraces();
   }
-  
+
   // Registrar como timing também
   recordTiming(`span.${span.operationName}`, span.duration, span.tags);
 }
@@ -233,13 +248,21 @@ export function addSpanTag(span: Span, key: string, value: string): void {
  */
 export async function flushTraces(): Promise<void> {
   if (tracesBuffer.length === 0) return;
-  
+
   const traces = [...tracesBuffer];
   tracesBuffer.length = 0;
-  
+
   logger.debug(`Traces flushed: ${traces.length}`);
-  
-  // TODO: Enviar para Jaeger/Zipkin/Datadog APM
+
+  // NOTA: Integração com backend de tracing distribuído
+  // Para habilitar envio de traces, configure as variáveis de ambiente:
+  // - JAEGER_AGENT_HOST: Para Jaeger (instalar '@opentelemetry/exporter-jaeger')
+  // - ZIPKIN_ENDPOINT: Para Zipkin (instalar 'zipkin')
+  // - DATADOG_APM_ENABLED: Para Datadog APM (instalar 'dd-trace')
+  // Exemplo de integração:
+  // if (process.env.JAEGER_AGENT_HOST) {
+  //   await sendToJaeger(traces);
+  // }
 }
 
 /**
@@ -247,28 +270,28 @@ export async function flushTraces(): Promise<void> {
  */
 export function tracingMiddleware(req: Request, res: Response, next: NextFunction): void {
   const span = startSpan(`HTTP ${req.method} ${req.path}`);
-  
+
   // Propagar trace ID
   const incomingTraceId = req.headers['x-trace-id'] as string;
   if (incomingTraceId) {
     span.traceId = incomingTraceId;
   }
-  
+
   // Adicionar headers de trace
   res.setHeader('x-trace-id', span.traceId);
   res.setHeader('x-span-id', span.spanId);
-  
+
   // Tags do request
   addSpanTag(span, 'http.method', req.method);
   addSpanTag(span, 'http.url', req.originalUrl);
   addSpanTag(span, 'http.user_agent', req.headers['user-agent'] || 'unknown');
-  
+
   // Anexar span ao request
   (req as Request & { span?: Span }).span = span;
-  
+
   // Capturar resposta
   const originalEnd = res.end.bind(res);
-  res.end = function(chunk?: unknown, encoding?: BufferEncoding | (() => void), cb?: () => void) {
+  res.end = function (chunk?: unknown, encoding?: BufferEncoding | (() => void), cb?: () => void) {
     addSpanTag(span, 'http.status_code', res.statusCode.toString());
     endSpan(span, res.statusCode >= 400 ? 'error' : 'ok');
     if (typeof encoding === 'function') {
@@ -279,7 +302,7 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
     }
     return originalEnd(chunk);
   } as typeof res.end;
-  
+
   next();
 }
 
@@ -288,31 +311,31 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
  */
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
   const startTime = Date.now();
-  
+
   // Contador de requisições
   incrementCounter('http.requests.total', 1, {
     method: req.method,
     path: req.route?.path || req.path,
   });
-  
+
   // Capturar resposta para métricas
   res.on('finish', () => {
     const duration = Date.now() - startTime;
-    
+
     // Tempo de resposta
     recordTiming('http.request.duration', duration, {
       method: req.method,
       path: req.route?.path || req.path,
       status: res.statusCode.toString(),
     });
-    
+
     // Contador por status
     incrementCounter('http.responses.total', 1, {
       method: req.method,
       status: res.statusCode.toString(),
     });
   });
-  
+
   next();
 }
 
@@ -324,13 +347,14 @@ export function getMetricsSummary(): Record<string, unknown> {
   counters.forEach((value, key) => {
     counterSummary[key] = value;
   });
-  
+
   const gaugeSummary: Record<string, number> = {};
   gauges.forEach((value, key) => {
     gaugeSummary[key] = value;
   });
-  
-  const histogramSummary: Record<string, { count: number; avg: number; min: number; max: number }> = {};
+
+  const histogramSummary: Record<string, { count: number; avg: number; min: number; max: number }> =
+    {};
   histograms.forEach((values, key) => {
     if (values.length > 0) {
       histogramSummary[key] = {
@@ -341,7 +365,7 @@ export function getMetricsSummary(): Record<string, unknown> {
       };
     }
   });
-  
+
   return {
     timestamp: new Date().toISOString(),
     counters: counterSummary,
@@ -359,7 +383,7 @@ export function initAPM(): void {
   // Flush periódico de métricas
   setInterval(flushMetrics, FLUSH_INTERVAL_MS);
   setInterval(flushTraces, FLUSH_INTERVAL_MS);
-  
+
   // Métricas de sistema
   setInterval(() => {
     const memUsage = process.memoryUsage();
@@ -368,7 +392,7 @@ export function initAPM(): void {
     setGauge('process.memory.rss', memUsage.rss);
     setGauge('process.uptime', process.uptime());
   }, 30000); // A cada 30 segundos
-  
+
   logger.info('APM inicializado');
 }
 

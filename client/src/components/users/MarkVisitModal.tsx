@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { DialogWithModalTracking, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, Users } from 'lucide-react';
 
 interface MarkVisitModalProps {
   isOpen: boolean;
@@ -16,14 +21,14 @@ interface MarkVisitModalProps {
   lastVisitDate?: string;
 }
 
-export const MarkVisitModal = ({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  userName, 
+export const MarkVisitModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  userName,
   isLoading = false,
   visitCount = 0,
-  lastVisitDate
+  lastVisitDate,
 }: MarkVisitModalProps) => {
   const [visitDate, setVisitDate] = useState('');
 
@@ -31,7 +36,7 @@ export const MarkVisitModal = ({
   useEffect(() => {
     if (isOpen) {
       const now = new Date();
-      const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+      const brazilTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
       const year = brazilTime.getFullYear();
       const month = String(brazilTime.getMonth() + 1).padStart(2, '0');
       const day = String(brazilTime.getDate()).padStart(2, '0');
@@ -52,24 +57,24 @@ export const MarkVisitModal = ({
 
   const formatVisitDate = (dateString: string) => {
     if (!dateString) return '';
-    
+
     try {
       let date;
-      
+
       // Se a data já tem timezone info (formato ISO), usa diretamente
       if (dateString.includes('T') || dateString.includes('Z')) {
         date = new Date(dateString);
       } else {
         // Se é apenas data (YYYY-MM-DD), adiciona timezone do Brasil
-        date = new Date(dateString + 'T00:00:00-03:00');
+        date = new Date(`${dateString}T00:00:00-03:00`);
       }
-      
+
       // Verifica se a data é válida
       if (isNaN(date.getTime())) {
         console.warn('Data inválida:', dateString);
         return 'Data inválida';
       }
-      
+
       return date.toLocaleDateString('pt-BR');
     } catch (error) {
       console.error('Erro ao formatar data:', dateString, error);
@@ -81,18 +86,20 @@ export const MarkVisitModal = ({
   const isRevisit = visitCount > 0;
 
   return (
-    <DialogWithModalTracking 
+    <DialogWithModalTracking
       modalId="mark-visit-modal"
-      open={isOpen} 
-      onOpenChange={(open) => !open && onClose()}
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
     >
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-md w-[90vw]"
         style={{ maxHeight: 'calc(100vh - 2rem)' }}
         aria-describedby="mark-visit-modal-description"
       >
         <div id="mark-visit-modal-description" className="sr-only">
-          {isNewVisit ? 'Formulário para registrar primeira visita realizada' : 'Formulário para registrar nova visita realizada'}
+          {isNewVisit
+            ? 'Formulário para registrar primeira visita realizada'
+            : 'Formulário para registrar nova visita realizada'}
         </div>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -100,15 +107,14 @@ export const MarkVisitModal = ({
             {isNewVisit ? 'Registrar Primeira Visita Realizada' : 'Registrar Nova Visita Realizada'}
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            {isNewVisit 
+            {isNewVisit
               ? `Confirmar que a primeira visita ao membro <strong>${userName}</strong> foi realizada.`
-              : `Confirmar que uma nova visita ao membro <strong>${userName}</strong> foi realizada.`
-            }
+              : `Confirmar que uma nova visita ao membro <strong>${userName}</strong> foi realizada.`}
           </div>
-          
+
           {/* Informações de visitas anteriores */}
           {isRevisit && (
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -132,7 +138,7 @@ export const MarkVisitModal = ({
               </div>
             </div>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="visit-date">
               {isNewVisit ? 'Data da Primeira Visita Realizada' : 'Data da Nova Visita Realizada'}
@@ -141,24 +147,19 @@ export const MarkVisitModal = ({
               id="visit-date"
               type="date"
               value={visitDate}
-              onChange={(e) => setVisitDate(e.target.value)}
+              onChange={e => setVisitDate(e.target.value)}
               className="w-full"
               max={new Date().toISOString().split('T')[0]} // Não permite datas futuras
             />
             <p className="text-xs text-muted-foreground">
-              {isNewVisit 
+              {isNewVisit
                 ? 'Esta será a primeira visita realizada registrada para este membro.'
-                : 'Esta visita realizada será adicionada ao histórico existente.'
-              }
+                : 'Esta visita realizada será adicionada ao histórico existente.'}
             </p>
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
+            <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
               <XCircle className="h-4 w-4 mr-2" />
               Cancelar
             </Button>
@@ -168,11 +169,15 @@ export const MarkVisitModal = ({
               className="bg-green-600 hover:bg-green-700"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              {isLoading ? 'Confirmando...' : isNewVisit ? 'Confirmar Primeira Visita Realizada' : 'Confirmar Nova Visita Realizada'}
+              {isLoading
+                ? 'Confirmando...'
+                : isNewVisit
+                  ? 'Confirmar Primeira Visita Realizada'
+                  : 'Confirmar Nova Visita Realizada'}
             </Button>
           </div>
         </div>
       </DialogContent>
     </DialogWithModalTracking>
   );
-}; 
+};

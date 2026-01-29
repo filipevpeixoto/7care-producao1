@@ -10,7 +10,7 @@ import { ErrorCodes } from '../types';
  * Helper para gerar chave segura para IPv6
  * Normaliza o IP para evitar problemas com diferentes formatos de IPv6
  */
-const normalizeIp = (ip: string | undefined): string => {
+const _normalizeIp = (ip: string | undefined): string => {
   if (!ip) return 'unknown';
   // Remove prefixo IPv6 mapeado para IPv4
   if (ip.startsWith('::ffff:')) {
@@ -29,13 +29,13 @@ export const authLimiter = rateLimit({
   message: {
     success: false,
     error: 'Muitas tentativas de login. Por favor, aguarde 15 minutos.',
-    code: ErrorCodes.RATE_LIMIT_EXCEEDED
+    code: ErrorCodes.RATE_LIMIT_EXCEEDED,
   },
   standardHeaders: true, // Retorna rate limit info nos headers `RateLimit-*`
   legacyHeaders: false, // Desabilita headers `X-RateLimit-*` antigos
   skipSuccessfulRequests: true, // Não conta requisições bem-sucedidas
   // Validação de IP desabilitada para permitir keyGenerator customizado
-  validate: { ip: false }
+  validate: { ip: false },
 });
 
 /**
@@ -48,10 +48,10 @@ export const registerLimiter = rateLimit({
   message: {
     success: false,
     error: 'Muitas tentativas de registro. Por favor, aguarde 1 hora.',
-    code: ErrorCodes.RATE_LIMIT_EXCEEDED
+    code: ErrorCodes.RATE_LIMIT_EXCEEDED,
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 /**
@@ -64,11 +64,11 @@ export const apiLimiter = rateLimit({
   message: {
     success: false,
     error: 'Muitas requisições. Por favor, aguarde um momento.',
-    code: ErrorCodes.RATE_LIMIT_EXCEEDED
+    code: ErrorCodes.RATE_LIMIT_EXCEEDED,
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'development' // Skip em desenvolvimento
+  skip: () => process.env.NODE_ENV === 'development', // Skip em desenvolvimento
 });
 
 /**
@@ -81,10 +81,10 @@ export const sensitiveLimiter = rateLimit({
   message: {
     success: false,
     error: 'Muitas tentativas. Por favor, aguarde 1 hora.',
-    code: ErrorCodes.RATE_LIMIT_EXCEEDED
+    code: ErrorCodes.RATE_LIMIT_EXCEEDED,
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 /**
@@ -96,10 +96,10 @@ export const uploadLimiter = rateLimit({
   message: {
     success: false,
     error: 'Limite de uploads atingido. Por favor, aguarde 1 hora.',
-    code: ErrorCodes.RATE_LIMIT_EXCEEDED
+    code: ErrorCodes.RATE_LIMIT_EXCEEDED,
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 /**
@@ -111,10 +111,10 @@ export const pushNotificationLimiter = rateLimit({
   message: {
     success: false,
     error: 'Limite de notificações atingido. Por favor, aguarde.',
-    code: ErrorCodes.RATE_LIMIT_EXCEEDED
+    code: ErrorCodes.RATE_LIMIT_EXCEEDED,
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 /**
@@ -126,9 +126,32 @@ export const debugLimiter = rateLimit({
   message: {
     success: false,
     error: 'Rate limit exceeded for debug endpoints.',
-    code: ErrorCodes.RATE_LIMIT_EXCEEDED
+    code: ErrorCodes.RATE_LIMIT_EXCEEDED,
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'production' // Skip em produção
+  skip: () => process.env.NODE_ENV === 'production', // Skip em produção
 });
+
+/**
+ * Obtém estatísticas do rate limiter
+ * Nota: express-rate-limit usa MemoryStore por padrão que não expõe dados detalhados
+ * Em produção, usar Redis store para métricas completas
+ */
+export function getRateLimitStats(): {
+  message: string;
+  limiters: Array<{ name: string; windowMs: number; maxRequests: number }>;
+} {
+  return {
+    message:
+      'Rate limit stats - usando MemoryStore padrão. Para métricas detalhadas, configure Redis.',
+    limiters: [
+      { name: 'apiLimiter', windowMs: 60000, maxRequests: 100 },
+      { name: 'authLimiter', windowMs: 900000, maxRequests: 10 },
+      { name: 'registerLimiter', windowMs: 3600000, maxRequests: 10 },
+      { name: 'passwordResetLimiter', windowMs: 3600000, maxRequests: 3 },
+      { name: 'uploadLimiter', windowMs: 3600000, maxRequests: 50 },
+      { name: 'pushNotificationLimiter', windowMs: 60000, maxRequests: 10 },
+    ],
+  };
+}

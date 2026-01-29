@@ -1,8 +1,9 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { VitePWA } from "vite-plugin-pwa";
-import path from "path";
-import { fileURLToPath } from "url";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,6 +11,15 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   plugins: [
     react(),
+    // Bundle analyzer - ativa com ANALYZE=true npm run build
+    process.env.ANALYZE === 'true' &&
+      visualizer({
+        filename: 'dist/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true,
+        template: 'treemap', // sunburst, treemap, network
+      }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'robots.txt'],
@@ -29,15 +39,15 @@ export default defineConfig({
             src: '/icons/icon-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any maskable',
           },
           {
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+            purpose: 'any maskable',
+          },
+        ],
       },
       workbox: {
         // Estratégias de cache
@@ -100,6 +110,10 @@ export default defineConfig({
         // Não pré-cache dados sensíveis
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//],
+        // Excluir imagens grandes do precache (serão cached em runtime)
+        globIgnores: ['**/mountain-*.png'],
+        // Aumentar limite para 5MB
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       devOptions: {
         enabled: false, // Desabilitar em dev para evitar confusão
@@ -108,13 +122,13 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client", "src"),
-      "@shared": path.resolve(__dirname, "shared"),
+      '@': path.resolve(__dirname, 'client', 'src'),
+      '@shared': path.resolve(__dirname, 'shared'),
     },
   },
-  root: path.resolve(__dirname, "client"),
+  root: path.resolve(__dirname, 'client'),
   build: {
-    outDir: path.resolve(__dirname, "dist"),
+    outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
     // Otimização de bundle
     target: 'es2020',
@@ -127,63 +141,32 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        // Code splitting por tipo de módulo
-        manualChunks: (id) => {
-          // Vendor chunks
+        // Code splitting simplificado para evitar dependências circulares
+        manualChunks: id => {
+          // Apenas separar vendors grandes para melhor cache
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            // React core - sempre junto
+            if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
+              id.includes('react-router') ||
+              id.includes('scheduler')
+            ) {
               return 'vendor-react';
             }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-ui';
-            }
-            if (id.includes('@tanstack/react-query')) {
-              return 'vendor-query';
-            }
-            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
-              return 'vendor-forms';
-            }
-            if (id.includes('recharts') || id.includes('d3')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('xlsx')) {
+            // Bibliotecas grandes separadas
+            if (id.includes('xlsx') || id.includes('exceljs')) {
               return 'vendor-xlsx';
             }
             if (id.includes('html2canvas')) {
               return 'vendor-html2canvas';
             }
-            if (id.includes('date-fns')) {
-              return 'vendor-date';
-            }
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons';
-            }
+            // Deixar Vite decidir o resto
+            return undefined;
           }
-          
-          // Application chunks - split large feature modules
-          if (id.includes('/pages/Users') || id.includes('/components/user')) {
-            return 'feature-users';
-          }
-          if (id.includes('/pages/Church') || id.includes('/components/church')) {
-            return 'feature-church';
-          }
-          if (id.includes('/pages/Events') || id.includes('/components/event')) {
-            return 'feature-events';
-          }
-          if (id.includes('/pages/Dashboard') || id.includes('/components/dashboard')) {
-            return 'feature-dashboard';
-          }
-          if (id.includes('/pages/Reports') || id.includes('/components/report')) {
-            return 'feature-reports';
-          }
-          if (id.includes('/pages/Settings') || id.includes('/components/settings')) {
-            return 'feature-settings';
-          }
-          if (id.includes('/lib/') || id.includes('/hooks/')) {
-            return 'shared-utils';
-          }
-          
-          // Retorna undefined para usar chunk padrão
+
+          // Não fazer split manual de código da aplicação
+          // para evitar dependências circulares
           return undefined;
         },
         // Nomes de arquivo otimizados

@@ -42,7 +42,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
     date: '',
     endDate: '',
     location: '',
-    type: 'igreja-local'
+    type: 'igreja-local',
   });
 
   // Buscar eventos
@@ -78,12 +78,12 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
   const generateCalendarDays = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    
+
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+    new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
+
     const days: Date[] = [];
     const current = new Date(startDate);
 
@@ -109,7 +109,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
     return events.filter(event => {
       const eventStart = event.date.split('T')[0];
       const eventEnd = event.endDate ? event.endDate.split('T')[0] : eventStart;
-      
+
       return dateStr >= eventStart && dateStr <= eventEnd;
     });
   };
@@ -131,15 +131,15 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
       const eventData = {
         title: newEvent.title,
         description: newEvent.description,
-        date: newEvent.date + 'T19:00:00Z',
-        endDate: newEvent.endDate ? newEvent.endDate + 'T19:00:00Z' : null,
+        date: `${newEvent.date}T19:00:00Z`,
+        endDate: newEvent.endDate ? `${newEvent.endDate}T19:00:00Z` : null,
         location: newEvent.location,
         type: newEvent.type,
         capacity: 0,
         isRecurring: false,
         recurrencePattern: null,
         createdBy: 1,
-        churchId: 1
+        churchId: 1,
       };
 
       console.log('🔧 Criando evento:', eventData);
@@ -160,7 +160,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
           date: '',
           endDate: '',
           location: '',
-          type: 'igreja-local'
+          type: 'igreja-local',
         });
         setIsCreateModalOpen(false);
         fetchEvents();
@@ -174,8 +174,18 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
 
   const days = generateCalendarDays();
   const monthNames = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
 
   if (isLoading) {
@@ -206,7 +216,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
             </Button>
           </div>
         </div>
-        
+
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -224,7 +234,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                 <Input
                   id="title"
                   value={newEvent.title}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={e => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
                 />
               </div>
               <div>
@@ -232,7 +242,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                 <Textarea
                   id="description"
                   value={newEvent.description}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={e => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -242,7 +252,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                     id="date"
                     type="date"
                     value={newEvent.date}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
+                    onChange={e => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -251,7 +261,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                     id="endDate"
                     type="date"
                     value={newEvent.endDate}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, endDate: e.target.value }))}
+                    onChange={e => setNewEvent(prev => ({ ...prev, endDate: e.target.value }))}
                   />
                 </div>
               </div>
@@ -260,12 +270,15 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                 <Input
                   id="location"
                   value={newEvent.location}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, location: e.target.value }))}
+                  onChange={e => setNewEvent(prev => ({ ...prev, location: e.target.value }))}
                 />
               </div>
               <div>
                 <Label htmlFor="type">Tipo</Label>
-                <Select value={newEvent.type} onValueChange={(value) => setNewEvent(prev => ({ ...prev, type: value }))}>
+                <Select
+                  value={newEvent.type}
+                  onValueChange={value => setNewEvent(prev => ({ ...prev, type: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -291,7 +304,10 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
           {/* Dias da semana */}
           <div className="grid grid-cols-7 border-b">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-              <div key={day} className="p-3 text-center font-medium text-gray-500 border-r last:border-r-0">
+              <div
+                key={day}
+                className="p-3 text-center font-medium text-gray-500 border-r last:border-r-0"
+              >
                 {day}
               </div>
             ))}
@@ -303,7 +319,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
               const dayEvents = getEventsForDate(day);
               const isCurrentMonthDay = isCurrentMonth(day);
               const isTodayDay = isToday(day);
-              
+
               return (
                 <div
                   key={index}
@@ -312,21 +328,23 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                   } ${isTodayDay ? 'bg-blue-50' : ''}`}
                   onClick={() => setSelectedDate((day as Date).toISOString().split('T')[0])}
                 >
-                  <div className={`text-sm font-medium mb-1 ${
-                    isCurrentMonthDay ? 'text-gray-900' : 'text-gray-400'
-                  } ${isTodayDay ? 'text-blue-600' : ''}`}>
+                  <div
+                    className={`text-sm font-medium mb-1 ${
+                      isCurrentMonthDay ? 'text-gray-900' : 'text-gray-400'
+                    } ${isTodayDay ? 'text-blue-600' : ''}`}
+                  >
                     {(day as Date).getDate()}
                   </div>
-                  
+
                   <div className="space-y-1">
-                    {dayEvents.slice(0, 3).map((event, eventIndex) => {
+                    {dayEvents.slice(0, 3).map((event, _eventIndex) => {
                       const isMultiDay = isMultiDayEvent(event);
                       const eventStart = new Date(event.date);
                       const eventEnd = event.endDate ? new Date(event.endDate) : eventStart;
                       const isStart = (day as Date).toDateString() === eventStart.toDateString();
                       const isEnd = (day as Date).toDateString() === eventEnd.toDateString();
                       const isMiddle = isMultiDay && !isStart && !isEnd;
-                      
+
                       return (
                         <div
                           key={event.id}
@@ -335,11 +353,11 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                               ? isStart
                                 ? 'bg-blue-100 text-blue-800 border-l-2 border-blue-500'
                                 : isEnd
-                                ? 'bg-blue-100 text-blue-800 border-r-2 border-blue-500'
-                                : 'bg-blue-50 text-blue-700 border-l-2 border-r-2 border-blue-300'
+                                  ? 'bg-blue-100 text-blue-800 border-r-2 border-blue-500'
+                                  : 'bg-blue-50 text-blue-700 border-l-2 border-r-2 border-blue-300'
                               : 'bg-blue-100 text-blue-800'
                           }`}
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
                             onEventClick?.(event);
                           }}
@@ -400,9 +418,9 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                         <div className="flex items-center text-sm text-gray-500 mt-2 space-x-4">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-1" />
-                            {new Date(event.date).toLocaleTimeString('pt-BR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
+                            {new Date(event.date).toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
                             })}
                           </div>
                           {event.location && (
@@ -429,9 +447,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
           <CardTitle className="text-sm">Debug - Eventos Carregados</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-600">
-            Total de eventos: {events.length}
-          </p>
+          <p className="text-sm text-gray-600">Total de eventos: {events.length}</p>
           {events.length > 0 && (
             <div className="mt-2 space-y-1">
               {events.map(event => (

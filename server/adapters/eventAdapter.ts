@@ -5,7 +5,7 @@
 
 import { db } from '../neonConfig';
 import { schema } from '../schema';
-import { eq, and, desc, asc, gte, lte, sql as drizzleSql } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, exists, sql as drizzleSql, SQL } from 'drizzle-orm';
 import { CreateEventInput, UpdateEventInput } from '../types/storage';
 import { Event } from '../../shared/schema';
 
@@ -19,7 +19,12 @@ export function toEvent(row: Record<string, unknown>): Event {
     name: row.name == null ? undefined : String(row.name),
     description: row.description == null ? null : String(row.description),
     date: row.date instanceof Date ? row.date.toISOString() : String(row.date ?? ''),
-    endDate: row.endDate == null ? null : (row.endDate instanceof Date ? row.endDate.toISOString() : String(row.endDate)),
+    endDate:
+      row.endDate == null
+        ? null
+        : row.endDate instanceof Date
+          ? row.endDate.toISOString()
+          : String(row.endDate),
     location: row.location == null ? null : String(row.location),
     type: row.type == null ? 'general' : String(row.type),
     color: row.color == null ? null : String(row.color),
@@ -28,8 +33,10 @@ export function toEvent(row: Record<string, unknown>): Event {
     capacity: row.capacity == null ? null : Number(row.capacity),
     isRecurring: Boolean(row.isRecurring),
     recurrencePattern: row.recurrencePattern == null ? null : String(row.recurrencePattern),
-    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
-    updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt ?? ''),
+    createdAt:
+      row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
+    updatedAt:
+      row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt ?? ''),
   };
 }
 
@@ -37,22 +44,15 @@ export function toEvent(row: Record<string, unknown>): Event {
  * Busca todos os eventos
  */
 export async function getAllEvents(): Promise<Event[]> {
-  const rows = await db
-    .select()
-    .from(schema.events)
-    .orderBy(desc(schema.events.date));
-  return rows.map((row) => toEvent(row as Record<string, unknown>));
+  const rows = await db.select().from(schema.events).orderBy(desc(schema.events.date));
+  return rows.map(row => toEvent(row as Record<string, unknown>));
 }
 
 /**
  * Busca evento por ID
  */
 export async function getEventById(id: number): Promise<Event | null> {
-  const rows = await db
-    .select()
-    .from(schema.events)
-    .where(eq(schema.events.id, id))
-    .limit(1);
+  const rows = await db.select().from(schema.events).where(eq(schema.events.id, id)).limit(1);
   if (rows.length === 0) return null;
   return toEvent(rows[0] as Record<string, unknown>);
 }
@@ -66,19 +66,32 @@ export async function getEventsByChurchId(churchId: number): Promise<Event[]> {
     .from(schema.events)
     .where(eq(schema.events.churchId, churchId))
     .orderBy(desc(schema.events.date));
-  return rows.map((row) => toEvent(row as Record<string, unknown>));
+  return rows.map(row => toEvent(row as Record<string, unknown>));
 }
 
 /**
  * Busca eventos por ID do distrito (usando churchId como proxy)
  */
 export async function getEventsByDistrictId(districtId: number): Promise<Event[]> {
-  // districtId não existe na tabela events, retornar todos os eventos
   const rows = await db
     .select()
     .from(schema.events)
+    .where(
+      exists(
+        db
+          .select()
+          .from(schema.churches)
+          .where(
+            and(
+              eq(schema.churches.id, schema.events.churchId),
+              eq(schema.churches.districtId, districtId)
+            )
+          )
+      )
+    )
     .orderBy(desc(schema.events.date));
-  return rows.map((row) => toEvent(row as Record<string, unknown>));
+
+  return rows.map(row => toEvent(row as Record<string, unknown>));
 }
 
 /**
@@ -88,17 +101,29 @@ export async function getEventsByDateRange(
   startDate: Date,
   endDate: Date,
   churchId?: number,
-  _districtId?: number
+  districtId?: number
 ): Promise<Event[]> {
-  const conditions: any[] = [
-    gte(schema.events.date, startDate),
-    lte(schema.events.date, endDate),
-  ];
+  const conditions: SQL[] = [gte(schema.events.date, startDate), lte(schema.events.date, endDate)];
 
   if (churchId) {
     conditions.push(eq(schema.events.churchId, churchId));
   }
-  // districtId não existe na tabela events
+
+  if (districtId) {
+    conditions.push(
+      exists(
+        db
+          .select()
+          .from(schema.churches)
+          .where(
+            and(
+              eq(schema.churches.id, schema.events.churchId),
+              eq(schema.churches.districtId, districtId)
+            )
+          )
+      )
+    );
+  }
 
   const rows = await db
     .select()
@@ -106,16 +131,14 @@ export async function getEventsByDateRange(
     .where(and(...conditions))
     .orderBy(asc(schema.events.date));
 
-  return rows.map((row) => toEvent(row as Record<string, unknown>));
+  return rows.map(row => toEvent(row as Record<string, unknown>));
 }
 
 /**
  * Busca próximos eventos
  */
 export async function getUpcomingEvents(limit: number = 10, churchId?: number): Promise<Event[]> {
-  const conditions: any[] = [
-    gte(schema.events.date, new Date()),
-  ];
+  const conditions: SQL[] = [gte(schema.events.date, new Date())];
 
   if (churchId) {
     conditions.push(eq(schema.events.churchId, churchId));
@@ -128,16 +151,14 @@ export async function getUpcomingEvents(limit: number = 10, churchId?: number): 
     .orderBy(asc(schema.events.date))
     .limit(limit);
 
-  return rows.map((row) => toEvent(row as Record<string, unknown>));
+  return rows.map(row => toEvent(row as Record<string, unknown>));
 }
 
 /**
  * Busca eventos passados
  */
 export async function getPastEvents(limit: number = 10, churchId?: number): Promise<Event[]> {
-  const conditions: any[] = [
-    lte(schema.events.date, new Date()),
-  ];
+  const conditions: SQL[] = [lte(schema.events.date, new Date())];
 
   if (churchId) {
     conditions.push(eq(schema.events.churchId, churchId));
@@ -150,7 +171,7 @@ export async function getPastEvents(limit: number = 10, churchId?: number): Prom
     .orderBy(desc(schema.events.date))
     .limit(limit);
 
-  return rows.map((row) => toEvent(row as Record<string, unknown>));
+  return rows.map(row => toEvent(row as Record<string, unknown>));
 }
 
 /**
@@ -168,9 +189,9 @@ export async function createEvent(eventData: CreateEventInput): Promise<Event> {
       type: eventData.type || 'general',
       churchId: eventData.churchId,
       createdBy: eventData.createdBy,
-      capacity: eventData.maxAttendees,
+      capacity: eventData.capacity || eventData.maxParticipants || eventData.maxAttendees,
       isRecurring: eventData.isRecurring || false,
-      recurrencePattern: eventData.recurrenceRule,
+      recurrencePattern: eventData.recurrencePattern || eventData.recurrenceRule,
     })
     .returning();
 
@@ -222,7 +243,7 @@ export async function deleteEvent(id: number): Promise<boolean> {
 export async function updateEventStatus(id: number, status: string): Promise<Event | null> {
   const [updated] = await db
     .update(schema.events)
-    .set({ 
+    .set({
       type: status, // status não existe, usar type como proxy
       updatedAt: new Date(),
     } as Record<string, unknown>)
@@ -241,12 +262,31 @@ export async function countEvents(filters?: {
   districtId?: number;
   status?: string;
 }): Promise<number> {
-  const conditions: any[] = [];
+  const conditions: SQL[] = [];
 
   if (filters?.churchId) {
     conditions.push(eq(schema.events.churchId, filters.churchId));
   }
-  // districtId e status não existem na tabela events
+
+  if (filters?.districtId) {
+    conditions.push(
+      exists(
+        db
+          .select()
+          .from(schema.churches)
+          .where(
+            and(
+              eq(schema.churches.id, schema.events.churchId),
+              eq(schema.churches.districtId, filters.districtId)
+            )
+          )
+      )
+    );
+  }
+
+  if (filters?.status) {
+    conditions.push(eq(schema.events.type, filters.status));
+  }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -274,12 +314,28 @@ export async function getEventsPaginated(
   }
 ): Promise<{ events: Event[]; total: number; pages: number }> {
   const offset = (page - 1) * limit;
-  const conditions: any[] = [];
+  const conditions: SQL[] = [];
 
   if (filters?.churchId) {
     conditions.push(eq(schema.events.churchId, filters.churchId));
   }
-  // districtId e status não existem na tabela events
+
+  if (filters?.districtId) {
+    conditions.push(
+      exists(
+        db
+          .select()
+          .from(schema.churches)
+          .where(
+            and(
+              eq(schema.churches.id, schema.events.churchId),
+              eq(schema.churches.districtId, filters.districtId)
+            )
+          )
+      )
+    );
+  }
+
   if (filters?.type) {
     conditions.push(eq(schema.events.type, filters.type));
   }
@@ -293,20 +349,22 @@ export async function getEventsPaginated(
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [countResult, rows] = await Promise.all([
-    db.select({ count: drizzleSql<number>`count(*)` })
+    db
+      .select({ count: drizzleSql<number>`count(*)` })
       .from(schema.events)
       .where(whereClause),
-    db.select()
+    db
+      .select()
       .from(schema.events)
       .where(whereClause)
       .orderBy(desc(schema.events.date))
       .limit(limit)
-      .offset(offset)
+      .offset(offset),
   ]);
 
   const total = Number(countResult[0]?.count ?? 0);
   const pages = Math.ceil(total / limit);
-  const events = rows.map((row) => toEvent(row as Record<string, unknown>));
+  const events = rows.map(row => toEvent(row as Record<string, unknown>));
 
   return { events, total, pages };
 }

@@ -1,42 +1,80 @@
 /**
  * User Repository
- * Métodos relacionados a usuários extraídos do NeonAdapter
+ * @module repositories/userRepository
+ * @description Repositório para operações de banco de dados relacionadas a usuários.
+ * Implementa padrão Repository para abstrair o acesso a dados via Drizzle ORM.
+ *
+ * @example
+ * ```typescript
+ * import { userRepository } from '../repositories';
+ *
+ * // Buscar todos os usuários
+ * const users = await userRepository.getAllUsers();
+ *
+ * // Buscar por email
+ * const user = await userRepository.getUserByEmail('user@email.com');
+ *
+ * // Criar usuário
+ * const newUser = await userRepository.createUser({
+ *   name: 'João',
+ *   email: 'joao@email.com',
+ *   password: 'hashedPassword',
+ *   role: 'member'
+ * });
+ * ```
  */
 
-import { eq, desc, sql, and, or, like, isNull, count, inArray } from 'drizzle-orm';
+import { eq, sql, or, like, count } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import * as schema from '../schema';
 import type { User, InsertUser, UpdateUser } from '../../shared/schema';
+import { logger } from '../utils/logger';
 
+/**
+ * Repositório de usuários
+ * @class UserRepository
+ * @description Encapsula todas as operações de banco de dados para a entidade User.
+ * Utiliza Drizzle ORM com PostgreSQL (Neon).
+ */
 export class UserRepository {
   /**
-   * Busca todos os usuários
+   * Busca todos os usuários ordenados por nome
+   * @async
+   * @returns {Promise<User[]>} Lista de todos os usuários
+   * @description Retorna lista vazia em caso de erro, logando o problema.
    */
   async getAllUsers(): Promise<User[]> {
     try {
       const users = await db.select().from(schema.users).orderBy(schema.users.name);
       return users.map(this.mapUserRecord);
     } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
+      logger.error('Erro ao buscar usuários', error);
       return [];
     }
   }
 
   /**
    * Busca usuário por ID
+   * @async
+   * @param {number} id - ID do usuário
+   * @returns {Promise<User | null>} Usuário encontrado ou null se não existir
    */
   async getUserById(id: number): Promise<User | null> {
     try {
       const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id)).limit(1);
       return user ? this.mapUserRecord(user) : null;
     } catch (error) {
-      console.error('Erro ao buscar usuário por ID:', error);
+      logger.error('Erro ao buscar usuário por ID', error);
       return null;
     }
   }
 
   /**
-   * Busca usuário por email
+   * Busca usuário por email (case-insensitive)
+   * @async
+   * @param {string} email - Email do usuário
+   * @returns {Promise<User | null>} Usuário encontrado ou null se não existir
+   * @description Busca é case-insensitive para evitar duplicatas com diferentes cases.
    */
   async getUserByEmail(email: string): Promise<User | null> {
     try {
@@ -47,13 +85,18 @@ export class UserRepository {
         .limit(1);
       return user ? this.mapUserRecord(user) : null;
     } catch (error) {
-      console.error('Erro ao buscar usuário por email:', error);
+      logger.error('Erro ao buscar usuário por email', error);
       return null;
     }
   }
 
   /**
-   * Cria novo usuário
+   * Cria novo usuário no banco de dados
+   * @async
+   * @param {InsertUser} userData - Dados do novo usuário
+   * @returns {Promise<User>} Usuário criado com ID gerado
+   * @throws {Error} Se ocorrer erro na inserção (ex: email duplicado)
+   * @description Define valores padrão para campos opcionais não fornecidos.
    */
   async createUser(userData: InsertUser): Promise<User> {
     try {
@@ -68,35 +111,43 @@ export class UserRepository {
         districtId: userData.districtId ?? null,
         points: userData.points ?? 0,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      const [user] = await db.insert(schema.users).values(insertData).returning();
+      const [user] = await db
+        .insert(schema.users)
+        .values(insertData as any)
+        .returning();
       return this.mapUserRecord(user);
     } catch (error) {
-      console.error('Erro ao criar usuário:', error);
+      logger.error('Erro ao criar usuário', error);
       throw error;
     }
   }
 
   /**
-   * Atualiza usuário
+   * Atualiza dados de um usuário existente
+   * @async
+   * @param {number} id - ID do usuário a atualizar
+   * @param {UpdateUser} userData - Campos a atualizar (parcial)
+   * @returns {Promise<User | null>} Usuário atualizado ou null se não encontrado
+   * @description Atualiza automaticamente o campo updatedAt. Ignora campos createdAt.
    */
   async updateUser(id: number, userData: UpdateUser): Promise<User | null> {
     try {
       // Extrair apenas campos válidos para update, excluindo id e createdAt
-      const { createdAt, ...updateData } = userData as Record<string, unknown>;
+      const { createdAt: _createdAt, ...updateData } = userData as Record<string, unknown>;
       const [user] = await db
         .update(schema.users)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         } as Record<string, unknown>)
         .where(eq(schema.users.id, id))
         .returning();
       return user ? this.mapUserRecord(user) : null;
     } catch (error) {
-      console.error('Erro ao atualizar usuário:', error);
+      logger.error('Erro ao atualizar usuário', error);
       return null;
     }
   }
@@ -109,7 +160,7 @@ export class UserRepository {
       const result = await db.delete(schema.users).where(eq(schema.users.id, id));
       return (result.rowCount ?? 0) > 0;
     } catch (error) {
-      console.error('Erro ao deletar usuário:', error);
+      logger.error('Erro ao deletar usuário', error);
       return false;
     }
   }
@@ -122,7 +173,7 @@ export class UserRepository {
       const [result] = await db.select({ count: count() }).from(schema.users);
       return result?.count || 0;
     } catch (error) {
-      console.error('Erro ao contar usuários:', error);
+      logger.error('Erro ao contar usuários', error);
       return 0;
     }
   }
@@ -139,7 +190,7 @@ export class UserRepository {
         .orderBy(schema.users.name);
       return users.map(this.mapUserRecord);
     } catch (error) {
-      console.error('Erro ao buscar usuários por igreja:', error);
+      logger.error('Erro ao buscar usuários por igreja', error);
       return [];
     }
   }
@@ -156,7 +207,7 @@ export class UserRepository {
         .orderBy(schema.users.name);
       return users.map(this.mapUserRecord);
     } catch (error) {
-      console.error('Erro ao buscar usuários por distrito:', error);
+      logger.error('Erro ao buscar usuários por distrito', error);
       return [];
     }
   }
@@ -173,7 +224,7 @@ export class UserRepository {
         .orderBy(schema.users.name);
       return users.map(this.mapUserRecord);
     } catch (error) {
-      console.error('Erro ao buscar usuários por role:', error);
+      logger.error('Erro ao buscar usuários por role', error);
       return [];
     }
   }
@@ -197,7 +248,7 @@ export class UserRepository {
         .limit(limit);
       return users.map(this.mapUserRecord);
     } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
+      logger.error('Erro ao buscar usuários', error);
       return [];
     }
   }
@@ -227,12 +278,14 @@ export class UserRepository {
       avatarUrl: record.avatarUrl as string | null | undefined,
       firstAccess: record.firstAccess as boolean | undefined,
       lastAccess: record.lastAccess as string | undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : record.createdAt as string | undefined,
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : record.updatedAt as string | undefined,
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : (record.createdAt as string | undefined),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : (record.updatedAt as string | undefined),
       engajamento: record.engajamento as string | undefined,
       classificacao: record.classificacao as string | undefined,
       dizimistaType: record.dizimistaType as string | undefined,

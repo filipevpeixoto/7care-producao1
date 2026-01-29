@@ -1,8 +1,10 @@
 import { Express, Request, Response } from 'express';
-import { sql } from './neonConfig';
-import { NeonAdapter } from './neonAdapter';
-import { hasAdminAccess, isSuperAdmin, isPastor, canManagePastors } from './utils/permissions';
-import { logger } from './utils/logger';
+import { sql } from '../neonConfig';
+import { NeonAdapter } from '../neonAdapter';
+import { hasAdminAccess, isSuperAdmin, isPastor, canManagePastors } from '../utils/permissions';
+import { logger } from '../utils/logger';
+import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
+import { CACHE_TTL } from '../constants';
 
 export const districtRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -10,162 +12,176 @@ export const districtRoutes = (app: Express): void => {
   // ========== DISTRITOS ==========
 
   // Listar distritos (filtrado por permissão)
-  app.get("/api/districts", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+  app.get(
+    '/api/districts',
+    cacheMiddleware('districts', CACHE_TTL.DISTRICTS),
+    async (req: Request, res: Response) => {
+      try {
+        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const user = userId ? await storage.getUserById(userId) : null;
 
-      if (isSuperAdmin(user)) {
-        // Superadmin vê todos os distritos
-        const districts = await sql`
+        if (isSuperAdmin(user)) {
+          // Superadmin vê todos os distritos
+          const districts = await sql`
           SELECT d.*, u.name as pastor_name, u.email as pastor_email
           FROM districts d
           LEFT JOIN users u ON d.pastor_id = u.id
           ORDER BY d.name
         `;
-        return res.json(districts);
-      } else if (hasAdminAccess(user) && user?.districtId) {
-        // Pastor vê apenas seu distrito, superadmin também pode ver se tiver districtId
-        const districts = await sql`
+          return res.json(districts);
+        } else if (hasAdminAccess(user) && user?.districtId) {
+          // Pastor vê apenas seu distrito, superadmin também pode ver se tiver districtId
+          const districts = await sql`
           SELECT d.*, u.name as pastor_name, u.email as pastor_email
           FROM districts d
           LEFT JOIN users u ON d.pastor_id = u.id
           WHERE d.id = ${user.districtId}
         `;
-        return res.json(districts);
-      } else {
-        return res.json([]);
+          return res.json(districts);
+        } else {
+          return res.json([]);
+        }
+      } catch (error) {
+        logger.error('Erro ao buscar distritos:', error);
+        return res.status(500).json({ error: 'Internal server error' });
       }
-    } catch (error) {
-      logger.error("Erro ao buscar distritos:", error);
-      return res.status(500).json({ error: "Internal server error" });
     }
-  });
+  );
 
   // Obter distrito por ID
-  app.get("/api/districts/:id", async (req: Request, res: Response) => {
-    try {
-      const districtId = parseInt(req.params.id);
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+  app.get(
+    '/api/districts/:id',
+    cacheMiddleware('districts', CACHE_TTL.DISTRICTS),
+    async (req: Request, res: Response) => {
+      try {
+        const districtId = parseInt(req.params.id);
+        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const user = userId ? await storage.getUserById(userId) : null;
 
-      const district = await sql`
+        const district = await sql`
         SELECT d.*, u.name as pastor_name, u.email as pastor_email
         FROM districts d
         LEFT JOIN users u ON d.pastor_id = u.id
         WHERE d.id = ${districtId}
       `;
 
-      if (district.length === 0) {
-        return res.status(404).json({ error: "Distrito não encontrado" });
-      }
+        if (district.length === 0) {
+          return res.status(404).json({ error: 'Distrito não encontrado' });
+        }
 
-      // Verificar permissão - superadmin tem acesso a tudo, pastor apenas ao seu distrito
-      if (!isSuperAdmin(user) && !(isPastor(user) && user?.districtId === districtId)) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
+        // Verificar permissão - superadmin tem acesso a tudo, pastor apenas ao seu distrito
+        if (!isSuperAdmin(user) && !(isPastor(user) && user?.districtId === districtId)) {
+          return res.status(403).json({ error: 'Acesso negado' });
+        }
 
-      return res.json(district[0]);
-    } catch (error) {
-      logger.error("Erro ao buscar distrito:", error);
-      return res.status(500).json({ error: "Internal server error" });
+        return res.json(district[0]);
+      } catch (error) {
+        logger.error('Erro ao buscar distrito:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
     }
-  });
+  );
 
   // Criar distrito pelo pastor (primeiro acesso)
-  app.post("/api/districts/pastor/create", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+  app.post(
+    '/api/districts/pastor/create',
+    invalidateCacheMiddleware('districts'),
+    async (req: Request, res: Response) => {
+      try {
+        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const user = userId ? await storage.getUserById(userId) : null;
 
-      // Apenas pastores podem usar esta rota
-      if (!isPastor(user)) {
-        return res.status(403).json({ error: "Apenas pastores podem criar distritos através desta rota" });
-      }
+        // Apenas pastores podem usar esta rota
+        if (!isPastor(user)) {
+          return res
+            .status(403)
+            .json({ error: 'Apenas pastores podem criar distritos através desta rota' });
+        }
 
-      // Verificar se o pastor já tem um distrito
-      if (user?.districtId) {
-        return res.status(400).json({ error: "Você já possui um distrito associado" });
-      }
+        // Verificar se o pastor já tem um distrito
+        if (user?.districtId) {
+          return res.status(400).json({ error: 'Você já possui um distrito associado' });
+        }
 
-      const { name, code, pastorId } = req.body;
+        const { name, code, pastorId } = req.body;
 
-      if (!name) {
-        return res.status(400).json({ error: "Nome é obrigatório" });
-      }
+        if (!name) {
+          return res.status(400).json({ error: 'Nome é obrigatório' });
+        }
 
-      // Garantir que o pastorId seja o próprio usuário
-      const finalPastorId = pastorId && parseInt(pastorId) === userId ? userId : userId;
+        // Garantir que o pastorId seja o próprio usuário
+        const finalPastorId = pastorId && parseInt(pastorId) === userId ? userId : userId;
 
-      // Gerar código se não fornecido
-      let finalCode = code;
-      if (!finalCode || finalCode.trim() === '') {
-        finalCode = name
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]/g, '-')
-          .substring(0, 20);
-      }
+        // Gerar código se não fornecido
+        let finalCode = code;
+        if (!finalCode || finalCode.trim() === '') {
+          finalCode = name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '-')
+            .substring(0, 20);
+        }
 
-      // Verificar se código já existe
-      const existing = await sql`
+        // Verificar se código já existe
+        const existing = await sql`
         SELECT id FROM districts WHERE code = ${finalCode}
       `;
-      if (existing.length > 0) {
-        // Se código existe, adicionar sufixo numérico
-        let counter = 1;
-        let newCode = `${finalCode}-${counter}`;
-        while (true) {
-          const check = await sql`
+        if (existing.length > 0) {
+          // Se código existe, adicionar sufixo numérico
+          let counter = 1;
+          let newCode = `${finalCode}-${counter}`;
+          while (true) {
+            const check = await sql`
             SELECT id FROM districts WHERE code = ${newCode}
           `;
-          if (check.length === 0) {
-            finalCode = newCode;
-            break;
+            if (check.length === 0) {
+              finalCode = newCode;
+              break;
+            }
+            counter++;
+            newCode = `${finalCode}-${counter}`;
           }
-          counter++;
-          newCode = `${finalCode}-${counter}`;
         }
-      }
 
-      // Criar distrito
-      const newDistrict = await sql`
+        // Criar distrito
+        const newDistrict = await sql`
         INSERT INTO districts (name, code, pastor_id, description, created_at, updated_at)
         VALUES (${name}, ${finalCode}, ${finalPastorId}, NULL, NOW(), NOW())
         RETURNING *
       `;
 
-      // Atualizar o usuário pastor com o district_id
-      if (newDistrict[0]) {
-        await sql`
+        // Atualizar o usuário pastor com o district_id
+        if (newDistrict[0]) {
+          await sql`
           UPDATE users
           SET district_id = ${newDistrict[0].id}
           WHERE id = ${finalPastorId}
         `;
-      }
+        }
 
-      return res.status(201).json(newDistrict[0]);
-    } catch (error) {
-      logger.error("Erro ao criar distrito pelo pastor:", error);
-      return res.status(500).json({ error: "Internal server error" });
+        return res.status(201).json(newDistrict[0]);
+      } catch (error) {
+        logger.error('Erro ao criar distrito pelo pastor:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
     }
-  });
+  );
 
   // Criar distrito (apenas superadmin)
-  app.post("/api/districts", async (req: Request, res: Response) => {
+  app.post('/api/districts', async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
-        return res.status(403).json({ error: "Apenas superadmin pode criar distritos" });
+        return res.status(403).json({ error: 'Apenas superadmin pode criar distritos' });
       }
 
       const { name, code, pastorId, description } = req.body;
 
       if (!name || !code) {
-        return res.status(400).json({ error: "Nome e código são obrigatórios" });
+        return res.status(400).json({ error: 'Nome e código são obrigatórios' });
       }
 
       // Verificar se código já existe
@@ -173,14 +189,14 @@ export const districtRoutes = (app: Express): void => {
         SELECT id FROM districts WHERE code = ${code}
       `;
       if (existing.length > 0) {
-        return res.status(400).json({ error: "Código já existe" });
+        return res.status(400).json({ error: 'Código já existe' });
       }
 
       // Se pastorId foi fornecido, verificar se é um pastor válido
       if (pastorId) {
         const pastor = await storage.getUserById(pastorId);
         if (!pastor || pastor.role !== 'pastor') {
-          return res.status(400).json({ error: "Usuário não é um pastor válido" });
+          return res.status(400).json({ error: 'Usuário não é um pastor válido' });
         }
       }
 
@@ -201,20 +217,20 @@ export const districtRoutes = (app: Express): void => {
 
       return res.status(201).json(newDistrict[0]);
     } catch (error) {
-      logger.error("Erro ao criar distrito:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao criar distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Atualizar distrito (apenas superadmin)
-  app.put("/api/districts/:id", async (req: Request, res: Response) => {
+  app.put('/api/districts/:id', async (req: Request, res: Response) => {
     try {
       const districtId = parseInt(req.params.id);
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
-        return res.status(403).json({ error: "Apenas superadmin pode atualizar distritos" });
+        return res.status(403).json({ error: 'Apenas superadmin pode atualizar distritos' });
       }
 
       const { name, code, pastorId, description } = req.body;
@@ -224,7 +240,7 @@ export const districtRoutes = (app: Express): void => {
         SELECT * FROM districts WHERE id = ${districtId}
       `;
       if (existing.length === 0) {
-        return res.status(404).json({ error: "Distrito não encontrado" });
+        return res.status(404).json({ error: 'Distrito não encontrado' });
       }
 
       // Se código foi alterado, verificar se já existe
@@ -233,7 +249,7 @@ export const districtRoutes = (app: Express): void => {
           SELECT id FROM districts WHERE code = ${code} AND id != ${districtId}
         `;
         if (codeExists.length > 0) {
-          return res.status(400).json({ error: "Código já existe" });
+          return res.status(400).json({ error: 'Código já existe' });
         }
       }
 
@@ -242,17 +258,20 @@ export const districtRoutes = (app: Express): void => {
         if (pastorId) {
           const pastor = await storage.getUserById(pastorId);
           if (!pastor || pastor.role !== 'pastor') {
-            return res.status(400).json({ error: "Usuário não é um pastor válido" });
+            return res.status(400).json({ error: 'Usuário não é um pastor válido' });
           }
         }
       }
+
+      const currentPastorId = existing[0].pastor_id;
+      const newPastorId = pastorId !== undefined ? pastorId || null : currentPastorId;
 
       const updated = await sql`
         UPDATE districts
         SET 
           name = COALESCE(${name}, name),
           code = COALESCE(${code}, code),
-          pastor_id = ${pastorId !== undefined ? (pastorId || null) : sql`pastor_id`},
+          pastor_id = ${newPastorId},
           description = COALESCE(${description}, description),
           updated_at = NOW()
         WHERE id = ${districtId}
@@ -281,20 +300,20 @@ export const districtRoutes = (app: Express): void => {
 
       return res.json(updated[0]);
     } catch (error) {
-      logger.error("Erro ao atualizar distrito:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao atualizar distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Deletar distrito (apenas superadmin)
-  app.delete("/api/districts/:id", async (req: Request, res: Response) => {
+  app.delete('/api/districts/:id', async (req: Request, res: Response) => {
     try {
       const districtId = parseInt(req.params.id);
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
-        return res.status(403).json({ error: "Apenas superadmin pode deletar distritos" });
+        return res.status(403).json({ error: 'Apenas superadmin pode deletar distritos' });
       }
 
       // Verificar se distrito existe
@@ -302,16 +321,18 @@ export const districtRoutes = (app: Express): void => {
         SELECT * FROM districts WHERE id = ${districtId}
       `;
       if (existing.length === 0) {
-        return res.status(404).json({ error: "Distrito não encontrado" });
+        return res.status(404).json({ error: 'Distrito não encontrado' });
       }
 
       // Verificar se há igrejas associadas
       const churches = await sql`
         SELECT COUNT(*) as count FROM churches WHERE district_id = ${districtId}
       `;
-      if (churches[0].count > 0) {
-        return res.status(400).json({ 
-          error: "Não é possível deletar distrito com igrejas associadas. Remova as igrejas primeiro." 
+      const churchCount = Number((churches[0] as { count: number | string }).count) || 0;
+      if (churchCount > 0) {
+        return res.status(400).json({
+          error:
+            'Não é possível deletar distrito com igrejas associadas. Remova as igrejas primeiro.',
         });
       }
 
@@ -327,39 +348,39 @@ export const districtRoutes = (app: Express): void => {
         DELETE FROM districts WHERE id = ${districtId}
       `;
 
-      return res.json({ success: true, message: "Distrito deletado com sucesso" });
+      return res.json({ success: true, message: 'Distrito deletado com sucesso' });
     } catch (error) {
-      logger.error("Erro ao deletar distrito:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao deletar distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Listar igrejas de um distrito
-  app.get("/api/districts/:id/churches", async (req: Request, res: Response) => {
+  app.get('/api/districts/:id/churches', async (req: Request, res: Response) => {
     try {
       const districtId = parseInt(req.params.id);
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       // Verificar permissão - superadmin tem acesso a tudo, pastor apenas ao seu distrito
       if (!isSuperAdmin(user) && !(isPastor(user) && user?.districtId === districtId)) {
-        return res.status(403).json({ error: "Acesso negado" });
+        return res.status(403).json({ error: 'Acesso negado' });
       }
 
       const churches = await storage.getChurchesByDistrict(districtId);
       return res.json(churches);
     } catch (error) {
-      logger.error("Erro ao buscar igrejas do distrito:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao buscar igrejas do distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // ========== PASTORES ==========
 
   // Listar pastores (filtrado por permissão)
-  app.get("/api/pastors", async (req: Request, res: Response) => {
+  app.get('/api/pastors', async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       if (isSuperAdmin(user)) {
@@ -376,16 +397,16 @@ export const districtRoutes = (app: Express): void => {
         return res.json([]);
       }
     } catch (error) {
-      logger.error("Erro ao buscar pastores:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao buscar pastores:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Obter pastor por ID
-  app.get("/api/pastors/:id", async (req: Request, res: Response) => {
+  app.get('/api/pastors/:id', async (req: Request, res: Response) => {
     try {
       const pastorId = parseInt(req.params.id);
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       const pastor = await sql`
@@ -396,41 +417,41 @@ export const districtRoutes = (app: Express): void => {
       `;
 
       if (pastor.length === 0) {
-        return res.status(404).json({ error: "Pastor não encontrado" });
+        return res.status(404).json({ error: 'Pastor não encontrado' });
       }
 
       // Verificar permissão - superadmin tem acesso a tudo, pastor apenas ao seu próprio perfil
       if (!isSuperAdmin(user) && !(isPastor(user) && user?.id === pastorId)) {
-        return res.status(403).json({ error: "Acesso negado" });
+        return res.status(403).json({ error: 'Acesso negado' });
       }
 
       return res.json(pastor[0]);
     } catch (error) {
-      logger.error("Erro ao buscar pastor:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao buscar pastor:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Criar pastor (apenas superadmin)
-  app.post("/api/pastors", async (req: Request, res: Response) => {
+  app.post('/api/pastors', async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
-        return res.status(403).json({ error: "Apenas superadmin pode criar pastores" });
+        return res.status(403).json({ error: 'Apenas superadmin pode criar pastores' });
       }
 
       const { name, email, password, districtId } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({ error: "Nome, email e senha são obrigatórios" });
+        return res.status(400).json({ error: 'Nome, email e senha são obrigatórios' });
       }
 
       // Verificar se email já existe
       const existing = await storage.getUserByEmail(email);
       if (existing) {
-        return res.status(400).json({ error: "Email já está em uso" });
+        return res.status(400).json({ error: 'Email já está em uso' });
       }
 
       // Verificar se districtId é válido (se fornecido)
@@ -439,7 +460,7 @@ export const districtRoutes = (app: Express): void => {
           SELECT id FROM districts WHERE id = ${districtId}
         `;
         if (district.length === 0) {
-          return res.status(400).json({ error: "Distrito não encontrado" });
+          return res.status(400).json({ error: 'Distrito não encontrado' });
         }
       }
 
@@ -472,30 +493,30 @@ export const districtRoutes = (app: Express): void => {
         points: 0,
         level: 'Iniciante',
         attendance: 0,
-        observations: ''
+        observations: '',
       });
 
       return res.status(201).json(newPastor);
     } catch (error) {
-      logger.error("Erro ao criar pastor:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao criar pastor:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Atualizar pastor (apenas superadmin)
-  app.put("/api/pastors/:id", async (req: Request, res: Response) => {
+  app.put('/api/pastors/:id', async (req: Request, res: Response) => {
     try {
       const pastorId = parseInt(req.params.id);
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
-        return res.status(403).json({ error: "Apenas superadmin pode atualizar pastores" });
+        return res.status(403).json({ error: 'Apenas superadmin pode atualizar pastores' });
       }
 
       const pastor = await storage.getUserById(pastorId);
       if (!pastor || pastor.role !== 'pastor') {
-        return res.status(404).json({ error: "Pastor não encontrado" });
+        return res.status(404).json({ error: 'Pastor não encontrado' });
       }
 
       const { name, email, districtId, password } = req.body;
@@ -506,7 +527,7 @@ export const districtRoutes = (app: Express): void => {
         // Verificar se novo email já existe
         const existing = await storage.getUserByEmail(email);
         if (existing) {
-          return res.status(400).json({ error: "Email já está em uso" });
+          return res.status(400).json({ error: 'Email já está em uso' });
         }
         updates.email = email;
       }
@@ -517,7 +538,7 @@ export const districtRoutes = (app: Express): void => {
             SELECT id FROM districts WHERE id = ${districtId}
           `;
           if (district.length === 0) {
-            return res.status(400).json({ error: "Distrito não encontrado" });
+            return res.status(400).json({ error: 'Distrito não encontrado' });
           }
         }
         updates.districtId = districtId;
@@ -530,25 +551,25 @@ export const districtRoutes = (app: Express): void => {
       const updated = await storage.updateUser(pastorId, updates);
       return res.json(updated);
     } catch (error) {
-      logger.error("Erro ao atualizar pastor:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao atualizar pastor:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   // Deletar pastor (apenas superadmin)
-  app.delete("/api/pastors/:id", async (req: Request, res: Response) => {
+  app.delete('/api/pastors/:id', async (req: Request, res: Response) => {
     try {
       const pastorId = parseInt(req.params.id);
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
-        return res.status(403).json({ error: "Apenas superadmin pode deletar pastores" });
+        return res.status(403).json({ error: 'Apenas superadmin pode deletar pastores' });
       }
 
       const pastor = await storage.getUserById(pastorId);
       if (!pastor || pastor.role !== 'pastor') {
-        return res.status(404).json({ error: "Pastor não encontrado" });
+        return res.status(404).json({ error: 'Pastor não encontrado' });
       }
 
       // Remover associação do distrito
@@ -564,10 +585,179 @@ export const districtRoutes = (app: Express): void => {
       // Por segurança, vamos apenas remover o role de pastor
       await storage.updateUser(pastorId, { role: 'member', districtId: null });
 
-      return res.json({ success: true, message: "Pastor removido com sucesso" });
+      return res.json({ success: true, message: 'Pastor removido com sucesso' });
     } catch (error) {
-      logger.error("Erro ao deletar pastor:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      logger.error('Erro ao deletar pastor:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ========== IGREJAS SEM DISTRITO ==========
+
+  // Listar igrejas sem distrito (apenas superadmin)
+  app.get('/api/churches/unassigned', async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const user = userId ? await storage.getUserById(userId) : null;
+
+      if (!isSuperAdmin(user)) {
+        return res.status(403).json({ error: 'Apenas superadmin pode ver igrejas sem distrito' });
+      }
+
+      const churches = await sql`
+        SELECT * FROM churches 
+        WHERE district_id IS NULL 
+        ORDER BY name
+      `;
+
+      return res.json(churches);
+    } catch (error) {
+      logger.error('Erro ao buscar igrejas sem distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Vincular igreja a um distrito (apenas superadmin)
+  app.post('/api/districts/:id/churches', async (req: Request, res: Response) => {
+    try {
+      const districtId = parseInt(req.params.id);
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const user = userId ? await storage.getUserById(userId) : null;
+
+      if (!isSuperAdmin(user)) {
+        return res
+          .status(403)
+          .json({ error: 'Apenas superadmin pode vincular igrejas a distritos' });
+      }
+
+      const { churchId } = req.body;
+
+      if (!churchId) {
+        return res.status(400).json({ error: 'ID da igreja é obrigatório' });
+      }
+
+      // Verificar se distrito existe
+      const district = await sql`
+        SELECT id FROM districts WHERE id = ${districtId}
+      `;
+      if (district.length === 0) {
+        return res.status(404).json({ error: 'Distrito não encontrado' });
+      }
+
+      // Verificar se igreja existe
+      const church = await sql`
+        SELECT id, name FROM churches WHERE id = ${churchId}
+      `;
+      if (church.length === 0) {
+        return res.status(404).json({ error: 'Igreja não encontrada' });
+      }
+
+      // Vincular igreja ao distrito
+      await sql`
+        UPDATE churches
+        SET district_id = ${districtId}, updated_at = NOW()
+        WHERE id = ${churchId}
+      `;
+
+      return res.json({
+        success: true,
+        message: `Igreja "${church[0].name}" vinculada ao distrito com sucesso`,
+      });
+    } catch (error) {
+      logger.error('Erro ao vincular igreja ao distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Vincular múltiplas igrejas a um distrito (apenas superadmin)
+  app.post('/api/districts/:id/churches/bulk', async (req: Request, res: Response) => {
+    try {
+      const districtId = parseInt(req.params.id);
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const user = userId ? await storage.getUserById(userId) : null;
+
+      if (!isSuperAdmin(user)) {
+        return res
+          .status(403)
+          .json({ error: 'Apenas superadmin pode vincular igrejas a distritos' });
+      }
+
+      const { churchIds } = req.body;
+
+      if (!churchIds || !Array.isArray(churchIds) || churchIds.length === 0) {
+        return res.status(400).json({ error: 'IDs das igrejas são obrigatórios' });
+      }
+
+      // Verificar se distrito existe
+      const district = await sql`
+        SELECT id FROM districts WHERE id = ${districtId}
+      `;
+      if (district.length === 0) {
+        return res.status(404).json({ error: 'Distrito não encontrado' });
+      }
+
+      // Vincular igrejas ao distrito
+      let successCount = 0;
+      for (const churchId of churchIds) {
+        try {
+          await sql`
+            UPDATE churches
+            SET district_id = ${districtId}, updated_at = NOW()
+            WHERE id = ${churchId}
+          `;
+          successCount++;
+        } catch (e) {
+          logger.error(`Erro ao vincular igreja ${churchId}:`, e);
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: `${successCount} igreja(s) vinculada(s) ao distrito com sucesso`,
+        count: successCount,
+      });
+    } catch (error) {
+      logger.error('Erro ao vincular igrejas ao distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Desvincular igreja de um distrito (apenas superadmin)
+  app.delete('/api/districts/:id/churches/:churchId', async (req: Request, res: Response) => {
+    try {
+      const districtId = parseInt(req.params.id);
+      const churchId = parseInt(req.params.churchId);
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const user = userId ? await storage.getUserById(userId) : null;
+
+      if (!isSuperAdmin(user)) {
+        return res
+          .status(403)
+          .json({ error: 'Apenas superadmin pode desvincular igrejas de distritos' });
+      }
+
+      // Verificar se igreja pertence ao distrito
+      const church = await sql`
+        SELECT id, name FROM churches WHERE id = ${churchId} AND district_id = ${districtId}
+      `;
+      if (church.length === 0) {
+        return res.status(404).json({ error: 'Igreja não encontrada neste distrito' });
+      }
+
+      // Desvincular igreja
+      await sql`
+        UPDATE churches
+        SET district_id = NULL, updated_at = NOW()
+        WHERE id = ${churchId}
+      `;
+
+      return res.json({
+        success: true,
+        message: `Igreja "${church[0].name}" desvinculada do distrito com sucesso`,
+      });
+    } catch (error) {
+      logger.error('Erro ao desvincular igreja do distrito:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   });
 };

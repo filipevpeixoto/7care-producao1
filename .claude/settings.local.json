@@ -17,7 +17,9 @@
       "Bash(done)",
       "Bash(curl:*)",
       "Bash(npm test:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cut:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

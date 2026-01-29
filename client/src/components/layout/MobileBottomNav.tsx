@@ -1,4 +1,15 @@
-import { LayoutDashboard, Calendar, Users, Settings, Trophy, Building2, UserCog, ChevronUp, LucideIcon } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Settings,
+  Trophy,
+  Building2,
+  UserCog,
+  ChevronUp,
+  LucideIcon,
+  Mail,
+} from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
@@ -33,7 +44,7 @@ export const MobileBottomNav = memo(() => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
-  
+
   // Estrutura simplificada do menu - memoizada para evitar recriações
   const menuStructure = useMemo(() => {
     const baseItems: MenuItem[] = [
@@ -42,22 +53,22 @@ export const MobileBottomNav = memo(() => {
         icon: LayoutDashboard,
         path: '/dashboard',
         roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
-        submenu: []
+        submenu: [],
       },
       {
         title: 'Agenda',
         icon: Calendar,
         path: '/calendar',
         roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
-        submenu: []
+        submenu: [],
       },
       {
         title: hasAdminAccess(user) ? 'Usuários' : 'Discipulado',
         icon: Users,
         path: hasAdminAccess(user) ? '/users' : '/my-interested',
         roles: ['superadmin', 'pastor', 'missionary', 'member'],
-        submenu: []
-      }
+        submenu: [],
+      },
     ];
 
     // Para superadmin, adicionar botão de administração em vez de 7Mount
@@ -69,8 +80,9 @@ export const MobileBottomNav = memo(() => {
         roles: ['superadmin'],
         submenu: [
           { title: 'Distritos', path: '/districts', icon: Building2 },
-          { title: 'Pastores', path: '/pastors', icon: UserCog }
-        ]
+          { title: 'Pastores', path: '/pastors', icon: UserCog },
+          { title: 'Convites', path: '/pastor-invites', icon: Mail },
+        ],
       });
     } else {
       // Para outros usuários, manter o 7Mount
@@ -79,7 +91,7 @@ export const MobileBottomNav = memo(() => {
         icon: Trophy,
         path: '/gamification',
         roles: ['pastor', 'missionary', 'member', 'interested'],
-        submenu: []
+        submenu: [],
       });
     }
 
@@ -89,7 +101,7 @@ export const MobileBottomNav = memo(() => {
       icon: Settings,
       path: '/menu',
       roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
-      submenu: []
+      submenu: [],
     });
 
     return baseItems;
@@ -100,20 +112,20 @@ export const MobileBottomNav = memo(() => {
     const userRole = user?.role || '';
     const filtered = menuStructure.filter(item => {
       // Verificação mais flexível para incluir roles parciais
-      const hasAccess = user && (
-        item.roles.includes(userRole) ||
-        item.roles.some(role => userRole.includes(role)) ||
-        item.roles.some(role => role.includes(userRole))
-      );
+      const hasAccess =
+        user &&
+        (item.roles.includes(userRole) ||
+          item.roles.some(role => userRole.includes(role)) ||
+          item.roles.some(role => role.includes(userRole)));
       return hasAccess;
     });
-    
+
     console.log('🔍 MobileBottomNav - Debug:', {
       userRole: userRole,
       userRoleType: typeof userRole,
       menuStructure: menuStructure.map(item => ({ title: item.title, roles: item.roles })),
       filteredItems: filtered.map(item => ({ title: item.title, roles: item.roles })),
-      allRoles: ['superadmin', 'pastor', 'missionary', 'member', 'interested']
+      allRoles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
     });
     return filtered;
   }, [menuStructure, user]);
@@ -123,15 +135,17 @@ export const MobileBottomNav = memo(() => {
     const findActiveIndex = () => {
       for (let i = 0; i < allowedItems.length; i++) {
         const item = allowedItems[i];
-        
+
         // Verificar se a rota atual é o item principal
         if (location.pathname === item.path) {
           return i;
         }
-        
+
         // Verificar se a rota atual corresponde a algum submenu (para Admin)
         if (item.submenu && item.submenu.length > 0) {
-          const submenuMatch = item.submenu.some((sub: any) => sub.path === location.pathname);
+          const submenuMatch = item.submenu.some(
+            (sub: SubmenuItem) => sub.path === location.pathname
+          );
           if (submenuMatch) {
             return i;
           }
@@ -142,45 +156,58 @@ export const MobileBottomNav = memo(() => {
 
     const newActiveIndex = findActiveIndex();
     setActiveIndex(newActiveIndex);
-    
+
     // Se estiver em uma rota de admin, abrir o menu
-    if (location.pathname === '/districts' || location.pathname === '/pastors') {
+    if (
+      location.pathname === '/districts' ||
+      location.pathname === '/pastors' ||
+      location.pathname === '/pastor-invites'
+    ) {
       setAdminMenuOpen(true);
     } else {
       setAdminMenuOpen(false);
     }
   }, [location.pathname, allowedItems]);
 
-  // Classes fixas para sempre usar o estilo claro (que funciona bem em qualquer fundo)
-  const navClasses = "bg-white/30 backdrop-blur-md border border-white/40 rounded-3xl shadow-2xl pointer-events-auto";
-  const slidingBgClasses = "bg-white/50 backdrop-blur-sm rounded-2xl transition-all duration-300 ease-out shadow-lg";
-  
+  // Classes adaptativas para light e dark mode
+  const navClasses =
+    'bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-gray-200/50 dark:border-slate-700/50 rounded-3xl shadow-2xl dark:shadow-slate-900/50 pointer-events-auto';
+  const slidingBgClasses =
+    'bg-primary/10 dark:bg-primary/20 backdrop-blur-sm rounded-2xl transition-all duration-300 ease-out shadow-lg dark:shadow-primary/10';
+
   const iconClasses = (isActive: boolean) => {
-    return isActive ? 'scale-110 text-gray-800' : 'scale-100 text-gray-600';
+    return isActive
+      ? 'scale-110 text-primary dark:text-primary'
+      : 'scale-100 text-gray-600 dark:text-slate-400';
   };
 
   const textClasses = (isActive: boolean) => {
-    return isActive ? 'opacity-100 font-semibold text-gray-800' : 'opacity-80 text-gray-600';
+    return isActive
+      ? 'opacity-100 font-semibold text-primary dark:text-primary'
+      : 'opacity-80 text-gray-600 dark:text-slate-400';
   };
 
-  const handleNavigation = useCallback((path: string, index: number) => {
-    if (location.pathname === path) {
-      console.log('🔄 Já está na página:', path);
-      return;
-    }
-    
-    console.log('🔄 FORÇANDO navegação de', location.pathname, '→', path);
-    
-    setActiveIndex(index);
-    window.location.href = path;
-  }, [location.pathname]);
+  const handleNavigation = useCallback(
+    (path: string, index: number) => {
+      if (location.pathname === path) {
+        console.log('🔄 Já está na página:', path);
+        return;
+      }
+
+      console.log('🔄 FORÇANDO navegação de', location.pathname, '→', path);
+
+      setActiveIndex(index);
+      window.location.href = path;
+    },
+    [location.pathname]
+  );
 
   // Log para debug
   console.log('🔍 MobileBottomNav - Render:', {
     userRole: user?.role,
     allowedItemsCount: allowedItems.length,
     activeIndex,
-    location: location.pathname
+    location: location.pathname,
   });
 
   // Se não há itens permitidos, usar itens básicos como fallback
@@ -190,55 +217,56 @@ export const MobileBottomNav = memo(() => {
       icon: LayoutDashboard,
       path: '/dashboard',
       roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
-      submenu: []
+      submenu: [],
     },
     {
       title: 'Agenda',
       icon: Calendar,
       path: '/calendar',
       roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
-      submenu: []
+      submenu: [],
     },
     {
       title: 'Menu',
       icon: Settings,
       path: '/menu',
       roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
-      submenu: []
-    }
+      submenu: [],
+    },
   ];
   const finalItems: MenuItem[] = allowedItems.length > 0 ? allowedItems : fallbackItems;
 
   if (allowedItems.length === 0) {
-    console.warn('⚠️ MobileBottomNav: Nenhum item permitido para o role:', user?.role, '- usando fallback');
+    console.warn(
+      '⚠️ MobileBottomNav: Nenhum item permitido para o role:',
+      user?.role,
+      '- usando fallback'
+    );
   }
 
   return (
-    <div 
+    <div
       className={`fixed bottom-0 left-0 right-0 p-4 pointer-events-none transition-transform duration-300 ease-in-out`}
-      style={{ 
+      style={{
         zIndex: 999999,
-        transform: isAnyModalOpen ? 'translateY(100%)' : 'translateY(0)'
+        transform: isAnyModalOpen ? 'translateY(100%)' : 'translateY(0)',
       }}
     >
       {/* Menu principal suspenso */}
-      <nav 
-        ref={navRef}
-        className={navClasses}
-      >
+      <nav ref={navRef} className={navClasses}>
         <div className="relative flex justify-around items-center py-2 px-3">
           {/* Fundo deslizante centralizado - não aparece quando menu admin está aberto */}
           {!adminMenuOpen && (
-            <div 
+            <div
               className={`absolute top-1.5 bottom-1.5 ${slidingBgClasses}`}
               style={{
                 width: `calc(${100 / finalItems.length}% - 10px)`,
                 left: `calc(${(100 / finalItems.length) * activeIndex}% + 5px)`,
-                height: 'calc(100% - 12px)'
+                height: 'calc(100% - 12px)',
               }}
             />
           )}
-          
+
           {finalItems.map((item, index) => {
             const isActive = index === activeIndex;
             const hasSubmenu = item.submenu && item.submenu.length > 0;
@@ -246,13 +274,14 @@ export const MobileBottomNav = memo(() => {
 
             // Se for o botão de Admin com submenu, renderizar dropdown
             if (isAdminButton && hasSubmenu) {
-              const isAdminRoute = location.pathname === '/districts' || location.pathname === '/pastors';
+              const isAdminRoute =
+                location.pathname === '/districts' || location.pathname === '/pastors';
               const isActive = adminMenuOpen || isAdminRoute;
-              
+
               return (
-                <DropdownMenu 
-                  key={index} 
-                  open={adminMenuOpen} 
+                <DropdownMenu
+                  key={index}
+                  open={adminMenuOpen}
                   onOpenChange={setAdminMenuOpen}
                   modal={false}
                 >
@@ -261,9 +290,9 @@ export const MobileBottomNav = memo(() => {
                       className={`relative flex flex-col items-center justify-center w-full h-12 transition-all duration-300 ease-out ${
                         isActive ? 'scale-110' : 'scale-100'
                       }`}
-                      style={{ 
+                      style={{
                         touchAction: 'manipulation',
-                        WebkitTapHighlightColor: 'transparent'
+                        WebkitTapHighlightColor: 'transparent',
                       }}
                       type="button"
                     >
@@ -273,31 +302,35 @@ export const MobileBottomNav = memo(() => {
                       )}
                       <div className="flex flex-col items-center justify-center w-full h-full relative z-10">
                         <div className="relative">
-                          <Building2 className={`w-5 h-5 mb-1 transition-all duration-300 ${iconClasses(isActive)}`} />
+                          <Building2
+                            className={`w-5 h-5 mb-1 transition-all duration-300 ${iconClasses(isActive)}`}
+                          />
                           {isActive && (
                             <ChevronUp className="absolute -top-1 -right-1 w-3 h-3 text-emerald-600 animate-bounce" />
                           )}
                         </div>
-                        <span className={`text-xs font-medium transition-all duration-300 ${textClasses(isActive)}`}>
+                        <span
+                          className={`text-xs font-medium transition-all duration-300 ${textClasses(isActive)}`}
+                        >
                           Admin
                         </span>
                       </div>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    side="top" 
+                  <DropdownMenuContent
+                    side="top"
                     align="center"
-                    className="mb-2 min-w-[160px] bg-white/95 backdrop-blur-md border border-white/40 rounded-2xl shadow-2xl p-2 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2"
+                    className="mb-2 min-w-[160px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-slate-700/50 rounded-2xl shadow-2xl dark:shadow-slate-900/50 p-2 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2"
                     style={{ zIndex: 1000000 }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
                   >
-                    {item.submenu.map((subItem: any, subIndex: number) => {
+                    {item.submenu.map((subItem: SubmenuItem, subIndex: number) => {
                       const isSubActive = location.pathname === subItem.path;
                       return (
                         <DropdownMenuItem
                           key={subIndex}
-                          onSelect={(e) => {
+                          onSelect={e => {
                             e.preventDefault();
                             setAdminMenuOpen(false);
                             // Usar requestAnimationFrame para garantir que o estado seja atualizado antes da navegação
@@ -305,7 +338,7 @@ export const MobileBottomNav = memo(() => {
                               navigate(subItem.path);
                             });
                           }}
-                          onClick={(e) => {
+                          onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
                             setAdminMenuOpen(false);
@@ -315,12 +348,14 @@ export const MobileBottomNav = memo(() => {
                             });
                           }}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                            isSubActive 
-                              ? 'bg-gradient-to-r from-emerald-100 to-amber-100 text-emerald-700 font-semibold' 
-                              : 'hover:bg-gradient-to-r hover:from-emerald-50 hover:to-amber-50 text-gray-700 focus:bg-gradient-to-r focus:from-emerald-50 focus:to-amber-50'
+                            isSubActive
+                              ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold'
+                              : 'hover:bg-gray-100 dark:hover:bg-slate-700/50 text-gray-700 dark:text-slate-300 focus:bg-gray-100 dark:focus:bg-slate-700/50'
                           }`}
                         >
-                          <subItem.icon className={`w-4 h-4 ${isSubActive ? 'text-emerald-600' : 'text-gray-600'}`} />
+                          <subItem.icon
+                            className={`w-4 h-4 ${isSubActive ? 'text-primary' : 'text-gray-600 dark:text-slate-400'}`}
+                          />
                           <span className="text-sm font-medium">{subItem.title}</span>
                         </DropdownMenuItem>
                       );
@@ -334,22 +369,26 @@ export const MobileBottomNav = memo(() => {
             return (
               <button
                 key={index}
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   if (item.path !== '#') {
                     handleNavigation(item.path, index);
                   }
                 }}
                 className="relative flex flex-col items-center justify-center w-full h-12 transition-all duration-300 ease-out"
-                style={{ 
+                style={{
                   touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
                 }}
                 type="button"
               >
                 <div className="flex flex-col items-center justify-center w-full h-full">
-                  <item.icon className={`w-5 h-5 mb-1 transition-all duration-300 ${iconClasses(isActive)}`} />
-                  <span className={`text-xs font-medium transition-all duration-300 ${textClasses(isActive)}`}>
+                  <item.icon
+                    className={`w-5 h-5 mb-1 transition-all duration-300 ${iconClasses(isActive)}`}
+                  />
+                  <span
+                    className={`text-xs font-medium transition-all duration-300 ${textClasses(isActive)}`}
+                  >
                     {item.title}
                   </span>
                 </div>

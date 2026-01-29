@@ -1,6 +1,6 @@
 /**
  * Validador de senha forte
- * 
+ *
  * Implementa regras de complexidade para senhas:
  * - Mínimo 8 caracteres
  * - Pelo menos uma letra maiúscula
@@ -29,9 +29,21 @@ const PASSWORD_RULES = {
  * Lista de senhas comuns que devem ser rejeitadas
  */
 const COMMON_PASSWORDS = [
-  'password', '12345678', 'password123', 'admin123', 'qwerty123',
-  '123456789', 'letmein', 'welcome', 'monkey', 'dragon',
-  'master', 'sunshine', 'princess', 'football', 'iloveyou'
+  'password',
+  '12345678',
+  'password123',
+  'admin123',
+  'qwerty123',
+  '123456789',
+  'letmein',
+  'welcome',
+  'monkey',
+  'dragon',
+  'master',
+  'sunshine',
+  'princess',
+  'football',
+  'iloveyou',
 ];
 
 /**
@@ -74,9 +86,9 @@ export function validatePasswordStrength(password: string): PasswordStrength {
   }
 
   // Validação de caractere especial
-  if (PASSWORD_RULES.requireSpecial && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (PASSWORD_RULES.requireSpecial && !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     errors.push('A senha deve conter pelo menos um caractere especial (!@#$%^&* etc)');
-  } else if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  } else if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     score += 20;
   }
 
@@ -101,7 +113,7 @@ export function validatePasswordStrength(password: string): PasswordStrength {
     isValid: errors.length === 0,
     errors,
     strength,
-    score: Math.min(100, score)
+    score: Math.min(100, score),
   };
 }
 
@@ -110,7 +122,7 @@ export function validatePasswordStrength(password: string): PasswordStrength {
  */
 export function requireStrongPassword(password: string): void {
   const validation = validatePasswordStrength(password);
-  
+
   if (!validation.isValid) {
     throw new Error(`Senha fraca: ${validation.errors.join(', ')}`);
   }
@@ -143,7 +155,7 @@ export function getPasswordSuggestions(password: string): string[] {
     suggestions.push('Adicione números');
   }
 
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     suggestions.push('Adicione caracteres especiais (!@#$%^&* etc)');
   }
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, RefreshCw } from 'lucide-react';
 
@@ -14,30 +13,28 @@ interface VisitometerProps {
   onRefresh?: () => void;
 }
 
-export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, visitedPeople = 0, percentage: apiPercentage = 0, isLoading = false, onRefresh }: VisitometerProps) => {
+export const Visitometer = ({
+  visitsCompleted,
+  visitsExpected,
+  totalVisits = 0,
+  visitedPeople = 0,
+  percentage: apiPercentage = 0,
+  isLoading = false,
+  onRefresh,
+}: VisitometerProps) => {
   // Usar o percentage da API ou calcular localmente
-  const percentage = apiPercentage || (visitsExpected > 0 ? Math.round((visitsCompleted / visitsExpected) * 100) : 0);
-  
+  const percentage =
+    apiPercentage ||
+    (visitsExpected > 0 ? Math.round((visitsCompleted / visitsExpected) * 100) : 0);
+
   // Log para debug
-  console.log('📊 Visitômetro atualizado:', { visitsCompleted, visitsExpected, totalVisits, visitedPeople, percentage });
-  
-  const getColor = (percent: number) => {
-    if (percent >= 100) return '#10b981'; // Verde - meta atingida
-    if (percent >= 60) return '#f59e0b'; // Amarelo - em progresso
-    return '#ef4444'; // Vermelho - atrasado
-  };
-
-  const getStatusText = (percent: number) => {
-    if (percent >= 100) return 'Meta Atingida';
-    if (percent >= 60) return 'Em Progresso';
-    return 'Atrasado';
-  };
-
-  const getStatusColor = (percent: number) => {
-    if (percent >= 100) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-    if (percent >= 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-    return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-  };
+  console.log('📊 Visitômetro atualizado:', {
+    visitsCompleted,
+    visitsExpected,
+    totalVisits,
+    visitedPeople,
+    percentage,
+  });
 
   // Criar o SVG do velocímetro
   const radius = 60;
@@ -45,11 +42,9 @@ export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, 
   const circumference = 2 * Math.PI * radius;
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
-  const color = getColor(percentage);
 
   // Para mobile, usar valores proporcionais
   const mobileRadius = 15;
-  const mobileStrokeWidth = 2;
   const mobileCircumference = 2 * Math.PI * mobileRadius;
   const mobileStrokeDasharray = mobileCircumference;
   const mobileStrokeDashoffset = mobileCircumference - (percentage / 100) * mobileCircumference;
@@ -125,7 +120,7 @@ export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, 
                   strokeDashoffset={mobileStrokeDashoffset}
                   strokeLinecap="round"
                   style={{
-                    transition: 'stroke-dashoffset 0.8s ease-in-out, stroke 0.3s ease-in-out'
+                    transition: 'stroke-dashoffset 0.8s ease-in-out, stroke 0.3s ease-in-out',
                   }}
                 />
                 <text
@@ -140,20 +135,24 @@ export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, 
                 </text>
               </svg>
             </div>
-            
+
             {/* Estatísticas compactas */}
             <div className="flex-1 ml-2 text-left space-y-1">
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3 text-white/80" />
                 <span className="text-[10px] font-medium text-white/80">
-                  Pessoas visitadas: <span className="font-bold text-white">{visitedPeople || visitsCompleted}/{visitsExpected}</span>
+                  Pessoas visitadas:{' '}
+                  <span className="font-bold text-white">
+                    {visitedPeople || visitsCompleted}/{visitsExpected}
+                  </span>
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-1">
                 <TrendingUp className="h-3 w-3 text-white/80" />
                 <span className="text-[10px] font-medium text-white/80">
-                  Total de visitas realizadas: <span className="font-bold text-white">{totalVisits}</span>
+                  Total de visitas realizadas:{' '}
+                  <span className="font-bold text-white">{totalVisits}</span>
                 </span>
               </div>
             </div>
@@ -187,7 +186,7 @@ export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, 
                   strokeDashoffset={strokeDashoffset}
                   strokeLinecap="round"
                   style={{
-                    transition: 'stroke-dashoffset 0.8s ease-in-out, stroke 0.3s ease-in-out'
+                    transition: 'stroke-dashoffset 0.8s ease-in-out, stroke 0.3s ease-in-out',
                   }}
                 />
                 {/* Marcadores do velocímetro */}
@@ -229,10 +228,9 @@ export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, 
                   {visitedPeople || visitsCompleted} / {visitsExpected}
                 </div>
                 <p className="text-xs text-white/70">
-                  {visitsExpected - (visitedPeople || visitsCompleted) > 0 
+                  {visitsExpected - (visitedPeople || visitsCompleted) > 0
                     ? `${visitsExpected - (visitedPeople || visitsCompleted)} pessoas pendentes`
-                    : 'Todas as pessoas foram visitadas!'
-                  }
+                    : 'Todas as pessoas foram visitadas!'}
                 </p>
               </div>
 
@@ -245,14 +243,11 @@ export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, 
                   <TrendingUp className="h-4 w-4 text-white/80" />
                   <span className="text-sm font-medium text-white/80">Visitas Realizadas</span>
                 </div>
-                <div className="text-2xl font-bold text-white drop-shadow-lg">
-                  {totalVisits}
-                </div>
+                <div className="text-2xl font-bold text-white drop-shadow-lg">{totalVisits}</div>
                 <p className="text-xs text-white/70">
-                  {totalVisits > (visitedPeople || visitsCompleted) 
+                  {totalVisits > (visitedPeople || visitsCompleted)
                     ? `Média de ${(totalVisits / (visitedPeople || visitsCompleted)).toFixed(1)} visitas por pessoa`
-                    : 'Uma visita por pessoa'
-                  }
+                    : 'Uma visita por pessoa'}
                 </p>
               </div>
             </div>
@@ -261,4 +256,4 @@ export const Visitometer = ({ visitsCompleted, visitsExpected, totalVisits = 0, 
       </CardContent>
     </Card>
   );
-}; 
+};

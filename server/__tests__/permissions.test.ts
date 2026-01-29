@@ -15,13 +15,12 @@ import {
   canCreateUserWithRole,
   canAccessDistrict,
   canImportChurches,
-  canImportChurchesToDistrict
+  canImportChurchesToDistrict,
 } from '../utils/permissions';
 
 import { userFixtures, permissionScenarios } from '../../tests/fixtures/users.fixture';
 
 describe('Permission System', () => {
-
   // ============================================
   // hasAdminAccess
   // ============================================
@@ -185,7 +184,7 @@ describe('Permission System', () => {
   // ============================================
   describe('canAccessDistrictChurches', () => {
     const pastorDistrict1 = { ...userFixtures.pastor, districtId: 1 };
-    const pastorDistrict2 = { ...userFixtures.pastor, districtId: 2 };
+    const _pastorDistrict2 = { ...userFixtures.pastor, districtId: 2 };
 
     it('should return true for superadmin accessing any district', () => {
       expect(canAccessDistrictChurches(userFixtures.superadmin, 1)).toBe(true);
@@ -391,7 +390,9 @@ describe('Permission System', () => {
         });
 
         it('should match expected canAccessAllChurches', () => {
-          expect(canAccessAllChurches(scenario.user)).toBe(scenario.expectedAccess.canAccessAllChurches);
+          expect(canAccessAllChurches(scenario.user)).toBe(
+            scenario.expectedAccess.canAccessAllChurches
+          );
         });
       });
     });
@@ -402,14 +403,18 @@ describe('Permission System', () => {
   // ============================================
   describe('Edge Cases', () => {
     it('should handle user with empty role string', () => {
-      const userEmptyRole = { id: 1, email: 'test@test.com', role: '' as any };
+      const userEmptyRole = { id: 1, email: 'test@test.com', role: '' as 'superadmin' };
       expect(hasAdminAccess(userEmptyRole)).toBe(false);
       expect(isSuperAdmin(userEmptyRole)).toBe(false);
       expect(isPastor(userEmptyRole)).toBe(false);
     });
 
     it('should handle user with invalid role', () => {
-      const userInvalidRole = { id: 1, email: 'test@test.com', role: 'invalid_role' as any };
+      const userInvalidRole = {
+        id: 1,
+        email: 'test@test.com',
+        role: 'invalid_role' as 'superadmin',
+      };
       expect(hasAdminAccess(userInvalidRole)).toBe(false);
       expect(isSuperAdmin(userInvalidRole)).toBe(false);
       expect(isPastor(userInvalidRole)).toBe(false);
@@ -422,8 +427,8 @@ describe('Permission System', () => {
     });
 
     it('should be case sensitive for roles', () => {
-      const upperCaseRole = { role: 'SUPERADMIN' as any };
-      const mixedCaseRole = { role: 'SuperAdmin' as any };
+      const upperCaseRole = { role: 'SUPERADMIN' as 'superadmin' };
+      const mixedCaseRole = { role: 'SuperAdmin' as 'superadmin' };
 
       expect(isSuperAdmin(upperCaseRole)).toBe(false);
       expect(isSuperAdmin(mixedCaseRole)).toBe(false);

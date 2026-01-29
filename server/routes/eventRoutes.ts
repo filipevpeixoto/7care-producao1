@@ -6,9 +6,8 @@
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { handleError } from '../utils/errorHandler';
-import { AuthenticatedRequest } from '../types';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
-import { createEventSchema, updateEventSchema } from '../schemas';
+import { createEventSchema } from '../schemas';
 import { logger } from '../utils/logger';
 
 export const eventRoutes = (app: Express): void => {
@@ -60,7 +59,7 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de eventos
    */
-  app.get("/api/events", async (req: Request, res: Response) => {
+  app.get('/api/events', async (req: Request, res: Response) => {
     try {
       const { church, startDate, endDate } = req.query;
       let events = await storage.getAllEvents();
@@ -81,7 +80,7 @@ export const eventRoutes = (app: Express): void => {
 
       res.json(events);
     } catch (error) {
-      handleError(res, error, "Get events");
+      handleError(res, error, 'Get events');
     }
   });
 
@@ -129,7 +128,7 @@ export const eventRoutes = (app: Express): void => {
    *       400:
    *         description: Dados inválidos
    */
-  app.post("/api/events", validateBody(createEventSchema), async (req: Request, res: Response) => {
+  app.post('/api/events', validateBody(createEventSchema), async (req: Request, res: Response) => {
     try {
       const eventData = (req as ValidatedRequest<typeof createEventSchema._type>).validatedBody;
       logger.info(`Creating event: ${eventData.title}`);
@@ -147,11 +146,11 @@ export const eventRoutes = (app: Express): void => {
         isPublic: true,
         church: eventData.church ?? churchInfo.name,
         organizerId: eventData.organizerId ?? organizerId,
-        churchId
+        churchId,
       });
       res.status(201).json(event);
     } catch (error) {
-      handleError(res, error, "Create event");
+      handleError(res, error, 'Create event');
     }
   });
 
@@ -178,12 +177,13 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Eventos removidos
    */
-  app.delete("/api/events", async (req: Request, res: Response) => {
+  app.delete('/api/events', async (req: Request, res: Response) => {
     try {
       const { ids } = req.body;
 
       if (!ids || !Array.isArray(ids)) {
-        res.status(400).json({ error: 'IDs dos eventos são obrigatórios' }); return;
+        res.status(400).json({ error: 'IDs dos eventos são obrigatórios' });
+        return;
       }
 
       for (const id of ids) {
@@ -192,7 +192,7 @@ export const eventRoutes = (app: Express): void => {
 
       res.json({ success: true, message: `${ids.length} eventos removidos` });
     } catch (error) {
-      handleError(res, error, "Delete events");
+      handleError(res, error, 'Delete events');
     }
   });
 
@@ -213,7 +213,7 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de tipos de eventos permitidos
    */
-  app.get("/api/event-types/:role", async (req: Request, res: Response) => {
+  app.get('/api/event-types/:role', async (req: Request, res: Response) => {
     try {
       const { role } = req.params;
 
@@ -225,7 +225,7 @@ export const eventRoutes = (app: Express): void => {
         { id: 'evento_especial', name: 'Evento Especial', color: '#8b5cf6' },
         { id: 'visita', name: 'Visita', color: '#ec4899' },
         { id: 'batismo', name: 'Batismo', color: '#06b6d4' },
-        { id: 'santa_ceia', name: 'Santa Ceia', color: '#84cc16' }
+        { id: 'santa_ceia', name: 'Santa Ceia', color: '#84cc16' },
       ];
 
       // Admin e pastor têm acesso a todos os tipos
@@ -241,7 +241,7 @@ export const eventRoutes = (app: Express): void => {
 
       res.json(limitedTypes);
     } catch (error) {
-      handleError(res, error, "Get event types");
+      handleError(res, error, 'Get event types');
     }
   });
 
@@ -255,12 +255,12 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de eventos do calendário
    */
-  app.get("/api/calendar/events", async (req: Request, res: Response) => {
+  app.get('/api/calendar/events', async (req: Request, res: Response) => {
     try {
       const events = await storage.getAllEvents();
       res.json(events);
     } catch (error) {
-      handleError(res, error, "Get calendar events");
+      handleError(res, error, 'Get calendar events');
     }
   });
 
@@ -282,7 +282,7 @@ export const eventRoutes = (app: Express): void => {
    *       201:
    *         description: Evento criado
    */
-  app.post("/api/calendar/events", async (req: Request, res: Response) => {
+  app.post('/api/calendar/events', async (req: Request, res: Response) => {
     try {
       const eventData = req.body;
       const organizerId = resolveOrganizerId(req);
@@ -298,11 +298,11 @@ export const eventRoutes = (app: Express): void => {
         isPublic: true,
         church: eventData?.church ?? churchInfo.name,
         organizerId: eventData?.organizerId ?? organizerId,
-        churchId
+        churchId,
       });
       res.status(201).json(event);
     } catch (error) {
-      handleError(res, error, "Create calendar event");
+      handleError(res, error, 'Create calendar event');
     }
   });
 };

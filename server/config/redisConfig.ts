@@ -129,15 +129,15 @@ export class RateLimitStore {
   private async initRedis(config: RedisConfig): Promise<void> {
     try {
       // Tentar importar ioredis dinamicamente
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+
       const Redis = require('ioredis');
-      
+
       if (!Redis) {
         console.warn('⚠️ Redis: ioredis não instalado, usando fallback em memória');
         this.startCleanup();
         return;
       }
-      
+
       const redis = new Redis({
         host: config.host,
         port: config.port,
@@ -170,7 +170,7 @@ export class RateLimitStore {
       });
 
       await redis.connect();
-      
+
       // Adapter para interface comum
       this.redisClient = {
         connect: () => redis.connect(),
@@ -181,7 +181,6 @@ export class RateLimitStore {
         get: (key: string) => redis.get(key),
         del: (key: string) => redis.del(key).then(() => undefined),
       };
-      
     } catch (error) {
       const err = error as Error;
       console.warn('⚠️ Redis: Falha na conexão, usando fallback:', err.message);
@@ -208,12 +207,12 @@ export class RateLimitStore {
       try {
         const count = await this.redisClient.incr(prefixedKey);
         let ttl = await this.redisClient.ttl(prefixedKey);
-        
+
         if (ttl === -1) {
           await this.redisClient.pexpire(prefixedKey, windowMs);
           ttl = Math.ceil(windowMs / 1000);
         }
-        
+
         return { count, ttl };
       } catch (err) {
         console.warn('⚠️ Redis increment error, usando fallback:', (err as Error).message);
@@ -223,11 +222,11 @@ export class RateLimitStore {
     // Fallback para memória
     const count = await this.inMemory.incr(prefixedKey);
     const ttl = await this.inMemory.ttl(prefixedKey);
-    
+
     if (count === 1) {
       await this.inMemory.expire(prefixedKey, windowMs);
     }
-    
+
     return { count, ttl: ttl > 0 ? ttl : Math.ceil(windowMs / 1000) };
   }
 
@@ -275,7 +274,7 @@ export class RateLimitStore {
   isUsingRedis(): boolean {
     return this.isConnected;
   }
-  
+
   getStoreSize(): number {
     return this.inMemory.size();
   }
@@ -304,7 +303,10 @@ export function closeRateLimitStore(): Promise<void> {
 export interface RateLimitOptions {
   windowMs: number;
   max: number;
-  keyGenerator?: (req: { ip?: string; headers: Record<string, string | string[] | undefined> }) => string;
+  keyGenerator?: (req: {
+    ip?: string;
+    headers: Record<string, string | string[] | undefined>;
+  }) => string;
   message?: string;
   statusCode?: number;
   skipFailedRequests?: boolean;
@@ -325,23 +327,19 @@ export function createRateLimiter(options: RateLimitOptions) {
   const {
     windowMs,
     max,
-    keyGenerator = (req) => req.ip || 'unknown',
+    keyGenerator = req => req.ip || 'unknown',
     message = 'Too many requests, please try again later.',
     statusCode = 429,
   } = options;
 
   const store = getRateLimitStore();
 
-  return async (
-    req: RateLimitRequest,
-    res: RateLimitResponse,
-    next: () => void
-  ): Promise<void> => {
+  return async (req: RateLimitRequest, res: RateLimitResponse, next: () => void): Promise<void> => {
     const key = keyGenerator(req);
-    
+
     try {
       const { count, ttl } = await store.increment(key, windowMs);
-      
+
       res.setHeader('X-RateLimit-Limit', max);
       res.setHeader('X-RateLimit-Remaining', Math.max(0, max - count));
       res.setHeader('X-RateLimit-Reset', ttl);

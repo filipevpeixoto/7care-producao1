@@ -13,7 +13,7 @@ const isEnabled = !!SENTRY_DSN && isProduction;
 /**
  * Inicializa o Sentry
  */
-export function initSentry(app?: Express): void {
+export function initSentry(_app?: Express): void {
   if (!isEnabled) {
     console.log('[Sentry] Desabilitado - configure SENTRY_DSN em produção');
     return;
@@ -23,10 +23,10 @@ export function initSentry(app?: Express): void {
     dsn: SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     release: process.env.npm_package_version || '1.0.0',
-    
+
     // Performance Monitoring
     tracesSampleRate: isProduction ? 0.1 : 1.0, // 10% em produção
-    
+
     // Profiles
     profilesSampleRate: isProduction ? 0.1 : 1.0,
 
@@ -103,7 +103,10 @@ export function sentryErrorHandler() {
 /**
  * Captura uma exceção manualmente
  */
-export function captureException(error: Error, context?: Record<string, unknown>): string | undefined {
+export function captureException(
+  error: Error,
+  context?: Record<string, unknown>
+): string | undefined {
   if (!isEnabled) {
     console.error('[Error]', error.message, context);
     return undefined;
@@ -117,7 +120,11 @@ export function captureException(error: Error, context?: Record<string, unknown>
 /**
  * Captura uma mensagem manualmente
  */
-export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, unknown>): string | undefined {
+export function captureMessage(
+  message: string,
+  level: Sentry.SeverityLevel = 'info',
+  context?: Record<string, unknown>
+): string | undefined {
   if (!isEnabled) {
     console.log(`[${level}]`, message, context);
     return undefined;
@@ -171,7 +178,7 @@ export function addBreadcrumb(
  */
 export function startTransaction(name: string, op: string): Sentry.Span | undefined {
   if (!isEnabled) return undefined;
-  
+
   return Sentry.startInactiveSpan({ name, op });
 }
 
@@ -179,13 +186,16 @@ export function startTransaction(name: string, op: string): Sentry.Span | undefi
  * Middleware para adicionar contexto do usuário automaticamente
  */
 export function sentryUserContext(req: Request, _res: Response, next: NextFunction): void {
-  const extReq = req as Request & { userId?: number; user?: { id?: number; email?: string; role?: string } };
+  const extReq = req as Request & {
+    userId?: number;
+    user?: { id?: number; email?: string; role?: string };
+  };
   const userId = extReq.userId;
   const user = extReq.user;
 
   if (userId || user) {
     setUser({
-      id: userId || user?.id,
+      id: userId ?? user?.id ?? 0,
       email: user?.email,
       role: user?.role,
     });

@@ -5,15 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Search, 
-  Plus, 
-  Users, 
-  MessageCircle,
-  MoreHorizontal,
-  Pin,
-  Archive
-} from 'lucide-react';
+import { Search, Plus, Users, MessageCircle, Pin, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChatUser {
@@ -47,18 +39,16 @@ const mockConversations: Conversation[] = [
     id: 1,
     type: 'direct',
     name: 'Pastor João Silva',
-    participants: [
-      { id: 1, name: 'Pastor João Silva', role: 'admin', isOnline: true }
-    ],
+    participants: [{ id: 1, name: 'Pastor João Silva', role: 'admin', isOnline: true }],
     lastMessage: {
       content: 'Esperamos cerca de 80-90 pessoas. Ana confirmou que vai trazer 3 interessados...',
       timestamp: '2025-01-26T14:40:00',
       senderId: 1,
-      senderName: 'Pastor João Silva'
+      senderName: 'Pastor João Silva',
     },
     unreadCount: 0,
     isPinned: true,
-    isArchived: false
+    isArchived: false,
   },
   {
     id: 2,
@@ -67,34 +57,34 @@ const mockConversations: Conversation[] = [
     participants: [
       { id: 1, name: 'Pastor João Silva', role: 'admin', isOnline: true },
       { id: 2, name: 'Maria Santos', role: 'missionary', isOnline: true },
-      { id: 3, name: 'Carlos Oliveira', role: 'member', isOnline: false, lastSeen: '2h atrás' }
+      { id: 3, name: 'Carlos Oliveira', role: 'member', isOnline: false, lastSeen: '2h atrás' },
     ],
     lastMessage: {
       content: 'Maria Santos: Vou confirmar com todos os departamentos até amanhã',
       timestamp: '2025-01-26T16:15:00',
       senderId: 2,
-      senderName: 'Maria Santos'
+      senderName: 'Maria Santos',
     },
     unreadCount: 3,
     isPinned: true,
-    isArchived: false
+    isArchived: false,
   },
   {
     id: 3,
     type: 'direct',
     name: 'Ana Costa',
     participants: [
-      { id: 4, name: 'Ana Costa', role: 'interested', isOnline: false, lastSeen: '1h atrás' }
+      { id: 4, name: 'Ana Costa', role: 'interested', isOnline: false, lastSeen: '1h atrás' },
     ],
     lastMessage: {
       content: 'Obrigada pelos estudos! Estou ansiosa para o próximo encontro 🙏',
       timestamp: '2025-01-26T12:30:00',
       senderId: 4,
-      senderName: 'Ana Costa'
+      senderName: 'Ana Costa',
     },
     unreadCount: 1,
     isPinned: false,
-    isArchived: false
+    isArchived: false,
   },
   {
     id: 4,
@@ -104,35 +94,33 @@ const mockConversations: Conversation[] = [
       { id: 3, name: 'Carlos Oliveira', role: 'member', isOnline: false },
       { id: 5, name: 'Pedro Almeida', role: 'member', isOnline: true },
       { id: 6, name: 'Júlia Santos', role: 'member', isOnline: true },
-      { id: 7, name: 'Lucas Silva', role: 'member', isOnline: false }
+      { id: 7, name: 'Lucas Silva', role: 'member', isOnline: false },
     ],
     lastMessage: {
       content: 'Pedro Almeida: Pessoal, lembrem do encontro de amanhã às 19h!',
       timestamp: '2025-01-26T10:45:00',
       senderId: 5,
-      senderName: 'Pedro Almeida'
+      senderName: 'Pedro Almeida',
     },
     unreadCount: 0,
     isPinned: false,
-    isArchived: false
+    isArchived: false,
   },
   {
     id: 5,
     type: 'direct',
     name: 'Maria Santos',
-    participants: [
-      { id: 2, name: 'Maria Santos', role: 'missionary', isOnline: true }
-    ],
+    participants: [{ id: 2, name: 'Maria Santos', role: 'missionary', isOnline: true }],
     lastMessage: {
       content: 'Perfeito! Vou preparar os materiais para a Escola Sabatina',
       timestamp: '2025-01-25T20:15:00',
       senderId: 2,
-      senderName: 'Maria Santos'
+      senderName: 'Maria Santos',
     },
     unreadCount: 0,
     isPinned: false,
-    isArchived: false
-  }
+    isArchived: false,
+  },
 ];
 
 interface ChatSidebarProps {
@@ -144,17 +132,19 @@ interface ChatSidebarProps {
   onNewChat: () => void;
 }
 
-export const ChatSidebar = ({ 
+export const ChatSidebar = ({
   mode = 'conversations',
   currentUserId,
-  selectedConversationId, 
-  onConversationSelect, 
+  selectedConversationId,
+  onConversationSelect,
   onSelectUser,
-  onNewChat 
+  onNewChat,
 }: ChatSidebarProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
-  const [allUsers, setAllUsers] = useState<Array<{ id: number; name: string; email?: string; profilePhoto?: string }>>([]);
+  const [allUsers, setAllUsers] = useState<
+    Array<{ id: number; name: string; email?: string; profilePhoto?: string }>
+  >([]);
 
   useEffect(() => {
     if (mode === 'users') {
@@ -166,8 +156,9 @@ export const ChatSidebar = ({
   }, [mode]);
 
   const filteredConversations = mockConversations.filter(conversation => {
-    const matchesSearch = conversation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         conversation.lastMessage.content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      conversation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conversation.lastMessage.content.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesArchived = showArchived ? conversation.isArchived : !conversation.isArchived;
     return matchesSearch && matchesArchived;
   });
@@ -226,31 +217,26 @@ export const ChatSidebar = ({
             )}
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setShowArchived(!showArchived)}
               data-testid="button-toggle-archived"
             >
               <Archive className="h-4 w-4" />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onNewChat}
-              data-testid="button-new-chat"
-            >
+            <Button variant="ghost" size="sm" onClick={onNewChat} data-testid="button-new-chat">
               <Plus className="h-4 w-4" />
             </Button>
           </div>
         </div>
-        
+
         <div className="relative mt-3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder={mode === 'users' ? 'Buscar usuários...' : 'Buscar conversas...'}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
             data-testid="input-search-conversations"
           />
@@ -266,13 +252,19 @@ export const ChatSidebar = ({
                   <div
                     key={u.id}
                     className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => onSelectUser?.({ id: u.id, name: u.name, avatar: u.profilePhoto ? `/uploads/${u.profilePhoto}` : undefined })}
+                    onClick={() =>
+                      onSelectUser?.({
+                        id: u.id,
+                        name: u.name,
+                        avatar: u.profilePhoto ? `/uploads/${u.profilePhoto}` : undefined,
+                      })
+                    }
                   >
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={u.profilePhoto ? `/uploads/${u.profilePhoto}` : undefined} />
-                      <AvatarFallback>
-                        {u.name?.charAt(0) || 'U'}
-                      </AvatarFallback>
+                      <AvatarImage
+                        src={u.profilePhoto ? `/uploads/${u.profilePhoto}` : undefined}
+                      />
+                      <AvatarFallback>{u.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
@@ -285,73 +277,75 @@ export const ChatSidebar = ({
                 {filteredUsers.length === 0 && (
                   <div className="text-center py-8" data-testid="empty-users">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">Nenhum usuário encontrado</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      Nenhum usuário encontrado
+                    </h3>
                     <p className="text-muted-foreground">Tente ajustar os termos de busca.</p>
                   </div>
                 )}
               </div>
             ) : (
-            <>
-            {/* Pinned Conversations */}
-            {pinnedConversations.length > 0 && (
               <>
-                <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground">
-                  <Pin className="h-3 w-3" />
-                  Fixadas
-                </div>
-                {pinnedConversations.map((conversation) => (
-                  <ConversationItem
-                    key={conversation.id}
-                    conversation={conversation}
-                    isSelected={selectedConversationId === conversation.id}
-                    onClick={() => onConversationSelect(conversation)}
-                    formatTime={formatTime}
-                    getConversationAvatar={getConversationAvatar}
-                    getLastMessagePreview={getLastMessagePreview}
-                  />
-                ))}
-              </>
-            )}
-
-            {/* Regular Conversations */}
-            {unpinnedConversations.length > 0 && (
-              <>
+                {/* Pinned Conversations */}
                 {pinnedConversations.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground mt-4">
-                    <MessageCircle className="h-3 w-3" />
-                    Todas as conversas
+                  <>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground">
+                      <Pin className="h-3 w-3" />
+                      Fixadas
+                    </div>
+                    {pinnedConversations.map(conversation => (
+                      <ConversationItem
+                        key={conversation.id}
+                        conversation={conversation}
+                        isSelected={selectedConversationId === conversation.id}
+                        onClick={() => onConversationSelect(conversation)}
+                        formatTime={formatTime}
+                        getConversationAvatar={getConversationAvatar}
+                        getLastMessagePreview={getLastMessagePreview}
+                      />
+                    ))}
+                  </>
+                )}
+
+                {/* Regular Conversations */}
+                {unpinnedConversations.length > 0 && (
+                  <>
+                    {pinnedConversations.length > 0 && (
+                      <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground mt-4">
+                        <MessageCircle className="h-3 w-3" />
+                        Todas as conversas
+                      </div>
+                    )}
+                    {unpinnedConversations.map(conversation => (
+                      <ConversationItem
+                        key={conversation.id}
+                        conversation={conversation}
+                        isSelected={selectedConversationId === conversation.id}
+                        onClick={() => onConversationSelect(conversation)}
+                        formatTime={formatTime}
+                        getConversationAvatar={getConversationAvatar}
+                        getLastMessagePreview={getLastMessagePreview}
+                      />
+                    ))}
+                  </>
+                )}
+
+                {filteredConversations.length === 0 && (
+                  <div className="text-center py-8" data-testid="empty-conversations">
+                    <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      {showArchived ? 'Nenhuma conversa arquivada' : 'Nenhuma conversa encontrada'}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {searchTerm
+                        ? 'Tente ajustar os termos de busca.'
+                        : showArchived
+                          ? 'Você não tem conversas arquivadas.'
+                          : 'Inicie uma nova conversa para começar.'}
+                    </p>
                   </div>
                 )}
-                {unpinnedConversations.map((conversation) => (
-                  <ConversationItem
-                    key={conversation.id}
-                    conversation={conversation}
-                    isSelected={selectedConversationId === conversation.id}
-                    onClick={() => onConversationSelect(conversation)}
-                    formatTime={formatTime}
-                    getConversationAvatar={getConversationAvatar}
-                    getLastMessagePreview={getLastMessagePreview}
-                  />
-                ))}
               </>
-            )}
-
-            {filteredConversations.length === 0 && (
-              <div className="text-center py-8" data-testid="empty-conversations">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  {showArchived ? 'Nenhuma conversa arquivada' : 'Nenhuma conversa encontrada'}
-                </h3>
-                <p className="text-muted-foreground">
-                  {searchTerm 
-                    ? 'Tente ajustar os termos de busca.' 
-                    : showArchived 
-                      ? 'Você não tem conversas arquivadas.'
-                      : 'Inicie uma nova conversa para começar.'}
-                </p>
-              </div>
-            )}
-            </>
             )}
           </div>
         </ScrollArea>
@@ -375,13 +369,13 @@ const ConversationItem = ({
   onClick,
   formatTime,
   getConversationAvatar,
-  getLastMessagePreview
+  getLastMessagePreview,
 }: ConversationItemProps) => {
   return (
     <div
       className={cn(
-        "flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
-        isSelected && "bg-muted"
+        'flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors',
+        isSelected && 'bg-muted'
       )}
       onClick={onClick}
       data-testid={`conversation-${conversation.id}`}
@@ -389,9 +383,7 @@ const ConversationItem = ({
       <div className="relative">
         <Avatar className="h-12 w-12">
           <AvatarImage src={conversation.avatar} />
-          <AvatarFallback>
-            {getConversationAvatar(conversation)}
-          </AvatarFallback>
+          <AvatarFallback>{getConversationAvatar(conversation)}</AvatarFallback>
         </Avatar>
         {conversation.type === 'direct' && conversation.participants[0]?.isOnline && (
           <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
@@ -405,32 +397,33 @@ const ConversationItem = ({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <h3 className={cn(
-            "font-medium truncate",
-            conversation.unreadCount > 0 && "font-semibold"
-          )} data-testid={`conversation-name-${conversation.id}`}>
+          <h3
+            className={cn('font-medium truncate', conversation.unreadCount > 0 && 'font-semibold')}
+            data-testid={`conversation-name-${conversation.id}`}
+          >
             {conversation.name}
           </h3>
           <div className="flex items-center space-x-1">
-            {conversation.isPinned && (
-              <Pin className="h-3 w-3 text-muted-foreground" />
-            )}
+            {conversation.isPinned && <Pin className="h-3 w-3 text-muted-foreground" />}
             <span className="text-xs text-muted-foreground">
               {formatTime(conversation.lastMessage.timestamp)}
             </span>
           </div>
         </div>
-        
+
         <div className="flex items-center justify-between">
-          <p className={cn(
-            "text-sm text-muted-foreground truncate",
-            conversation.unreadCount > 0 && "font-medium text-foreground"
-          )} data-testid={`conversation-preview-${conversation.id}`}>
+          <p
+            className={cn(
+              'text-sm text-muted-foreground truncate',
+              conversation.unreadCount > 0 && 'font-medium text-foreground'
+            )}
+            data-testid={`conversation-preview-${conversation.id}`}
+          >
             {getLastMessagePreview(conversation)}
           </p>
           {conversation.unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
               data-testid={`conversation-unread-${conversation.id}`}
             >

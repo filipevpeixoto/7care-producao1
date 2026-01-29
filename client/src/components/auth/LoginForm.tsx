@@ -4,7 +4,7 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,7 +13,7 @@ export const LoginForm = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -29,31 +29,34 @@ export const LoginForm = () => {
     try {
       console.log('🔍 Debug LoginForm - Attempting login...');
       const success = await login(email, password);
-      
+
       if (success) {
         console.log('🔍 Debug LoginForm - Login successful, showing toast...');
         toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo!",
+          title: 'Login realizado com sucesso!',
+          description: 'Bem-vindo!',
         });
         // Verificar se precisa de primeiro acesso
         const user = JSON.parse(localStorage.getItem('7care_auth') || '{}');
         const tutorialCompleted = localStorage.getItem('tutorial_completed');
         const tutorialSkipped = localStorage.getItem('tutorial_skipped');
-        const needsFirstAccess = !tutorialCompleted && !tutorialSkipped && 
+        const needsFirstAccess =
+          !tutorialCompleted &&
+          !tutorialSkipped &&
           (user.usingDefaultPassword || user.firstAccess || user.status === 'pending');
-        
+
         // Verificar se é pastor e precisa de primeiro acesso específico
         const pastorFirstAccessCompleted = localStorage.getItem('pastor_first_access_completed');
         const isPastorUser = user.role === 'pastor';
-        const needsPastorFirstAccess = isPastorUser && !pastorFirstAccessCompleted && needsFirstAccess;
-        
+        const needsPastorFirstAccess =
+          isPastorUser && !pastorFirstAccessCompleted && needsFirstAccess;
+
         console.log('🔍 Debug LoginForm - Login completed, checking redirect...');
         console.log('  - user:', user);
         console.log('  - needsFirstAccess:', needsFirstAccess);
         console.log('  - isPastorUser:', isPastorUser);
         console.log('  - needsPastorFirstAccess:', needsPastorFirstAccess);
-        
+
         if (needsPastorFirstAccess) {
           console.log('🔍 Debug LoginForm - Redirecting to /pastor-first-access');
           navigate('/pastor-first-access');
@@ -66,16 +69,16 @@ export const LoginForm = () => {
         }
       } else {
         toast({
-          title: "Erro no login",
-          description: "Email ou senha incorretos",
-          variant: "destructive",
+          title: 'Erro no login',
+          description: 'Email ou senha incorretos',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: "Erro no login",
-        description: "Ocorreu um erro inesperado",
-        variant: "destructive",
+        title: 'Erro no login',
+        description: 'Ocorreu um erro inesperado',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -85,10 +88,7 @@ export const LoginForm = () => {
   return (
     <Card className="w-full max-w-md shadow-divine">
       <CardHeader className="text-center space-y-4">
-        <CardTitle className="text-2xl font-bold text-primary">
-          Entre na sua conta
-        </CardTitle>
-
+        <CardTitle className="text-2xl font-bold text-primary">Entre na sua conta</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,13 +101,13 @@ export const LoginForm = () => {
                 type="text"
                 placeholder="seu@email.com ou seu.usuario"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 className="pl-10"
                 required
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
             <div className="relative">
@@ -117,7 +117,7 @@ export const LoginForm = () => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="pl-10 pr-10"
                 required
               />
@@ -145,8 +145,6 @@ export const LoginForm = () => {
             {isLoading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
-
-
       </CardContent>
     </Card>
   );

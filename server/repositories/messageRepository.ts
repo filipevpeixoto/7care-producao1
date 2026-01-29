@@ -3,7 +3,7 @@
  * Métodos relacionados a mensagens e conversas
  */
 
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
@@ -105,9 +105,7 @@ export class MessageRepository {
    */
   async delete(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(schema.messages)
-        .where(eq(schema.messages.id, id));
+      await db.delete(schema.messages).where(eq(schema.messages.id, id));
       return true;
     } catch (error) {
       logger.error('Erro ao deletar mensagem:', error);
@@ -124,9 +122,10 @@ export class MessageRepository {
       content: String(record.content || ''),
       senderId: record.senderId ? Number(record.senderId) : undefined,
       conversationId: record.conversationId ? Number(record.conversationId) : undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
     };
   }
 }
@@ -164,7 +163,7 @@ export class ConversationRepository {
         )
         .where(eq(schema.conversationParticipants.userId, userId))
         .orderBy(desc(schema.conversations.updatedAt));
-      
+
       return result.map(r => this.mapRecord(r.conversation));
     } catch (error) {
       logger.error('Erro ao buscar conversas do usuário:', error);
@@ -215,7 +214,7 @@ export class ConversationRepository {
   async update(id: number, updates: Partial<Conversation>): Promise<Conversation | null> {
     try {
       // Remover createdAt do updates para evitar conflito de tipos
-      const { createdAt, ...safeUpdates } = updates;
+      const { createdAt: _createdAt, ...safeUpdates } = updates;
       const [conversation] = await db
         .update(schema.conversations)
         .set({
@@ -237,19 +236,15 @@ export class ConversationRepository {
   async delete(id: number): Promise<boolean> {
     try {
       // Primeiro deleta as mensagens
-      await db
-        .delete(schema.messages)
-        .where(eq(schema.messages.conversationId, id));
-      
+      await db.delete(schema.messages).where(eq(schema.messages.conversationId, id));
+
       // Depois deleta os participantes
       await db
         .delete(schema.conversationParticipants)
         .where(eq(schema.conversationParticipants.conversationId, id));
-      
+
       // Por fim, deleta a conversa
-      await db
-        .delete(schema.conversations)
-        .where(eq(schema.conversations.id, id));
+      await db.delete(schema.conversations).where(eq(schema.conversations.id, id));
       return true;
     } catch (error) {
       logger.error('Erro ao deletar conversa:', error);
@@ -264,14 +259,14 @@ export class ConversationRepository {
     try {
       // Busca conversa existente entre os dois usuários
       const existingConversations = await this.getByUserId(userAId);
-      
+
       for (const conv of existingConversations) {
         if (conv.type === 'private') {
           const participants = await db
             .select()
             .from(schema.conversationParticipants)
             .where(eq(schema.conversationParticipants.conversationId, conv.id));
-          
+
           const participantIds = participants.map(p => Number(p.userId));
           if (
             participantIds.length === 2 &&
@@ -311,12 +306,14 @@ export class ConversationRepository {
       title: record.title ? String(record.title) : undefined,
       type: String(record.type || 'private'),
       createdBy: record.createdBy ? Number(record.createdBy) : undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : String(record.updatedAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : String(record.updatedAt || ''),
     };
   }
 }

@@ -8,23 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Database, 
-  Upload, 
-  Download, 
-  FileSpreadsheet, 
+import {
+  Database,
+  Upload,
+  Download,
+  FileSpreadsheet,
   Cloud,
   Loader2,
   CheckCircle,
-  AlertTriangle,
-  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLastImportDate } from '@/hooks/useLastImportDate';
 import { ImportExcelModal } from '@/components/calendar/ImportExcelModal';
 import { GoogleDriveImportModal } from '@/components/calendar/GoogleDriveImportModal';
-import * as XLSX from 'xlsx';
+import { exportToExcel } from '@/lib/excel';
 
 interface DataManagementProps {
   onImportComplete?: () => void;
@@ -33,30 +30,27 @@ interface DataManagementProps {
 export function DataManagementSettings({ onImportComplete }: DataManagementProps) {
   const { toast } = useToast();
   const { lastImportDate, updateLastImportDate } = useLastImportDate();
-  
+
   const [isExporting, setIsExporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showDriveModal, setShowDriveModal] = useState(false);
-  const [importProgress, setImportProgress] = useState(0);
+  const [importProgress, _setImportProgress] = useState(0);
 
   const exportData = async (format: 'json' | 'xlsx') => {
     setIsExporting(true);
     try {
       const response = await fetch('/api/users');
       if (!response.ok) throw new Error('Erro ao buscar dados');
-      
+
       const users = await response.json();
 
       if (format === 'json') {
-        const blob = new Blob([JSON.stringify(users, null, 2)], { 
-          type: 'application/json' 
+        const blob = new Blob([JSON.stringify(users, null, 2)], {
+          type: 'application/json',
         });
         downloadBlob(blob, `7care-export-${getDateString()}.json`);
       } else {
-        const worksheet = XLSX.utils.json_to_sheet(users);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Membros');
-        XLSX.writeFile(workbook, `7care-export-${getDateString()}.xlsx`);
+        await exportToExcel(users, `7care-export-${getDateString()}.xlsx`, 'Membros');
       }
 
       toast({
@@ -107,9 +101,7 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
             <Database className="h-5 w-5" />
             Gerenciamento de Dados
           </CardTitle>
-          <CardDescription>
-            Importe e exporte dados do sistema
-          </CardDescription>
+          <CardDescription>Importe e exporte dados do sistema</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Última importação */}
@@ -129,16 +121,16 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
               Importar Dados
             </h4>
             <div className="grid gap-2 sm:grid-cols-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setShowImportModal(true)}
                 className="justify-start"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Importar Excel
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setShowDriveModal(true)}
                 className="justify-start"
               >
@@ -155,8 +147,8 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
               Exportar Dados
             </h4>
             <div className="grid gap-2 sm:grid-cols-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => exportData('xlsx')}
                 disabled={isExporting}
                 className="justify-start"
@@ -168,8 +160,8 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
                 )}
                 Exportar Excel
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => exportData('json')}
                 disabled={isExporting}
                 className="justify-start"
@@ -198,13 +190,13 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
       </Card>
 
       {/* Modais */}
-      <ImportExcelModal 
+      <ImportExcelModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImportComplete={handleImportSuccess}
       />
-      
-      <GoogleDriveImportModal 
+
+      <GoogleDriveImportModal
         isOpen={showDriveModal}
         onClose={() => setShowDriveModal(false)}
         onImportComplete={handleImportSuccess}

@@ -3,10 +3,11 @@
  * Métodos relacionados a igrejas extraídos do NeonAdapter
  */
 
-import { eq, desc, sql, and, or, like, count } from 'drizzle-orm';
+import { eq, sql, count } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import * as schema from '../schema';
 import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
+import { logger } from '../utils/logger';
 
 export class ChurchRepository {
   /**
@@ -28,14 +29,15 @@ export class ChurchRepository {
    * Resolve código único de igreja
    */
   private async resolveChurchCode(name: string, providedCode?: string | null): Promise<string> {
-    const initialCode = (providedCode && providedCode.trim() !== '' 
-      ? providedCode 
-      : this.generateChurchCode(name)).slice(0, 10);
+    const initialCode = (
+      providedCode && providedCode.trim() !== '' ? providedCode : this.generateChurchCode(name)
+    ).slice(0, 10);
     let finalCode = initialCode;
     let counter = 1;
 
     while (true) {
-      const existing = await db.select()
+      const existing = await db
+        .select()
         .from(schema.churches)
         .where(eq(schema.churches.code, finalCode))
         .limit(1);
@@ -57,7 +59,7 @@ export class ChurchRepository {
       const churches = await db.select().from(schema.churches).orderBy(schema.churches.name);
       return churches.map(this.mapChurchRecord);
     } catch (error) {
-      console.error('Erro ao buscar igrejas:', error);
+      logger.error('Erro ao buscar igrejas', error);
       return [];
     }
   }
@@ -67,10 +69,14 @@ export class ChurchRepository {
    */
   async getChurchById(id: number): Promise<Church | null> {
     try {
-      const [church] = await db.select().from(schema.churches).where(eq(schema.churches.id, id)).limit(1);
+      const [church] = await db
+        .select()
+        .from(schema.churches)
+        .where(eq(schema.churches.id, id))
+        .limit(1);
       return church ? this.mapChurchRecord(church) : null;
     } catch (error) {
-      console.error('Erro ao buscar igreja por ID:', error);
+      logger.error('Erro ao buscar igreja por ID', error);
       return null;
     }
   }
@@ -80,10 +86,14 @@ export class ChurchRepository {
    */
   async getChurchByCode(code: string): Promise<Church | null> {
     try {
-      const [church] = await db.select().from(schema.churches).where(eq(schema.churches.code, code)).limit(1);
+      const [church] = await db
+        .select()
+        .from(schema.churches)
+        .where(eq(schema.churches.code, code))
+        .limit(1);
       return church ? this.mapChurchRecord(church) : null;
     } catch (error) {
-      console.error('Erro ao buscar igreja por código:', error);
+      logger.error('Erro ao buscar igreja por código', error);
       return null;
     }
   }
@@ -100,7 +110,7 @@ export class ChurchRepository {
         .limit(1);
       return church ? this.mapChurchRecord(church) : null;
     } catch (error) {
-      console.error('Erro ao buscar igreja por nome:', error);
+      logger.error('Erro ao buscar igreja por nome', error);
       return null;
     }
   }
@@ -111,15 +121,18 @@ export class ChurchRepository {
   async createChurch(churchData: InsertChurch): Promise<Church> {
     try {
       const code = await this.resolveChurchCode(churchData.name, churchData.code);
-      const [church] = await db.insert(schema.churches).values({
-        ...churchData,
-        code,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning();
+      const [church] = await db
+        .insert(schema.churches)
+        .values({
+          ...churchData,
+          code,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
       return this.mapChurchRecord(church);
     } catch (error) {
-      console.error('Erro ao criar igreja:', error);
+      logger.error('Erro ao criar igreja', error);
       throw error;
     }
   }
@@ -130,18 +143,18 @@ export class ChurchRepository {
   async updateChurch(id: number, churchData: UpdateChurch): Promise<Church | null> {
     try {
       // Extrair apenas campos válidos para update
-      const { createdAt, ...updateData } = churchData as Record<string, unknown>;
+      const { createdAt: _createdAt, ...updateData } = churchData as Record<string, unknown>;
       const [church] = await db
         .update(schema.churches)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         } as Record<string, unknown>)
         .where(eq(schema.churches.id, id))
         .returning();
       return church ? this.mapChurchRecord(church) : null;
     } catch (error) {
-      console.error('Erro ao atualizar igreja:', error);
+      logger.error('Erro ao atualizar igreja', error);
       return null;
     }
   }
@@ -154,7 +167,7 @@ export class ChurchRepository {
       const result = await db.delete(schema.churches).where(eq(schema.churches.id, id));
       return (result.rowCount ?? 0) > 0;
     } catch (error) {
-      console.error('Erro ao deletar igreja:', error);
+      logger.error('Erro ao deletar igreja', error);
       return false;
     }
   }
@@ -171,7 +184,7 @@ export class ChurchRepository {
         .orderBy(schema.churches.name);
       return churches.map(this.mapChurchRecord);
     } catch (error) {
-      console.error('Erro ao buscar igrejas por distrito:', error);
+      logger.error('Erro ao buscar igrejas por distrito', error);
       return [];
     }
   }
@@ -184,7 +197,7 @@ export class ChurchRepository {
       const [result] = await db.select({ count: count() }).from(schema.churches);
       return result?.count || 0;
     } catch (error) {
-      console.error('Erro ao contar igrejas:', error);
+      logger.error('Erro ao contar igrejas', error);
       return 0;
     }
   }
@@ -195,7 +208,7 @@ export class ChurchRepository {
   async getOrCreateChurch(name: string, districtId?: number): Promise<Church> {
     const existing = await this.getChurchByName(name);
     if (existing) return existing;
-    
+
     return this.createChurch({ name, districtId: districtId ?? null });
   }
 
@@ -213,12 +226,14 @@ export class ChurchRepository {
       pastor: record.pastor as string | null | undefined,
       districtId: record.districtId as number | null | undefined,
       isDefault: record.isDefault as boolean | undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : record.createdAt as string | undefined,
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : record.updatedAt as string | undefined,
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : (record.createdAt as string | undefined),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : (record.updatedAt as string | undefined),
     };
   }
 }

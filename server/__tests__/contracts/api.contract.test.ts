@@ -3,7 +3,7 @@
  * Valida que a API mantém seu contrato com os consumidores
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 
 // Esquemas de contrato para cada endpoint
 const contracts = {
@@ -95,7 +95,10 @@ const contracts = {
         name: { type: 'string', minLength: 2 },
         email: { type: 'string', format: 'email' },
         password: { type: 'string', minLength: 6 },
-        role: { type: 'string', enum: ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'] },
+        role: {
+          type: 'string',
+          enum: ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'],
+        },
         church: { type: 'string', nullable: true },
         districtId: { type: 'number', nullable: true },
       },
@@ -216,7 +219,10 @@ const definitions = {
       id: { type: 'number' },
       name: { type: 'string' },
       email: { type: 'string', format: 'email' },
-      role: { type: 'string', enum: ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'] },
+      role: {
+        type: 'string',
+        enum: ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'],
+      },
       church: { type: 'string', nullable: true },
       churchId: { type: 'number', nullable: true },
       districtId: { type: 'number', nullable: true },
@@ -380,7 +386,12 @@ function validateSchema(data: unknown, schema: Schema, path = ''): string[] {
     if (schema.properties) {
       for (const [key, propSchema] of Object.entries(schema.properties)) {
         if (key in obj) {
-          const propErrors = validateSchema(obj[key], propSchema as Schema, `${path}.${key}`);
+          const value = obj[key];
+          // Se o valor é null e o campo é nullable, não é erro
+          if (value === null && propSchema.nullable) {
+            continue;
+          }
+          const propErrors = validateSchema(value, propSchema as Schema, `${path}.${key}`);
           errors.push(...propErrors);
         }
       }

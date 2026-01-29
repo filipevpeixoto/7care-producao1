@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { PointsCalculator, UserData } from '@/lib/pointsCalculator';
+import { UserData } from '@/lib/pointsCalculator';
 
 interface UserPointsData {
   points: number;
@@ -41,7 +41,10 @@ export const useUserPoints = () => {
   }, []);
 
   const fetchUserPoints = async () => {
-    if (!user?.id) {
+    // Validação robusta do user.id
+    const userId = Number(user?.id);
+    if (!user?.id || isNaN(userId) || userId <= 0) {
+      console.log('🔍 useUserPoints: No valid user ID, skipping fetch');
       setIsLoading(false);
       return;
     }
@@ -51,13 +54,19 @@ export const useUserPoints = () => {
       setError(null);
 
       const response = await fetch(`/api/users/${user.id}/points-details`);
-      
+
       if (!response.ok) {
+        // 404 significa usuário não encontrado - não é um erro crítico
+        if (response.status === 404) {
+          console.log(`🔍 useUserPoints: Usuário ${user.id} não encontrado no banco de dados`);
+          setData(null);
+          return;
+        }
         throw new Error(`Erro ao carregar dados de pontuação: ${response.status}`);
       }
 
       const result = await response.json();
-      
+
       // Verificar se userData existe e extrair dados de extraData
       if (!result.userData) {
         result.userData = {
@@ -76,7 +85,7 @@ export const useUserPoints = () => {
           batizouAlguem: false,
           discipuladoPosBatismo: 0,
           cpfValido: false,
-          camposVaziosACMS: false
+          camposVaziosACMS: false,
         };
       } else if (result.userData.extraData) {
         // Extrair dados de extraData para o nível raiz para compatibilidade com PointsBreakdown
@@ -88,41 +97,48 @@ export const useUserPoints = () => {
           dizimista: extraData.dizimistaType || extraData.dizimista || 'Não dizimista',
           ofertante: extraData.ofertanteType || extraData.ofertante || 'Não ofertante',
           tempoBatismo: extraData.tempoBatismoAnos || extraData.tempoBatismo || 0,
-          cargos: extraData.departamentosCargos ? extraData.departamentosCargos.split(';').filter((c: string) => c.trim()) : [],
+          cargos: extraData.departamentosCargos
+            ? extraData.departamentosCargos.split(';').filter((c: string) => c.trim())
+            : [],
           nomeUnidade: extraData.nomeUnidade || null,
-          temLicao: extraData.temLicao === true || extraData.temLicao === 'true' || extraData.temLicao === 'Sim',
+          temLicao:
+            extraData.temLicao === true ||
+            extraData.temLicao === 'true' ||
+            extraData.temLicao === 'Sim',
           comunhao: extraData.comunhao || 0,
           missao: extraData.missao || 0,
           estudoBiblico: extraData.estudoBiblico || 0,
           totalPresenca: extraData.totalPresenca || 0,
           batizouAlguem: extraData.batizouAlguem === 'Sim' || extraData.quantidadeBatizados > 0,
           discipuladoPosBatismo: extraData.discipuladoPosBatismo || 0,
-          cpfValido: extraData.cpfValido === 'Sim' || (extraData.cpf && extraData.cpf.length === 11),
-          camposVaziosACMS: extraData.camposVaziosACMS === 'true' || extraData.camposVaziosACMS === true
+          cpfValido:
+            extraData.cpfValido === 'Sim' || (extraData.cpf && extraData.cpf.length === 11),
+          camposVaziosACMS:
+            extraData.camposVaziosACMS === 'true' || extraData.camposVaziosACMS === true,
         };
       }
-      
+
       // CORREÇÃO: Usar calculatedPoints ou currentPoints da API
       const apiPoints = result.calculatedPoints || result.currentPoints || 0;
       result.points = apiPoints;
-      
+
       // Adicionar os pontos reais do usuário aos dados
       result.userData.actualPoints = apiPoints;
-      
+
       // Se temos configuração do banco, usar ela para cálculo correto
       if (pointsConfig && typeof pointsConfig === 'object') {
         // USAR DIRETAMENTE OS PONTOS E BREAKDOWN DA API
         const totalPoints = apiPoints;
-        
+
         // Usar o breakdown da API se disponível, senão calcular
         const apiBreakdown = result.breakdown;
-        
+
         setData({
           ...result,
           breakdown: apiBreakdown || {},
-          total: totalPoints
+          total: totalPoints,
         });
-        
+
         // Definir actualPoints como o valor da API
         result.userData.actualPoints = totalPoints;
       } else {
@@ -130,9 +146,9 @@ export const useUserPoints = () => {
         setData({
           ...result,
           breakdown: result.breakdown || {},
-          total: apiPoints
+          total: apiPoints,
         });
-        
+
         // Definir actualPoints como o valor da API
         result.userData.actualPoints = apiPoints;
       }
@@ -163,14 +179,15 @@ export const useUserPoints = () => {
     };
   }, [user?.id]);
 
-  // Refetch automático a cada 60 segundos
+  // Refetch automático a cada 5 minutos (reduzido de 60 segundos para evitar sobrecarga)
   useEffect(() => {
-    if (!user?.id) return;
-    
+    const userId = Number(user?.id);
+    if (!user?.id || isNaN(userId) || userId <= 0) return;
+
     const interval = setInterval(() => {
-      console.log('🔄 useUserPoints: Auto-refetch interval');
+      console.log('🔄 useUserPoints: Auto-refetch interval (5 min)');
       fetchUserPoints();
-    }, 60000); // 1 minuto
+    }, 300000); // 5 minutos
 
     return () => clearInterval(interval);
   }, [user?.id]);
@@ -183,6 +200,6 @@ export const useUserPoints = () => {
     data,
     isLoading,
     error,
-    refetch
+    refetch,
   };
-}; 
+};

@@ -1,90 +1,81 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import * as React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface CarouselProps {
   images: Array<{
-    id: string
-    url: string
-    title: string
-    description?: string
-  }>
-  autoPlay?: boolean
-  interval?: number
-  className?: string
+    id: string;
+    url: string;
+    title: string;
+    description?: string;
+  }>;
+  autoPlay?: boolean;
+  interval?: number;
+  className?: string;
 }
 
-export function Carousel({ 
-  images, 
-  autoPlay = true, 
-  interval = 5000, 
-  className 
-}: CarouselProps) {
-  const [currentIndex, setCurrentIndex] = React.useState(0)
-  const [isAutoPlaying, setIsAutoPlaying] = React.useState(autoPlay)
+export function Carousel({ images, autoPlay = true, interval = 5000, className }: CarouselProps) {
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = React.useState(autoPlay);
 
   React.useEffect(() => {
-    if (!isAutoPlaying || images.length <= 1) return
+    if (!isAutoPlaying || images.length <= 1) return;
 
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % images.length)
-    }, interval)
+      setCurrentIndex(prev => (prev + 1) % images.length);
+    }, interval);
 
-    return () => clearInterval(timer)
-  }, [isAutoPlaying, interval, images.length])
+    return () => clearInterval(timer);
+  }, [isAutoPlaying, interval, images.length]);
 
   const goToSlide = (index: number) => {
-    setCurrentIndex(index)
-  }
+    setCurrentIndex(index);
+  };
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
-  }
+    setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+  };
 
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length)
-  }
+    setCurrentIndex(prev => (prev + 1) % images.length);
+  };
 
   if (!images || images.length === 0) {
     return (
-      <div className={cn(
-        "relative w-full h-48 bg-gradient-to-r from-blue-100 to-amber-100 rounded-lg flex items-center justify-center",
-        className
-      )}>
+      <div
+        className={cn(
+          'relative w-full h-48 bg-gradient-to-r from-blue-100 to-amber-100 rounded-lg flex items-center justify-center',
+          className
+        )}
+      >
         <div className="text-center text-gray-600">
           <p className="text-lg font-medium">Nenhuma atividade programada</p>
           <p className="text-sm">Adicione atividades nas configurações</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className={cn("relative w-full h-48 overflow-hidden rounded-lg", className)}>
+    <div className={cn('relative w-full h-48 overflow-hidden rounded-lg', className)}>
       {/* Slides */}
-      <div 
+      <div
         className="flex transition-transform duration-500 ease-in-out h-full"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
-        {images.map((image, index) => (
+        {images.map((image, _index) => (
           <div
             key={image.id}
             className="relative w-full h-full flex-shrink-0"
             onMouseEnter={() => setIsAutoPlaying(false)}
             onMouseLeave={() => setIsAutoPlaying(true)}
           >
-            <img
-              src={image.url}
-              alt={image.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={image.url} alt={image.title} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
               <div className="absolute bottom-4 left-4 right-4 text-white">
                 <h3 className="text-lg font-semibold mb-1">{image.title}</h3>
-                {image.description && (
-                  <p className="text-sm opacity-90">{image.description}</p>
-                )}
+                {image.description && <p className="text-sm opacity-90">{image.description}</p>}
               </div>
             </div>
           </div>
@@ -120,10 +111,8 @@ export function Carousel({
             <button
               key={index}
               className={cn(
-                "w-2 h-2 rounded-full transition-all duration-300",
-                index === currentIndex 
-                  ? "bg-white scale-125" 
-                  : "bg-white/50 hover:bg-white/75"
+                'w-2 h-2 rounded-full transition-all duration-300',
+                index === currentIndex ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/75'
               )}
               onClick={() => goToSlide(index)}
             />
@@ -131,5 +120,5 @@ export function Carousel({
         </div>
       )}
     </div>
-  )
+  );
 }

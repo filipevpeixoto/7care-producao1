@@ -53,7 +53,7 @@ describe('useAuth', () => {
   describe('Estado inicial', () => {
     it('deve iniciar com isLoading=true e user=null', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.isLoading).toBe(true);
       expect(result.current.user).toBe(null);
       expect(result.current.isAuthenticated).toBe(false);
@@ -67,28 +67,28 @@ describe('useAuth', () => {
         role: 'member',
         church: 'Test Church',
       };
-      
+
       localStorageMock.setItem('7care_auth', JSON.stringify(storedUser));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
-      
+
       expect(result.current.user).toEqual(storedUser);
       expect(result.current.isAuthenticated).toBe(true);
     });
 
     it('deve limpar dados inválidos do localStorage', async () => {
       localStorageMock.setItem('7care_auth', 'invalid-json');
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
-      
+
       expect(result.current.user).toBe(null);
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('7care_auth');
     });
@@ -102,7 +102,7 @@ describe('useAuth', () => {
         email: 'test@test.com',
         role: 'member',
       };
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -111,29 +111,23 @@ describe('useAuth', () => {
           token: 'test-token-123',
         }),
       });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
-      
+
       let loginResult: boolean | undefined;
       await act(async () => {
         loginResult = await result.current.login('test@test.com', 'password123');
       });
-      
+
       expect(loginResult).toBe(true);
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        '7care_auth',
-        JSON.stringify(mockUser)
-      );
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        '7care_token',
-        'test-token-123'
-      );
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('7care_auth', JSON.stringify(mockUser));
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('7care_token', 'test-token-123');
     });
 
     it('deve falhar login com credenciais inválidas', async () => {
@@ -144,18 +138,18 @@ describe('useAuth', () => {
           error: 'Credenciais inválidas',
         }),
       });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
-      
+
       let loginResult: boolean | undefined;
       await act(async () => {
         loginResult = await result.current.login('wrong@test.com', 'wrongpass');
       });
-      
+
       expect(loginResult).toBe(false);
       expect(result.current.user).toBe(null);
       expect(result.current.isAuthenticated).toBe(false);
@@ -163,18 +157,18 @@ describe('useAuth', () => {
 
     it('deve tratar erro de rede no login', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
-      
+
       let loginResult: boolean | undefined;
       await act(async () => {
         loginResult = await result.current.login('test@test.com', 'password');
       });
-      
+
       expect(loginResult).toBe(false);
     });
   });
@@ -187,20 +181,20 @@ describe('useAuth', () => {
         email: 'test@test.com',
         role: 'member',
       };
-      
+
       localStorageMock.setItem('7care_auth', JSON.stringify(storedUser));
       localStorageMock.setItem('7care_token', 'test-token');
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.isAuthenticated).toBe(true);
       });
-      
+
       await act(async () => {
         await result.current.logout();
       });
-      
+
       expect(result.current.user).toBe(null);
       expect(result.current.isAuthenticated).toBe(false);
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('7care_auth');
@@ -208,86 +202,6 @@ describe('useAuth', () => {
     });
   });
 
-  describe('hasRole', () => {
-    it('deve verificar role corretamente', async () => {
-      const storedUser = {
-        id: 1,
-        name: 'Pastor User',
-        email: 'pastor@test.com',
-        role: 'pastor',
-      };
-      
-      localStorageMock.setItem('7care_auth', JSON.stringify(storedUser));
-      
-      const { result } = renderHook(() => useAuth());
-      
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-      
-      expect(result.current.hasRole('pastor')).toBe(true);
-      expect(result.current.hasRole('member')).toBe(false);
-      expect(result.current.hasRole('superadmin')).toBe(false);
-    });
-
-    it('deve aceitar array de roles', async () => {
-      const storedUser = {
-        id: 1,
-        name: 'Pastor User',
-        email: 'pastor@test.com',
-        role: 'pastor',
-      };
-      
-      localStorageMock.setItem('7care_auth', JSON.stringify(storedUser));
-      
-      const { result } = renderHook(() => useAuth());
-      
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-      
-      expect(result.current.hasRole(['pastor', 'superadmin'])).toBe(true);
-      expect(result.current.hasRole(['member', 'interested'])).toBe(false);
-    });
-  });
-
-  describe('canImpersonate', () => {
-    it('deve retornar true para superadmin', async () => {
-      const storedUser = {
-        id: 1,
-        name: 'Super Admin',
-        email: 'admin@test.com',
-        role: 'superadmin',
-      };
-      
-      localStorageMock.setItem('7care_auth', JSON.stringify(storedUser));
-      
-      const { result } = renderHook(() => useAuth());
-      
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-      
-      expect(result.current.canImpersonate).toBe(true);
-    });
-
-    it('deve retornar false para usuário comum', async () => {
-      const storedUser = {
-        id: 1,
-        name: 'Member User',
-        email: 'member@test.com',
-        role: 'member',
-      };
-      
-      localStorageMock.setItem('7care_auth', JSON.stringify(storedUser));
-      
-      const { result } = renderHook(() => useAuth());
-      
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-      
-      expect(result.current.canImpersonate).toBe(false);
-    });
-  });
+  // Nota: hasRole e canImpersonate foram removidos do hook useAuth
+  // Essas funcionalidades agora são verificadas diretamente no user.role
 });

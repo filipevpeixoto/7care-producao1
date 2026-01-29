@@ -3,23 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { 
-  Heart, 
-  MessageCircle, 
-  Lock, 
-  Users, 
-  Eye, 
-  EyeOff, 
-  Calendar,
-  Filter,
-  Search,
-  Trash2
-} from 'lucide-react';
+import { Heart, MessageCircle, Lock, Calendar, Search, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface PrayerRequest {
@@ -44,7 +32,7 @@ const spiritualEmojis = {
   2: { emoji: '🔍', label: 'Buscando', color: 'bg-orange-100 text-orange-800' },
   3: { emoji: '🌱', label: 'Enraizando', color: 'bg-yellow-100 text-yellow-800' },
   4: { emoji: '🍃', label: 'Frutificando', color: 'bg-blue-100 text-blue-800' },
-  5: { emoji: '✨', label: 'Intimidade', color: 'bg-green-100 text-green-800' }
+  5: { emoji: '✨', label: 'Intimidade', color: 'bg-green-100 text-green-800' },
 };
 
 const Prayers = () => {
@@ -55,17 +43,13 @@ const Prayers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'answered'>('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [intercessors, setIntercessors] = useState<{[key: number]: any[]}>({});
-  const [loadingIntercessors, setLoadingIntercessors] = useState<{[key: number]: boolean}>({});
-
-
+  const [intercessors, setIntercessors] = useState<{ [key: number]: any[] }>({});
+  const [loadingIntercessors, setLoadingIntercessors] = useState<{ [key: number]: boolean }>({});
 
   // Helper function para gerar URL da foto
   const getPhotoUrl = (profilePhoto?: string) => {
     if (!profilePhoto) return undefined;
-    return String(profilePhoto).startsWith('http')
-      ? profilePhoto
-      : `/uploads/${profilePhoto}`;
+    return String(profilePhoto).startsWith('http') ? profilePhoto : `/uploads/${profilePhoto}`;
   };
 
   useEffect(() => {
@@ -82,18 +66,20 @@ const Prayers = () => {
     try {
       if (!user?.id) {
         toast({
-          title: "Usuário não identificado",
-          description: "Por favor, faça login novamente.",
-          variant: "destructive"
+          title: 'Usuário não identificado',
+          description: 'Por favor, faça login novamente.',
+          variant: 'destructive',
         });
         return;
       }
 
-      const url = `/api/prayers?userId=${user.id}&userRole=${user.role}&userChurch=${encodeURIComponent(user.church || '')}`;
+      const url = `/api/prayers?userId=${user.id}&userRole=${user.role}&userChurch=${encodeURIComponent(String(user.church || ''))}`;
       const response = await fetch(url);
-      
+
       if (response.ok) {
-        const data = await response.json();
+        const rawData = await response.json();
+        // A API pode retornar { data: [] } ou array diretamente
+        const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
         // Mapear dados da API para o formato esperado pelo frontend
         const mappedData = data.map((prayer: any) => ({
           ...prayer,
@@ -105,10 +91,10 @@ const Prayers = () => {
           isPrivate: prayer.is_private || false,
           allowChurchMembers: prayer.allow_church_members || true,
           createdAt: prayer.created_at,
-          answeredAt: prayer.answered_at
+          answeredAt: prayer.answered_at,
         }));
         setPrayers(mappedData);
-        
+
         // Carregar intercessores automaticamente para todas as orações
         mappedData.forEach((prayer: PrayerRequest) => {
           if (!prayer.isAnswered) {
@@ -119,9 +105,9 @@ const Prayers = () => {
     } catch (error) {
       console.error('Erro ao carregar orações:', error);
       toast({
-        title: "Erro ao carregar orações",
-        description: "Não foi possível carregar os pedidos de oração.",
-        variant: "destructive"
+        title: 'Erro ao carregar orações',
+        description: 'Não foi possível carregar os pedidos de oração.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -140,9 +126,10 @@ const Prayers = () => {
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(prayer => 
-        prayer.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        prayer.prayerRequest?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        prayer =>
+          prayer.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          prayer.prayerRequest?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -153,9 +140,9 @@ const Prayers = () => {
     try {
       if (!user?.id) {
         toast({
-          title: "Usuário não identificado",
-          description: "Por favor, faça login novamente.",
-          variant: "destructive"
+          title: 'Usuário não identificado',
+          description: 'Por favor, faça login novamente.',
+          variant: 'destructive',
         });
         return;
       }
@@ -163,26 +150,33 @@ const Prayers = () => {
       const response = await fetch(`/api/prayers/${prayerId}/answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answeredBy: parseInt(user.id) })
+        body: JSON.stringify({ answeredBy: parseInt(user.id) }),
       });
 
       if (response.ok) {
-        setPrayers(prev => prev.map(prayer => 
-          prayer.id === prayerId 
-            ? { ...prayer, isAnswered: true, answeredAt: new Date().toISOString(), answeredBy: user?.name }
-            : prayer
-        ));
-        
+        setPrayers(prev =>
+          prev.map(prayer =>
+            prayer.id === prayerId
+              ? {
+                  ...prayer,
+                  isAnswered: true,
+                  answeredAt: new Date().toISOString(),
+                  answeredBy: user?.name,
+                }
+              : prayer
+          )
+        );
+
         toast({
-          title: "Oração marcada como respondida",
-          description: "O pedido foi marcado como atendido.",
+          title: 'Oração marcada como respondida',
+          description: 'O pedido foi marcado como atendido.',
         });
       }
     } catch (error) {
       toast({
-        title: "Erro ao marcar oração",
-        description: "Não foi possível marcar a oração como respondida.",
-        variant: "destructive"
+        title: 'Erro ao marcar oração',
+        description: 'Não foi possível marcar a oração como respondida.',
+        variant: 'destructive',
       });
     }
   };
@@ -191,9 +185,9 @@ const Prayers = () => {
     try {
       if (!user?.id) {
         toast({
-          title: "Usuário não identificado",
-          description: "Por favor, faça login novamente.",
-          variant: "destructive"
+          title: 'Usuário não identificado',
+          description: 'Por favor, faça login novamente.',
+          variant: 'destructive',
         });
         return;
       }
@@ -202,42 +196,45 @@ const Prayers = () => {
       const prayerExists = prayers.find(prayer => prayer.id === prayerId);
       if (!prayerExists) {
         toast({
-          title: "Oração não encontrada",
-          description: "Esta oração já foi excluída ou não existe mais.",
-          variant: "destructive"
+          title: 'Oração não encontrada',
+          description: 'Esta oração já foi excluída ou não existe mais.',
+          variant: 'destructive',
         });
         return;
       }
 
       console.log(`🗑️ Frontend: Tentando excluir oração ${prayerId}`);
 
-      const response = await fetch(`/api/prayers/${prayerId}?userId=${user.id}&userRole=${user.role}`, {
-        method: 'DELETE'
-      });
+      const response = await fetch(
+        `/api/prayers/${prayerId}?userId=${user.id}&userRole=${user.role}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       if (response.ok) {
         setPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
-        
+
         toast({
-          title: "Oração excluída",
-          description: "O pedido de oração foi removido com sucesso.",
+          title: 'Oração excluída',
+          description: 'O pedido de oração foi removido com sucesso.',
         });
       } else {
         const errorData = await response.json();
         console.log(`❌ Frontend: Erro na resposta do servidor:`, errorData);
-        
+
         toast({
-          title: "Erro ao excluir oração",
-          description: errorData.error || "Não foi possível excluir a oração.",
-          variant: "destructive"
+          title: 'Erro ao excluir oração',
+          description: errorData.error || 'Não foi possível excluir a oração.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('❌ Frontend: Erro na requisição:', error);
       toast({
-        title: "Erro ao excluir oração",
-        description: "Não foi possível excluir a oração.",
-        variant: "destructive"
+        title: 'Erro ao excluir oração',
+        description: 'Não foi possível excluir a oração.',
+        variant: 'destructive',
       });
     }
   };
@@ -254,9 +251,9 @@ const Prayers = () => {
         });
 
         if (response.ok) {
-          setPrayers(prev => prev.map(p => 
-            p.id === prayerId ? { ...p, isUserPraying: false } : p
-          ));
+          setPrayers(prev =>
+            prev.map(p => (p.id === prayerId ? { ...p, isUserPraying: false } : p))
+          );
           // Recarregar intercessores para atualizar a lista
           loadIntercessors(prayerId);
           toast({ title: 'Sucesso', description: 'Você não está mais orando por este pedido' });
@@ -270,9 +267,9 @@ const Prayers = () => {
         });
 
         if (response.ok) {
-          setPrayers(prev => prev.map(p => 
-            p.id === prayerId ? { ...p, isUserPraying: true } : p
-          ));
+          setPrayers(prev =>
+            prev.map(p => (p.id === prayerId ? { ...p, isUserPraying: true } : p))
+          );
           // Recarregar intercessores para atualizar a lista
           loadIntercessors(prayerId);
           toast({ title: 'Sucesso', description: 'Você está orando por este pedido' });
@@ -280,7 +277,11 @@ const Prayers = () => {
       }
     } catch (error) {
       console.error('Erro ao gerenciar intercessor:', error);
-      toast({ title: 'Erro', description: 'Erro ao gerenciar intercessor', variant: 'destructive' });
+      toast({
+        title: 'Erro',
+        description: 'Erro ao gerenciar intercessor',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -296,7 +297,7 @@ const Prayers = () => {
         const mappedData = data.map((intercessor: any) => ({
           ...intercessor,
           intercessorName: intercessor.intercessor_name || 'Usuário',
-          intercessorProfilePhoto: intercessor.profile_photo || null
+          intercessorProfilePhoto: intercessor.profile_photo || null,
         }));
         setIntercessors(prev => ({ ...prev, [prayerId]: mappedData }));
       }
@@ -310,16 +311,16 @@ const Prayers = () => {
   const canViewPrayer = (prayer: PrayerRequest) => {
     // Administradores podem ver tudo
     if (hasAdminAccess(user)) return true;
-    
+
     // Usuários podem ver suas próprias orações
     if (prayer.userId === parseInt(user?.id || '0')) return true;
-    
+
     // Se a oração é privada, apenas o pastor pode ver
     if (prayer.isPrivate) return false;
-    
+
     // Se permite membros da igreja e é da mesma igreja
     if (prayer.allowChurchMembers && prayer.userChurch === user?.church) return true;
-    
+
     return false;
   };
 
@@ -329,19 +330,19 @@ const Prayers = () => {
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Data não disponível';
-    
+
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         return 'Data inválida';
       }
-      
+
       return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     } catch (error) {
       console.error('Erro ao formatar data:', error, dateString);
@@ -383,7 +384,7 @@ const Prayers = () => {
             <Input
               placeholder="Buscar por nome ou pedido..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -420,43 +421,42 @@ const Prayers = () => {
               <CardContent>
                 <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  {searchTerm || filterStatus !== 'all' 
+                  {searchTerm || filterStatus !== 'all'
                     ? 'Nenhuma oração encontrada com os filtros aplicados.'
-                    : 'Nenhum pedido de oração ainda.'
-                  }
+                    : 'Nenhum pedido de oração ainda.'}
                 </p>
               </CardContent>
             </Card>
           ) : (
-            visiblePrayers.map((prayer) => (
-                <Card key={prayer.id} className="overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar 
-                          className="ring-2 ring-white shadow-md" 
-                          style={{ width: '52px', height: '52px' }}
-                        >
-                          <AvatarImage 
-                            src={getPhotoUrl(prayer.userProfilePhoto)} 
-                            alt={`Foto de ${prayer.userName}`}
-                            className="object-cover object-center w-full h-full"
-                            style={{ 
-                              imageRendering: 'crisp-edges',
-                              filter: 'contrast(1.1) brightness(1.05)'
-                            }}
-                          />
-                          <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
-                            {prayer.userName?.charAt(0)?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
+            visiblePrayers.map(prayer => (
+              <Card key={prayer.id} className="overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        className="ring-2 ring-white shadow-md"
+                        style={{ width: '52px', height: '52px' }}
+                      >
+                        <AvatarImage
+                          src={getPhotoUrl(prayer.userProfilePhoto)}
+                          alt={`Foto de ${prayer.userName}`}
+                          className="object-cover object-center w-full h-full"
+                          style={{
+                            imageRendering: 'crisp-edges',
+                            filter: 'contrast(1.1) brightness(1.05)',
+                          }}
+                        />
+                        <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
+                          {prayer.userName?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <CardTitle className="text-base">{prayer.userName}</CardTitle>
                         <p className="text-sm text-muted-foreground">{prayer.userChurch}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge 
+                      <Badge
                         variant={prayer.isAnswered ? 'default' : 'secondary'}
                         className={prayer.isAnswered ? 'bg-green-100 text-green-800' : ''}
                       >
@@ -475,9 +475,22 @@ const Prayers = () => {
                 <CardContent className="space-y-3">
                   {/* Estado Espiritual */}
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]?.emoji}</span>
-                    <Badge className={spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]?.color}>
-                      {spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]?.label}
+                    <span className="text-2xl">
+                      {
+                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]
+                          ?.emoji
+                      }
+                    </span>
+                    <Badge
+                      className={
+                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]
+                          ?.color
+                      }
+                    >
+                      {
+                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]
+                          ?.label
+                      }
                     </Badge>
                   </div>
 
@@ -494,13 +507,11 @@ const Prayers = () => {
                       <Calendar className="h-3 w-3" />
                       {formatDate(prayer.createdAt)}
                     </div>
-                    
+
                     {prayer.isAnswered && prayer.answeredBy && (
                       <div className="flex items-center gap-1">
                         <span>Respondida por {prayer.answeredBy}</span>
-                        {prayer.answeredAt && (
-                          <span>em {formatDate(prayer.answeredAt)}</span>
-                        )}
+                        {prayer.answeredAt && <span>em {formatDate(prayer.answeredAt)}</span>}
                       </div>
                     )}
                   </div>
@@ -508,23 +519,23 @@ const Prayers = () => {
                   {/* Botão de Oração */}
                   {!prayer.isAnswered && prayer.userId !== parseInt(user?.id || '0') && (
                     <div className="flex gap-2">
-                      <Button 
+                      <Button
                         onClick={() => toggleIntercessor(prayer.id)}
                         size="sm"
-                        variant={prayer.isUserPraying ? "default" : "outline"}
+                        variant={prayer.isUserPraying ? 'default' : 'outline'}
                         className={`flex-1 ${
-                          prayer.isUserPraying 
-                            ? 'bg-blue-600 hover:bg-blue-700' 
+                          prayer.isUserPraying
+                            ? 'bg-blue-600 hover:bg-blue-700'
                             : 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
                         }`}
                       >
                         <Heart className="h-4 w-4 mr-2" />
-                        {prayer.isUserPraying ? 'Você está orando por este pedido' : 'Orar por este pedido'}
+                        {prayer.isUserPraying
+                          ? 'Você está orando por este pedido'
+                          : 'Orar por este pedido'}
                       </Button>
                     </div>
                   )}
-                  
-
 
                   {/* Seção de Intercessores */}
                   {!prayer.isAnswered && (
@@ -535,27 +546,31 @@ const Prayers = () => {
                           <span className="text-xs text-gray-500">Carregando...</span>
                         )}
                       </div>
-                      
+
                       {intercessors[prayer.id] && intercessors[prayer.id].length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                          {intercessors[prayer.id].map((intercessor) => (
-                            <div key={intercessor.id} className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-full">
+                          {intercessors[prayer.id].map(intercessor => (
+                            <div
+                              key={intercessor.id}
+                              className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-full"
+                            >
                               <Avatar className="w-5 h-5">
                                 <AvatarImage src={intercessor.intercessorProfilePhoto} />
                                 <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
                                   {intercessor.intercessorName?.charAt(0)?.toUpperCase() || 'U'}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="text-xs text-blue-700">{intercessor.intercessorName}</span>
+                              <span className="text-xs text-blue-700">
+                                {intercessor.intercessorName}
+                              </span>
                             </div>
                           ))}
                         </div>
                       ) : (
                         <p className="text-xs text-gray-500 italic">
-                          {prayer.userId === parseInt(user?.id || '0') 
-                            ? 'Ninguém está orando por este pedido ainda' 
-                            : 'Seja o primeiro a orar por este pedido'
-                          }
+                          {prayer.userId === parseInt(user?.id || '0')
+                            ? 'Ninguém está orando por este pedido ainda'
+                            : 'Seja o primeiro a orar por este pedido'}
                         </p>
                       )}
                     </div>
@@ -564,29 +579,34 @@ const Prayers = () => {
                   {/* Action Buttons */}
                   <div className="flex gap-2">
                     {/* Botão Marcar como Respondida - para admin e usuário que criou a oração */}
-                    {!prayer.isAnswered && (hasAdminAccess(user) || prayer.userId === parseInt(user?.id || '0')) && (
-                      <Button 
-                        onClick={() => markAsAnswered(prayer.id)}
-                        size="sm"
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Marcar como Respondida
-                      </Button>
-                    )}
-                    
+                    {!prayer.isAnswered &&
+                      (hasAdminAccess(user) || prayer.userId === parseInt(user?.id || '0')) && (
+                        <Button
+                          onClick={() => markAsAnswered(prayer.id)}
+                          size="sm"
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          Marcar como Respondida
+                        </Button>
+                      )}
+
                     {/* Botão Excluir - para admin e usuário que criou a oração */}
                     {(hasAdminAccess(user) || prayer.userId === parseInt(user?.id || '0')) && (
-                      <Button 
+                      <Button
                         onClick={() => deletePrayer(prayer.id)}
                         size="sm"
                         variant="destructive"
                         className="flex-1"
                         disabled={!prayers.find(p => p.id === prayer.id)}
-                        title={!prayers.find(p => p.id === prayer.id) ? "Oração já foi excluída" : "Excluir oração"}
+                        title={
+                          !prayers.find(p => p.id === prayer.id)
+                            ? 'Oração já foi excluída'
+                            : 'Excluir oração'
+                        }
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        {!prayers.find(p => p.id === prayer.id) ? "Já Excluída" : "Excluir"}
+                        {!prayers.find(p => p.id === prayer.id) ? 'Já Excluída' : 'Excluir'}
                       </Button>
                     )}
                   </div>

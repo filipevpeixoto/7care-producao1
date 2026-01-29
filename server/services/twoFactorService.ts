@@ -34,8 +34,14 @@ interface UserTwoFactorFields {
 
 /**
  * Tipo para atualização de campos 2FA
+ * Interface que corresponde exatamente aos campos do schema users
  */
-type TwoFactorUpdate = Partial<UserTwoFactorFields>;
+interface _TwoFactorUpdateData {
+  twoFactorEnabled?: boolean | null;
+  twoFactorSecret?: string | null;
+  twoFactorPendingSecret?: string | null;
+  twoFactorRecoveryCodes?: string | null;
+}
 
 /**
  * Gera um novo secret TOTP para o usuário
@@ -47,7 +53,7 @@ export async function generateTwoFactorSecret(
 ): Promise<TwoFactorSecret> {
   // Gera secret aleatório
   const secret = generateSecret();
-  
+
   // Cria URL otpauth para apps autenticadores
   const otpauthUrl = generateURI({
     secret,
@@ -57,7 +63,7 @@ export async function generateTwoFactorSecret(
     digits: 6,
     period: 30,
   });
-  
+
   // Gera QR Code como data URL
   const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl, {
     width: 256,
@@ -67,7 +73,7 @@ export async function generateTwoFactorSecret(
       light: '#ffffff',
     },
   });
-  
+
   return {
     secret,
     otpauthUrl,
@@ -78,69 +84,59 @@ export async function generateTwoFactorSecret(
 /**
  * Salva o secret temporário (pending) até o usuário confirmar
  */
-export async function savePendingTwoFactorSecret(
-  userId: number,
-  secret: string
-): Promise<void> {
+export async function savePendingTwoFactorSecret(userId: number, secret: string): Promise<void> {
   // Criptografa o secret antes de salvar
   const encryptedSecret = encryptSecret(secret);
-  
+
   await db
     .update(schema.users)
-    .set({
-      twoFactorPendingSecret: encryptedSecret,
-    } as TwoFactorUpdate)
+
+    .set({ twoFactorPendingSecret: encryptedSecret } as any)
     .where(eq(schema.users.id, userId));
 }
 
 /**
  * Verifica e ativa 2FA após o usuário confirmar com código válido
  */
-export async function enableTwoFactor(
-  userId: number,
-  token: string
-): Promise<VerifyResult> {
+export async function enableTwoFactor(userId: number, token: string): Promise<VerifyResult> {
   // Busca o usuário
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, userId))
-    .limit(1);
-  
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+
   if (!user) {
     return { valid: false, message: 'Usuário não encontrado' };
   }
-  
+
   const userWith2FA = user as typeof user & UserTwoFactorFields;
   const pendingSecret = userWith2FA.twoFactorPendingSecret;
-  
+
   if (!pendingSecret) {
     return { valid: false, message: 'Nenhum 2FA pendente para ativar' };
   }
-  
+
   // Descriptografa e verifica o token
   const decryptedSecret = decryptSecret(pendingSecret);
   const isValid = verifySync({ secret: decryptedSecret, token });
-  
+
   if (!isValid) {
     return { valid: false, message: 'Código inválido' };
   }
-  
+
   // Gera códigos de recuperação
   const recoveryCodes = generateRecoveryCodes();
   const hashedRecoveryCodes = recoveryCodes.map(code => hashRecoveryCode(code));
-  
+
   // Ativa 2FA
   await db
     .update(schema.users)
+
     .set({
       twoFactorSecret: pendingSecret, // Já está criptografado
       twoFactorPendingSecret: null,
       twoFactorEnabled: true,
       twoFactorRecoveryCodes: JSON.stringify(hashedRecoveryCodes),
-    } as TwoFactorUpdate)
+    } as Partial<typeof schema.users.$inferInsert>)
     .where(eq(schema.users.id, userId));
-  
+
   return {
     valid: true,
     message: 'Autenticação de dois fatores ativada com sucesso',
@@ -150,28 +146,26 @@ export async function enableTwoFactor(
 /**
  * Desativa 2FA do usuário
  */
-export async function disableTwoFactor(
-  userId: number,
-  token: string
-): Promise<VerifyResult> {
+export async function disableTwoFactor(userId: number, token: string): Promise<VerifyResult> {
   // Primeiro verifica se o token é válido
   const verification = await verifyTwoFactorToken(userId, token);
-  
+
   if (!verification.valid) {
     return verification;
   }
-  
+
   // Desativa 2FA
   await db
     .update(schema.users)
+
     .set({
       twoFactorSecret: null,
       twoFactorPendingSecret: null,
       twoFactorEnabled: false,
       twoFactorRecoveryCodes: null,
-    } as TwoFactorUpdate)
+    } as Partial<typeof schema.users.$inferInsert>)
     .where(eq(schema.users.id, userId));
-  
+
   return {
     valid: true,
     message: 'Autenticação de dois fatores desativada',
@@ -181,81 +175,66 @@ export async function disableTwoFactor(
 /**
  * Verifica token TOTP
  */
-export async function verifyTwoFactorToken(
-  userId: number,
-  token: string
-): Promise<VerifyResult> {
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, userId))
-    .limit(1);
-  
+export async function verifyTwoFactorToken(userId: number, token: string): Promise<VerifyResult> {
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+
   if (!user) {
     return { valid: false, message: 'Usuário não encontrado' };
   }
-  
+
   const userWithTwoFactor = user as typeof user & UserTwoFactorFields;
-  
+
   if (!userWithTwoFactor.twoFactorEnabled || !userWithTwoFactor.twoFactorSecret) {
     return { valid: false, message: '2FA não está ativado' };
   }
-  
+
   // Descriptografa o secret
   const decryptedSecret = decryptSecret(userWithTwoFactor.twoFactorSecret);
-  
+
   // Verifica o token
   const isValid = verifySync({ secret: decryptedSecret, token });
-  
+
   if (isValid) {
     return { valid: true, message: 'Token válido' };
   }
-  
+
   return { valid: false, message: 'Código inválido ou expirado' };
 }
 
 /**
  * Verifica código de recuperação
  */
-export async function verifyRecoveryCode(
-  userId: number,
-  code: string
-): Promise<VerifyResult> {
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, userId))
-    .limit(1);
-  
+export async function verifyRecoveryCode(userId: number, code: string): Promise<VerifyResult> {
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+
   if (!user) {
     return { valid: false, message: 'Usuário não encontrado' };
   }
-  
+
   const userWithTwoFactor = user as typeof user & UserTwoFactorFields;
-  
+
   if (!userWithTwoFactor.twoFactorRecoveryCodes) {
     return { valid: false, message: 'Nenhum código de recuperação disponível' };
   }
-  
+
   const hashedCodes: string[] = JSON.parse(userWithTwoFactor.twoFactorRecoveryCodes);
   const hashedInput = hashRecoveryCode(code);
-  
+
   const codeIndex = hashedCodes.findIndex(hashed => hashed === hashedInput);
-  
+
   if (codeIndex === -1) {
     return { valid: false, message: 'Código de recuperação inválido' };
   }
-  
+
   // Remove o código usado
   hashedCodes.splice(codeIndex, 1);
-  
+
   await db
     .update(schema.users)
-    .set({
-      twoFactorRecoveryCodes: JSON.stringify(hashedCodes),
-    } as TwoFactorUpdate)
+
+    .set({ twoFactorRecoveryCodes: JSON.stringify(hashedCodes) } as any)
     .where(eq(schema.users.id, userId));
-  
+
   return {
     valid: true,
     message: `Código de recuperação válido. Restam ${hashedCodes.length} códigos.`,
@@ -271,22 +250,21 @@ export async function regenerateRecoveryCodes(
 ): Promise<{ codes: string[] } | VerifyResult> {
   // Verifica o token primeiro
   const verification = await verifyTwoFactorToken(userId, token);
-  
+
   if (!verification.valid) {
     return verification;
   }
-  
+
   // Gera novos códigos
   const recoveryCodes = generateRecoveryCodes();
   const hashedRecoveryCodes = recoveryCodes.map(code => hashRecoveryCode(code));
-  
+
   await db
     .update(schema.users)
-    .set({
-      twoFactorRecoveryCodes: JSON.stringify(hashedRecoveryCodes),
-    } as TwoFactorUpdate)
+
+    .set({ twoFactorRecoveryCodes: JSON.stringify(hashedRecoveryCodes) } as any)
     .where(eq(schema.users.id, userId));
-  
+
   return { codes: recoveryCodes };
 }
 
@@ -298,18 +276,14 @@ export async function checkTwoFactorStatus(userId: number): Promise<{
   hasRecoveryCodes: boolean;
   recoveryCodesCount: number;
 }> {
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, userId))
-    .limit(1);
-  
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+
   if (!user) {
     return { enabled: false, hasRecoveryCodes: false, recoveryCodesCount: 0 };
   }
-  
+
   const userWithTwoFactor = user as typeof user & UserTwoFactorFields;
-  
+
   let recoveryCodesCount = 0;
   if (userWithTwoFactor.twoFactorRecoveryCodes) {
     try {
@@ -319,7 +293,7 @@ export async function checkTwoFactorStatus(userId: number): Promise<{
       // Ignora erro de parse
     }
   }
-  
+
   return {
     enabled: !!userWithTwoFactor.twoFactorEnabled,
     hasRecoveryCodes: recoveryCodesCount > 0,
@@ -348,10 +322,7 @@ function generateRecoveryCodes(): string[] {
  * Hash de código de recuperação
  */
 function hashRecoveryCode(code: string): string {
-  return crypto
-    .createHash('sha256')
-    .update(code.toUpperCase().replace(/-/g, ''))
-    .digest('hex');
+  return crypto.createHash('sha256').update(code.toUpperCase().replace(/-/g, '')).digest('hex');
 }
 
 /**
@@ -361,12 +332,12 @@ function encryptSecret(secret: string): string {
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  
+
   let encrypted = cipher.update(secret, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   const authTag = cipher.getAuthTag();
-  
+
   // Formato: iv:authTag:encrypted
   return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
 }
@@ -377,16 +348,16 @@ function encryptSecret(secret: string): string {
 function decryptSecret(encryptedSecret: string): string {
   const key = getEncryptionKey();
   const [ivHex, authTagHex, encrypted] = encryptedSecret.split(':');
-  
+
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
-  
+
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(authTag);
-  
+
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-  
+
   return decrypted;
 }
 
@@ -394,10 +365,11 @@ function decryptSecret(encryptedSecret: string): string {
  * Obtém a chave de criptografia do ambiente
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.TWO_FACTOR_ENCRYPTION_KEY || 
-              JWT_SECRET ||
-              'default-insecure-key-change-me-in-production-32';
-  
+  const key =
+    process.env.TWO_FACTOR_ENCRYPTION_KEY ||
+    JWT_SECRET ||
+    'default-insecure-key-change-me-in-production-32';
+
   // Garante que a chave tenha 32 bytes
   return crypto.createHash('sha256').update(key).digest();
 }

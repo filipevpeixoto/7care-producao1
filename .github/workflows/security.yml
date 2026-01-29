@@ -1,0 +1,193 @@
+# ===========================================
+# Security Scanning Workflow
+# ===========================================
+# Este workflow executa scans de segurança incluindo OWASP ZAP
+# Triggers: push para main, pull requests, agendado semanalmente
+
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Executa toda segunda-feira às 9h UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ===========================================
+  # JOB 1: Dependency Audit
+  # ===========================================
+  dependency-audit:
+    name: 🔍 Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: 🔒 NPM Audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: 📊 Generate audit report
+        run: |
+          echo "## 🔒 Security Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          npm audit --json > audit.json || true
+          if [ -f audit.json ]; then
+            echo "Audit completed. Check artifacts for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 📦 Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-report
+          path: audit.json
+          retention-days: 30
+
+  # ===========================================
+  # JOB 2: OWASP ZAP Baseline Scan
+  # ===========================================
+  zap-scan:
+    name: 🕷️ OWASP ZAP Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: 🏗️ Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 🚀 Start server
+        run: |
+          npm run start &
+          sleep 10
+        env:
+          NODE_ENV: production
+          PORT: 3000
+        continue-on-error: true
+
+      - name: 🕷️ OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j'
+        continue-on-error: true
+
+      - name: 📦 Upload ZAP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report
+          path: report_html.html
+          retention-days: 30
+
+  # ===========================================
+  # JOB 3: CodeQL Analysis
+  # ===========================================
+  codeql:
+    name: 🔬 CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🔬 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: 🔬 Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 🔬 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  # ===========================================
+  # JOB 4: Secret Scanning
+  # ===========================================
+  secret-scan:
+    name: 🔑 Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔑 TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          extra_args: --only-verified
+        continue-on-error: true
+
+  # ===========================================
+  # JOB 5: License Compliance
+  # ===========================================
+  license-check:
+    name: 📜 License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: 📜 Check licenses
+        run: |
+          npx license-checker --summary --production
+        continue-on-error: true
+
+      - name: 📊 Generate license report
+        run: |
+          echo "## 📜 License Report" >> $GITHUB_STEP_SUMMARY
+          npx license-checker --summary --production >> $GITHUB_STEP_SUMMARY || true

@@ -16212,6 +16212,504 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // =============================================
+    // ROTAS DE CONVITES DE PASTORES
+    // =============================================
+
+    // Helper function para garantir que a tabela pastor_invites existe
+    async function ensurePastorInvitesTable() {
+      await sql`
+        CREATE TABLE IF NOT EXISTS pastor_invites (
+          id SERIAL PRIMARY KEY,
+          token VARCHAR(64) UNIQUE NOT NULL,
+          email VARCHAR(255) NOT NULL,
+          created_by INTEGER NOT NULL,
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+          status VARCHAR(20) DEFAULT 'pending' NOT NULL,
+          onboarding_data JSONB,
+          submitted_at TIMESTAMP WITH TIME ZONE,
+          reviewed_at TIMESTAMP WITH TIME ZONE,
+          reviewed_by INTEGER,
+          rejection_reason TEXT,
+          user_id INTEGER,
+          district_id INTEGER,
+          approved_by INTEGER,
+          approved_at TIMESTAMP WITH TIME ZONE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )
+      `;
+      // Criar índices se não existirem
+      try {
+        await sql`CREATE INDEX IF NOT EXISTS idx_pastor_invites_token ON pastor_invites(token)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_pastor_invites_status ON pastor_invites(status)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_pastor_invites_email ON pastor_invites(email)`;
+      } catch (indexError) {
+        // Ignora erros de índice, podem já existir
+      }
+    }
+
+    // GET /api/invites/setup - Cria a tabela se não existir (apenas superadmin)
+    if (path === '/api/invites/setup' && method === 'POST') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        if (!isSuperAdmin(auth.user)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
+
+        await ensurePastorInvitesTable();
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, message: 'Tabela pastor_invites criada/verificada com sucesso' })
+        };
+      } catch (error) {
+        console.error('Erro ao criar tabela:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao criar tabela: ' + error.message })
+        };
+      }
+    }
+
+    // POST /api/invites - Criar novo convite (Superadmin)
+    if (path === '/api/invites' && method === 'POST') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        // Verificar se é superadmin
+        if (!isSuperAdmin(auth.user)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado. Apenas superadmin pode criar convites.' })
+          };
+        }
+
+        // Garantir que a tabela existe
+        await ensurePastorInvitesTable();
+
+        const parsedBody = JSON.parse(body || '{}');
+        const { email, expiresInDays = 7 } = parsedBody;
+
+        if (!email) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Email é obrigatório' })
+          };
+        }
+
+        // Verificar se já existe convite pendente para este email
+        const existingInvites = await sql`
+          SELECT * FROM pastor_invites 
+          WHERE email = ${email} AND status = 'pending'
+          LIMIT 1
+        `;
+
+        if (existingInvites.length > 0) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Já existe um convite pendente para este email' })
+          };
+        }
+
+        // Gerar token seguro
+        const crypto = require('crypto');
+        const token = crypto.randomBytes(32).toString('hex');
+
+        // Calcular data de expiração
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+        // Criar convite
+        const [invite] = await sql`
+          INSERT INTO pastor_invites (token, email, created_by, expires_at, status)
+          VALUES (${token}, ${email}, ${auth.user.id}, ${expiresAt.toISOString()}, 'pending')
+          RETURNING *
+        `;
+
+        const APP_URL = process.env.APP_URL || 'https://7careapp-2026.netlify.app';
+        const link = `${APP_URL}/pastor-onboarding/${token}`;
+
+        console.log(`Convite criado para ${email} por ${auth.user.email}`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            token: invite.token,
+            link,
+            expiresAt: invite.expires_at
+          })
+        };
+      } catch (error) {
+        console.error('Erro ao criar convite:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao criar convite' })
+        };
+      }
+    }
+
+    // GET /api/invites - Listar convites (Superadmin)
+    if (path === '/api/invites' && method === 'GET') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        if (!isSuperAdmin(auth.user)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado. Apenas superadmin pode listar convites.' })
+          };
+        }
+
+        // Garantir que a tabela existe
+        await ensurePastorInvitesTable();
+
+        const invites = await sql`
+          SELECT pi.*, u.name as created_by_name, u.email as created_by_email
+          FROM pastor_invites pi
+          LEFT JOIN users u ON pi.created_by = u.id
+          ORDER BY pi.created_at DESC
+          LIMIT 50
+        `;
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(invites)
+        };
+      } catch (error) {
+        console.error('Erro ao listar convites:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao listar convites' })
+        };
+      }
+    }
+
+    // GET /api/invites/validate/:token - Validar token de convite (Público)
+    if (path.match(/^\/api\/invites\/validate\/[a-f0-9]+$/) && method === 'GET') {
+      try {
+        const token = path.split('/').pop();
+
+        const invites = await sql`
+          SELECT * FROM pastor_invites 
+          WHERE token = ${token}
+          LIMIT 1
+        `;
+
+        if (invites.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ valid: false, error: 'Convite não encontrado' })
+          };
+        }
+
+        const invite = invites[0];
+
+        if (invite.status !== 'pending') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ valid: false, error: `Convite já foi ${invite.status === 'completed' ? 'utilizado' : 'processado'}` })
+          };
+        }
+
+        if (new Date(invite.expires_at) < new Date()) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ valid: false, error: 'Convite expirado' })
+          };
+        }
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            valid: true,
+            email: invite.email,
+            expiresAt: invite.expires_at
+          })
+        };
+      } catch (error) {
+        console.error('Erro ao validar convite:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ valid: false, error: 'Erro ao validar convite' })
+        };
+      }
+    }
+
+    // POST /api/invites/onboarding/:token - Submeter onboarding de pastor (Público)
+    if (path.match(/^\/api\/invites\/onboarding\/[a-f0-9]+$/) && method === 'POST') {
+      try {
+        const token = path.split('/').pop();
+        const parsedBody = JSON.parse(body || '{}');
+        const { name, password, phone, churches = [] } = parsedBody;
+
+        // Validar campos obrigatórios
+        if (!name || !password) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Nome e senha são obrigatórios' })
+          };
+        }
+
+        // Buscar convite
+        const invites = await sql`
+          SELECT * FROM pastor_invites 
+          WHERE token = ${token}
+          LIMIT 1
+        `;
+
+        if (invites.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Convite não encontrado' })
+          };
+        }
+
+        const invite = invites[0];
+
+        if (invite.status !== 'pending') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Convite já foi utilizado' })
+          };
+        }
+
+        if (new Date(invite.expires_at) < new Date()) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Convite expirado' })
+          };
+        }
+
+        // Verificar se email já existe
+        const existingUsers = await sql`
+          SELECT id FROM users WHERE email = ${invite.email} LIMIT 1
+        `;
+
+        if (existingUsers.length > 0) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Email já está em uso' })
+          };
+        }
+
+        // Hash da senha
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Criar usuário pastor
+        const [newUser] = await sql`
+          INSERT INTO users (name, email, password, role, phone, created_at)
+          VALUES (${name}, ${invite.email}, ${hashedPassword}, 'pastor', ${phone || null}, NOW())
+          RETURNING id, name, email, role
+        `;
+
+        // Salvar dados de onboarding no convite
+        const onboardingData = {
+          name,
+          phone,
+          churches,
+          submittedAt: new Date().toISOString()
+        };
+
+        await sql`
+          UPDATE pastor_invites 
+          SET status = 'pending_approval', 
+              onboarding_data = ${JSON.stringify(onboardingData)},
+              user_id = ${newUser.id}
+          WHERE id = ${invite.id}
+        `;
+
+        console.log(`Onboarding submetido por ${invite.email}`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Cadastro realizado com sucesso! Aguarde aprovação do administrador.',
+            user: newUser
+          })
+        };
+      } catch (error) {
+        console.error('Erro no onboarding:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao processar cadastro' })
+        };
+      }
+    }
+
+    // POST /api/invites/:id/approve - Aprovar convite (Superadmin)
+    if (path.match(/^\/api\/invites\/\d+\/approve$/) && method === 'POST') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        if (!isSuperAdmin(auth.user)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado. Apenas superadmin pode aprovar convites.' })
+          };
+        }
+
+        const inviteId = parseInt(path.split('/')[3]);
+
+        const invites = await sql`
+          SELECT * FROM pastor_invites WHERE id = ${inviteId} LIMIT 1
+        `;
+
+        if (invites.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Convite não encontrado' })
+          };
+        }
+
+        const invite = invites[0];
+
+        if (invite.status !== 'pending_approval') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Convite não está aguardando aprovação' })
+          };
+        }
+
+        // Atualizar status para completed
+        await sql`
+          UPDATE pastor_invites 
+          SET status = 'completed',
+              approved_by = ${auth.user.id},
+              approved_at = NOW()
+          WHERE id = ${inviteId}
+        `;
+
+        console.log(`Convite ${inviteId} aprovado por ${auth.user.email}`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Convite aprovado com sucesso!'
+          })
+        };
+      } catch (error) {
+        console.error('Erro ao aprovar convite:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao aprovar convite' })
+        };
+      }
+    }
+
+    // POST /api/invites/:id/reject - Rejeitar convite (Superadmin)
+    if (path.match(/^\/api\/invites\/\d+\/reject$/) && method === 'POST') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        if (!isSuperAdmin(auth.user)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado. Apenas superadmin pode rejeitar convites.' })
+          };
+        }
+
+        const inviteId = parseInt(path.split('/')[3]);
+        const parsedBody = JSON.parse(body || '{}');
+        const { reason } = parsedBody;
+
+        await sql`
+          UPDATE pastor_invites 
+          SET status = 'rejected',
+              rejection_reason = ${reason || null}
+          WHERE id = ${inviteId}
+        `;
+
+        console.log(`Convite ${inviteId} rejeitado por ${auth.user.email}`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Convite rejeitado'
+          })
+        };
+      } catch (error) {
+        console.error('Erro ao rejeitar convite:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao rejeitar convite' })
+        };
+      }
+    }
+
     // Rota padrão - retornar erro 404
     return {
       statusCode: 404,

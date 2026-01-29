@@ -3,7 +3,7 @@
  * Métodos relacionados a reuniões e agendamentos
  */
 
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
@@ -135,9 +135,7 @@ export class MeetingRepository {
    */
   async delete(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(schema.meetings)
-        .where(eq(schema.meetings.id, id));
+      await db.delete(schema.meetings).where(eq(schema.meetings.id, id));
       return true;
     } catch (error) {
       logger.error('Erro ao deletar reunião:', error);
@@ -150,10 +148,7 @@ export class MeetingRepository {
    */
   async getMeetingTypes(): Promise<MeetingType[]> {
     try {
-      const types = await db
-        .select()
-        .from(schema.meetingTypes)
-        .orderBy(schema.meetingTypes.name);
+      const types = await db.select().from(schema.meetingTypes).orderBy(schema.meetingTypes.name);
       return types.map(this.mapMeetingTypeRecord);
     } catch (error) {
       logger.error('Erro ao buscar tipos de reunião:', error);
@@ -169,9 +164,10 @@ export class MeetingRepository {
       id: Number(record.id),
       title: String(record.title || ''),
       description: record.description ? String(record.description) : null,
-      scheduledAt: record.scheduledAt instanceof Date 
-        ? record.scheduledAt.toISOString() 
-        : String(record.scheduledAt || ''),
+      scheduledAt:
+        record.scheduledAt instanceof Date
+          ? record.scheduledAt.toISOString()
+          : String(record.scheduledAt || ''),
       duration: Number(record.duration || 60),
       location: record.location ? String(record.location) : null,
       requesterId: record.requesterId ? Number(record.requesterId) : undefined,
@@ -181,12 +177,14 @@ export class MeetingRepository {
       isUrgent: Boolean(record.isUrgent),
       status: String(record.status || 'pending'),
       notes: record.notes ? String(record.notes) : undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : String(record.updatedAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : String(record.updatedAt || ''),
     };
   }
 
@@ -199,9 +197,10 @@ export class MeetingRepository {
       name: String(record.name || ''),
       description: record.description ? String(record.description) : null,
       color: record.color ? String(record.color) : null,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
     };
   }
 }

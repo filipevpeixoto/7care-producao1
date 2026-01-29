@@ -17,7 +17,7 @@ import { z } from 'zod';
  * - Pelo menos um número
  * - Pelo menos um caractere especial
  */
-const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const _strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 /**
  * Schema para validação de senha forte
@@ -26,20 +26,11 @@ export const strongPasswordSchema = z
   .string()
   .min(8, 'Senha deve ter no mínimo 8 caracteres')
   .max(128, 'Senha deve ter no máximo 128 caracteres')
+  .refine(password => /[a-z]/.test(password), 'Senha deve conter pelo menos uma letra minúscula')
+  .refine(password => /[A-Z]/.test(password), 'Senha deve conter pelo menos uma letra maiúscula')
+  .refine(password => /\d/.test(password), 'Senha deve conter pelo menos um número')
   .refine(
-    (password) => /[a-z]/.test(password),
-    'Senha deve conter pelo menos uma letra minúscula'
-  )
-  .refine(
-    (password) => /[A-Z]/.test(password),
-    'Senha deve conter pelo menos uma letra maiúscula'
-  )
-  .refine(
-    (password) => /\d/.test(password),
-    'Senha deve conter pelo menos um número'
-  )
-  .refine(
-    (password) => /[@$!%*?&]/.test(password),
+    password => /[@$!%*?&]/.test(password),
     'Senha deve conter pelo menos um caractere especial (@$!%*?&)'
   );
 
@@ -53,27 +44,29 @@ export const basicPasswordSchema = z.string().min(6, 'Senha deve ter pelo menos 
 // ============================================
 
 export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(1, 'Senha é obrigatória')
+  email: z.string().min(1, 'Email ou usuário é obrigatório'),
+  password: z.string().min(1, 'Senha é obrigatória'),
 });
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   password: strongPasswordSchema.optional(),
-  role: z.enum(['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly']).optional(),
+  role: z
+    .enum(['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'])
+    .optional(),
   church: z.string().optional(),
-  churchCode: z.string().optional()
+  churchCode: z.string().optional(),
 });
 
 export const changePasswordSchema = z.object({
   userId: z.number().int().positive('ID do usuário inválido'),
   currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
-  newPassword: strongPasswordSchema
+  newPassword: strongPasswordSchema,
 });
 
 export const resetPasswordSchema = z.object({
-  email: z.string().email('Email inválido')
+  email: z.string().email('Email inválido'),
 });
 
 // ============================================
@@ -84,7 +77,9 @@ export const createUserSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').optional(),
-  role: z.enum(['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly']).default('member'),
+  role: z
+    .enum(['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'])
+    .default('member'),
   church: z.string().optional(),
   churchCode: z.string().optional(),
   districtId: z.number().int().positive().optional().nullable(),
@@ -103,7 +98,7 @@ export const createUserSchema = z.object({
   isDonor: z.boolean().default(false),
   isTither: z.boolean().default(false),
   isApproved: z.boolean().default(false),
-  observations: z.string().optional()
+  observations: z.string().optional(),
 });
 
 export const updateUserSchema = createUserSchema.partial().extend({
@@ -111,11 +106,11 @@ export const updateUserSchema = createUserSchema.partial().extend({
   status: z.string().optional(),
   points: z.number().int().optional(),
   level: z.string().optional(),
-  attendance: z.number().int().optional()
+  attendance: z.number().int().optional(),
 });
 
 export const userIdParamSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'ID deve ser um número').transform(Number)
+  id: z.string().regex(/^\d+$/, 'ID deve ser um número').transform(Number),
 });
 
 // ============================================
@@ -129,7 +124,7 @@ export const createChurchSchema = z.object({
   email: z.string().email('Email inválido').optional().nullable(),
   phone: z.string().optional().nullable(),
   pastor: z.string().optional().nullable(),
-  districtId: z.number().int().positive().optional().nullable()
+  districtId: z.number().int().positive().optional().nullable(),
 });
 
 export const updateChurchSchema = createChurchSchema.partial();
@@ -152,7 +147,7 @@ export const createEventSchema = z.object({
   recurrencePattern: z.string().optional().nullable(),
   church: z.string().optional(),
   churchId: z.number().int().positive().optional().nullable(),
-  organizerId: z.number().int().positive().optional().nullable()
+  organizerId: z.number().int().positive().optional().nullable(),
 });
 
 export const updateEventSchema = createEventSchema.partial();
@@ -173,7 +168,7 @@ export const createMeetingSchema = z.object({
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   isUrgent: z.boolean().default(false),
   status: z.enum(['pending', 'approved', 'rejected', 'completed', 'cancelled']).default('pending'),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 });
 
 export const updateMeetingSchema = createMeetingSchema.partial();
@@ -186,7 +181,7 @@ export const createRelationshipSchema = z.object({
   interestedId: z.number().int().positive('ID do interessado inválido'),
   missionaryId: z.number().int().positive('ID do missionário inválido'),
   status: z.enum(['active', 'pending', 'inactive']).default('active'),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 });
 
 // ============================================
@@ -196,12 +191,12 @@ export const createRelationshipSchema = z.object({
 export const createDiscipleshipRequestSchema = z.object({
   interestedId: z.number().int().positive('ID do interessado inválido'),
   missionaryId: z.number().int().positive('ID do missionário inválido'),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 });
 
 export const updateDiscipleshipRequestSchema = z.object({
   status: z.enum(['pending', 'approved', 'rejected']).optional(),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 });
 
 // ============================================
@@ -212,7 +207,7 @@ export const createMessageSchema = z.object({
   conversationId: z.number().int().positive('ID da conversa inválido'),
   senderId: z.number().int().positive('ID do remetente inválido'),
   content: z.string().min(1, 'Conteúdo é obrigatório'),
-  messageType: z.enum(['text', 'image', 'file', 'system']).default('text')
+  messageType: z.enum(['text', 'image', 'file', 'system']).default('text'),
 });
 
 // ============================================
@@ -223,7 +218,7 @@ export const createNotificationSchema = z.object({
   userId: z.number().int().positive('ID do usuário inválido'),
   title: z.string().min(1, 'Título é obrigatório'),
   message: z.string().min(1, 'Mensagem é obrigatória'),
-  type: z.string().optional()
+  type: z.string().optional(),
 });
 
 // ============================================
@@ -235,7 +230,7 @@ export const createPrayerSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
   description: z.string().optional().nullable(),
   isPublic: z.boolean().default(true),
-  allowIntercessors: z.boolean().default(true)
+  allowIntercessors: z.boolean().default(true),
 });
 
 // ============================================
@@ -248,30 +243,32 @@ export const createEmotionalCheckInSchema = z.object({
   mood: z.string().optional().nullable(),
   prayerRequest: z.string().optional().nullable(),
   isPrivate: z.boolean().default(false),
-  allowChurchMembers: z.boolean().default(true)
+  allowChurchMembers: z.boolean().default(true),
 });
 
 // ============================================
 // Schemas de Configuração
 // ============================================
 
-export const pointsConfigSchema = z.object({
-  visitaWeight: z.number().optional().default(1),
-  estudoBiblicoWeight: z.number().optional().default(1),
-  cultoWeight: z.number().optional().default(1),
-  comunhaoWeight: z.number().optional().default(1),
-  ofertaWeight: z.number().optional().default(1),
-  dizimoWeight: z.number().optional().default(1),
-  evangelismoWeight: z.number().optional().default(1),
-  servicoWeight: z.number().optional().default(1),
-  liderancaWeight: z.number().optional().default(1),
-  capacitacaoWeight: z.number().optional().default(1)
-}).passthrough(); // Permite campos extras
+export const pointsConfigSchema = z
+  .object({
+    visitaWeight: z.number().optional().default(1),
+    estudoBiblicoWeight: z.number().optional().default(1),
+    cultoWeight: z.number().optional().default(1),
+    comunhaoWeight: z.number().optional().default(1),
+    ofertaWeight: z.number().optional().default(1),
+    dizimoWeight: z.number().optional().default(1),
+    evangelismoWeight: z.number().optional().default(1),
+    servicoWeight: z.number().optional().default(1),
+    liderancaWeight: z.number().optional().default(1),
+    capacitacaoWeight: z.number().optional().default(1),
+  })
+  .passthrough(); // Permite campos extras
 
 export const googleDriveConfigSchema = z.object({
   spreadsheetUrl: z.string().url('URL inválida'),
   sheetName: z.string().min(1, 'Nome da aba é obrigatório'),
-  apiKey: z.string().min(1, 'API Key é obrigatória')
+  apiKey: z.string().min(1, 'API Key é obrigatória'),
 });
 
 // ============================================
@@ -284,10 +281,10 @@ export const pushSubscriptionSchema = z.object({
     endpoint: z.string().url(),
     keys: z.object({
       p256dh: z.string(),
-      auth: z.string()
-    })
+      auth: z.string(),
+    }),
   }),
-  deviceName: z.string().optional()
+  deviceName: z.string().optional(),
 });
 
 export const sendPushNotificationSchema = z.object({
@@ -295,7 +292,7 @@ export const sendPushNotificationSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
   body: z.string().min(1, 'Corpo é obrigatório'),
   icon: z.string().optional(),
-  url: z.string().url().optional()
+  url: z.string().url().optional(),
 });
 
 // ============================================
@@ -306,14 +303,19 @@ export const paginationSchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).default('1'),
   pageSize: z.string().regex(/^\d+$/).transform(Number).default('20'),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional()
+  sortOrder: z.enum(['asc', 'desc']).optional(),
 });
 
 export const userFilterSchema = z.object({
-  role: z.enum(['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly']).optional(),
+  role: z
+    .enum(['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'])
+    .optional(),
   status: z.string().optional(),
   church: z.string().optional(),
-  isApproved: z.string().transform(val => val === 'true').optional()
+  isApproved: z
+    .string()
+    .transform(val => val === 'true')
+    .optional(),
 });
 
 // ============================================
@@ -347,11 +349,11 @@ export type SendPushNotificationInput = z.infer<typeof sendPushNotificationSchem
 // ============================================
 
 export const setDefaultChurchSchema = z.object({
-  churchId: z.number().int().positive('ID da igreja inválido')
+  churchId: z.number().int().positive('ID da igreja inválido'),
 });
 
 export const systemLogoSchema = z.object({
-  logoUrl: z.string().min(1, 'URL do logo é obrigatória')
+  logoUrl: z.string().min(1, 'URL do logo é obrigatória'),
 });
 
 // ============================================
@@ -359,7 +361,7 @@ export const systemLogoSchema = z.object({
 // ============================================
 
 export const idParamSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'ID inválido').transform(Number)
+  id: z.string().regex(/^\d+$/, 'ID inválido').transform(Number),
 });
 
 // userIdParamSchema já foi definido anteriormente na linha 74
@@ -371,7 +373,7 @@ export const idParamSchema = z.object({
 export const markVisitSchema = z.object({
   notes: z.string().optional().nullable(),
   visitDate: z.string().optional(),
-  visitType: z.enum(['home', 'church', 'hospital', 'other']).default('home')
+  visitType: z.enum(['home', 'church', 'hospital', 'other']).default('home'),
 });
 
 // ============================================
@@ -380,7 +382,7 @@ export const markVisitSchema = z.object({
 
 export const createDirectConversationSchema = z.object({
   participantIds: z.array(z.number().int().positive()).min(2, 'Mínimo 2 participantes'),
-  initialMessage: z.string().optional()
+  initialMessage: z.string().optional(),
 });
 
 // ============================================
@@ -395,13 +397,13 @@ export const createElectionSchema = z.object({
   type: z.enum(['single', 'multiple']).default('single'),
   maxVotes: z.number().int().positive().default(1),
   allowAbstention: z.boolean().default(false),
-  isPublic: z.boolean().default(true)
+  isPublic: z.boolean().default(true),
 });
 
 export const castVoteSchema = z.object({
   electionId: z.number().int().positive('ID da eleição inválido'),
   candidateIds: z.array(z.number().int().positive()).min(1, 'Selecione pelo menos um candidato'),
-  voterId: z.number().int().positive('ID do votante inválido')
+  voterId: z.number().int().positive('ID do votante inválido'),
 });
 
 // ============================================
@@ -412,7 +414,7 @@ export const createDistrictSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   code: z.string().optional(),
   region: z.string().optional().nullable(),
-  pastorId: z.number().int().positive().optional().nullable()
+  pastorId: z.number().int().positive().optional().nullable(),
 });
 
 export const updateDistrictSchema = createDistrictSchema.partial();
@@ -426,7 +428,7 @@ export const createPastorSchema = z.object({
   districtId: z.number().int().positive().optional().nullable(),
   title: z.string().optional().default('Pastor'),
   startDate: z.string().optional(),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
 });
 
 // ============================================
@@ -441,7 +443,7 @@ export const createTaskSchema = z.object({
   status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).default('pending'),
   assignedToId: z.number().int().positive().optional().nullable(),
   createdById: z.number().int().positive('ID do criador inválido'),
-  relatedUserId: z.number().int().positive().optional().nullable()
+  relatedUserId: z.number().int().positive().optional().nullable(),
 });
 
 export const updateTaskSchema = createTaskSchema.partial();

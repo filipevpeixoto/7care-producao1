@@ -1,8 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Image, X, Upload, Loader2 } from 'lucide-react';
 import { Button } from './button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './dialog';
-import { Card, CardContent } from './card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from './dialog';
 import { CameraCapture } from './camera-capture';
 
 interface PhotoSelectorProps {
@@ -18,7 +24,7 @@ export const PhotoSelector: React.FC<PhotoSelectorProps> = ({
   onPhotoSelect,
   onPhotoRemove,
   isLoading = false,
-  trigger
+  trigger,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -83,7 +89,7 @@ export const PhotoSelector: React.FC<PhotoSelectorProps> = ({
           </Button>
         )}
       </DialogTrigger>
-      
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Alterar Foto do Perfil</DialogTitle>
@@ -91,7 +97,7 @@ export const PhotoSelector: React.FC<PhotoSelectorProps> = ({
             Escolha uma foto da câmera ou galeria para atualizar sua foto de perfil.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* Current Photo Preview */}
           {displayPhoto && (
@@ -134,7 +140,7 @@ export const PhotoSelector: React.FC<PhotoSelectorProps> = ({
               <Camera className="w-6 h-6" />
               <span className="text-sm">Câmera</span>
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={openFileSelector}
@@ -164,24 +170,16 @@ export const PhotoSelector: React.FC<PhotoSelectorProps> = ({
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4">
             {currentPhoto && onPhotoRemove && (
-              <Button
-                variant="destructive"
-                onClick={handleRemove}
-                className="flex-1"
-              >
+              <Button variant="destructive" onClick={handleRemove} className="flex-1">
                 <X className="w-4 h-4 mr-2" />
                 Remover
               </Button>
             )}
-            
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1"
-            >
+
+            <Button variant="outline" onClick={handleCancel} className="flex-1">
               Cancelar
             </Button>
-            
+
             <Button
               onClick={handleConfirm}
               disabled={!selectedFile || isLoading}

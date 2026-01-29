@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserCog, Plus, Edit, Trash2, Building2, Mail, Phone, Search } from 'lucide-react';
+import { UserCog, Plus, Edit, Trash2, Building2, Mail, Search } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,9 +8,22 @@ import { Badge } from '@/components/ui/badge';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { canManagePastors } from '@/lib/permissions';
 
 interface Pastor {
@@ -35,12 +48,12 @@ export default function Pastors() {
   const [editingPastor, setEditingPastor] = useState<Pastor | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pastorToDelete, setPastorToDelete] = useState<Pastor | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    districtId: ''
+    districtId: '',
   });
 
   // Buscar pastores
@@ -49,13 +62,13 @@ export default function Pastors() {
     queryFn: async () => {
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': user?.id?.toString() || ''
-        }
+          'x-user-id': user?.id?.toString() || '',
+        },
       });
       if (!response.ok) throw new Error('Erro ao buscar pastores');
       return response.json();
     },
-    enabled: canManagePastors(user)
+    enabled: canManagePastors(user),
   });
 
   // Buscar distritos (para seleção)
@@ -64,13 +77,13 @@ export default function Pastors() {
     queryFn: async () => {
       const response = await fetch('/api/districts', {
         headers: {
-          'x-user-id': user?.id?.toString() || ''
-        }
+          'x-user-id': user?.id?.toString() || '',
+        },
       });
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: canManagePastors(user)
+    enabled: canManagePastors(user),
   });
 
   // Criar pastor
@@ -80,9 +93,9 @@ export default function Pastors() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || ''
+          'x-user-id': user?.id?.toString() || '',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -94,31 +107,31 @@ export default function Pastors() {
       queryClient.invalidateQueries({ queryKey: ['/api/pastors'] });
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: "Pastor criado",
-        description: "O pastor foi criado com sucesso.",
+        title: 'Pastor criado',
+        description: 'O pastor foi criado com sucesso.',
       });
       setIsCreateDialogOpen(false);
       setFormData({ name: '', email: '', password: '', districtId: '' });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível criar o pastor.",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Não foi possível criar o pastor.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Atualizar pastor
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const response = await fetch(`/api/pastors/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || ''
+          'x-user-id': user?.id?.toString() || '',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -130,8 +143,8 @@ export default function Pastors() {
       queryClient.invalidateQueries({ queryKey: ['/api/pastors'] });
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: "Pastor atualizado",
-        description: "O pastor foi atualizado com sucesso.",
+        title: 'Pastor atualizado',
+        description: 'O pastor foi atualizado com sucesso.',
       });
       setIsEditDialogOpen(false);
       setEditingPastor(null);
@@ -139,11 +152,11 @@ export default function Pastors() {
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível atualizar o pastor.",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Não foi possível atualizar o pastor.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Deletar pastor
@@ -152,8 +165,8 @@ export default function Pastors() {
       const response = await fetch(`/api/pastors/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': user?.id?.toString() || ''
-        }
+          'x-user-id': user?.id?.toString() || '',
+        },
       });
       if (!response.ok) {
         const error = await response.json();
@@ -164,19 +177,19 @@ export default function Pastors() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/pastors'] });
       toast({
-        title: "Pastor removido",
-        description: "O pastor foi removido com sucesso.",
+        title: 'Pastor removido',
+        description: 'O pastor foi removido com sucesso.',
       });
       setDeleteDialogOpen(false);
       setPastorToDelete(null);
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível remover o pastor.",
-        variant: "destructive",
+        title: 'Erro',
+        description: error.message || 'Não foi possível remover o pastor.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const handleCreate = () => {
@@ -184,7 +197,7 @@ export default function Pastors() {
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      districtId: formData.districtId ? parseInt(formData.districtId) : null
+      districtId: formData.districtId ? parseInt(formData.districtId) : null,
     });
   };
 
@@ -194,7 +207,7 @@ export default function Pastors() {
       name: pastor.name,
       email: pastor.email,
       password: '', // Não preencher senha
-      districtId: pastor.district_id?.toString() || ''
+      districtId: pastor.district_id?.toString() || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -204,14 +217,14 @@ export default function Pastors() {
     const updateData: any = {
       name: formData.name,
       email: formData.email,
-      districtId: formData.districtId ? parseInt(formData.districtId) : null
+      districtId: formData.districtId ? parseInt(formData.districtId) : null,
     };
     if (formData.password) {
       updateData.password = formData.password;
     }
     updateMutation.mutate({
       id: editingPastor.id,
-      data: updateData
+      data: updateData,
     });
   };
 
@@ -226,9 +239,10 @@ export default function Pastors() {
     }
   };
 
-  const filteredPastors = pastors.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPastors = pastors.filter(
+    p =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (!canManagePastors(user)) {
@@ -261,7 +275,7 @@ export default function Pastors() {
           <Input
             placeholder="Buscar pastores..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -276,7 +290,7 @@ export default function Pastors() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {filteredPastors.map((pastor) => (
+            {filteredPastors.map(pastor => (
               <Card key={pastor.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -291,18 +305,10 @@ export default function Pastors() {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(pastor)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(pastor)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(pastor)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(pastor)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -337,16 +343,14 @@ export default function Pastors() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Criar Pastor</DialogTitle>
-              <DialogDescription>
-                Crie um novo pastor e associe a um distrito
-              </DialogDescription>
+              <DialogDescription>Crie um novo pastor e associe a um distrito</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Nome</Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Nome do pastor"
                 />
               </div>
@@ -355,7 +359,7 @@ export default function Pastors() {
                 <Input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
                   placeholder="email@exemplo.com"
                 />
               </div>
@@ -364,15 +368,17 @@ export default function Pastors() {
                 <Input
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Senha inicial"
                 />
               </div>
               <div>
                 <Label>Distrito (Opcional)</Label>
                 <Select
-                  value={formData.districtId || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, districtId: value === "none" ? "" : value })}
+                  value={formData.districtId || 'none'}
+                  onValueChange={value =>
+                    setFormData({ ...formData, districtId: value === 'none' ? '' : value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um distrito" />
@@ -392,7 +398,10 @@ export default function Pastors() {
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreate} disabled={!formData.name || !formData.email || !formData.password}>
+              <Button
+                onClick={handleCreate}
+                disabled={!formData.name || !formData.email || !formData.password}
+              >
                 Criar
               </Button>
             </DialogFooter>
@@ -404,16 +413,14 @@ export default function Pastors() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Editar Pastor</DialogTitle>
-              <DialogDescription>
-                Atualize as informações do pastor
-              </DialogDescription>
+              <DialogDescription>Atualize as informações do pastor</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Nome</Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div>
@@ -421,7 +428,7 @@ export default function Pastors() {
                 <Input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
               <div>
@@ -429,15 +436,17 @@ export default function Pastors() {
                 <Input
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Deixe em branco para manter a senha atual"
                 />
               </div>
               <div>
                 <Label>Distrito</Label>
                 <Select
-                  value={formData.districtId || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, districtId: value === "none" ? "" : value })}
+                  value={formData.districtId || 'none'}
+                  onValueChange={value =>
+                    setFormData({ ...formData, districtId: value === 'none' ? '' : value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um distrito" />
@@ -470,8 +479,8 @@ export default function Pastors() {
             <DialogHeader>
               <DialogTitle>Confirmar Remoção</DialogTitle>
               <DialogDescription>
-                Tem certeza que deseja remover o pastor "{pastorToDelete?.name}"?
-                O pastor será convertido para membro e perderá acesso administrativo.
+                Tem certeza que deseja remover o pastor "{pastorToDelete?.name}"? O pastor será
+                convertido para membro e perderá acesso administrativo.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -488,4 +497,3 @@ export default function Pastors() {
     </MobileLayout>
   );
 }
-

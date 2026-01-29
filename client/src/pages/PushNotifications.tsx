@@ -1,16 +1,38 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DialogWithModalTracking, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Bell, Send, RefreshCw, Users, Check, AlertCircle,
-  TrendingUp, Zap, Smile, Image, Mic, Play, Pause,
-  Trash2, X, Plus
+import {
+  Bell,
+  Send,
+  RefreshCw,
+  Users,
+  AlertCircle,
+  TrendingUp,
+  Zap,
+  Smile,
+  Image,
+  Mic,
+  Play,
+  Pause,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,7 +52,7 @@ export default function PushNotifications() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [subscriptionsList, setSubscriptionsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Estados para mídia rica
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -39,7 +61,7 @@ export default function PushNotifications() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  
+
   // Refs para áudio
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -57,7 +79,9 @@ export default function PushNotifications() {
       const res = await fetch('/api/users');
       if (!res.ok) return;
       const data = await res.json();
-      setUsersList(data.users || data || []);
+      // A API pode retornar { data: [], pagination: {} }, { users: [] } ou array diretamente
+      const users = Array.isArray(data) ? data : data?.data || data?.users || [];
+      setUsersList(users);
     } catch {}
   };
 
@@ -67,16 +91,18 @@ export default function PushNotifications() {
       if (!res.ok) return;
       const data = await res.json();
       const allSubscriptions = data.subscriptions || data || [];
-      
+
       // Agrupar por usuário (mostrar apenas o mais recente de cada)
       const userMap = new Map();
       allSubscriptions.forEach((sub: { user_id: number; created_at: string }) => {
-        if (!userMap.has(sub.user_id) ||
-            new Date(sub.created_at) > new Date(userMap.get(sub.user_id).created_at)) {
+        if (
+          !userMap.has(sub.user_id) ||
+          new Date(sub.created_at) > new Date(userMap.get(sub.user_id).created_at)
+        ) {
           userMap.set(sub.user_id, sub);
         }
       });
-      
+
       const uniqueSubscriptions = Array.from(userMap.values());
       setSubscriptionsList(uniqueSubscriptions);
     } catch {}
@@ -84,9 +110,36 @@ export default function PushNotifications() {
 
   // Emojis populares
   const POPULAR_EMOJIS = [
-    '😀', '😊', '😂', '🤗', '😍', '🥰', '😎', '🤩', '🥳', '🎉',
-    '❤️', '💕', '💖', '💯', '🔥', '✨', '🌟', '🙏', '👍', '👏',
-    '🎊', '🎈', '🎁', '🎂', '🍰', '☕', '🍕', '🎵', '🎶', '📱'
+    '😀',
+    '😊',
+    '😂',
+    '🤗',
+    '😍',
+    '🥰',
+    '😎',
+    '🤩',
+    '🥳',
+    '🎉',
+    '❤️',
+    '💕',
+    '💖',
+    '💯',
+    '🔥',
+    '✨',
+    '🌟',
+    '🙏',
+    '👍',
+    '👏',
+    '🎊',
+    '🎈',
+    '🎁',
+    '🎂',
+    '🍰',
+    '☕',
+    '🍕',
+    '🎵',
+    '🎶',
+    '📱',
   ];
 
   // Funções de emoji
@@ -99,11 +152,12 @@ export default function PushNotifications() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
         toast({
-          title: "Arquivo muito grande",
-          description: "A imagem deve ter no máximo 5MB",
-          variant: "destructive"
+          title: 'Arquivo muito grande',
+          description: 'A imagem deve ter no máximo 5MB',
+          variant: 'destructive',
         });
         return;
       }
@@ -132,7 +186,7 @@ export default function PushNotifications() {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (event) => {
+      mediaRecorder.ondataavailable = event => {
         audioChunksRef.current.push(event.data);
       };
 
@@ -145,16 +199,16 @@ export default function PushNotifications() {
 
       mediaRecorder.start();
       setIsRecording(true);
-      
+
       toast({
-        title: "🎤 Gravando...",
-        description: "Clique novamente para parar a gravação"
+        title: '🎤 Gravando...',
+        description: 'Clique novamente para parar a gravação',
       });
     } catch (error) {
       toast({
-        title: "Erro ao gravar",
-        description: "Não foi possível acessar o microfone",
-        variant: "destructive"
+        title: 'Erro ao gravar',
+        description: 'Não foi possível acessar o microfone',
+        variant: 'destructive',
       });
     }
   };
@@ -163,10 +217,10 @@ export default function PushNotifications() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
+
       toast({
-        title: "✅ Gravação concluída",
-        description: "Áudio pronto para envio"
+        title: '✅ Gravação concluída',
+        description: 'Áudio pronto para envio',
       });
     }
   };
@@ -205,9 +259,9 @@ export default function PushNotifications() {
       const res = await fetch(`/api/push/subscriptions/${subscriptionId}/toggle`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ isActive: !isActive })
+        body: JSON.stringify({ isActive: !isActive }),
       });
 
       if (!res.ok) {
@@ -215,17 +269,19 @@ export default function PushNotifications() {
       }
 
       toast({
-        title: isActive ? "🔕 Subscription desativada" : "🔔 Subscription ativada",
-        description: isActive ? "Usuário não receberá mais notificações" : "Usuário voltará a receber notificações"
+        title: isActive ? '🔕 Subscription desativada' : '🔔 Subscription ativada',
+        description: isActive
+          ? 'Usuário não receberá mais notificações'
+          : 'Usuário voltará a receber notificações',
       });
 
       // Recarregar lista
       loadSubscriptions();
     } catch (error) {
       toast({
-        title: "Erro ao atualizar",
-        description: "Tente novamente mais tarde",
-        variant: "destructive"
+        title: 'Erro ao atualizar',
+        description: 'Tente novamente mais tarde',
+        variant: 'destructive',
       });
     }
   };
@@ -238,7 +294,7 @@ export default function PushNotifications() {
 
     try {
       const res = await fetch(`/api/push/subscriptions/${subscriptionId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       if (!res.ok) {
@@ -246,17 +302,17 @@ export default function PushNotifications() {
       }
 
       toast({
-        title: "🗑️ Subscription excluída",
-        description: `${userName} foi removido das notificações`
+        title: '🗑️ Subscription excluída',
+        description: `${userName} foi removido das notificações`,
       });
 
       // Recarregar lista
       loadSubscriptions();
     } catch (error) {
       toast({
-        title: "Erro ao excluir",
-        description: "Tente novamente mais tarde",
-        variant: "destructive"
+        title: 'Erro ao excluir',
+        description: 'Tente novamente mais tarde',
+        variant: 'destructive',
       });
     }
   };
@@ -264,9 +320,9 @@ export default function PushNotifications() {
   const sendNotification = async () => {
     if (!notificationTitle.trim() || !notificationMessage.trim()) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha título e mensagem",
-        variant: "destructive"
+        title: 'Campos obrigatórios',
+        description: 'Preencha título e mensagem',
+        variant: 'destructive',
       });
       return;
     }
@@ -283,7 +339,7 @@ export default function PushNotifications() {
         hasImage: !!selectedImage,
         hasAudio: !!audioBlob,
         imageName: selectedImage?.name || null,
-        audioSize: audioBlob?.size || null
+        audioSize: audioBlob?.size || null,
       };
 
       // Converter áudio para Base64 se houver
@@ -295,11 +351,11 @@ export default function PushNotifications() {
           reader.readAsDataURL(audioBlob);
         });
         payload.audioData = audioBase64;
-        
+
         console.log('🎵 Áudio convertido para Base64:', {
           size: audioBlob.size,
           type: audioBlob.type,
-          base64Length: audioBase64.length
+          base64Length: audioBase64.length,
         });
       }
 
@@ -312,21 +368,21 @@ export default function PushNotifications() {
           reader.readAsDataURL(selectedImage);
         });
         payload.imageData = imageBase64;
-        
+
         console.log('📷 Imagem convertida para Base64:', {
           name: selectedImage.name,
           size: selectedImage.size,
           type: selectedImage.type,
-          base64Length: imageBase64.length
+          base64Length: imageBase64.length,
         });
       }
 
       const res = await fetch('/api/push/send', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -336,8 +392,8 @@ export default function PushNotifications() {
       const data = await res.json();
 
       toast({
-        title: "🎉 Notificação enviada!",
-        description: `Enviada para ${data.sentTo || subscriptionsList.length} usuário(s)`
+        title: '🎉 Notificação enviada!',
+        description: `Enviada para ${data.sentTo || subscriptionsList.length} usuário(s)`,
       });
 
       // Limpar formulário
@@ -349,12 +405,11 @@ export default function PushNotifications() {
       removeImage();
       removeAudio();
       setShowEmojiPicker(false);
-
-    } catch (e) {
+    } catch (_e) {
       toast({
-        title: "Erro ao enviar",
-        description: "Tente novamente mais tarde",
-        variant: "destructive"
+        title: 'Erro ao enviar',
+        description: 'Tente novamente mais tarde',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -385,7 +440,7 @@ export default function PushNotifications() {
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
           <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
@@ -404,7 +459,9 @@ export default function PushNotifications() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Subscriptions Ativas</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">{subscriptionsList.length}</p>
+                  <p className="text-3xl font-bold text-green-600 mt-1">
+                    {subscriptionsList.length}
+                  </p>
                 </div>
                 <div className="p-4 bg-green-100 rounded-xl">
                   <Users className="h-8 w-8 text-green-600" />
@@ -433,7 +490,10 @@ export default function PushNotifications() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Taxa de Cobertura</p>
                   <p className="text-3xl font-bold text-purple-600 mt-1">
-                    {usersList.length > 0 ? Math.round((subscriptionsList.length / usersList.length) * 100) : 0}%
+                    {usersList.length > 0
+                      ? Math.round((subscriptionsList.length / usersList.length) * 100)
+                      : 0}
+                    %
                   </p>
                 </div>
                 <div className="p-4 bg-purple-100 rounded-xl">
@@ -446,17 +506,17 @@ export default function PushNotifications() {
 
         {/* Botões de ação */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Button 
-            onClick={() => setShowNotificationModal(true)} 
+          <Button
+            onClick={() => setShowNotificationModal(true)}
             size="lg"
             className="h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-lg font-semibold"
           >
             <Bell className="h-6 w-6 mr-3" />
             Nova Notificação
           </Button>
-          <Button 
-            onClick={loadSubscriptions} 
-            variant="outline" 
+          <Button
+            onClick={loadSubscriptions}
+            variant="outline"
             size="lg"
             className="h-16 border-2 hover:bg-gray-50 transition-all duration-300 text-lg font-semibold"
           >
@@ -478,32 +538,34 @@ export default function PushNotifications() {
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {subscriptionsList.map((subscription, index) => {
                   const isActive = subscription.is_active !== false; // Por padrão, considerar ativo
-                  
+
                   // Extrair informação do dispositivo do user_agent ou endpoint
                   const getDeviceInfo = () => {
                     const ua = subscription.user_agent || '';
-                    
+
                     // Detectar dispositivo
-                    if (ua.includes('iPhone') || ua.includes('iPad')) return { icon: '📱', name: 'iOS' };
+                    if (ua.includes('iPhone') || ua.includes('iPad'))
+                      return { icon: '📱', name: 'iOS' };
                     if (ua.includes('Android')) return { icon: '📱', name: 'Android' };
                     if (ua.includes('Windows')) return { icon: '💻', name: 'Windows' };
-                    if (ua.includes('Macintosh') || ua.includes('Mac OS')) return { icon: '💻', name: 'macOS' };
+                    if (ua.includes('Macintosh') || ua.includes('Mac OS'))
+                      return { icon: '💻', name: 'macOS' };
                     if (ua.includes('Linux')) return { icon: '💻', name: 'Linux' };
-                    
+
                     // Detectar navegador se não conseguir detectar dispositivo
                     if (ua.includes('Chrome')) return { icon: '🌐', name: 'Chrome' };
                     if (ua.includes('Safari')) return { icon: '🌐', name: 'Safari' };
                     if (ua.includes('Firefox')) return { icon: '🌐', name: 'Firefox' };
                     if (ua.includes('Edge')) return { icon: '🌐', name: 'Edge' };
-                    
+
                     return { icon: '📱', name: 'Dispositivo' };
                   };
-                  
+
                   const device = getDeviceInfo();
-                  
+
                   return (
-                    <div 
-                      key={subscription.id} 
+                    <div
+                      key={subscription.id}
                       className="flex items-center justify-between p-3 bg-white rounded-lg border hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-3 flex-1">
@@ -512,7 +574,9 @@ export default function PushNotifications() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-900">{subscription.user_name}</span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {subscription.user_name}
+                            </span>
                             <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full flex items-center gap-1">
                               <span>{device.icon}</span>
                               <span>{device.name}</span>
@@ -528,14 +592,16 @@ export default function PushNotifications() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteSubscription(subscription.id, subscription.user_name)}
+                          onClick={() =>
+                            deleteSubscription(subscription.id, subscription.user_name)
+                          }
                           className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <Switch
                           checked={isActive}
-                          onCheckedChange={(checked) => toggleSubscription(subscription.id, isActive)}
+                          onCheckedChange={checked => toggleSubscription(subscription.id, isActive)}
                         />
                       </div>
                     </div>
@@ -547,9 +613,9 @@ export default function PushNotifications() {
         )}
 
         {/* Modal de envio */}
-        <DialogWithModalTracking 
+        <DialogWithModalTracking
           modalId="push-notification-modal"
-          open={showNotificationModal} 
+          open={showNotificationModal}
           onOpenChange={setShowNotificationModal}
         >
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -559,14 +625,14 @@ export default function PushNotifications() {
                 Nova Notificação Rica
               </DialogTitle>
             </DialogHeader>
-            
+
             <div className="space-y-4 mt-4">
               {/* Título */}
               <div>
                 <Label className="text-sm font-semibold">Título da Notificação</Label>
-                <Input 
-                  value={notificationTitle} 
-                  onChange={(e) => setNotificationTitle(e.target.value)}
+                <Input
+                  value={notificationTitle}
+                  onChange={e => setNotificationTitle(e.target.value)}
                   placeholder="Ex: Novo evento esta semana!"
                   className="mt-1.5"
                 />
@@ -587,7 +653,7 @@ export default function PushNotifications() {
                     Emojis
                   </Button>
                 </Label>
-                
+
                 {showEmojiPicker && (
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
                     <div className="flex flex-wrap gap-2">
@@ -604,10 +670,10 @@ export default function PushNotifications() {
                     </div>
                   </div>
                 )}
-                
-                <Textarea 
-                  value={notificationMessage} 
-                  onChange={(e) => setNotificationMessage(e.target.value)}
+
+                <Textarea
+                  value={notificationMessage}
+                  onChange={e => setNotificationMessage(e.target.value)}
                   placeholder="Escreva sua mensagem aqui..."
                   className="mt-1.5 min-h-[100px]"
                 />
@@ -619,9 +685,9 @@ export default function PushNotifications() {
                 <div className="mt-1.5">
                   {imagePreview ? (
                     <div className="relative">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
                         className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                       />
                       <Button
@@ -666,25 +732,24 @@ export default function PushNotifications() {
                         size="sm"
                         onClick={isPlayingAudio ? pauseAudio : playAudio}
                       >
-                        {isPlayingAudio ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        {isPlayingAudio ? (
+                          <Pause className="h-4 w-4" />
+                        ) : (
+                          <Play className="h-4 w-4" />
+                        )}
                       </Button>
                       <div className="flex-1">
                         <p className="text-sm font-medium">Áudio gravado</p>
                         <p className="text-xs text-gray-500">Clique para ouvir</p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeAudio}
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={removeAudio}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
                   ) : (
                     <Button
                       type="button"
-                      variant={isRecording ? "destructive" : "outline"}
+                      variant={isRecording ? 'destructive' : 'outline'}
                       onClick={isRecording ? stopRecording : startRecording}
                       className="w-full"
                     >
@@ -716,14 +781,14 @@ export default function PushNotifications() {
                   <Label className="text-sm font-semibold">Destinatário</Label>
                   <Select
                     value={String(selectedUserId)}
-                    onValueChange={(val) => setSelectedUserId(val === 'all' ? 'all' : Number(val))}
+                    onValueChange={val => setSelectedUserId(val === 'all' ? 'all' : Number(val))}
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">👥 Todos ({subscriptionsList.length})</SelectItem>
-                      {subscriptionsList.map((sub) => (
+                      {subscriptionsList.map(sub => (
                         <SelectItem key={sub.id} value={String(sub.user_id)}>
                           {sub.user_name}
                         </SelectItem>
@@ -735,14 +800,14 @@ export default function PushNotifications() {
 
               {/* Botões de ação */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowNotificationModal(false)}
                   disabled={loading}
                 >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   onClick={sendNotification}
                   disabled={loading}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"

@@ -1,8 +1,22 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DialogWithModalTracking, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
@@ -14,11 +28,11 @@ interface DiscipuladoresManagerProps {
   onDiscipuladoresChange: (discipuladores: any[]) => void;
 }
 
-export function DiscipuladoresManager({ 
+export function DiscipuladoresManager({
   interestedId,
   interestedChurch,
-  currentDiscipuladores, 
-  onDiscipuladoresChange 
+  currentDiscipuladores,
+  onDiscipuladoresChange,
 }: DiscipuladoresManagerProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -26,7 +40,7 @@ export function DiscipuladoresManager({
   const { toast } = useToast();
 
   // Buscar todos os usuários com cache (React Query)
-  const { data: allUsers = [], isLoading: loading } = useQuery<any[]>({
+  const { data: allUsersRaw, isLoading: loading } = useQuery<any>({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await fetch('/api/users');
@@ -39,124 +53,139 @@ export function DiscipuladoresManager({
     gcTime: 10 * 60 * 1000, // Manter em cache por 10 minutos
   });
 
+  // Normalizar dados - API pode retornar {data: [], pagination: {}} ou array direto
+  const allUsers = useMemo(() => {
+    if (Array.isArray(allUsersRaw)) return allUsersRaw;
+    if (allUsersRaw?.data && Array.isArray(allUsersRaw.data)) return allUsersRaw.data;
+    return [];
+  }, [allUsersRaw]);
+
   // Filtrar membros disponíveis de forma otimizada (useMemo)
   const potentialMissionaries = useMemo(() => {
     console.log('🔍 Filtrando discipuladores para igreja:', interestedChurch);
     console.log('📊 Total de usuários carregados:', allUsers.length);
-    
+
     const currentIds = currentDiscipuladores.map(d => d.id);
-    
+
     const filtered = allUsers.filter((user: any) => {
       const isMemberOrMissionary = user.role === 'member' || user.role === 'missionary';
       const isNotCurrent = !currentIds.includes(user.id);
       const isSameChurch = user.church === interestedChurch;
-      
+
       return isMemberOrMissionary && isNotCurrent && isSameChurch;
     });
-    
+
     console.log('✅ Membros filtrados da mesma igreja:', filtered.length);
-    console.log('📋 Igrejas únicas nos resultados:', [...new Set(filtered.map((u: any) => u.church))]);
-    
+    console.log('📋 Igrejas únicas nos resultados:', [
+      ...new Set(filtered.map((u: any) => u.church)),
+    ]);
+
     return filtered;
   }, [allUsers, currentDiscipuladores, interestedChurch]);
 
-  const handleAddDiscipulador = useCallback(async (missionaryId: number) => {
-    setIsAdding(true);
-    try {
-      console.log('🔍 Adicionando discipulador via API...');
-      
-      const response = await fetch('/api/relationships', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          interestedId,
-          missionaryId,
-          status: 'active'
-        }),
-      });
+  const handleAddDiscipulador = useCallback(
+    async (missionaryId: number) => {
+      setIsAdding(true);
+      try {
+        console.log('🔍 Adicionando discipulador via API...');
 
-      if (!response.ok) {
-        throw new Error('Erro ao adicionar discipulador');
+        const response = await fetch('/api/relationships', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            interestedId,
+            missionaryId,
+            status: 'active',
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao adicionar discipulador');
+        }
+
+        const newRelationship = await response.json();
+
+        // Atualizar lista local
+        const newDiscipulador = potentialMissionaries.find((m: any) => m.id === missionaryId);
+        if (newDiscipulador) {
+          const updatedDiscipuladores = [
+            ...currentDiscipuladores,
+            {
+              id: missionaryId,
+              name: newDiscipulador.name,
+              relationshipId: newRelationship.id,
+            },
+          ];
+          onDiscipuladoresChange(updatedDiscipuladores);
+          // Lista de disponíveis será recalculada automaticamente pelo useMemo
+        }
+
+        toast({
+          title: 'Sucesso',
+          description: 'Discipulador adicionado com sucesso',
+        });
+
+        setShowAddModal(false);
+      } catch (error) {
+        console.error('Erro ao adicionar discipulador:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível adicionar o discipulador',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsAdding(false);
       }
+    },
+    [interestedId, potentialMissionaries, currentDiscipuladores, onDiscipuladoresChange, toast]
+  );
 
-      const newRelationship = await response.json();
-      
-      // Atualizar lista local
-      const newDiscipulador = potentialMissionaries.find((m: any) => m.id === missionaryId);
-      if (newDiscipulador) {
-        const updatedDiscipuladores = [
-          ...currentDiscipuladores,
-          {
-            id: missionaryId,
-            name: newDiscipulador.name,
-            relationshipId: newRelationship.id
-          }
-        ];
+  const handleRemoveDiscipulador = useCallback(
+    async (relationshipId: number) => {
+      setIsRemoving(relationshipId);
+      try {
+        const response = await fetch(`/api/relationships/${relationshipId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao remover discipulador');
+        }
+
+        // Atualizar lista local
+        const updatedDiscipuladores = currentDiscipuladores.filter(
+          d => d.relationshipId !== relationshipId
+        );
         onDiscipuladoresChange(updatedDiscipuladores);
-        // Lista de disponíveis será recalculada automaticamente pelo useMemo
+
+        toast({
+          title: 'Sucesso',
+          description: 'Discipulador removido com sucesso',
+        });
+
+        // A lista de disponíveis será atualizada automaticamente pelo useMemo
+      } catch (error) {
+        console.error('Erro ao remover discipulador:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível remover o discipulador',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsRemoving(null);
       }
-
-      toast({
-        title: "Sucesso",
-        description: "Discipulador adicionado com sucesso",
-      });
-
-      setShowAddModal(false);
-    } catch (error) {
-      console.error('Erro ao adicionar discipulador:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível adicionar o discipulador",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAdding(false);
-    }
-  }, [interestedId, potentialMissionaries, currentDiscipuladores, onDiscipuladoresChange, toast]);
-
-  const handleRemoveDiscipulador = useCallback(async (relationshipId: number) => {
-    setIsRemoving(relationshipId);
-    try {
-      const response = await fetch(`/api/relationships/${relationshipId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao remover discipulador');
-      }
-
-      // Atualizar lista local
-      const updatedDiscipuladores = currentDiscipuladores.filter(
-        d => d.relationshipId !== relationshipId
-      );
-      onDiscipuladoresChange(updatedDiscipuladores);
-
-      toast({
-        title: "Sucesso",
-        description: "Discipulador removido com sucesso",
-      });
-
-      // A lista de disponíveis será atualizada automaticamente pelo useMemo
-    } catch (error) {
-      console.error('Erro ao remover discipulador:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível remover o discipulador",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRemoving(null);
-    }
-  }, [currentDiscipuladores, onDiscipuladoresChange, toast]);
+    },
+    [currentDiscipuladores, onDiscipuladoresChange, toast]
+  );
 
   return (
     <div className="space-y-2">
       {/* Lista de discipuladores atuais */}
       {currentDiscipuladores.length > 0 && (
         <div className="flex flex-wrap gap-1 justify-start">
-          {currentDiscipuladores.map((discipulador) => (
+          {currentDiscipuladores.map(discipulador => (
             <Badge
               key={discipulador.id}
               variant="secondary"
@@ -190,14 +219,13 @@ export function DiscipuladoresManager({
       >
         + Adicionar Discipulador
       </Button>
-      
 
-      <DialogWithModalTracking 
+      <DialogWithModalTracking
         modalId="discipuladores-add-modal"
-        open={showAddModal} 
+        open={showAddModal}
         onOpenChange={setShowAddModal}
       >
-        <DialogContent 
+        <DialogContent
           className="w-[95vw] max-w-[840px] flex flex-col p-0 overflow-hidden"
           style={{ maxHeight: 'calc(100vh - 2rem)' }}
         >
@@ -205,21 +233,27 @@ export function DiscipuladoresManager({
             <DialogHeader>
               <DialogTitle>Adicionar Discipulador</DialogTitle>
               <DialogDescription>
-                Selecione um membro da igreja <strong>{interestedChurch}</strong> para ser o discipulador deste interessado.
+                Selecione um membro da igreja <strong>{interestedChurch}</strong> para ser o
+                discipulador deste interessado.
                 {!loading && potentialMissionaries.length > 0 && (
                   <span className="block mt-1 text-blue-600">
-                    {potentialMissionaries.length} {potentialMissionaries.length === 1 ? 'membro disponível' : 'membros disponíveis'}
+                    {potentialMissionaries.length}{' '}
+                    {potentialMissionaries.length === 1
+                      ? 'membro disponível'
+                      : 'membros disponíveis'}
                   </span>
                 )}
               </DialogDescription>
             </DialogHeader>
           </div>
-          
+
           <div className="flex-1 min-h-0 px-6 py-4">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8 space-y-2">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                <span className="text-sm text-gray-600">Carregando membros da {interestedChurch}...</span>
+                <span className="text-sm text-gray-600">
+                  Carregando membros da {interestedChurch}...
+                </span>
               </div>
             ) : potentialMissionaries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 space-y-2">
@@ -229,8 +263,8 @@ export function DiscipuladoresManager({
               </div>
             ) : (
               <Command className="h-full">
-                <CommandInput 
-                  placeholder="Buscar membros..." 
+                <CommandInput
+                  placeholder="Buscar membros..."
                   id="search-members"
                   name="search-members"
                   className="border-0 focus:ring-0"
@@ -256,7 +290,9 @@ export function DiscipuladoresManager({
                             <div className="font-medium truncate text-sm">{member.name}</div>
                             <div className="text-xs text-muted-foreground truncate">
                               {member.email}
-                              {member.church && <span className="ml-2 text-blue-600">• {member.church}</span>}
+                              {member.church && (
+                                <span className="ml-2 text-blue-600">• {member.church}</span>
+                              )}
                             </div>
                           </div>
                         </div>

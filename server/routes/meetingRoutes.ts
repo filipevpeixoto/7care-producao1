@@ -8,7 +8,7 @@ import { NeonAdapter } from '../neonAdapter';
 import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
-import { createMeetingSchema, updateMeetingSchema } from '../schemas';
+import { createMeetingSchema } from '../schemas';
 
 export const meetingRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -35,25 +35,23 @@ export const meetingRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de reuniões
    */
-  app.get("/api/meetings", async (req: Request, res: Response) => {
+  app.get('/api/meetings', async (req: Request, res: Response) => {
     try {
       const { userId, status } = req.query;
       let meetings = await storage.getAllMeetings();
 
       if (userId) {
-        const id = parseInt(userId as string);
-        meetings = meetings.filter((m: { requesterId?: number; assignedToId?: number }) =>
-          m.requesterId === id || m.assignedToId === id
-        );
+        const id = parseInt(String(userId), 10);
+        meetings = meetings.filter(m => m.requesterId === id || m.assignedToId === id);
       }
 
       if (status) {
-        meetings = meetings.filter((m: { status?: string }) => m.status === status);
+        meetings = meetings.filter(m => m.status === status);
       }
 
       res.json(meetings);
     } catch (error) {
-      handleError(res, error, "Get meetings");
+      handleError(res, error, 'Get meetings');
     }
   });
 
@@ -105,20 +103,25 @@ export const meetingRoutes = (app: Express): void => {
    *       400:
    *         description: Dados inválidos
    */
-  app.post("/api/meetings", validateBody(createMeetingSchema), async (req: Request, res: Response) => {
-    try {
-      const meetingData = (req as ValidatedRequest<typeof createMeetingSchema._type>).validatedBody;
-      logger.info(`Creating meeting: ${meetingData.title}`);
-      const meeting = await storage.createMeeting({
-        ...meetingData,
-        notes: meetingData.notes ?? '',
-        isUrgent: meetingData.isUrgent ?? false
-      } as Parameters<typeof storage.createMeeting>[0]);
-      res.status(201).json(meeting);
-    } catch (error) {
-      handleError(res, error, "Create meeting");
+  app.post(
+    '/api/meetings',
+    validateBody(createMeetingSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const meetingData = (req as ValidatedRequest<typeof createMeetingSchema._type>)
+          .validatedBody;
+        logger.info(`Creating meeting: ${meetingData.title}`);
+        const meeting = await storage.createMeeting({
+          ...meetingData,
+          notes: meetingData.notes ?? '',
+          isUrgent: meetingData.isUrgent ?? false,
+        } as Parameters<typeof storage.createMeeting>[0]);
+        res.status(201).json(meeting);
+      } catch (error) {
+        handleError(res, error, 'Create meeting');
+      }
     }
-  });
+  );
 
   /**
    * @swagger
@@ -146,7 +149,7 @@ export const meetingRoutes = (app: Express): void => {
    *       404:
    *         description: Reunião não encontrada
    */
-  app.put("/api/meetings/:id", async (req: Request, res: Response) => {
+  app.put('/api/meetings/:id', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const meetingData = req.body;
@@ -154,12 +157,13 @@ export const meetingRoutes = (app: Express): void => {
       const meeting = await storage.updateMeeting(id, meetingData);
 
       if (!meeting) {
-        res.status(404).json({ error: 'Reunião não encontrada' }); return;
+        res.status(404).json({ error: 'Reunião não encontrada' });
+        return;
       }
 
       res.json(meeting);
     } catch (error) {
-      handleError(res, error, "Update meeting");
+      handleError(res, error, 'Update meeting');
     }
   });
 
@@ -173,12 +177,12 @@ export const meetingRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de tipos de reunião
    */
-  app.get("/api/meeting-types", async (req: Request, res: Response) => {
+  app.get('/api/meeting-types', async (req: Request, res: Response) => {
     try {
       const meetingTypes = await storage.getMeetingTypes();
       res.json(meetingTypes);
     } catch (error) {
-      handleError(res, error, "Get meeting types");
+      handleError(res, error, 'Get meeting types');
     }
   });
 };

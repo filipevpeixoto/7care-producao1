@@ -13,13 +13,9 @@ import {
   createEventSchema,
   createMeetingSchema,
   createRelationshipSchema,
-  createDiscipleshipRequestSchema,
-  createMessageSchema,
-  createNotificationSchema,
-  createPrayerSchema,
   createEmotionalCheckInSchema,
   pointsConfigSchema,
-  googleDriveConfigSchema
+  googleDriveConfigSchema,
 } from '../../schemas';
 
 describe('Validation Schemas Tests', () => {
@@ -31,8 +27,16 @@ describe('Validation Schemas Tests', () => {
       expect(result.success).toBe(true);
     });
 
-    it('deve rejeitar email inválido', () => {
-      const invalidLogin = { email: 'notanemail', password: 'password123' };
+    it('deve aceitar username (não apenas email)', () => {
+      // loginSchema aceita email OU username
+      const validLogin = { email: 'admin', password: 'password123' };
+      const result = loginSchema.safeParse(validLogin);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('deve rejeitar email/username vazio', () => {
+      const invalidLogin = { email: '', password: 'password123' };
       const result = loginSchema.safeParse(invalidLogin);
 
       expect(result.success).toBe(false);
@@ -55,7 +59,7 @@ describe('Validation Schemas Tests', () => {
         name: 'Test User',
         email: 'test@example.com',
         password: 'Test@123!',
-        role: 'member'
+        role: 'member',
       };
       const result = registerSchema.safeParse(validRegister);
 
@@ -65,7 +69,7 @@ describe('Validation Schemas Tests', () => {
     it('deve aceitar registro sem senha (opcional)', () => {
       const validRegister = {
         name: 'Test User',
-        email: 'test@example.com'
+        email: 'test@example.com',
       };
       const result = registerSchema.safeParse(validRegister);
 
@@ -75,7 +79,7 @@ describe('Validation Schemas Tests', () => {
     it('deve rejeitar nome muito curto', () => {
       const invalidRegister = {
         name: 'A',
-        email: 'test@example.com'
+        email: 'test@example.com',
       };
       const result = registerSchema.safeParse(invalidRegister);
 
@@ -83,7 +87,14 @@ describe('Validation Schemas Tests', () => {
     });
 
     it('deve validar roles permitidos', () => {
-      const validRoles = ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'];
+      const validRoles = [
+        'superadmin',
+        'pastor',
+        'member',
+        'interested',
+        'missionary',
+        'admin_readonly',
+      ];
 
       validRoles.forEach(role => {
         const data = { name: 'Test', email: 'test@test.com', role };
@@ -96,7 +107,7 @@ describe('Validation Schemas Tests', () => {
       const invalidRegister = {
         name: 'Test User',
         email: 'test@example.com',
-        role: 'invalid_role'
+        role: 'invalid_role',
       };
       const result = registerSchema.safeParse(invalidRegister);
 
@@ -115,7 +126,7 @@ describe('Validation Schemas Tests', () => {
         phone: '11999999999',
         address: 'Rua Teste, 123',
         isDonor: true,
-        isTither: false
+        isTither: false,
       };
       const result = createUserSchema.safeParse(validUser);
 
@@ -125,7 +136,7 @@ describe('Validation Schemas Tests', () => {
     it('deve usar valores default para campos opcionais', () => {
       const minimalUser = {
         name: 'Minimal User',
-        email: 'minimal@example.com'
+        email: 'minimal@example.com',
       };
       const result = createUserSchema.safeParse(minimalUser);
 
@@ -157,7 +168,7 @@ describe('Validation Schemas Tests', () => {
       const updateWithExtras = {
         name: 'Updated Name',
         firstAccess: false,
-        status: 'approved'
+        status: 'approved',
       };
       const result = updateUserSchema.safeParse(updateWithExtras);
 
@@ -172,7 +183,7 @@ describe('Validation Schemas Tests', () => {
         code: 'IC001',
         address: 'Rua Principal, 100',
         email: 'contato@igreja.com',
-        phone: '1133334444'
+        phone: '1133334444',
       };
       const result = createChurchSchema.safeParse(validChurch);
 
@@ -202,7 +213,7 @@ describe('Validation Schemas Tests', () => {
         date: '2025-01-26',
         location: 'Igreja Central',
         type: 'culto',
-        color: '#3b82f6'
+        color: '#3b82f6',
       };
       const result = createEventSchema.safeParse(validEvent);
 
@@ -212,7 +223,7 @@ describe('Validation Schemas Tests', () => {
     it('deve rejeitar evento sem título', () => {
       const invalidEvent = {
         title: '',
-        date: '2025-01-26'
+        date: '2025-01-26',
       };
       const result = createEventSchema.safeParse(invalidEvent);
 
@@ -222,7 +233,7 @@ describe('Validation Schemas Tests', () => {
     it('deve usar valores default', () => {
       const minimalEvent = {
         title: 'Evento Simples',
-        date: '2025-01-26'
+        date: '2025-01-26',
       };
       const result = createEventSchema.safeParse(minimalEvent);
 
@@ -240,7 +251,7 @@ describe('Validation Schemas Tests', () => {
         title: 'Reunião de Oração',
         scheduledAt: '2025-01-26T19:00:00',
         requesterId: 1,
-        duration: 60
+        duration: 60,
       };
       const result = createMeetingSchema.safeParse(validMeeting);
 
@@ -255,7 +266,7 @@ describe('Validation Schemas Tests', () => {
           title: 'Test',
           scheduledAt: '2025-01-26T19:00:00',
           requesterId: 1,
-          priority
+          priority,
         };
         const result = createMeetingSchema.safeParse(meeting);
         expect(result.success).toBe(true);
@@ -268,7 +279,7 @@ describe('Validation Schemas Tests', () => {
       const validRelationship = {
         interestedId: 1,
         missionaryId: 2,
-        status: 'active'
+        status: 'active',
       };
       const result = createRelationshipSchema.safeParse(validRelationship);
 
@@ -278,7 +289,7 @@ describe('Validation Schemas Tests', () => {
     it('deve rejeitar IDs negativos', () => {
       const invalidRelationship = {
         interestedId: -1,
-        missionaryId: 2
+        missionaryId: 2,
       };
       const result = createRelationshipSchema.safeParse(invalidRelationship);
 
@@ -292,7 +303,7 @@ describe('Validation Schemas Tests', () => {
         userId: 1,
         emotionalScore: 4,
         mood: 'happy',
-        prayerRequest: 'Oração pela família'
+        prayerRequest: 'Oração pela família',
       };
       const result = createEmotionalCheckInSchema.safeParse(validCheckIn);
 
@@ -302,7 +313,7 @@ describe('Validation Schemas Tests', () => {
     it('deve validar score entre 1 e 5', () => {
       const invalidScore = {
         userId: 1,
-        emotionalScore: 6
+        emotionalScore: 6,
       };
       const result = createEmotionalCheckInSchema.safeParse(invalidScore);
 
@@ -322,7 +333,7 @@ describe('Validation Schemas Tests', () => {
         evangelismoWeight: 10,
         servicoWeight: 5,
         liderancaWeight: 5,
-        capacitacaoWeight: 5
+        capacitacaoWeight: 5,
       };
       const result = pointsConfigSchema.safeParse(validConfig);
 
@@ -332,7 +343,7 @@ describe('Validation Schemas Tests', () => {
     it('deve permitir campos extras (passthrough)', () => {
       const configWithExtras = {
         visitaWeight: 10,
-        customField: 'extra'
+        customField: 'extra',
       };
       const result = pointsConfigSchema.safeParse(configWithExtras);
 
@@ -348,7 +359,7 @@ describe('Validation Schemas Tests', () => {
       const validConfig = {
         spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/123/edit',
         sheetName: 'Eventos',
-        apiKey: 'AIza...'
+        apiKey: 'AIza...',
       };
       const result = googleDriveConfigSchema.safeParse(validConfig);
 
@@ -359,7 +370,7 @@ describe('Validation Schemas Tests', () => {
       const invalidConfig = {
         spreadsheetUrl: 'not-a-url',
         sheetName: 'Eventos',
-        apiKey: 'AIza...'
+        apiKey: 'AIza...',
       };
       const result = googleDriveConfigSchema.safeParse(invalidConfig);
 
@@ -369,12 +380,13 @@ describe('Validation Schemas Tests', () => {
 });
 
 describe('Error Message Tests', () => {
-  it('deve retornar mensagem de erro em português para email', () => {
-    const result = loginSchema.safeParse({ email: 'invalid', password: 'test' });
+  it('deve retornar mensagem de erro para email/username vazio', () => {
+    // loginSchema aceita email OU username, então verifica apenas campo vazio
+    const result = loginSchema.safeParse({ email: '', password: 'test' });
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.errors[0].message).toBe('Email inválido');
+      expect(result.error.errors[0].message).toBe('Email ou usuário é obrigatório');
     }
   });
 

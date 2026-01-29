@@ -8,7 +8,7 @@ import { Express, Request, Response, NextFunction } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';
 
-const storage = new NeonAdapter();
+const _storage = new NeonAdapter();
 
 // Tipos para audit log
 interface AuditLogEntry {
@@ -38,15 +38,16 @@ export function configureHelmet(app: Express): void {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-          fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-          imgSrc: ["'self'", "data:", "https:", "blob:"],
-          connectSrc: ["'self'", "https://api.neon.tech", "wss:", "https:"],
+          // Removido unsafe-inline e unsafe-eval para segurança 10/10
+          scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+          styleSrc: ["'self'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+          connectSrc: ["'self'", 'https://api.neon.tech', 'wss:', 'https:'],
           frameSrc: ["'self'"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
-          workerSrc: ["'self'", "blob:"],
+          workerSrc: ["'self'", 'blob:'],
         },
       },
       // Previne clickjacking
@@ -73,9 +74,10 @@ export function configureHelmet(app: Express): void {
  * Middleware para extrair informações do request para audit
  */
 function getRequestInfo(req: Request): { ip: string; userAgent: string } {
-  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() 
-    || req.socket.remoteAddress 
-    || 'unknown';
+  const ip =
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+    req.socket.remoteAddress ||
+    'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
   return { ip, userAgent };
 }
@@ -119,7 +121,9 @@ export function auditLog(
 
   // Log para console em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
-    logger.info(`[AUDIT] ${action} ${resource}/${resourceId} by ${userEmail || 'anonymous'} - ${success ? 'SUCCESS' : 'FAILED'}`);
+    logger.info(
+      `[AUDIT] ${action} ${resource}/${resourceId} by ${userEmail || 'anonymous'} - ${success ? 'SUCCESS' : 'FAILED'}`
+    );
   }
 }
 
@@ -151,13 +155,20 @@ export function auditMiddleware(action: string, resource: string) {
     const originalSend = res.send;
     const resourceId = req.params.id || req.body?.id || null;
 
-    res.send = function (body: any): Response {
+    res.send = function (body: unknown): Response {
       const success = res.statusCode >= 200 && res.statusCode < 400;
-      auditLog(req, action, resource, resourceId, { 
-        method: req.method,
-        path: req.path,
-        statusCode: res.statusCode 
-      }, success);
+      auditLog(
+        req,
+        action,
+        resource,
+        resourceId,
+        {
+          method: req.method,
+          path: req.path,
+          statusCode: res.statusCode,
+        },
+        success
+      );
       return originalSend.call(this, body);
     };
 
@@ -168,16 +179,14 @@ export function auditMiddleware(action: string, resource: string) {
 /**
  * Retorna os audit logs (para admin)
  */
-export function getAuditLogs(
-  filters?: {
-    userId?: number;
-    action?: string;
-    resource?: string;
-    startDate?: string;
-    endDate?: string;
-    limit?: number;
-  }
-): AuditLogEntry[] {
+export function getAuditLogs(filters?: {
+  userId?: number;
+  action?: string;
+  resource?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}): AuditLogEntry[] {
   let logs = [...auditLogBuffer];
 
   if (filters) {
@@ -215,9 +224,9 @@ export function strictRateLimit(maxRequests: number, windowMs: number) {
   return (req: Request, res: Response, next: NextFunction) => {
     const { ip } = getRequestInfo(req);
     const now = Date.now();
-    
+
     const record = ipRequestCounts.get(ip);
-    
+
     if (!record || now > record.resetTime) {
       ipRequestCounts.set(ip, { count: 1, resetTime: now + windowMs });
       next();
@@ -258,15 +267,22 @@ export function suspiciousRequestDetector(req: Request, res: Response, next: Nex
 
   // Verificar URL e body
   const checkString = `${req.url} ${JSON.stringify(req.body || {})} ${userAgent}`;
-  
+
   for (const pattern of suspiciousPatterns) {
     if (pattern.test(checkString)) {
-      auditLog(req, 'SUSPICIOUS_REQUEST_BLOCKED', 'security', null, {
-        pattern: pattern.toString(),
-        url: req.url,
-        ip,
-      }, false);
-      
+      auditLog(
+        req,
+        'SUSPICIOUS_REQUEST_BLOCKED',
+        'security',
+        null,
+        {
+          pattern: pattern.toString(),
+          url: req.url,
+          ip,
+        },
+        false
+      );
+
       res.status(403).json({
         success: false,
         error: 'Requisição bloqueada por motivos de segurança.',

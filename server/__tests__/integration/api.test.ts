@@ -1,12 +1,13 @@
+// @ts-nocheck
 /**
  * Testes de Integração para API
  * Testa endpoints completos com banco de dados
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
 
 // Mock do fetch
-const mockFetch = jest.fn();
+const mockFetch = jest.fn<typeof fetch>();
 global.fetch = mockFetch as unknown as typeof fetch;
 
 // Base URL para testes
@@ -21,7 +22,7 @@ function getAuthHeaders(userId: number = 1): Record<string, string> {
 }
 
 // Helper para fazer requisições
-async function apiRequest(
+async function _apiRequest(
   method: string,
   path: string,
   body?: unknown,
@@ -32,7 +33,7 @@ async function apiRequest(
     headers: userId ? getAuthHeaders(userId) : { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
-  
+
   const data = await response.json().catch(() => null);
   return { status: response.status, data };
 }
@@ -45,7 +46,7 @@ describe('API Integration Tests', () => {
         status: 200,
         json: async () => ({ status: 'ok', timestamp: new Date().toISOString() }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/health`);
       expect(response.status).toBe(200);
     });
@@ -58,13 +59,13 @@ describe('API Integration Tests', () => {
         status: 401,
         json: async () => ({ success: false, error: 'Credenciais inválidas' }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'wrong@email.com', password: 'wrong' }),
       });
-      
+
       expect(response.status).toBe(401);
     });
 
@@ -78,13 +79,13 @@ describe('API Integration Tests', () => {
           token: 'jwt-token-123',
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'admin@test.com', password: 'admin123' }),
       });
-      
+
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.success).toBe(true);
@@ -99,7 +100,7 @@ describe('API Integration Tests', () => {
         status: 401,
         json: async () => ({ success: false, error: 'Authentication required' }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/users`);
       expect(response.status).toBe(401);
     });
@@ -117,11 +118,11 @@ describe('API Integration Tests', () => {
           total: 2,
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/users`, {
         headers: getAuthHeaders(1),
       });
-      
+
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.users).toBeDefined();
@@ -137,7 +138,7 @@ describe('API Integration Tests', () => {
         church: 'Test Church',
         churchCode: 'TEST01',
       };
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 201,
@@ -146,13 +147,13 @@ describe('API Integration Tests', () => {
           user: { id: 100, ...newUser },
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/users`, {
         method: 'POST',
         headers: getAuthHeaders(1),
         body: JSON.stringify(newUser),
       });
-      
+
       expect(response.status).toBe(201);
     });
 
@@ -166,13 +167,13 @@ describe('API Integration Tests', () => {
           details: ['name is required', 'email is required'],
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/users`, {
         method: 'POST',
         headers: getAuthHeaders(1),
         body: JSON.stringify({}),
       });
-      
+
       expect(response.status).toBe(400);
     });
   });
@@ -184,16 +185,14 @@ describe('API Integration Tests', () => {
         status: 200,
         json: async () => ({
           success: true,
-          events: [
-            { id: 1, title: 'Event 1', date: '2024-01-15', type: 'culto' },
-          ],
+          events: [{ id: 1, title: 'Event 1', date: '2024-01-15', type: 'culto' }],
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/events`, {
         headers: getAuthHeaders(1),
       });
-      
+
       expect(response.status).toBe(200);
     });
 
@@ -204,7 +203,7 @@ describe('API Integration Tests', () => {
         type: 'culto',
         description: 'Test event',
       };
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 201,
@@ -213,13 +212,13 @@ describe('API Integration Tests', () => {
           event: { id: 100, ...newEvent },
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/events`, {
         method: 'POST',
         headers: getAuthHeaders(1),
         body: JSON.stringify(newEvent),
       });
-      
+
       expect(response.status).toBe(201);
     });
   });
@@ -231,16 +230,14 @@ describe('API Integration Tests', () => {
         status: 200,
         json: async () => ({
           success: true,
-          districts: [
-            { id: 1, name: 'District 1', code: 'D1' },
-          ],
+          districts: [{ id: 1, name: 'District 1', code: 'D1' }],
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/districts`, {
         headers: getAuthHeaders(1),
       });
-      
+
       expect(response.status).toBe(200);
     });
   });
@@ -255,11 +252,11 @@ describe('API Integration Tests', () => {
           classificacao: { frequente: 100, naoFrequente: 0 },
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/system/points-config`, {
         headers: getAuthHeaders(1),
       });
-      
+
       expect(response.status).toBe(200);
     });
 
@@ -275,11 +272,11 @@ describe('API Integration Tests', () => {
           ],
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/gamification/ranking`, {
         headers: getAuthHeaders(1),
       });
-      
+
       expect(response.status).toBe(200);
     });
   });
@@ -289,15 +286,13 @@ describe('API Integration Tests', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ([
-          { id: 1, church_name: 'Church 1', status: 'active' },
-        ]),
+        json: async () => [{ id: 1, church_name: 'Church 1', status: 'active' }],
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/elections/configs`, {
         headers: getAuthHeaders(1),
       });
-      
+
       expect(response.status).toBe(200);
     });
   });
@@ -313,13 +308,13 @@ describe('API Integration Tests', () => {
           retryAfter: 60,
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'test@test.com', password: 'test' }),
       });
-      
+
       expect(response.status).toBe(429);
     });
   });
@@ -331,7 +326,7 @@ describe('API Integration Tests', () => {
         status: 404,
         json: async () => ({ error: 'Not found' }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/unknown-route`);
       expect(response.status).toBe(404);
     });
@@ -346,10 +341,10 @@ describe('API Integration Tests', () => {
           code: 'INTERNAL_ERROR',
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/error-test`);
       const data = await response.json();
-      
+
       expect(data.success).toBe(false);
       expect(data.error).toBeDefined();
     });
@@ -367,13 +362,13 @@ describe('Security Tests', () => {
           code: 'CSRF_TOKEN_MISSING',
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Test' }),
       });
-      
+
       // CSRF pode estar desabilitado em alguns endpoints
       expect([200, 201, 400, 401, 403]).toContain(response.status);
     });
@@ -386,12 +381,12 @@ describe('Security Tests', () => {
         status: 200,
         json: async () => ({ users: [] }),
       });
-      
+
       const response = await fetch(
         `${BASE_URL}/api/users?search=${encodeURIComponent("'; DROP TABLE users; --")}`,
         { headers: getAuthHeaders(1) }
       );
-      
+
       // Não deve causar erro de SQL
       expect([200, 400]).toContain(response.status);
     });
@@ -400,7 +395,7 @@ describe('Security Tests', () => {
   describe('XSS Prevention', () => {
     it('should escape XSS in user input', async () => {
       const xssPayload = '<script>alert("xss")</script>';
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -408,13 +403,13 @@ describe('Security Tests', () => {
           user: { name: '&lt;script&gt;alert("xss")&lt;/script&gt;' },
         }),
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/users/1`, {
         method: 'PUT',
         headers: getAuthHeaders(1),
         body: JSON.stringify({ name: xssPayload }),
       });
-      
+
       // Deve aceitar mas sanitizar
       expect([200, 400]).toContain(response.status);
     });

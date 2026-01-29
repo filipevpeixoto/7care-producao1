@@ -5,20 +5,49 @@
 
 import { describe, it, expect, beforeAll, afterAll, jest, beforeEach } from '@jest/globals';
 
+// Mock types for tests
+interface MockUser {
+  id: number;
+  name: string;
+  email: string;
+  password?: string;
+  role: string;
+  church?: string;
+  isApproved: boolean;
+  status: string;
+  points?: number;
+  level?: string;
+  phone?: string;
+}
+
+interface MockPointsResult {
+  success?: boolean;
+  points: number;
+  level?: string;
+  breakdown?: {
+    attendance?: number;
+    tithing?: number;
+    tithes?: number;
+    discipleship?: number;
+    events?: number;
+    participation?: number;
+  };
+}
+
 // Mock do NeonAdapter
 const mockStorage = {
-  getAllUsers: jest.fn<() => Promise<any[]>>(),
-  getUserById: jest.fn<(id: number) => Promise<any | null>>(),
-  createUser: jest.fn<(data: any) => Promise<any>>(),
-  updateUser: jest.fn<(id: number, data: any) => Promise<any | null>>(),
+  getAllUsers: jest.fn<() => Promise<MockUser[]>>(),
+  getUserById: jest.fn<(id: number) => Promise<MockUser | null>>(),
+  createUser: jest.fn<(data: Partial<MockUser>) => Promise<MockUser>>(),
+  updateUser: jest.fn<(id: number, data: Partial<MockUser>) => Promise<MockUser | null>>(),
   deleteUser: jest.fn<(id: number) => Promise<boolean>>(),
-  approveUser: jest.fn<(id: number) => Promise<any | null>>(),
-  rejectUser: jest.fn<(id: number) => Promise<any | null>>(),
-  calculateUserPoints: jest.fn<(id: number) => Promise<any>>()
+  approveUser: jest.fn<(id: number) => Promise<MockUser | null>>(),
+  rejectUser: jest.fn<(id: number) => Promise<MockUser | null>>(),
+  calculateUserPoints: jest.fn<(id: number) => Promise<MockPointsResult>>(),
 };
 
 jest.mock('../../neonAdapter', () => ({
-  NeonAdapter: jest.fn().mockImplementation(() => mockStorage)
+  NeonAdapter: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 // Mock de usuários para teste
@@ -32,7 +61,7 @@ const mockUsers = [
     isApproved: true,
     status: 'approved',
     points: 100,
-    level: 'Avançado'
+    level: 'Avançado',
   },
   {
     id: 2,
@@ -43,7 +72,7 @@ const mockUsers = [
     isApproved: true,
     status: 'approved',
     points: 80,
-    level: 'Intermediário'
+    level: 'Intermediário',
   },
   {
     id: 3,
@@ -54,7 +83,7 @@ const mockUsers = [
     isApproved: true,
     status: 'approved',
     points: 50,
-    level: 'Iniciante'
+    level: 'Iniciante',
   },
   {
     id: 4,
@@ -65,8 +94,8 @@ const mockUsers = [
     isApproved: false,
     status: 'pending',
     points: 0,
-    level: 'Iniciante'
-  }
+    level: 'Iniciante',
+  },
 ];
 
 describe('Users Integration Tests', () => {
@@ -114,7 +143,7 @@ describe('Users Integration Tests', () => {
 
     it('deve remover senha dos dados retornados', () => {
       const userWithPassword = { ...mockUsers[0], password: 'secret123' };
-      const { password, ...safeUser } = userWithPassword;
+      const { password: _password, ...safeUser } = userWithPassword;
 
       expect(safeUser).not.toHaveProperty('password');
       expect(safeUser.email).toBe('admin@igreja.com');
@@ -156,14 +185,14 @@ describe('Users Integration Tests', () => {
         name: 'New User',
         email: 'newuser@igreja.com',
         role: 'member',
-        church: 'Igreja Central'
+        church: 'Igreja Central',
       };
 
       mockStorage.createUser.mockResolvedValueOnce({
         id: 5,
         ...newUser,
         isApproved: false,
-        status: 'pending'
+        status: 'pending',
       });
 
       const created = await mockStorage.createUser(newUser);
@@ -204,7 +233,7 @@ describe('Users Integration Tests', () => {
 
       mockStorage.updateUser.mockResolvedValueOnce({
         ...mockUsers[2],
-        ...updates
+        ...updates,
       });
 
       const updated = await mockStorage.updateUser(3, updates);
@@ -218,7 +247,7 @@ describe('Users Integration Tests', () => {
 
       mockStorage.updateUser.mockResolvedValueOnce({
         ...mockUsers[2],
-        ...updates
+        ...updates,
       });
 
       const updated = await mockStorage.updateUser(3, updates);
@@ -251,7 +280,7 @@ describe('Users Integration Tests', () => {
       mockStorage.approveUser.mockResolvedValueOnce({
         ...mockUsers[3],
         isApproved: true,
-        status: 'approved'
+        status: 'approved',
       });
 
       const approved = await mockStorage.approveUser(4);
@@ -266,7 +295,7 @@ describe('Users Integration Tests', () => {
       mockStorage.rejectUser.mockResolvedValueOnce({
         ...mockUsers[3],
         isApproved: false,
-        status: 'rejected'
+        status: 'rejected',
       });
 
       const rejected = await mockStorage.rejectUser(4);
@@ -291,8 +320,8 @@ describe('Users Points System Tests', () => {
         breakdown: {
           attendance: 30,
           tithes: 20,
-          participation: 25
-        }
+          participation: 25,
+        },
       });
 
       const result = await mockStorage.calculateUserPoints(3);
@@ -309,8 +338,8 @@ describe('Users Points System Tests', () => {
         breakdown: {
           attendance: 20,
           tithes: 15,
-          participation: 15
-        }
+          participation: 15,
+        },
       });
 
       const result = await mockStorage.calculateUserPoints(3);

@@ -5,18 +5,33 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
+// Mock types for tests
+interface MockEvent {
+  id: number;
+  title: string;
+  description?: string;
+  date: string;
+  endDate?: string;
+  location?: string;
+  type?: string;
+  color?: string;
+  isRecurring?: boolean;
+  capacity?: number;
+  churchId?: number;
+}
+
 // Mock do NeonAdapter
 const mockStorage = {
-  getAllEvents: jest.fn<() => Promise<any[]>>(),
-  getEventById: jest.fn<(id: number) => Promise<any | null>>(),
-  createEvent: jest.fn<(data: any) => Promise<any>>(),
-  updateEvent: jest.fn<(id: number, data: any) => Promise<any | null>>(),
+  getAllEvents: jest.fn<() => Promise<MockEvent[]>>(),
+  getEventById: jest.fn<(id: number) => Promise<MockEvent | null>>(),
+  createEvent: jest.fn<(data: Partial<MockEvent>) => Promise<MockEvent>>(),
+  updateEvent: jest.fn<(id: number, data: Partial<MockEvent>) => Promise<MockEvent | null>>(),
   deleteEvent: jest.fn<(id: number) => Promise<boolean>>(),
-  clearAllEvents: jest.fn<() => Promise<boolean>>()
+  clearAllEvents: jest.fn<() => Promise<boolean>>(),
 };
 
 jest.mock('../../neonAdapter', () => ({
-  NeonAdapter: jest.fn().mockImplementation(() => mockStorage)
+  NeonAdapter: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 // Mock de eventos para teste
@@ -32,7 +47,7 @@ const mockEvents = [
     color: '#3b82f6',
     isRecurring: true,
     capacity: 200,
-    churchId: 1
+    churchId: 1,
   },
   {
     id: 2,
@@ -45,7 +60,7 @@ const mockEvents = [
     color: '#10b981',
     isRecurring: true,
     capacity: 50,
-    churchId: 1
+    churchId: 1,
   },
   {
     id: 3,
@@ -56,8 +71,8 @@ const mockEvents = [
     type: 'jovens',
     color: '#8b5cf6',
     isRecurring: true,
-    churchId: 1
-  }
+    churchId: 1,
+  },
 ];
 
 describe('Events Integration Tests', () => {
@@ -93,8 +108,8 @@ describe('Events Integration Tests', () => {
     });
 
     it('deve ordenar eventos por data', () => {
-      const sorted = [...mockEvents].sort((a, b) =>
-        new Date(a.date).getTime() - new Date(b.date).getTime()
+      const sorted = [...mockEvents].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
 
       expect(sorted[0].title).toBe('Reunião de Jovens');
@@ -128,13 +143,13 @@ describe('Events Integration Tests', () => {
         title: 'Novo Evento',
         date: '2025-02-01T10:00:00',
         type: 'outro',
-        color: '#f59e0b'
+        color: '#f59e0b',
       };
 
       mockStorage.createEvent.mockResolvedValueOnce({
         id: 4,
         ...newEvent,
-        isRecurring: false
+        isRecurring: false,
       });
 
       const created = await mockStorage.createEvent(newEvent);
@@ -174,7 +189,7 @@ describe('Events Integration Tests', () => {
 
       mockStorage.updateEvent.mockResolvedValueOnce({
         ...mockEvents[0],
-        ...updates
+        ...updates,
       });
 
       const updated = await mockStorage.updateEvent(1, updates);
@@ -188,7 +203,7 @@ describe('Events Integration Tests', () => {
 
       mockStorage.updateEvent.mockResolvedValueOnce({
         ...mockEvents[0],
-        ...updates
+        ...updates,
       });
 
       const updated = await mockStorage.updateEvent(1, updates);
@@ -230,7 +245,15 @@ describe('Events Integration Tests', () => {
 describe('Events Validation Tests', () => {
   describe('Event Types', () => {
     it('deve validar tipos de evento permitidos', () => {
-      const validTypes = ['culto', 'escola-sabatina', 'jovens', 'deaconato', 'reuniao', 'estudo', 'outro'];
+      const validTypes = [
+        'culto',
+        'escola-sabatina',
+        'jovens',
+        'deaconato',
+        'reuniao',
+        'estudo',
+        'outro',
+      ];
 
       mockEvents.forEach(event => {
         expect(validTypes).toContain(event.type);

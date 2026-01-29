@@ -18,8 +18,6 @@ import {
   getEventsOffline,
   saveTasksOffline,
   getTasksOffline,
-  saveMessagesOffline,
-  getMessagesOffline,
   saveCurrentUserOffline,
   getCurrentUserOffline,
   addToSyncQueue,
@@ -35,12 +33,6 @@ interface FetchOptions extends RequestInit {
   skipOfflineCache?: boolean;
   timeout?: number;
   retryOnFail?: boolean;
-}
-
-interface OfflineResponse {
-  data: unknown;
-  fromCache: boolean;
-  timestamp?: number;
 }
 
 interface CacheHandler {
@@ -110,7 +102,7 @@ export function hasOfflineAccess(): boolean {
   if (currentUserRole) {
     return canAccessFullOfflineData(currentUserRole);
   }
-  
+
   // Tentar recuperar do localStorage como fallback
   try {
     const storedAuth = localStorage.getItem('7care_auth');
@@ -118,14 +110,16 @@ export function hasOfflineAccess(): boolean {
       const user = JSON.parse(storedAuth);
       if (user?.role) {
         currentUserRole = user.role;
-        console.log(`[OfflineFetch] Role recuperado do localStorage em hasOfflineAccess: ${user.role}`);
+        console.log(
+          `[OfflineFetch] Role recuperado do localStorage em hasOfflineAccess: ${user.role}`
+        );
         return canAccessFullOfflineData(user.role);
       }
     }
   } catch (e) {
     console.warn('[OfflineFetch] Erro ao recuperar role:', e);
   }
-  
+
   return false;
 }
 
@@ -185,7 +179,7 @@ async function handleGetRequest(
       const clonedResponse = response.clone();
 
       // Processar em background para não bloquear
-      processAndCacheResponse(baseUrl, clonedResponse).catch((err) =>
+      processAndCacheResponse(baseUrl, clonedResponse).catch(err =>
         console.warn('[OfflineFetch] Erro ao cachear resposta:', err)
       );
     }
@@ -251,10 +245,7 @@ async function handleWriteRequest(
 /**
  * Processa e cacheia a resposta
  */
-async function processAndCacheResponse(
-  baseUrl: string,
-  response: Response
-): Promise<void> {
+async function processAndCacheResponse(baseUrl: string, response: Response): Promise<void> {
   const handler = offlineHandlers[baseUrl];
   if (!handler) return;
 
@@ -280,10 +271,7 @@ async function processAndCacheResponse(
 /**
  * Obtém resposta do cache
  */
-async function getCachedResponse(
-  baseUrl: string,
-  originalUrl: string
-): Promise<Response | null> {
+async function getCachedResponse(baseUrl: string, originalUrl: string): Promise<Response | null> {
   const handler = offlineHandlers[baseUrl];
   if (!handler) return null;
 
@@ -401,10 +389,7 @@ async function queueForSync(
 /**
  * Fetch com timeout
  */
-async function fetchWithTimeout(
-  input: RequestInfo | URL,
-  init?: FetchOptions
-): Promise<Response> {
+async function fetchWithTimeout(input: RequestInfo | URL, init?: FetchOptions): Promise<Response> {
   const timeout = init?.timeout || DEFAULT_TIMEOUT;
 
   const controller = new AbortController();
@@ -570,10 +555,7 @@ export function enableGlobalOfflineFetch(): void {
   originalFetch = window.fetch.bind(window);
   isIntercepting = true;
 
-  window.fetch = async (
-    input: RequestInfo | URL,
-    init?: RequestInit
-  ): Promise<Response> => {
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = typeof input === 'string' ? input : input.toString();
 
     // Só interceptar requisições para a API local
@@ -626,9 +608,7 @@ export async function cacheCurrentUser(user: unknown): Promise<void> {
     };
 
     if (userData?.id && userData?.name && userData?.email && userData?.role) {
-      await saveCurrentUserOffline(
-        user as Parameters<typeof saveCurrentUserOffline>[0]
-      );
+      await saveCurrentUserOffline(user as Parameters<typeof saveCurrentUserOffline>[0]);
       console.log('[OfflineFetch] Usuário atual cacheado');
     }
   } catch (error) {

@@ -10,12 +10,12 @@ interface WebVital {
   name: string;
   value: number;
   rating: 'good' | 'needs-improvement' | 'poor';
-  delta: number;
-  id: string;
-  navigationType: string;
+  delta?: number;
+  id?: string;
+  navigationType?: string;
 }
 
-interface VitalsPayload {
+interface _VitalsPayload {
   vitals: WebVital[];
   url: string;
   userAgent: string;
@@ -26,7 +26,6 @@ interface VitalsPayload {
  * Rotas de Analytics
  */
 export const analyticsRoutes = (app: Express): void => {
-  
   /**
    * @swagger
    * /api/analytics/vitals:
@@ -52,16 +51,39 @@ export const analyticsRoutes = (app: Express): void => {
    *       200:
    *         description: Vitals registrados com sucesso
    */
-  app.post("/api/analytics/vitals", async (req: Request, res: Response) => {
+  app.post('/api/analytics/vitals', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { vitals, url, userAgent, timestamp }: VitalsPayload = req.body;
-      
-      // Validação básica
-      if (!vitals || !Array.isArray(vitals)) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Payload inválido' 
+      const body = req.body;
+
+      // A API aceita dois formatos:
+      // 1. { vitals: [...], url, userAgent, timestamp } - array de vitals
+      // 2. { name, value, rating, ... } - métrica individual
+      let vitals: WebVital[] = [];
+      let url: string | undefined;
+      let userAgent: string | undefined;
+
+      if (body.vitals && Array.isArray(body.vitals)) {
+        // Formato com array de vitals
+        vitals = body.vitals;
+        url = body.url;
+        userAgent = body.userAgent;
+      } else if (body.name && body.value !== undefined) {
+        // Formato de métrica individual
+        vitals = [
+          {
+            name: body.name,
+            value: body.value,
+            rating: body.rating || 'good',
+          },
+        ];
+        url = body.url;
+        userAgent = body.userAgent;
+      } else {
+        res.status(400).json({
+          success: false,
+          error: 'Payload inválido',
         });
+        return;
       }
 
       // Em produção, você pode querer armazenar isso em um banco de dados
@@ -73,8 +95,8 @@ export const analyticsRoutes = (app: Express): void => {
         vitals: vitals.map(v => ({
           name: v.name,
           value: v.value,
-          rating: v.rating
-        }))
+          rating: v.rating,
+        })),
       });
 
       // Identificar vitals problemáticos
@@ -82,20 +104,20 @@ export const analyticsRoutes = (app: Express): void => {
       if (poorVitals.length > 0) {
         logger.warn('⚠️ Vitals com performance ruim detectados:', {
           url,
-          poorVitals: poorVitals.map(v => `${v.name}: ${v.value}`)
+          poorVitals: poorVitals.map(v => `${v.name}: ${v.value}`),
         });
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Vitals registrados',
-        received: vitals.length
+        received: vitals.length,
       });
     } catch (error) {
       logger.error('❌ Erro ao processar vitals:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: 'Erro ao processar vitals' 
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao processar vitals',
       });
     }
   });
@@ -123,19 +145,19 @@ export const analyticsRoutes = (app: Express): void => {
    *       200:
    *         description: Erro registrado
    */
-  app.post("/api/analytics/error", async (req: Request, res: Response) => {
+  app.post('/api/analytics/error', async (req: Request, res: Response) => {
     try {
       const { message, stack, componentStack, url } = req.body;
-      
+
       logger.error('🔴 Erro capturado do frontend:', {
         message,
         url,
         stack: stack?.substring(0, 200), // Limitar tamanho
-        component: componentStack?.split('\n')[0]
+        component: componentStack?.split('\n')[0],
       });
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (_error) {
       // Não fazer nada se falhar - evitar loop infinito
       res.status(200).json({ success: false });
     }
@@ -151,7 +173,7 @@ export const analyticsRoutes = (app: Express): void => {
    *       200:
    *         description: Métricas de performance
    */
-  app.get("/api/analytics/performance", async (_req: Request, res: Response) => {
+  app.get('/api/analytics/performance', async (_req: Request, res: Response) => {
     try {
       const metrics = {
         uptime: process.uptime(),
@@ -159,12 +181,12 @@ export const analyticsRoutes = (app: Express): void => {
           used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
           total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
           external: Math.round(process.memoryUsage().external / 1024 / 1024),
-          rss: Math.round(process.memoryUsage().rss / 1024 / 1024)
+          rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
         },
         cpu: process.cpuUsage(),
         platform: process.platform,
         nodeVersion: process.version,
-        environment: process.env.NODE_ENV
+        environment: process.env.NODE_ENV,
       };
 
       res.json(metrics);

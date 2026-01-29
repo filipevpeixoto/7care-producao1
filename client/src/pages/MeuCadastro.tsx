@@ -9,7 +9,15 @@ import { PhotoSelector } from '@/components/ui/photo-selector';
 import { useAuth } from '@/hooks/useAuth';
 import { getRoleDisplayName } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
-import { DialogWithModalTracking, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const MeuCadastro = () => {
   const { user, refreshUserData } = useAuth();
@@ -18,42 +26,54 @@ const MeuCadastro = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isChangePwdOpen, setIsChangePwdOpen] = useState(false);
   const [isChangingPwd, setIsChangingPwd] = useState(false);
-  const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwdForm, setPwdForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
 
   // Formata telefone no padrão brasileiro (DDD) 99999-9999
   const formatPhoneBR = (input: string | undefined | null): string => {
     const digits = (input || '').replace(/\D/g, '').slice(0, 11);
     if (digits.length <= 2) return digits ? `(${digits}` : '';
     if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    if (digits.length <= 10)
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
   };
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: formatPhoneBR(user?.phone),
-    birthDate: (user?.birthDate && /\d{4}-\d{2}-\d{2}/.test(user.birthDate) ? user.birthDate.slice(0,10) : '') || ''
+    birthDate:
+      (user?.birthDate && /\d{4}-\d{2}-\d{2}/.test(user.birthDate)
+        ? user.birthDate.slice(0, 10)
+        : '') || '',
   });
 
   useEffect(() => {
     const formatDate = (dateStr?: string | null) => {
       if (!dateStr) return '';
-      if (/\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0,10);
-      try { return new Date(dateStr).toISOString().slice(0,10); } catch { return ''; }
+      if (/\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0, 10);
+      try {
+        return new Date(dateStr).toISOString().slice(0, 10);
+      } catch {
+        return '';
+      }
     };
-    
+
     console.log('🔄 MeuCadastro - Atualizando formData com dados do usuário:', {
       name: user?.name,
       email: user?.email,
       phone: user?.phone,
-      birthDate: user?.birthDate
+      birthDate: user?.birthDate,
     });
-    
+
     setFormData({
       name: user?.name || '',
       email: user?.email || '',
       phone: formatPhoneBR(user?.phone),
-      birthDate: formatDate(user?.birthDate)
+      birthDate: formatDate(user?.birthDate),
     });
   }, [user]);
 
@@ -68,7 +88,7 @@ const MeuCadastro = () => {
     if (!user?.id) return;
 
     setIsUploadingPhoto(true);
-    
+
     try {
       const formData = new FormData();
       formData.append('profilePhoto', file);
@@ -84,22 +104,22 @@ const MeuCadastro = () => {
       }
 
       const result = await response.json();
-      
+
       // Atualizar o usuário localmente
       if (refreshUserData) {
         await refreshUserData();
       }
 
       toast({
-        title: "Foto atualizada!",
-        description: "Sua foto de perfil foi atualizada com sucesso",
+        title: 'Foto atualizada!',
+        description: 'Sua foto de perfil foi atualizada com sucesso',
       });
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
       toast({
-        title: "Erro ao atualizar foto",
-        description: "Não foi possível atualizar sua foto. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao atualizar foto',
+        description: 'Não foi possível atualizar sua foto. Tente novamente.',
+        variant: 'destructive',
       });
     } finally {
       setIsUploadingPhoto(false);
@@ -124,15 +144,15 @@ const MeuCadastro = () => {
       }
 
       toast({
-        title: "Foto removida!",
-        description: "Sua foto de perfil foi removida com sucesso",
+        title: 'Foto removida!',
+        description: 'Sua foto de perfil foi removida com sucesso',
       });
     } catch (error) {
       console.error('Erro ao remover foto:', error);
       toast({
-        title: "Erro ao remover foto",
-        description: "Não foi possível remover sua foto. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao remover foto',
+        description: 'Não foi possível remover sua foto. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
@@ -160,15 +180,15 @@ const MeuCadastro = () => {
 
       setIsEditing(false);
       toast({
-        title: "Dados atualizados",
-        description: "Suas informações foram salvas com sucesso"
+        title: 'Dados atualizados',
+        description: 'Suas informações foram salvas com sucesso',
       });
     } catch (error) {
       console.error('Erro ao salvar:', error);
       toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar suas informações. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar suas informações. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
@@ -178,22 +198,37 @@ const MeuCadastro = () => {
       name: user?.name || '',
       email: user?.email || '',
       phone: formatPhoneBR(user?.phone),
-      birthDate: (user?.birthDate && /\d{4}-\d{2}-\d{2}/.test(user.birthDate) ? user.birthDate.slice(0,10) : '') || ''
+      birthDate:
+        (user?.birthDate && /\d{4}-\d{2}-\d{2}/.test(user.birthDate)
+          ? user.birthDate.slice(0, 10)
+          : '') || '',
     });
     setIsEditing(false);
   };
 
   const validatePasswords = () => {
     if (!pwdForm.currentPassword || !pwdForm.newPassword || !pwdForm.confirmPassword) {
-      toast({ title: 'Campos obrigatórios', description: 'Preencha todas as senhas.', variant: 'destructive' });
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Preencha todas as senhas.',
+        variant: 'destructive',
+      });
       return false;
     }
     if (pwdForm.newPassword.length < 6) {
-      toast({ title: 'Senha muito curta', description: 'A nova senha deve ter pelo menos 6 caracteres.', variant: 'destructive' });
+      toast({
+        title: 'Senha muito curta',
+        description: 'A nova senha deve ter pelo menos 6 caracteres.',
+        variant: 'destructive',
+      });
       return false;
     }
     if (pwdForm.newPassword !== pwdForm.confirmPassword) {
-      toast({ title: 'Confirmação incorreta', description: 'A confirmação deve coincidir com a nova senha.', variant: 'destructive' });
+      toast({
+        title: 'Confirmação incorreta',
+        description: 'A confirmação deve coincidir com a nova senha.',
+        variant: 'destructive',
+      });
       return false;
     }
     return true;
@@ -211,7 +246,7 @@ const MeuCadastro = () => {
           userId: Number(user.id),
           currentPassword: pwdForm.currentPassword,
           newPassword: pwdForm.newPassword,
-        })
+        }),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || data?.success === false) {
@@ -224,8 +259,12 @@ const MeuCadastro = () => {
       setIsChangePwdOpen(false);
       setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       toast({ title: 'Senha alterada', description: 'Sua senha foi atualizada com sucesso.' });
-    } catch (err) {
-      toast({ title: 'Erro ao alterar senha', description: 'Tente novamente.', variant: 'destructive' });
+    } catch (_err) {
+      toast({
+        title: 'Erro ao alterar senha',
+        description: 'Tente novamente.',
+        variant: 'destructive',
+      });
     } finally {
       setIsChangingPwd(false);
     }
@@ -262,7 +301,7 @@ const MeuCadastro = () => {
                       src={getProfilePhotoUrl() || ''}
                       alt={`Foto de ${user.name}`}
                       className="w-24 h-24 rounded-full object-cover border-4 border-primary/20"
-                      onError={(e) => {
+                      onError={e => {
                         // Fallback para inicial se a imagem falhar
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
@@ -270,7 +309,7 @@ const MeuCadastro = () => {
                         if (fallback) fallback.style.display = 'flex';
                       }}
                     />
-                    <div 
+                    <div
                       className="w-24 h-24 rounded-full bg-gradient-primary flex items-center justify-center text-3xl font-bold text-primary-foreground"
                       style={{ display: 'none' }}
                     >
@@ -282,15 +321,15 @@ const MeuCadastro = () => {
                     {user?.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                
+
                 <PhotoSelector
                   currentPhoto={getProfilePhotoUrl()}
                   onPhotoSelect={handlePhotoSelect}
                   onPhotoRemove={handlePhotoRemove}
                   isLoading={isUploadingPhoto}
                   trigger={
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
                       disabled={isUploadingPhoto}
                     >
@@ -305,9 +344,7 @@ const MeuCadastro = () => {
               </div>
               <div>
                 <h2 className="text-xl font-semibold">{user?.name}</h2>
-                <p className="text-muted-foreground capitalize">
-                  {getRoleDisplayName(user?.role)}
-                </p>
+                <p className="text-muted-foreground capitalize">{getRoleDisplayName(user?.role)}</p>
               </div>
             </div>
           </CardContent>
@@ -341,7 +378,7 @@ const MeuCadastro = () => {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   className="pl-10"
                   disabled={!isEditing}
                 />
@@ -356,7 +393,7 @@ const MeuCadastro = () => {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   className="pl-10"
                   disabled={!isEditing}
                 />
@@ -370,7 +407,9 @@ const MeuCadastro = () => {
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: formatPhoneBR(e.target.value) }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, phone: formatPhoneBR(e.target.value) }))
+                  }
                   className="pl-10"
                   disabled={!isEditing}
                 />
@@ -385,7 +424,7 @@ const MeuCadastro = () => {
                   id="birthDate"
                   type="date"
                   value={formData.birthDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, birthDate: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, birthDate: e.target.value }))}
                   className="pl-10"
                   disabled={!isEditing}
                 />
@@ -400,9 +439,9 @@ const MeuCadastro = () => {
             <CardTitle>Segurança</CardTitle>
           </CardHeader>
           <CardContent>
-            <DialogWithModalTracking 
+            <DialogWithModalTracking
               modalId="change-password-modal"
-              open={isChangePwdOpen} 
+              open={isChangePwdOpen}
               onOpenChange={setIsChangePwdOpen}
             >
               <DialogTrigger asChild>
@@ -425,7 +464,9 @@ const MeuCadastro = () => {
                       id="currentPassword"
                       type="password"
                       value={pwdForm.currentPassword}
-                      onChange={(e) => setPwdForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      onChange={e =>
+                        setPwdForm(prev => ({ ...prev, currentPassword: e.target.value }))
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -434,7 +475,7 @@ const MeuCadastro = () => {
                       id="newPassword"
                       type="password"
                       value={pwdForm.newPassword}
-                      onChange={(e) => setPwdForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                      onChange={e => setPwdForm(prev => ({ ...prev, newPassword: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
@@ -443,12 +484,20 @@ const MeuCadastro = () => {
                       id="confirmPassword"
                       type="password"
                       value={pwdForm.confirmPassword}
-                      onChange={(e) => setPwdForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      onChange={e =>
+                        setPwdForm(prev => ({ ...prev, confirmPassword: e.target.value }))
+                      }
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsChangePwdOpen(false)} disabled={isChangingPwd}>Cancelar</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsChangePwdOpen(false)}
+                    disabled={isChangingPwd}
+                  >
+                    Cancelar
+                  </Button>
                   <Button onClick={handleSubmitChangePassword} disabled={isChangingPwd}>
                     {isChangingPwd ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                     Salvar nova senha

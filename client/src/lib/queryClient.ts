@@ -1,10 +1,26 @@
 import { QueryClient } from '@tanstack/react-query';
 import { PERFORMANCE_CONFIG } from './performance';
 
-// Helper para adicionar JWT token nas requisições
+// Helper para extrair o userId do localStorage
+function getUserId(): string {
+  try {
+    const auth = localStorage.getItem('7care_auth');
+    if (auth) {
+      const user = JSON.parse(auth);
+      return user?.id?.toString() || '';
+    }
+  } catch {}
+  return '';
+}
+
+// Helper para adicionar JWT token e x-user-id nas requisições
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('7care_token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
+  const userId = getUserId();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(userId ? { 'x-user-id': userId } : {}),
+  };
 }
 
 // Configuração otimizada do React Query
@@ -17,27 +33,25 @@ export const createQueryClient = () => {
         refetchOnWindowFocus: PERFORMANCE_CONFIG.queryDefaults.refetchOnWindowFocus,
         staleTime: PERFORMANCE_CONFIG.queryDefaults.staleTime,
         gcTime: PERFORMANCE_CONFIG.queryDefaults.gcTime,
-        
+
         // Configurações adicionais para melhor performance
         refetchOnMount: true,
         refetchOnReconnect: true,
-        
+
         // Configurações de retry inteligente
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-        
+        retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+
         // Query function padrão
         queryFn: async ({ queryKey }) => {
           const url = queryKey[0] as string;
-          const token = localStorage.getItem('7care_token');
-          
-          const response = await fetch(url, {
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-          });
-          
+          const headers = getAuthHeaders();
+
+          const response = await fetch(url, { headers });
+
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-          
+
           return response.json();
         },
       },
@@ -45,7 +59,7 @@ export const createQueryClient = () => {
         // Configurações para mutations
         retry: 1,
         retryDelay: 1000,
-        
+
         // Configurações de otimistic updates
         onMutate: undefined,
         onError: undefined,
@@ -65,7 +79,7 @@ export const queryConfigs = {
     refetchInterval: PERFORMANCE_CONFIG.cacheConfig.dashboard.refetchInterval,
     refetchOnWindowFocus: false,
   },
-  
+
   // Configurações para dados do calendário
   calendar: {
     staleTime: PERFORMANCE_CONFIG.cacheConfig.calendar.staleTime,
@@ -73,7 +87,7 @@ export const queryConfigs = {
     refetchInterval: PERFORMANCE_CONFIG.cacheConfig.calendar.refetchInterval,
     refetchOnWindowFocus: false,
   },
-  
+
   // Configurações para dados de usuários
   users: {
     staleTime: PERFORMANCE_CONFIG.cacheConfig.users.staleTime,
@@ -81,7 +95,7 @@ export const queryConfigs = {
     refetchInterval: PERFORMANCE_CONFIG.cacheConfig.users.refetchInterval,
     refetchOnWindowFocus: true,
   },
-  
+
   // Configurações para atividades
   activities: {
     staleTime: PERFORMANCE_CONFIG.cacheConfig.activities.staleTime,
@@ -89,7 +103,7 @@ export const queryConfigs = {
     refetchInterval: PERFORMANCE_CONFIG.cacheConfig.activities.refetchInterval,
     refetchOnWindowFocus: false,
   },
-  
+
   // Configurações para dados que mudam frequentemente
   realtime: {
     staleTime: 0,
@@ -97,7 +111,7 @@ export const queryConfigs = {
     refetchInterval: 30000, // 30 segundos
     refetchOnWindowFocus: true,
   },
-  
+
   // Configurações para dados estáticos
   static: {
     staleTime: Infinity,
@@ -113,10 +127,7 @@ export const createQueryConfig = (type: keyof typeof queryConfigs) => {
 };
 
 // Função para invalidar queries relacionadas
-export const invalidateRelatedQueries = (
-  queryClient: QueryClient,
-  queryKeys: string[]
-) => {
+export const invalidateRelatedQueries = (queryClient: QueryClient, queryKeys: string[]) => {
   queryKeys.forEach(key => {
     queryClient.invalidateQueries({ queryKey: [key] });
   });
@@ -134,7 +145,7 @@ export const prefetchImportantData = (queryClient: QueryClient) => {
     },
     ...queryConfigs.dashboard,
   });
-  
+
   // Pré-carregar dados de usuários (requer autenticação)
   // Esta query será feita quando o usuário estiver logado
   // queryClient.prefetchQuery({
@@ -152,12 +163,15 @@ export const prefetchImportantData = (queryClient: QueryClient) => {
 export const cleanupOldCache = (queryClient: QueryClient) => {
   // Limpar queries que não foram usadas por mais de 1 hora
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
-  
-  queryClient.getQueryCache().getAll().forEach(query => {
-    if (query.state.dataUpdatedAt < oneHourAgo) {
-      queryClient.removeQueries({ queryKey: query.queryKey });
-    }
-  });
+
+  queryClient
+    .getQueryCache()
+    .getAll()
+    .forEach(query => {
+      if (query.state.dataUpdatedAt < oneHourAgo) {
+        queryClient.removeQueries({ queryKey: query.queryKey });
+      }
+    });
 };
 
 // Função para configurar listeners de performance
@@ -166,20 +180,20 @@ export const setupPerformanceListeners = (queryClient: QueryClient) => {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       // Só invalidar queries críticas, não todas
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: ['/api/dashboard/stats'],
-        refetchType: 'active'
+        refetchType: 'active',
       });
     }
   });
-  
+
   // Listener para quando o usuário volta online - OTIMIZADO
   window.addEventListener('online', () => {
     // Só refazer queries que falharam, não todas
-    queryClient.refetchQueries({ 
+    queryClient.refetchQueries({
       type: 'active',
       exact: false,
-      stale: true // Só queries que estão stale
+      stale: true, // Só queries que estão stale
     });
   });
 };

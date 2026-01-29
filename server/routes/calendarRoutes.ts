@@ -52,23 +52,29 @@ export const calendarRoutes = (app: Express): void => {
    *       200:
    *         description: Configuração salva
    */
-  app.post("/api/calendar/google-drive-config", validateBody(googleDriveConfigSchema), async (req: Request, res: Response) => {
-    try {
-      const { spreadsheetUrl, sheetName, apiKey } = (req as ValidatedRequest<typeof googleDriveConfigSchema._type>).validatedBody;
+  app.post(
+    '/api/calendar/google-drive-config',
+    validateBody(googleDriveConfigSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const { spreadsheetUrl, sheetName, apiKey } = (
+          req as ValidatedRequest<typeof googleDriveConfigSchema._type>
+        ).validatedBody;
 
-      logger.info('Saving Google Drive config');
-      await storage.saveGoogleDriveConfig({
-        spreadsheetUrl,
-        sheetName,
-        apiKey,
-        updatedAt: new Date().toISOString()
-      });
+        logger.info('Saving Google Drive config');
+        await storage.saveGoogleDriveConfig({
+          spreadsheetUrl,
+          sheetName,
+          apiKey,
+          updatedAt: new Date().toISOString(),
+        });
 
-      res.json({ success: true, message: 'Configuração salva' });
-    } catch (error) {
-      handleError(res, error, "Save Google Drive config");
+        res.json({ success: true, message: 'Configuração salva' });
+      } catch (error) {
+        handleError(res, error, 'Save Google Drive config');
+      }
     }
-  });
+  );
 
   /**
    * @swagger
@@ -80,12 +86,12 @@ export const calendarRoutes = (app: Express): void => {
    *       200:
    *         description: Configuração atual
    */
-  app.get("/api/calendar/google-drive-config", async (req: Request, res: Response) => {
+  app.get('/api/calendar/google-drive-config', async (req: Request, res: Response) => {
     try {
       const config = await storage.getGoogleDriveConfig();
       res.json(config || {});
     } catch (error) {
-      handleError(res, error, "Get Google Drive config");
+      handleError(res, error, 'Get Google Drive config');
     }
   });
 
@@ -116,7 +122,7 @@ export const calendarRoutes = (app: Express): void => {
    *       400:
    *         description: Erro na conexão
    */
-  app.post("/api/calendar/test-google-drive", async (req: Request, res: Response) => {
+  app.post('/api/calendar/test-google-drive', async (req: Request, res: Response) => {
     try {
       const { spreadsheetUrl, sheetName, apiKey } = req.body;
 
@@ -139,7 +145,7 @@ export const calendarRoutes = (app: Express): void => {
         const errorData = await response.json();
         res.status(400).json({
           error: 'Erro ao conectar com Google Sheets',
-          details: errorData.error?.message || 'Verifique as configurações'
+          details: errorData.error?.message || 'Verifique as configurações',
         });
         return;
       }
@@ -149,10 +155,10 @@ export const calendarRoutes = (app: Express): void => {
       res.json({
         success: true,
         message: 'Conexão bem-sucedida',
-        rowCount: data.values?.length || 0
+        rowCount: data.values?.length || 0,
       });
     } catch (error) {
-      handleError(res, error, "Test Google Drive connection");
+      handleError(res, error, 'Test Google Drive connection');
     }
   });
 
@@ -168,7 +174,7 @@ export const calendarRoutes = (app: Express): void => {
    *       200:
    *         description: Sincronização concluída
    */
-  app.post("/api/calendar/sync-google-drive", async (req: Request, res: Response) => {
+  app.post('/api/calendar/sync-google-drive', async (req: Request, res: Response) => {
     try {
       const config = await storage.getGoogleDriveConfig();
 
@@ -236,7 +242,7 @@ export const calendarRoutes = (app: Express): void => {
             maxParticipants: 0,
             isPublic: true,
             organizerId,
-            churchId
+            churchId,
           };
 
           await storage.createEvent(event);
@@ -250,10 +256,10 @@ export const calendarRoutes = (app: Express): void => {
         success: true,
         message: `Sincronização concluída`,
         imported,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {
-      handleError(res, error, "Sync Google Drive");
+      handleError(res, error, 'Sync Google Drive');
     }
   });
 
@@ -282,23 +288,36 @@ export const calendarRoutes = (app: Express): void => {
    */
   app.post('/api/google-sheets/proxy', async (req: Request, res: Response) => {
     try {
-      const { url } = req.body;
+      const { url, action, spreadsheetId, sheetName } = req.body;
+
+      // Se for uma ação do Google Sheets (getTasks, etc.)
+      if (action && spreadsheetId) {
+        // Construir URL do Google Apps Script
+        const _scriptUrl = `https://script.google.com/macros/s/AKfycbxxxxx/exec?action=${action}&spreadsheetId=${spreadsheetId}&sheetName=${sheetName || 'tarefas'}`;
+
+        // Por enquanto, retornar array vazio se não houver URL do script configurada
+        // Isso permite que o sistema funcione sem o Google Sheets
+        res.json({ tasks: [], success: true, message: 'Google Sheets não configurado' });
+        return;
+      }
 
       if (!url) {
-        res.status(400).json({ error: 'URL é obrigatória' }); return;
+        res.status(400).json({ error: 'URL é obrigatória' });
+        return;
       }
 
       const response = await fetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
-        res.status(response.status).json(errorData); return;
+        res.status(response.status).json(errorData);
+        return;
       }
 
       const data = await response.json();
       res.json(data);
     } catch (error) {
-      handleError(res, error, "Google Sheets proxy");
+      handleError(res, error, 'Google Sheets proxy');
     }
   });
 
@@ -312,12 +331,12 @@ export const calendarRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de atividades
    */
-  app.get("/api/activities", async (req: Request, res: Response) => {
+  app.get('/api/activities', async (req: Request, res: Response) => {
     try {
       const activities = await storage.getAllActivities();
       res.json(activities);
     } catch (error) {
-      handleError(res, error, "Get activities");
+      handleError(res, error, 'Get activities');
     }
   });
 
@@ -339,13 +358,13 @@ export const calendarRoutes = (app: Express): void => {
    *       201:
    *         description: Atividade criada
    */
-  app.post("/api/activities", async (req: Request, res: Response) => {
+  app.post('/api/activities', async (req: Request, res: Response) => {
     try {
       const activityData = req.body;
       const activity = await storage.createActivity(activityData);
       res.status(201).json(activity);
     } catch (error) {
-      handleError(res, error, "Create activity");
+      handleError(res, error, 'Create activity');
     }
   });
 
@@ -367,7 +386,7 @@ export const calendarRoutes = (app: Express): void => {
    *       200:
    *         description: Atividade atualizada
    */
-  app.put("/api/activities/:id", async (req: Request, res: Response) => {
+  app.put('/api/activities/:id', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const activityData = req.body;
@@ -375,12 +394,13 @@ export const calendarRoutes = (app: Express): void => {
       const activity = await storage.updateActivity(id, activityData);
 
       if (!activity) {
-        res.status(404).json({ error: 'Atividade não encontrada' }); return;
+        res.status(404).json({ error: 'Atividade não encontrada' });
+        return;
       }
 
       res.json(activity);
     } catch (error) {
-      handleError(res, error, "Update activity");
+      handleError(res, error, 'Update activity');
     }
   });
 
@@ -402,13 +422,13 @@ export const calendarRoutes = (app: Express): void => {
    *       200:
    *         description: Atividade removida
    */
-  app.delete("/api/activities/:id", async (req: Request, res: Response) => {
+  app.delete('/api/activities/:id', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteActivity(id);
       res.json({ success: true, message: 'Atividade removida' });
     } catch (error) {
-      handleError(res, error, "Delete activity");
+      handleError(res, error, 'Delete activity');
     }
   });
 };

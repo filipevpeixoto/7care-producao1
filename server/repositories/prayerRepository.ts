@@ -69,7 +69,7 @@ export class PrayerRepository {
   /**
    * Marca oração como respondida
    */
-  async markAsAnswered(id: number, testimony?: string): Promise<Prayer | null> {
+  async markAsAnswered(id: number, _testimony?: string): Promise<Prayer | null> {
     try {
       const [prayer] = await db
         .update(schema.prayers)
@@ -92,14 +92,10 @@ export class PrayerRepository {
   async delete(id: number): Promise<boolean> {
     try {
       // Primeiro deleta os intercessores
-      await db
-        .delete(schema.prayerIntercessors)
-        .where(eq(schema.prayerIntercessors.prayerId, id));
-      
+      await db.delete(schema.prayerIntercessors).where(eq(schema.prayerIntercessors.prayerId, id));
+
       // Depois deleta a oração
-      await db
-        .delete(schema.prayers)
-        .where(eq(schema.prayers.id, id));
+      await db.delete(schema.prayers).where(eq(schema.prayers.id, id));
       return true;
     } catch (error) {
       logger.error('Erro ao deletar oração:', error);
@@ -112,12 +108,10 @@ export class PrayerRepository {
    */
   async addIntercessor(prayerId: number, userId: number): Promise<boolean> {
     try {
-      await db
-        .insert(schema.prayerIntercessors)
-        .values({
-          prayerId,
-          userId,
-        });
+      await db.insert(schema.prayerIntercessors).values({
+        prayerId,
+        userId,
+      });
       return true;
     } catch (error) {
       logger.error('Erro ao adicionar intercessor:', error);
@@ -157,7 +151,7 @@ export class PrayerRepository {
         .from(schema.prayerIntercessors)
         .innerJoin(schema.users, eq(schema.prayerIntercessors.userId, schema.users.id))
         .where(eq(schema.prayerIntercessors.prayerId, prayerId));
-      
+
       return result.map(r => this.mapUserRecord(r.user));
     } catch (error) {
       logger.error('Erro ao buscar intercessores:', error);
@@ -177,7 +171,7 @@ export class PrayerRepository {
         .from(schema.prayerIntercessors)
         .innerJoin(schema.prayers, eq(schema.prayerIntercessors.prayerId, schema.prayers.id))
         .where(eq(schema.prayerIntercessors.userId, userId));
-      
+
       return result.map(r => this.mapRecord(r.prayer));
     } catch (error) {
       logger.error('Erro ao buscar orações do usuário:', error);
@@ -190,12 +184,14 @@ export class PrayerRepository {
    */
   private mapRecord(record: Record<string, unknown>): Prayer {
     const isAnswered = record.status === 'answered';
-    const createdAt = record.createdAt instanceof Date 
-      ? record.createdAt.toISOString() 
-      : String(record.createdAt || '');
-    const updatedAt = record.updatedAt instanceof Date 
-      ? record.updatedAt.toISOString() 
-      : String(record.updatedAt || '');
+    const createdAt =
+      record.createdAt instanceof Date
+        ? record.createdAt.toISOString()
+        : String(record.createdAt || '');
+    const updatedAt =
+      record.updatedAt instanceof Date
+        ? record.updatedAt.toISOString()
+        : String(record.updatedAt || '');
 
     return {
       id: Number(record.id),
@@ -223,12 +219,14 @@ export class PrayerRepository {
       role: String(record.role || 'member') as User['role'],
       church: record.church ? String(record.church) : null,
       churchCode: record.churchCode ? String(record.churchCode) : '',
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : String(record.updatedAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : String(record.updatedAt || ''),
     } as User;
   }
 }

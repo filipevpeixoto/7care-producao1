@@ -13,7 +13,7 @@ import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { pointsConfigSchema } from '../schemas';
 import { User } from '../../shared/schema';
-import { PointsConfiguration } from '../types/storage';
+import { PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
 
 // Tipo para dados extras do usuário
 interface UserExtraData {
@@ -56,8 +56,20 @@ interface PointsConfig {
   temLicao?: { comLicao?: number };
   totalpresenca?: { oitoATreze?: number; quatroASete?: number };
   totalPresenca?: { oitoATreze?: number; quatroASete?: number };
-  escolasabatina?: { comunhao?: number; missao?: number; estudoBiblico?: number; discipuladoPosBatismo?: number; batizouAlguem?: number };
-  escolaSabatina?: { comunhao?: number; missao?: number; estudoBiblico?: number; discipuladoPosBatismo?: number; batizouAlguem?: number };
+  escolasabatina?: {
+    comunhao?: number;
+    missao?: number;
+    estudoBiblico?: number;
+    discipuladoPosBatismo?: number;
+    batizouAlguem?: number;
+  };
+  escolaSabatina?: {
+    comunhao?: number;
+    missao?: number;
+    estudoBiblico?: number;
+    discipuladoPosBatismo?: number;
+    batizouAlguem?: number;
+  };
   batizouAlguem?: { sim?: number };
   discipuladoPosBatismo?: { multiplicador?: number };
   pontuacaoDinamica?: { multiplicador?: number };
@@ -163,9 +175,10 @@ export const pointsRoutes = (app: Express): void => {
 
     // 9. TOTAL DE PRESENÇA
     if (extraData.totalPresenca !== undefined && extraData.totalPresenca !== null) {
-      const presenca = typeof extraData.totalPresenca === 'string'
-        ? parseInt(extraData.totalPresenca)
-        : extraData.totalPresenca;
+      const presenca =
+        typeof extraData.totalPresenca === 'string'
+          ? parseInt(extraData.totalPresenca)
+          : extraData.totalPresenca;
       if (presenca >= 8 && presenca <= 13) {
         points += config.totalpresenca?.oitoATreze || 0;
       } else if (presenca >= 4 && presenca <= 7) {
@@ -190,7 +203,8 @@ export const pointsRoutes = (app: Express): void => {
 
     // 13. ESCOLA SABATINA - DISCIPULADO PÓS-BATISMO
     if (extraData.discipuladoPosBatismo && extraData.discipuladoPosBatismo > 0) {
-      points += extraData.discipuladoPosBatismo * (config.discipuladoPosBatismo?.multiplicador || 0);
+      points +=
+        extraData.discipuladoPosBatismo * (config.discipuladoPosBatismo?.multiplicador || 0);
     }
 
     // 14. CPF VÁLIDO
@@ -211,15 +225,25 @@ export const pointsRoutes = (app: Express): void => {
     const values: number[] = [];
 
     if (config.basicPoints && config.basicPoints > 0) values.push(config.basicPoints);
-    if (config.attendancePoints && config.attendancePoints > 0) values.push(config.attendancePoints);
+    if (config.attendancePoints && config.attendancePoints > 0)
+      values.push(config.attendancePoints);
     if (config.eventPoints && config.eventPoints > 0) values.push(config.eventPoints);
     if (config.donationPoints && config.donationPoints > 0) values.push(config.donationPoints);
 
     const categories: Array<keyof PointsConfig> = [
-      'engajamento', 'classificacao', 'dizimista', 'ofertante',
-      'tempoBatismo', 'cargos', 'nomeUnidade', 'temLicao',
-      'totalPresenca', 'escolaSabatina', 'batizouAlguem',
-      'cpfValido', 'camposVaziosACMS'
+      'engajamento',
+      'classificacao',
+      'dizimista',
+      'ofertante',
+      'tempoBatismo',
+      'cargos',
+      'nomeUnidade',
+      'temLicao',
+      'totalPresenca',
+      'escolaSabatina',
+      'batizouAlguem',
+      'cpfValido',
+      'camposVaziosACMS',
     ];
 
     categories.forEach(category => {
@@ -239,19 +263,33 @@ export const pointsRoutes = (app: Express): void => {
   };
 
   // Helper to apply adjustment factor
-  const applyAdjustmentFactorToParameters = (config: PointsConfig, factor: number): PointsConfig => {
+  const applyAdjustmentFactorToParameters = (
+    config: PointsConfig,
+    factor: number
+  ): PointsConfig => {
     const newConfig = JSON.parse(JSON.stringify(config));
 
     if (newConfig.basicPoints) newConfig.basicPoints = Math.round(newConfig.basicPoints * factor);
-    if (newConfig.attendancePoints) newConfig.attendancePoints = Math.round(newConfig.attendancePoints * factor);
+    if (newConfig.attendancePoints)
+      newConfig.attendancePoints = Math.round(newConfig.attendancePoints * factor);
     if (newConfig.eventPoints) newConfig.eventPoints = Math.round(newConfig.eventPoints * factor);
-    if (newConfig.donationPoints) newConfig.donationPoints = Math.round(newConfig.donationPoints * factor);
+    if (newConfig.donationPoints)
+      newConfig.donationPoints = Math.round(newConfig.donationPoints * factor);
 
     const pointCategories: Array<keyof PointsConfig> = [
-      'engajamento', 'classificacao', 'dizimista', 'ofertante',
-      'tempoBatismo', 'cargos', 'nomeUnidade', 'temLicao',
-      'totalPresenca', 'escolaSabatina', 'batizouAlguem',
-      'cpfValido', 'camposVaziosACMS'
+      'engajamento',
+      'classificacao',
+      'dizimista',
+      'ofertante',
+      'tempoBatismo',
+      'cargos',
+      'nomeUnidade',
+      'temLicao',
+      'totalPresenca',
+      'escolaSabatina',
+      'batizouAlguem',
+      'cpfValido',
+      'camposVaziosACMS',
     ];
 
     pointCategories.forEach(category => {
@@ -259,7 +297,9 @@ export const pointsRoutes = (app: Express): void => {
       if (section && typeof section === 'object') {
         Object.keys(section as Record<string, number>).forEach(fieldKey => {
           if (typeof (section as Record<string, number>)[fieldKey] === 'number') {
-            (section as Record<string, number>)[fieldKey] = Math.round((section as Record<string, number>)[fieldKey] * factor);
+            (section as Record<string, number>)[fieldKey] = Math.round(
+              (section as Record<string, number>)[fieldKey] * factor
+            );
           }
         });
       }
@@ -278,7 +318,13 @@ export const pointsRoutes = (app: Express): void => {
     return newConfig;
   };
 
-  const mergePointsConfiguration = (base: PointsConfiguration, partial: PointsConfig): PointsConfiguration => {
+  const mergePointsConfiguration = (
+    base: PointsConfiguration,
+    partial: PointsConfig
+  ): PointsConfiguration => {
+    // Garantir que base tem todos os valores obrigatórios
+    const safeBase = getRequiredPointsConfig(base);
+
     const tempoBatismo = partial.tempoBatismo ?? partial.tempobatismo ?? {};
     const nomeUnidade = partial.nomeUnidade ?? partial.nomeunidade ?? {};
     const temLicao = partial.temLicao ?? partial.temlicao ?? {};
@@ -289,83 +335,87 @@ export const pointsRoutes = (app: Express): void => {
     const camposVaziosACMS = partial.camposVaziosACMS ?? partial.camposvaziosacms ?? {};
 
     return {
-      basicPoints: partial.basicPoints ?? base.basicPoints,
-      attendancePoints: partial.attendancePoints ?? base.attendancePoints,
-      eventPoints: partial.eventPoints ?? base.eventPoints,
-      donationPoints: partial.donationPoints ?? base.donationPoints,
+      basicPoints: partial.basicPoints ?? safeBase.basicPoints,
+      attendancePoints: partial.attendancePoints ?? safeBase.attendancePoints,
+      eventPoints: partial.eventPoints ?? safeBase.eventPoints,
+      donationPoints: partial.donationPoints ?? safeBase.donationPoints,
       engajamento: {
-        baixo: partial.engajamento?.baixo ?? base.engajamento.baixo,
-        medio: partial.engajamento?.medio ?? base.engajamento.medio,
-        alto: partial.engajamento?.alto ?? base.engajamento.alto
+        baixo: partial.engajamento?.baixo ?? safeBase.engajamento.baixo,
+        medio: partial.engajamento?.medio ?? safeBase.engajamento.medio,
+        alto: partial.engajamento?.alto ?? safeBase.engajamento.alto,
       },
       classificacao: {
-        frequente: partial.classificacao?.frequente ?? base.classificacao.frequente,
-        naoFrequente: partial.classificacao?.naoFrequente ?? base.classificacao.naoFrequente
+        frequente: partial.classificacao?.frequente ?? safeBase.classificacao.frequente,
+        naoFrequente: partial.classificacao?.naoFrequente ?? safeBase.classificacao.naoFrequente,
       },
       dizimista: {
-        naoDizimista: partial.dizimista?.naoDizimista ?? base.dizimista.naoDizimista,
-        pontual: partial.dizimista?.pontual ?? base.dizimista.pontual,
-        sazonal: partial.dizimista?.sazonal ?? base.dizimista.sazonal,
-        recorrente: partial.dizimista?.recorrente ?? base.dizimista.recorrente
+        naoDizimista: partial.dizimista?.naoDizimista ?? safeBase.dizimista.naoDizimista,
+        pontual: partial.dizimista?.pontual ?? safeBase.dizimista.pontual,
+        sazonal: partial.dizimista?.sazonal ?? safeBase.dizimista.sazonal,
+        recorrente: partial.dizimista?.recorrente ?? safeBase.dizimista.recorrente,
       },
       ofertante: {
-        naoOfertante: partial.ofertante?.naoOfertante ?? base.ofertante.naoOfertante,
-        pontual: partial.ofertante?.pontual ?? base.ofertante.pontual,
-        sazonal: partial.ofertante?.sazonal ?? base.ofertante.sazonal,
-        recorrente: partial.ofertante?.recorrente ?? base.ofertante.recorrente
+        naoOfertante: partial.ofertante?.naoOfertante ?? safeBase.ofertante.naoOfertante,
+        pontual: partial.ofertante?.pontual ?? safeBase.ofertante.pontual,
+        sazonal: partial.ofertante?.sazonal ?? safeBase.ofertante.sazonal,
+        recorrente: partial.ofertante?.recorrente ?? safeBase.ofertante.recorrente,
       },
       tempoBatismo: {
-        doisAnos: tempoBatismo.doisAnos ?? base.tempoBatismo.doisAnos,
-        cincoAnos: tempoBatismo.cincoAnos ?? base.tempoBatismo.cincoAnos,
-        dezAnos: tempoBatismo.dezAnos ?? base.tempoBatismo.dezAnos,
-        vinteAnos: base.tempoBatismo.vinteAnos,
-        maisVinte: tempoBatismo.maisVinte ?? base.tempoBatismo.maisVinte
+        doisAnos: tempoBatismo.doisAnos ?? safeBase.tempoBatismo.doisAnos,
+        cincoAnos: tempoBatismo.cincoAnos ?? safeBase.tempoBatismo.cincoAnos,
+        dezAnos: tempoBatismo.dezAnos ?? safeBase.tempoBatismo.dezAnos,
+        vinteAnos: safeBase.tempoBatismo.vinteAnos,
+        maisVinte: tempoBatismo.maisVinte ?? safeBase.tempoBatismo.maisVinte,
       },
       cargos: {
-        umCargo: partial.cargos?.umCargo ?? base.cargos.umCargo,
-        doisCargos: partial.cargos?.doisCargos ?? base.cargos.doisCargos,
-        tresOuMais: partial.cargos?.tresOuMais ?? base.cargos.tresOuMais
+        umCargo: partial.cargos?.umCargo ?? safeBase.cargos.umCargo,
+        doisCargos: partial.cargos?.doisCargos ?? safeBase.cargos.doisCargos,
+        tresOuMais: partial.cargos?.tresOuMais ?? safeBase.cargos.tresOuMais,
       },
       nomeUnidade: {
-        comUnidade: nomeUnidade.comUnidade ?? base.nomeUnidade.comUnidade,
-        semUnidade: base.nomeUnidade.semUnidade
+        comUnidade: nomeUnidade.comUnidade ?? safeBase.nomeUnidade.comUnidade,
+        semUnidade: safeBase.nomeUnidade.semUnidade,
       },
       temLicao: {
-        comLicao: temLicao.comLicao ?? base.temLicao.comLicao
+        comLicao: temLicao.comLicao ?? safeBase.temLicao.comLicao,
       },
       pontuacaoDinamica: {
-        multiplicador: partial.pontuacaoDinamica?.multiplicador ?? base.pontuacaoDinamica.multiplicador
+        multiplicador:
+          partial.pontuacaoDinamica?.multiplicador ?? safeBase.pontuacaoDinamica.multiplicador,
       },
       totalPresenca: {
-        zeroATres: base.totalPresenca.zeroATres,
-        quatroASete: totalPresenca.quatroASete ?? base.totalPresenca.quatroASete,
-        oitoATreze: totalPresenca.oitoATreze ?? base.totalPresenca.oitoATreze
+        zeroATres: safeBase.totalPresenca.zeroATres,
+        quatroASete: totalPresenca.quatroASete ?? safeBase.totalPresenca.quatroASete,
+        oitoATreze: totalPresenca.oitoATreze ?? safeBase.totalPresenca.oitoATreze,
       },
       presenca: {
-        multiplicador: partial.presenca?.multiplicador ?? base.presenca.multiplicador
+        multiplicador: partial.presenca?.multiplicador ?? safeBase.presenca.multiplicador,
       },
       escolaSabatina: {
-        comunhao: escolaSabatina.comunhao ?? base.escolaSabatina.comunhao,
-        missao: escolaSabatina.missao ?? base.escolaSabatina.missao,
-        estudoBiblico: escolaSabatina.estudoBiblico ?? base.escolaSabatina.estudoBiblico,
-        batizouAlguem: escolaSabatina.batizouAlguem ?? base.escolaSabatina.batizouAlguem,
-        discipuladoPosBatismo: escolaSabatina.discipuladoPosBatismo ?? base.escolaSabatina.discipuladoPosBatismo
+        comunhao: escolaSabatina.comunhao ?? safeBase.escolaSabatina.comunhao,
+        missao: escolaSabatina.missao ?? safeBase.escolaSabatina.missao,
+        estudoBiblico: escolaSabatina.estudoBiblico ?? safeBase.escolaSabatina.estudoBiblico,
+        batizouAlguem: escolaSabatina.batizouAlguem ?? safeBase.escolaSabatina.batizouAlguem,
+        discipuladoPosBatismo:
+          escolaSabatina.discipuladoPosBatismo ?? safeBase.escolaSabatina.discipuladoPosBatismo,
       },
       batizouAlguem: {
-        sim: batizouAlguem.sim ?? base.batizouAlguem.sim,
-        nao: base.batizouAlguem.nao
+        sim: batizouAlguem.sim ?? safeBase.batizouAlguem.sim,
+        nao: safeBase.batizouAlguem.nao,
       },
       discipuladoPosBatismo: {
-        multiplicador: partial.discipuladoPosBatismo?.multiplicador ?? base.discipuladoPosBatismo.multiplicador
+        multiplicador:
+          partial.discipuladoPosBatismo?.multiplicador ??
+          safeBase.discipuladoPosBatismo.multiplicador,
       },
       cpfValido: {
-        valido: cpfValido.valido ?? base.cpfValido.valido,
-        invalido: base.cpfValido.invalido
+        valido: cpfValido.valido ?? safeBase.cpfValido.valido,
+        invalido: safeBase.cpfValido.invalido,
       },
       camposVaziosACMS: {
-        completos: camposVaziosACMS.completos ?? base.camposVaziosACMS.completos,
-        incompletos: base.camposVaziosACMS.incompletos
-      }
+        completos: camposVaziosACMS.completos ?? safeBase.camposVaziosACMS.completos,
+        incompletos: safeBase.camposVaziosACMS.incompletos,
+      },
     };
   };
 
@@ -384,7 +434,7 @@ export const pointsRoutes = (app: Express): void => {
       const config = await storage.getPointsConfiguration();
       res.json(config);
     } catch (error) {
-      handleError(res, error, "Get points config");
+      handleError(res, error, 'Get points config');
     }
   });
 
@@ -406,32 +456,38 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Configuração salva e pontos recalculados
    */
-  app.post('/api/system/points-config', validateBody(pointsConfigSchema), async (req: Request, res: Response) => {
-    try {
-      const config = (req as ValidatedRequest<typeof pointsConfigSchema._type>).validatedBody;
+  app.post(
+    '/api/system/points-config',
+    validateBody(pointsConfigSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const config = (req as ValidatedRequest<typeof pointsConfigSchema._type>).validatedBody;
 
-      await storage.savePointsConfiguration(config as unknown as Parameters<typeof storage.savePointsConfiguration>[0]);
+        await storage.savePointsConfiguration(
+          config as unknown as Parameters<typeof storage.savePointsConfiguration>[0]
+        );
 
-      const result = await storage.calculateAdvancedUserPoints();
+        const result = await storage.calculateAdvancedUserPoints();
 
-      if (result.success) {
-        res.json({
-          success: true,
-          message: `Configuração salva e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
-          updatedUsers: result.updatedUsers || 0,
-          errors: result.errors || 0,
-          details: result.message
-        });
-      } else {
-        res.status(500).json({
-          error: 'Erro ao recalcular pontos automaticamente',
-          details: result.message
-        });
+        if (result.success) {
+          res.json({
+            success: true,
+            message: `Configuração salva e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
+            updatedUsers: result.updatedUsers || 0,
+            errors: result.errors || 0,
+            details: result.message,
+          });
+        } else {
+          res.status(500).json({
+            error: 'Erro ao recalcular pontos automaticamente',
+            details: result.message,
+          });
+        }
+      } catch (error) {
+        handleError(res, error, 'Save points config');
       }
-    } catch (error) {
-      handleError(res, error, "Save points config");
     }
-  });
+  );
 
   /**
    * @swagger
@@ -457,16 +513,16 @@ export const pointsRoutes = (app: Express): void => {
           message: `Configuração resetada e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
           updatedUsers: result.updatedUsers || 0,
           errors: result.errors || 0,
-          details: result.message
+          details: result.message,
         });
       } else {
         res.status(500).json({
           error: 'Erro ao recalcular pontos automaticamente após reset',
-          details: result.message
+          details: result.message,
         });
       }
     } catch (error) {
-      handleError(res, error, "Reset points config");
+      handleError(res, error, 'Reset points config');
     }
   });
 
@@ -482,13 +538,18 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Pontos recalculados
    */
-  app.post("/api/users/recalculate-all-points", async (req: Request, res: Response) => {
+  app.post('/api/users/recalculate-all-points', async (req: Request, res: Response) => {
     try {
       const users = await storage.getAllUsers();
 
       let updatedCount = 0;
       let errorCount = 0;
-      const results: Array<{ userId: number; name: string; points: number | undefined; updated: boolean }> = [];
+      const results: Array<{
+        userId: number;
+        name: string;
+        points: number | undefined;
+        updated: boolean;
+      }> = [];
 
       for (const user of users) {
         try {
@@ -508,7 +569,7 @@ export const pointsRoutes = (app: Express): void => {
               userId: user.id,
               name: user.name,
               points: calculation.points,
-              updated: user.points !== calculation.points
+              updated: user.points !== calculation.points,
             });
           } else {
             errorCount++;
@@ -525,11 +586,10 @@ export const pointsRoutes = (app: Express): void => {
         updatedCount,
         totalUsers: users.length,
         errors: errorCount,
-        results
+        results,
       });
-
     } catch (error) {
-      handleError(res, error, "Recalculate all points");
+      handleError(res, error, 'Recalculate all points');
     }
   });
 
@@ -551,10 +611,10 @@ export const pointsRoutes = (app: Express): void => {
       res.json({
         success: true,
         currentAverage: currentAverage.toFixed(2),
-        message: `Média atual dos parâmetros: ${currentAverage.toFixed(2)}`
+        message: `Média atual dos parâmetros: ${currentAverage.toFixed(2)}`,
       });
     } catch (error) {
-      handleError(res, error, "Get parameter average");
+      handleError(res, error, 'Get parameter average');
     }
   });
 
@@ -588,7 +648,7 @@ export const pointsRoutes = (app: Express): void => {
       if (!targetAverage || typeof targetAverage !== 'number') {
         res.status(400).json({
           success: false,
-          error: 'Média desejada é obrigatória e deve ser um número'
+          error: 'Média desejada é obrigatória e deve ser um número',
         });
         return;
       }
@@ -600,7 +660,7 @@ export const pointsRoutes = (app: Express): void => {
       if (regularUsers.length === 0) {
         res.status(400).json({
           success: false,
-          error: 'Não há usuários para calcular a média'
+          error: 'Não há usuários para calcular a média',
         });
         return;
       }
@@ -632,11 +692,10 @@ export const pointsRoutes = (app: Express): void => {
         updatedUsers: result.updatedUsers || 0,
         errors: result.errors || 0,
         message: `Configuração ajustada e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
-        details: result.message
+        details: result.message,
       });
-
     } catch (error) {
-      handleError(res, error, "District average");
+      handleError(res, error, 'District average');
     }
   });
 
@@ -655,7 +714,7 @@ export const pointsRoutes = (app: Express): void => {
       const permissions = await storage.getEventPermissions();
       res.json({ success: true, permissions });
     } catch (error) {
-      handleError(res, error, "Get event permissions");
+      handleError(res, error, 'Get event permissions');
     }
   });
 
@@ -687,7 +746,7 @@ export const pointsRoutes = (app: Express): void => {
       if (!permissions || typeof permissions !== 'object') {
         res.status(400).json({
           success: false,
-          error: 'Permissões são obrigatórias e devem ser um objeto'
+          error: 'Permissões são obrigatórias e devem ser um objeto',
         });
         return;
       }
@@ -696,10 +755,10 @@ export const pointsRoutes = (app: Express): void => {
 
       res.json({
         success: true,
-        message: 'Permissões de eventos salvas com sucesso'
+        message: 'Permissões de eventos salvas com sucesso',
       });
     } catch (error) {
-      handleError(res, error, "Save event permissions");
+      handleError(res, error, 'Save event permissions');
     }
   });
 };

@@ -5,20 +5,32 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
+// Mock types for tests
+interface MockChurch {
+  id: number;
+  name: string;
+  code?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  pastor?: string | null;
+  districtId?: number | null;
+}
+
 // Mock do NeonAdapter
 const mockStorage = {
-  getAllChurches: jest.fn<() => Promise<any[]>>(),
-  getChurchById: jest.fn<(id: number) => Promise<any | null>>(),
-  createChurch: jest.fn<(data: any) => Promise<any>>(),
-  updateChurch: jest.fn<(id: number, data: any) => Promise<any | null>>(),
+  getAllChurches: jest.fn<() => Promise<MockChurch[]>>(),
+  getChurchById: jest.fn<(id: number) => Promise<MockChurch | null>>(),
+  createChurch: jest.fn<(data: Partial<MockChurch>) => Promise<MockChurch>>(),
+  updateChurch: jest.fn<(id: number, data: Partial<MockChurch>) => Promise<MockChurch | null>>(),
   deleteChurch: jest.fn<(id: number) => Promise<boolean>>(),
-  getDefaultChurch: jest.fn<() => Promise<any | null>>(),
+  getDefaultChurch: jest.fn<() => Promise<MockChurch | null>>(),
   setDefaultChurch: jest.fn<(id: number) => Promise<boolean>>(),
-  getOrCreateChurch: jest.fn<(name: string) => Promise<any>>()
+  getOrCreateChurch: jest.fn<(name: string) => Promise<MockChurch>>(),
 };
 
 jest.mock('../../neonAdapter', () => ({
-  NeonAdapter: jest.fn().mockImplementation(() => mockStorage)
+  NeonAdapter: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 // Mock de igrejas para teste
@@ -31,7 +43,7 @@ const mockChurches = [
     email: 'central@igreja.com',
     phone: '1133334444',
     pastor: 'Pastor João',
-    districtId: 1
+    districtId: 1,
   },
   {
     id: 2,
@@ -41,7 +53,7 @@ const mockChurches = [
     email: 'norte@igreja.com',
     phone: '1144445555',
     pastor: 'Pastor Maria',
-    districtId: 1
+    districtId: 1,
   },
   {
     id: 3,
@@ -51,8 +63,8 @@ const mockChurches = [
     email: 'sul@igreja.com',
     phone: '1155556666',
     pastor: null,
-    districtId: 2
-  }
+    districtId: 2,
+  },
 ];
 
 describe('Churches Integration Tests', () => {
@@ -115,12 +127,12 @@ describe('Churches Integration Tests', () => {
         name: 'Igreja Leste',
         code: 'IL004',
         address: 'Rua Leste, 400',
-        email: 'leste@igreja.com'
+        email: 'leste@igreja.com',
       };
 
       mockStorage.createChurch.mockResolvedValueOnce({
         id: 4,
-        ...newChurch
+        ...newChurch,
       });
 
       const created = await mockStorage.createChurch(newChurch);
@@ -155,7 +167,7 @@ describe('Churches Integration Tests', () => {
 
       mockStorage.updateChurch.mockResolvedValueOnce({
         ...mockChurches[0],
-        ...updates
+        ...updates,
       });
 
       const updated = await mockStorage.updateChurch(1, updates);
@@ -169,7 +181,7 @@ describe('Churches Integration Tests', () => {
 
       mockStorage.updateChurch.mockResolvedValueOnce({
         ...mockChurches[0],
-        ...updates
+        ...updates,
       });
 
       const updated = await mockStorage.updateChurch(1, updates);
@@ -237,7 +249,7 @@ describe('Churches Integration Tests', () => {
       mockStorage.getOrCreateChurch.mockResolvedValueOnce({
         id: 5,
         name: 'Igreja Nova',
-        code: 'NOVA'
+        code: 'NOVA',
       });
 
       const church = await mockStorage.getOrCreateChurch('Igreja Nova');

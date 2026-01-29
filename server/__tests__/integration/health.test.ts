@@ -3,7 +3,7 @@
  * Testa endpoints de monitoramento e status do sistema
  */
 
-import { describe, it, expect, beforeAll, jest } from '@jest/globals';
+import { describe, it, expect, beforeAll } from '@jest/globals';
 
 describe('Health Check Integration Tests', () => {
   beforeAll(() => {
@@ -12,7 +12,7 @@ describe('Health Check Integration Tests', () => {
 
   describe('GET /api/health', () => {
     it('deve retornar status healthy com informações corretas', () => {
-      const expectedResponse = {
+      const _expectedResponse = {
         status: 'healthy',
         timestamp: expect.any(String),
         uptime: expect.any(Number),
@@ -20,8 +20,8 @@ describe('Health Check Integration Tests', () => {
         version: expect.any(String),
         memory: {
           used: expect.stringMatching(/\d+MB/),
-          total: expect.stringMatching(/\d+MB/)
-        }
+          total: expect.stringMatching(/\d+MB/),
+        },
       };
 
       // Simular resposta do health check
@@ -32,9 +32,9 @@ describe('Health Check Integration Tests', () => {
         environment: process.env.NODE_ENV || 'development',
         version: process.env.npm_package_version || '1.0.0',
         memory: {
-          used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
-          total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
-        }
+          used: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+          total: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
+        },
       };
 
       expect(healthCheck.status).toBe('healthy');
@@ -46,7 +46,7 @@ describe('Health Check Integration Tests', () => {
 
     it('deve ter timestamp em formato ISO', () => {
       const timestamp = new Date().toISOString();
-      
+
       // Validar formato ISO 8601
       expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
@@ -54,7 +54,7 @@ describe('Health Check Integration Tests', () => {
     it('deve reportar uso de memória válido', () => {
       const memUsed = process.memoryUsage().heapUsed;
       const memTotal = process.memoryUsage().heapTotal;
-      
+
       expect(memUsed).toBeGreaterThan(0);
       expect(memTotal).toBeGreaterThan(0);
       expect(memTotal).toBeGreaterThanOrEqual(memUsed);

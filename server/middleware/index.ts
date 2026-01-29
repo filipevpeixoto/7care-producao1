@@ -6,12 +6,7 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { NeonAdapter } from '../neonAdapter';
-import {
-  AuthenticatedRequest,
-  ApiErrorResponse,
-  ErrorCodes,
-  UserRole
-} from '../types';
+import { AuthenticatedRequest, ApiErrorResponse, ErrorCodes, UserRole } from '../types';
 import { hasAdminAccess, isSuperAdmin, isPastor } from '../utils/permissions';
 import { JWT_SECRET } from '../config/jwtConfig';
 
@@ -102,8 +97,9 @@ export const checkReadOnlyAccess = async (
         if (isReadOnly) {
           const errorResponse: ApiErrorResponse = {
             success: false,
-            error: 'Usuário de teste possui acesso somente para leitura. Edições não são permitidas.',
-            code: ErrorCodes.READONLY_ACCESS
+            error:
+              'Usuário de teste possui acesso somente para leitura. Edições não são permitidas.',
+            code: ErrorCodes.READONLY_ACCESS,
           };
           res.status(403).json(errorResponse);
           return;
@@ -133,7 +129,7 @@ export const requireAuth = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authentication required',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
       res.status(401).json(errorResponse);
       return;
@@ -145,7 +141,7 @@ export const requireAuth = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'User not found',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
       res.status(401).json(errorResponse);
       return;
@@ -161,7 +157,7 @@ export const requireAuth = async (
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: 'Authentication error',
-      code: ErrorCodes.INTERNAL_ERROR
+      code: ErrorCodes.INTERNAL_ERROR,
     };
     res.status(500).json(errorResponse);
   }
@@ -183,7 +179,7 @@ export const requireAdminAccess = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authentication required',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
       res.status(401).json(errorResponse);
       return;
@@ -195,7 +191,7 @@ export const requireAdminAccess = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'User not found',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
       res.status(401).json(errorResponse);
       return;
@@ -206,7 +202,7 @@ export const requireAdminAccess = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Admin access required',
-        code: ErrorCodes.FORBIDDEN
+        code: ErrorCodes.FORBIDDEN,
       };
       res.status(403).json(errorResponse);
       return;
@@ -222,7 +218,7 @@ export const requireAdminAccess = async (
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: 'Authorization error',
-      code: ErrorCodes.INTERNAL_ERROR
+      code: ErrorCodes.INTERNAL_ERROR,
     };
     res.status(500).json(errorResponse);
   }
@@ -243,7 +239,7 @@ export const requireSuperAdmin = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authentication required',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
       res.status(401).json(errorResponse);
       return;
@@ -255,7 +251,7 @@ export const requireSuperAdmin = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'User not found',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
       res.status(401).json(errorResponse);
       return;
@@ -265,7 +261,7 @@ export const requireSuperAdmin = async (
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Superadmin access required',
-        code: ErrorCodes.FORBIDDEN
+        code: ErrorCodes.FORBIDDEN,
       };
       res.status(403).json(errorResponse);
       return;
@@ -281,7 +277,7 @@ export const requireSuperAdmin = async (
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: 'Authorization error',
-      code: ErrorCodes.INTERNAL_ERROR
+      code: ErrorCodes.INTERNAL_ERROR,
     };
     res.status(500).json(errorResponse);
   }
@@ -291,18 +287,14 @@ export const requireSuperAdmin = async (
  * Requer um role específico
  */
 export const requireRole = (...allowedRoles: UserRole[]) => {
-  return async (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = resolveUserId(req);
       if (userId === null) {
         const errorResponse: ApiErrorResponse = {
           success: false,
           error: 'Authentication required',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
         res.status(401).json(errorResponse);
         return;
@@ -314,7 +306,7 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
         const errorResponse: ApiErrorResponse = {
           success: false,
           error: 'User not found',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
         res.status(401).json(errorResponse);
         return;
@@ -324,7 +316,7 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
         const errorResponse: ApiErrorResponse = {
           success: false,
           error: `Required role: ${allowedRoles.join(' or ')}`,
-          code: ErrorCodes.FORBIDDEN
+          code: ErrorCodes.FORBIDDEN,
         };
         res.status(403).json(errorResponse);
         return;
@@ -340,7 +332,7 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authorization error',
-        code: ErrorCodes.INTERNAL_ERROR
+        code: ErrorCodes.INTERNAL_ERROR,
       };
       res.status(500).json(errorResponse);
     }
@@ -350,19 +342,17 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
 /**
  * Verifica se o usuário pode acessar dados de um distrito específico
  */
-export const requireDistrictAccess = (getDistrictId: (req: AuthenticatedRequest) => number | null | undefined) => {
-  return async (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+export const requireDistrictAccess = (
+  getDistrictId: (req: AuthenticatedRequest) => number | null | undefined
+) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = resolveUserId(req);
       if (userId === null) {
         const errorResponse: ApiErrorResponse = {
           success: false,
           error: 'Authentication required',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
         res.status(401).json(errorResponse);
         return;
@@ -374,7 +364,7 @@ export const requireDistrictAccess = (getDistrictId: (req: AuthenticatedRequest)
         const errorResponse: ApiErrorResponse = {
           success: false,
           error: 'User not found',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
         res.status(401).json(errorResponse);
         return;
@@ -399,7 +389,7 @@ export const requireDistrictAccess = (getDistrictId: (req: AuthenticatedRequest)
             const errorResponse: ApiErrorResponse = {
               success: false,
               error: 'Access denied to this district',
-              code: ErrorCodes.FORBIDDEN
+              code: ErrorCodes.FORBIDDEN,
             };
             res.status(403).json(errorResponse);
             return;
@@ -414,14 +404,14 @@ export const requireDistrictAccess = (getDistrictId: (req: AuthenticatedRequest)
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Admin access required for district resources',
-        code: ErrorCodes.FORBIDDEN
+        code: ErrorCodes.FORBIDDEN,
       };
       res.status(403).json(errorResponse);
-    } catch (error) {
+    } catch (_error) {
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authorization error',
-        code: ErrorCodes.INTERNAL_ERROR
+        code: ErrorCodes.INTERNAL_ERROR,
       };
       res.status(500).json(errorResponse);
     }
@@ -435,13 +425,13 @@ export { csrfCookie, csrfProtection, csrfTokenEndpoint, generateCsrfToken } from
 export { cspMiddleware, securityHeadersMiddleware, fullSecurityMiddleware } from './cspHeaders';
 
 // Exportar rate limiters
-export { 
-  authRateLimiter, 
-  apiRateLimiter, 
-  uploadRateLimiter, 
+export {
+  authRateLimiter,
+  apiRateLimiter,
+  uploadRateLimiter,
   sensitiveRateLimiter,
   searchRateLimiter,
   webhookRateLimiter,
   createUserBasedRateLimiter,
-  rateLimiters 
+  rateLimiters,
 } from './rateLimiters';

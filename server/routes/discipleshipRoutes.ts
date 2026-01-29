@@ -36,14 +36,21 @@ export const discipleshipRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de pedidos
    */
-  app.get("/api/discipleship-requests", async (req: Request, res: Response) => {
+  app.get('/api/discipleship-requests', async (req: Request, res: Response) => {
     try {
       const { missionaryId, status } = req.query;
       const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as string;
-      
+      const userRole = req.headers['x-user-role'] as
+        | 'superadmin'
+        | 'pastor'
+        | 'member'
+        | 'interested'
+        | 'missionary'
+        | 'admin_readonly'
+        | undefined;
+
       let userChurch: string | null = null;
-      
+
       // Se não for admin, filtrar por igreja do usuário
       if (!hasAdminAccess({ role: userRole }) && userId) {
         const currentUser = await storage.getUserById(parseInt(userId));
@@ -51,7 +58,7 @@ export const discipleshipRoutes = (app: Express): void => {
           userChurch = currentUser.church;
         }
       }
-      
+
       let requests = await storage.getAllDiscipleshipRequests();
 
       if (missionaryId) {
@@ -74,22 +81,26 @@ export const discipleshipRoutes = (app: Express): void => {
             interestedName: interested?.name || 'Desconhecido',
             missionaryName: missionary?.name || 'Desconhecido',
             interestedChurch: interested?.church || null,
-            missionaryChurch: missionary?.church || null
+            missionaryChurch: missionary?.church || null,
           };
         })
       );
-      
+
       // Filtrar por igreja se não for admin
       let filteredRequests = enrichedRequests;
       if (userChurch) {
         filteredRequests = enrichedRequests.filter(
-          (req: any) => req.interestedChurch === userChurch || req.missionaryChurch === userChurch
+          (req: unknown) =>
+            (req as { interestedChurch?: string; missionaryChurch?: string }).interestedChurch ===
+              userChurch ||
+            (req as { interestedChurch?: string; missionaryChurch?: string }).missionaryChurch ===
+              userChurch
         );
       }
 
       res.json(filteredRequests);
     } catch (error) {
-      handleError(res, error, "Get discipleship requests");
+      handleError(res, error, 'Get discipleship requests');
     }
   });
 
@@ -123,58 +134,70 @@ export const discipleshipRoutes = (app: Express): void => {
    *       400:
    *         description: Dados inválidos ou pedido já existe
    */
-  app.post("/api/discipleship-requests", validateBody(createDiscipleshipRequestSchema), async (req: Request, res: Response) => {
-    try {
-      const { interestedId, missionaryId, notes } = (req as ValidatedRequest<typeof createDiscipleshipRequestSchema._type>).validatedBody;
-      logger.info(`Creating discipleship request: missionary ${missionaryId} -> interested ${interestedId}`);
+  app.post(
+    '/api/discipleship-requests',
+    validateBody(createDiscipleshipRequestSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const { interestedId, missionaryId, notes } = (
+          req as ValidatedRequest<typeof createDiscipleshipRequestSchema._type>
+        ).validatedBody;
+        logger.info(
+          `Creating discipleship request: missionary ${missionaryId} -> interested ${interestedId}`
+        );
 
-      // Validar que ambos pertencem à mesma igreja
-      const interested = await storage.getUserById(interestedId);
-      const missionary = await storage.getUserById(missionaryId);
+        // Validar que ambos pertencem à mesma igreja
+        const interested = await storage.getUserById(interestedId);
+        const missionary = await storage.getUserById(missionaryId);
 
-      if (!interested) {
-        res.status(404).json({ error: 'Interessado não encontrado' }); return;
+        if (!interested) {
+          res.status(404).json({ error: 'Interessado não encontrado' });
+          return;
+        }
+        if (!missionary) {
+          res.status(404).json({ error: 'Discipulador não encontrado' });
+          return;
+        }
+
+        // Verificar se pertencem à mesma igreja (apenas se ambos tiverem igreja definida)
+        if (interested.church && missionary.church && interested.church !== missionary.church) {
+          res.status(400).json({
+            error: 'Discipulado só pode acontecer entre membros da mesma igreja',
+            details: {
+              interessadoIgreja: interested.church,
+              discipuladorIgreja: missionary.church,
+            },
+          });
+          return;
+        }
+
+        // Verificar se já existe um pedido pendente
+        const existingRequests = await storage.getAllDiscipleshipRequests();
+        const hasPending = existingRequests.some(
+          (r: { interestedId?: number; missionaryId?: number; status?: string }) =>
+            r.interestedId === interestedId &&
+            r.missionaryId === missionaryId &&
+            r.status === 'pending'
+        );
+
+        if (hasPending) {
+          res.status(400).json({ error: 'Já existe um pedido pendente para este interessado' });
+          return;
+        }
+
+        const request = await storage.createDiscipleshipRequest({
+          interestedId,
+          missionaryId,
+          status: 'pending',
+          notes: notes ?? undefined,
+        });
+
+        res.status(201).json(request);
+      } catch (error) {
+        handleError(res, error, 'Create discipleship request');
       }
-      if (!missionary) {
-        res.status(404).json({ error: 'Discipulador não encontrado' }); return;
-      }
-
-      // Verificar se pertencem à mesma igreja (apenas se ambos tiverem igreja definida)
-      if (interested.church && missionary.church && interested.church !== missionary.church) {
-        res.status(400).json({ 
-          error: 'Discipulado só pode acontecer entre membros da mesma igreja',
-          details: {
-            interessadoIgreja: interested.church,
-            discipuladorIgreja: missionary.church
-          }
-        }); 
-        return;
-      }
-
-      // Verificar se já existe um pedido pendente
-      const existingRequests = await storage.getAllDiscipleshipRequests();
-      const hasPending = existingRequests.some((r: { interestedId?: number; missionaryId?: number; status?: string }) =>
-        r.interestedId === interestedId &&
-        r.missionaryId === missionaryId &&
-        r.status === 'pending'
-      );
-
-      if (hasPending) {
-        res.status(400).json({ error: 'Já existe um pedido pendente para este interessado' }); return;
-      }
-
-      const request = await storage.createDiscipleshipRequest({
-        interestedId,
-        missionaryId,
-        status: 'pending',
-        notes: notes ?? undefined
-      });
-
-      res.status(201).json(request);
-    } catch (error) {
-      handleError(res, error, "Create discipleship request");
     }
-  });
+  );
 
   /**
    * @swagger
@@ -208,7 +231,7 @@ export const discipleshipRoutes = (app: Express): void => {
    *       404:
    *         description: Pedido não encontrado
    */
-  app.put("/api/discipleship-requests/:id", async (req: Request, res: Response) => {
+  app.put('/api/discipleship-requests/:id', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const { status, notes } = req.body;
@@ -216,7 +239,8 @@ export const discipleshipRoutes = (app: Express): void => {
       const request = await storage.updateDiscipleshipRequest(id, { status, notes });
 
       if (!request) {
-        res.status(404).json({ error: 'Pedido não encontrado' }); return;
+        res.status(404).json({ error: 'Pedido não encontrado' });
+        return;
       }
 
       // Se aprovado, criar relacionamento
@@ -225,13 +249,13 @@ export const discipleshipRoutes = (app: Express): void => {
           interestedId: request.interestedId,
           missionaryId: request.missionaryId,
           status: 'active',
-          notes: `Vínculo criado a partir do pedido de discipulado #${id}`
+          notes: `Vínculo criado a partir do pedido de discipulado #${id}`,
         });
       }
 
       res.json(request);
     } catch (error) {
-      handleError(res, error, "Update discipleship request");
+      handleError(res, error, 'Update discipleship request');
     }
   });
 
@@ -253,13 +277,13 @@ export const discipleshipRoutes = (app: Express): void => {
    *       200:
    *         description: Pedido removido
    */
-  app.delete("/api/discipleship-requests/:id", async (req: Request, res: Response) => {
+  app.delete('/api/discipleship-requests/:id', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteDiscipleshipRequest(id);
       res.json({ success: true, message: 'Pedido removido' });
     } catch (error) {
-      handleError(res, error, "Delete discipleship request");
+      handleError(res, error, 'Delete discipleship request');
     }
   });
 
@@ -293,33 +317,37 @@ export const discipleshipRoutes = (app: Express): void => {
    *       201:
    *         description: Vínculo criado
    */
-  app.post("/api/users/:id(\\d+)/disciple", async (req: Request, res: Response) => {
+  app.post('/api/users/:id(\\d+)/disciple', async (req: Request, res: Response) => {
     try {
       const interestedId = parseInt(req.params.id);
       const { missionaryId } = req.body;
 
       if (!missionaryId) {
-        res.status(400).json({ error: 'ID do missionário é obrigatório' }); return;
+        res.status(400).json({ error: 'ID do missionário é obrigatório' });
+        return;
       }
 
       // Verificar se já existe relacionamento ativo
       const existingRelationships = await storage.getRelationshipsByInterested(interestedId);
-      const hasActive = existingRelationships.some((r: { status?: string }) => r.status === 'active');
+      const hasActive = existingRelationships.some(
+        (r: { status?: string }) => r.status === 'active'
+      );
 
       if (hasActive) {
-        res.status(400).json({ error: 'Interessado já possui um missionário vinculado' }); return;
+        res.status(400).json({ error: 'Interessado já possui um missionário vinculado' });
+        return;
       }
 
       const relationship = await storage.createRelationship({
         interestedId,
         missionaryId,
         status: 'active',
-        notes: 'Vínculo criado diretamente'
+        notes: 'Vínculo criado diretamente',
       });
 
       res.status(201).json(relationship);
     } catch (error) {
-      handleError(res, error, "Create direct discipleship");
+      handleError(res, error, 'Create direct discipleship');
     }
   });
 };

@@ -37,6 +37,8 @@ import twoFactorRouter from './twoFactorRoutes';
 import { electionRoutes } from './electionRoutes';
 import { districtRoutes } from './districtRoutes';
 import { importRoutes } from './importRoutes';
+import { inviteRoutes } from './inviteRoutes';
+import { adminRoutes } from './adminRoutes';
 
 /**
  * Registra todas as rotas da aplicação
@@ -83,6 +85,12 @@ export const registerAllRoutes = async (app: Express): Promise<Server> => {
   electionRoutes(app);
   districtRoutes(app);
   importRoutes(app);
+
+  // Rotas de convite de pastores
+  inviteRoutes(app);
+
+  // Rotas administrativas (auditoria, métricas, etc)
+  app.use('/api/admin', adminRoutes);
 
   // Debug routes apenas em desenvolvimento
   if (process.env.NODE_ENV === 'development') {

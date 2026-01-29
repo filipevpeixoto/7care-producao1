@@ -7,12 +7,26 @@ import { jest, beforeAll, afterAll, afterEach, expect } from '@jest/globals';
 import { webcrypto } from 'crypto';
 import { TextEncoder, TextDecoder } from 'util';
 
+// Mock para import.meta.env (usado em arquivos Vite)
+// @ts-expect-error - definindo import.meta para ambiente de teste
+globalThis.import = {
+  meta: {
+    env: {
+      DEV: false,
+      PROD: true,
+      MODE: 'test',
+      BASE_URL: '/',
+      SSR: false,
+    },
+  },
+};
+
 // Polyfill para TextEncoder/TextDecoder (necessário para crypto)
 if (typeof globalThis.TextEncoder === 'undefined') {
-  (globalThis as any).TextEncoder = TextEncoder;
+  (globalThis as unknown as { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
 }
 if (typeof globalThis.TextDecoder === 'undefined') {
-  (globalThis as any).TextDecoder = TextDecoder;
+  (globalThis as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
 }
 
 // Polyfill para structuredClone (necessário para fake-indexeddb)

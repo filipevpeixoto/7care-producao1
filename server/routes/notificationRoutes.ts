@@ -6,9 +6,6 @@
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { handleError } from '../utils/errorHandler';
-import { logger } from '../utils/logger';
-import { validateBody } from '../middleware/validation';
-import { createNotificationSchema } from '../schemas';
 
 export const notificationRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -34,7 +31,7 @@ export const notificationRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de notificações
    */
-  app.get("/api/notifications/:userId", async (req: Request, res: Response) => {
+  app.get('/api/notifications/:userId', async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.userId);
       const { unreadOnly } = req.query;
@@ -47,7 +44,7 @@ export const notificationRoutes = (app: Express): void => {
 
       res.json(notifications);
     } catch (error) {
-      handleError(res, error, "Get notifications");
+      handleError(res, error, 'Get notifications');
     }
   });
 
@@ -69,18 +66,19 @@ export const notificationRoutes = (app: Express): void => {
    *       200:
    *         description: Notificação marcada como lida
    */
-  app.put("/api/notifications/:id/read", async (req: Request, res: Response) => {
+  app.put('/api/notifications/:id/read', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const notification = await storage.markNotificationAsRead(id);
 
       if (!notification) {
-        res.status(404).json({ error: 'Notificação não encontrada' }); return;
+        res.status(404).json({ error: 'Notificação não encontrada' });
+        return;
       }
 
       res.json(notification);
     } catch (error) {
-      handleError(res, error, "Mark notification as read");
+      handleError(res, error, 'Mark notification as read');
     }
   });
 
@@ -100,21 +98,21 @@ export const notificationRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de inscrições push
    */
-  app.get("/api/push/subscriptions", async (req: Request, res: Response) => {
+  app.get('/api/push/subscriptions', async (req: Request, res: Response) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : null;
 
       // Se não houver userId, retorna array vazio (evita erro 400)
       // Isso permite que o frontend carregue sem erros quando o usuário não está logado
       if (!userId || isNaN(userId)) {
-        res.json([]); 
+        res.json([]);
         return;
       }
 
       const subscriptions = await storage.getPushSubscriptionsByUser(userId);
       res.json(subscriptions);
     } catch (error) {
-      handleError(res, error, "Get push subscriptions");
+      handleError(res, error, 'Get push subscriptions');
     }
   });
 
@@ -146,28 +144,28 @@ export const notificationRoutes = (app: Express): void => {
    *       201:
    *         description: Inscrição criada
    */
-  app.post("/api/push/subscribe", async (req: Request, res: Response) => {
+  app.post('/api/push/subscribe', async (req: Request, res: Response) => {
     try {
       const { userId, subscription, deviceName } = req.body;
 
       if (!userId || !subscription) {
-        res.status(400).json({ error: 'Dados de inscrição são obrigatórios' }); return;
+        res.status(400).json({ error: 'Dados de inscrição são obrigatórios' });
+        return;
       }
 
-      const subscriptionPayload = typeof subscription === 'string'
-        ? JSON.parse(subscription)
-        : subscription;
+      const subscriptionPayload =
+        typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
 
       const pushSubscription = await storage.createPushSubscription({
         userId,
         subscription: subscriptionPayload,
         deviceName: deviceName || 'Dispositivo desconhecido',
-        isActive: true
+        isActive: true,
       });
 
       res.status(201).json(pushSubscription);
     } catch (error) {
-      handleError(res, error, "Create push subscription");
+      handleError(res, error, 'Create push subscription');
     }
   });
 
@@ -189,18 +187,19 @@ export const notificationRoutes = (app: Express): void => {
    *       200:
    *         description: Inscrição atualizada
    */
-  app.patch("/api/push/subscriptions/:id/toggle", async (req: Request, res: Response) => {
+  app.patch('/api/push/subscriptions/:id/toggle', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const subscription = await storage.togglePushSubscription(id);
 
       if (!subscription) {
-        res.status(404).json({ error: 'Inscrição não encontrada' }); return;
+        res.status(404).json({ error: 'Inscrição não encontrada' });
+        return;
       }
 
       res.json(subscription);
     } catch (error) {
-      handleError(res, error, "Toggle push subscription");
+      handleError(res, error, 'Toggle push subscription');
     }
   });
 
@@ -222,13 +221,13 @@ export const notificationRoutes = (app: Express): void => {
    *       200:
    *         description: Inscrição removida
    */
-  app.delete("/api/push/subscriptions/:id", async (req: Request, res: Response) => {
+  app.delete('/api/push/subscriptions/:id', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deletePushSubscription(id);
       res.json({ success: true, message: 'Inscrição removida' });
     } catch (error) {
-      handleError(res, error, "Delete push subscription");
+      handleError(res, error, 'Delete push subscription');
     }
   });
 
@@ -267,12 +266,13 @@ export const notificationRoutes = (app: Express): void => {
    *       200:
    *         description: Notificações enviadas
    */
-  app.post("/api/push/send", async (req: Request, res: Response) => {
+  app.post('/api/push/send', async (req: Request, res: Response) => {
     try {
       const { userIds, title, body, icon, url } = req.body;
 
       if (!userIds || !title || !body) {
-        res.status(400).json({ error: 'Dados da notificação são obrigatórios' }); return;
+        res.status(400).json({ error: 'Dados da notificação são obrigatórios' });
+        return;
       }
 
       const results = await storage.sendPushNotifications({
@@ -280,12 +280,12 @@ export const notificationRoutes = (app: Express): void => {
         title,
         body,
         icon,
-        url
+        url,
       });
 
       res.json({ success: true, results });
     } catch (error) {
-      handleError(res, error, "Send push notification");
+      handleError(res, error, 'Send push notification');
     }
   });
 };

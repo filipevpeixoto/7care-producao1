@@ -6,18 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Settings, 
-  Users, 
-  Church, 
-  Vote, 
-  CheckCircle, 
+import {
+  Settings,
+  Users,
+  Church,
+  Vote,
+  CheckCircle,
   AlertCircle,
   Save,
   Play,
@@ -35,7 +40,7 @@ import {
   X,
   FileText,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 
@@ -108,7 +113,7 @@ const ALL_POSITIONS = [
   'Tesoureiro(a) Associado(a)',
   'Tesoureiro(a) Teen',
   'Patrimônio',
-  
+
   // DIACONATO
   'Diáconos',
   'Diácono(s) Teen',
@@ -116,12 +121,12 @@ const ALL_POSITIONS = [
   'Diaconisa(s) Teen',
   'Primeiro Diácono',
   'Primeira Diaconisa',
-  
+
   // MORDOMIA CRISTÃ
   'Diretor(a)',
   'Diretor(a) Associado(a)',
   'Discípulo Teen',
-  
+
   // NOVAS GERAÇÕES
   'Ministério da Criança – Coordenador(a)',
   'Ministério da Criança – Coordenador(a) Associado(a)',
@@ -135,7 +140,7 @@ const ALL_POSITIONS = [
   'Clube de Desbravadores – Diretor(a)',
   'Clube de Desbravadores – Diretor(a) Associado(a)',
   'Clube de Desbravadores – Discípulo Teen',
-  
+
   // ESCOLA SABATINA
   'Professores(as) das Unidades: Bebês',
   'Professores(as) das Unidades: Iniciantes',
@@ -146,7 +151,7 @@ const ALL_POSITIONS = [
   'Secretário(a) Escola Sabatina',
   'Diretor(a) Associado(a) Escola Sabatina',
   'Discípulo Teen Escola Sabatina',
-  
+
   // MINISTÉRIO PESSOAL E EVANGELISMO
   'Diretor(a) Ministério Pessoal',
   'Diretor(a) Associado(a) Ministério Pessoal',
@@ -157,62 +162,62 @@ const ALL_POSITIONS = [
   'Evangelismo – Discípulo Teen',
   'Coordenador(a) de Classes Bíblicas',
   'Coordenador(a) de Amigos',
-  
+
   // AÇÃO SOLIDÁRIA ADVENTISTA (ASA)
   'Diretor(a) ASA',
   'Diretor(a) Associado(a) ASA',
   'Discípulo Teen ASA',
-  
+
   // MINISTÉRIO DA FAMÍLIA
   'Casal Diretor',
   'Casal Associado',
   'Discípulo Teen Ministério da Família',
-  
+
   // MINISTÉRIO DA MULHER
   'Diretora Ministério da Mulher',
   'Diretora Associada Ministério da Mulher',
   'Discípulo Teen Ministério da Mulher',
-  
+
   // MINISTÉRIO DA RECEPÇÃO
   'Líder Ministério da Recepção',
   'Equipe Ministério da Recepção',
-  
+
   // MINISTÉRIO DO HOMEM
   'Diretor Ministério do Homem',
   'Diretor Associado Ministério do Homem',
   'Discípulo Teen Ministério do Homem',
-  
+
   // MINISTÉRIO DA SAÚDE
   'Diretor(a) Ministério da Saúde',
   'Diretor(a) Associado(a) Ministério da Saúde',
   'Discípulo Teen Ministério da Saúde',
-  
+
   // MINISTÉRIO DAS POSSIBILIDADES
   'Diretor(a) Ministério das Possibilidades',
   'Diretor(a) Associado(a) Ministério das Possibilidades',
   'Discípulo Teen Ministério das Possibilidades',
-  
+
   // MINISTÉRIO DA MÚSICA
   'Diretor(a) Ministério da Música',
   'Diretor(a) Associado(a) Ministério da Música',
   'Discípulo Teen Ministério da Música',
-  
+
   // COMUNICAÇÃO
   'Diretor(a) Comunicação',
   'Diretor(a) Associado(a) Comunicação',
   'Social Media (redes sociais)',
   'Discípulo Teen Comunicação',
-  
+
   // SONOPLASTIA
   'Diretor(a) Sonoplastia',
   'Diretor(a) Associado(a) Sonoplastia',
-  'Equipe Sonoplastia'
+  'Equipe Sonoplastia',
 ];
 
 export default function ElectionConfig() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [churches, setChurches] = useState<Church[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
@@ -224,7 +229,7 @@ export default function ElectionConfig() {
   const [removedCandidates, setRemovedCandidates] = useState<number[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [eligibleSearchTerm, setEligibleSearchTerm] = useState('');
-  const [ineligibleSearchTerm, setIneligibleSearchTerm] = useState('');
+  const [ineligibleSearchTerm, _setIneligibleSearchTerm] = useState('');
   const [config, setConfig] = useState<ElectionConfig>({
     churchId: 0,
     churchName: '',
@@ -235,45 +240,45 @@ export default function ElectionConfig() {
         enabled: true,
         punctual: true,
         seasonal: true,
-        recurring: true
+        recurring: true,
       },
       attendance: {
         enabled: true,
         punctual: true,
         seasonal: true,
-        recurring: true
+        recurring: true,
       },
       churchTime: {
         enabled: true,
-        minimumMonths: 12
+        minimumMonths: 12,
       },
       positionLimit: {
         enabled: true,
-        maxPositions: 2
+        maxPositions: 2,
       },
       eldersCount: {
         enabled: true,
-        count: 1
+        count: 1,
       },
       classification: {
         enabled: true,
         frequente: true,
         naoFrequente: false,
-        aResgatar: false
-      }
+        aResgatar: false,
+      },
     },
     positions: [],
-    status: 'draft'
+    status: 'draft',
   });
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Estados para gerenciamento de cargos personalizados
   const [customPositions, setCustomPositions] = useState<string[]>([]);
-  const [positionDescriptions, setPositionDescriptions] = useState<{[key: string]: string}>({});
-  const [currentLeaders, setCurrentLeaders] = useState<{[key: string]: number | null}>({});
+  const [positionDescriptions, setPositionDescriptions] = useState<{ [key: string]: string }>({});
+  const [currentLeaders, setCurrentLeaders] = useState<{ [key: string]: number | null }>({});
   const [showAddPosition, setShowAddPosition] = useState(false);
   const [newPositionName, setNewPositionName] = useState('');
   const [editingPosition, setEditingPosition] = useState<string | null>(null);
@@ -433,7 +438,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 • Ter uma compreensão do ministério espiritual e financeiro da igreja;
 • Promover encontros e eventos sobre mordomia cristã;
 • Aplicar (ou adaptar, se necessário) os programas de mordomia denominacionais;
-• Trabalhar em parceria com outros ministérios que auxiliam no crescimento espiritual e desenvolvimento dos dons.`
+• Trabalhar em parceria com outros ministérios que auxiliam no crescimento espiritual e desenvolvimento dos dons.`,
           };
           return defaultDescriptions;
         });
@@ -441,7 +446,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, []);
 
@@ -450,36 +455,38 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       const response = await fetch('/api/churches', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
-          'Cache-Control': 'no-cache'
-        }
+          'Cache-Control': 'no-cache',
+        },
       });
       if (response.ok) {
-        const data = await response.json();
-        setChurches(data || []);
-        
+        const rawData = await response.json();
+        // A API pode retornar { data: [] } ou array diretamente
+        const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
+        setChurches(data);
+
         // Se o usuário não for super admin e tiver uma igreja, pré-selecionar ela
         if (data && data.length === 1 && user?.church) {
           const userChurch = data[0];
           setConfig(prev => ({
             ...prev,
             churchId: userChurch.id,
-            churchName: userChurch.name
+            churchName: userChurch.name,
           }));
         }
       } else {
         console.error('Erro ao carregar igrejas:', response.status);
         toast({
-          title: "Erro",
-          description: "Erro ao carregar lista de igrejas",
-          variant: "destructive",
+          title: 'Erro',
+          description: 'Erro ao carregar lista de igrejas',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Erro ao carregar igrejas:', error);
       toast({
-        title: "Erro",
-        description: "Erro de conexão ao carregar igrejas",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Erro de conexão ao carregar igrejas',
+        variant: 'destructive',
       });
     }
   };
@@ -489,30 +496,33 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       const response = await fetch('/api/users', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
-          'Cache-Control': 'no-cache'
-        }
+          'Cache-Control': 'no-cache',
+        },
       });
       if (response.ok) {
         const data = await response.json();
         // Filtrar apenas membros (incluindo status pending e approved)
-        const membersOnly = (data || []).filter((u: any) => 
-          u.role && u.role.includes('member') && (u.status === 'approved' || u.status === 'pending')
+        const membersOnly = (data || []).filter(
+          (u: any) =>
+            u.role &&
+            u.role.includes('member') &&
+            (u.status === 'approved' || u.status === 'pending')
         );
         setMembers(membersOnly);
       } else {
         console.error('Erro ao carregar membros:', response.status);
         toast({
-          title: "Erro",
-          description: "Erro ao carregar lista de membros",
-          variant: "destructive",
+          title: 'Erro',
+          description: 'Erro ao carregar lista de membros',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Erro ao carregar membros:', error);
       toast({
-        title: "Erro",
-        description: "Erro de conexão ao carregar membros",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Erro de conexão ao carregar membros',
+        variant: 'destructive',
       });
     }
   };
@@ -523,8 +533,8 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       const response = await fetch(`/api/elections/config${query}`, {
         headers: {
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+          Pragma: 'no-cache',
+        },
       });
 
       if (response.status === 404) {
@@ -532,7 +542,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           toast({
             title: 'Configuração não encontrada',
             description: 'Não foi possível localizar a configuração selecionada.',
-            variant: 'destructive'
+            variant: 'destructive',
           });
           setEditingConfigId(null);
           setIsEditing(false);
@@ -546,7 +556,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 • Formar, treinar e gerenciar uma equipe de secretaria;
 • Preparar agenda e participar das reuniões de comissões da igreja;
 • Preparar relatórios de acordo com a necessidade da administração da igreja e dos diversos ministérios;
-• Entregar certificados das cerimônias (batismos e profissões de fé).`
+• Entregar certificados das cerimônias (batismos e profissões de fé).`,
           });
         }
         return;
@@ -555,12 +565,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       if (response.ok) {
         const data = await response.json();
         console.log('Config carregada:', data);
-        
+
         if (data.error) {
           console.log('Nenhuma configuração encontrada, usando padrões');
           return;
         }
-        
+
         if (data && data.church_id) {
           const configWithDefaults = {
             id: data.id,
@@ -573,35 +583,35 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                 enabled: data.criteria?.faithfulness?.enabled ?? true,
                 punctual: data.criteria?.faithfulness?.punctual ?? false,
                 seasonal: data.criteria?.faithfulness?.seasonal ?? false,
-                recurring: data.criteria?.faithfulness?.recurring ?? false
+                recurring: data.criteria?.faithfulness?.recurring ?? false,
               },
               attendance: {
                 enabled: data.criteria?.attendance?.enabled ?? true,
                 punctual: data.criteria?.attendance?.punctual ?? false,
                 seasonal: data.criteria?.attendance?.seasonal ?? false,
-                recurring: data.criteria?.attendance?.recurring ?? false
+                recurring: data.criteria?.attendance?.recurring ?? false,
               },
               churchTime: {
                 enabled: data.criteria?.churchTime?.enabled ?? true,
-                minimumMonths: data.criteria?.churchTime?.minimumMonths ?? 12
+                minimumMonths: data.criteria?.churchTime?.minimumMonths ?? 12,
               },
               positionLimit: {
                 enabled: data.criteria?.positionLimit?.enabled ?? true,
-                maxPositions: data.criteria?.positionLimit?.maxPositions ?? 2
+                maxPositions: data.criteria?.positionLimit?.maxPositions ?? 2,
               },
               eldersCount: {
                 enabled: data.criteria?.eldersCount?.enabled ?? true,
-                count: data.criteria?.eldersCount?.count ?? 1
+                count: data.criteria?.eldersCount?.count ?? 1,
               },
               classification: {
                 enabled: data.criteria?.classification?.enabled ?? true,
                 frequente: data.criteria?.classification?.frequente ?? true,
                 naoFrequente: data.criteria?.classification?.naoFrequente ?? false,
-                aResgatar: data.criteria?.classification?.aResgatar ?? false
-              }
+                aResgatar: data.criteria?.classification?.aResgatar ?? false,
+              },
             },
             positions: data.positions || [],
-            status: data.status || 'draft'
+            status: data.status || 'draft',
           };
           setConfig(configWithDefaults);
 
@@ -611,7 +621,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             if (typeof parsedRemoved === 'string') {
               try {
                 parsedRemoved = JSON.parse(parsedRemoved);
-              } catch (e) {
+              } catch (_e) {
                 parsedRemoved = [];
               }
             }
@@ -640,7 +650,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           if ((!data.title || data.title.trim().length === 0) && data.church_name) {
             setConfig(prev => ({
               ...prev,
-              title: `Nomeação ${data.church_name} - ${new Date().toLocaleDateString('pt-BR')}`
+              title: `Nomeação ${data.church_name} - ${new Date().toLocaleDateString('pt-BR')}`,
             }));
           }
 
@@ -669,27 +679,28 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       setConfig(prev => ({
         ...prev,
         churchId: church.id,
-        churchName: church.name
+        churchName: church.name,
       }));
-      
+
       // Verificar se já existe uma configuração para esta igreja
       try {
         const response = await fetch('/api/elections/configs', {
           headers: {
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
+            Pragma: 'no-cache',
+          },
         });
         if (response.ok) {
-          const configs = await response.json();
-          const existingConfig = configs.find((c: any) => c.church_id === church.id);
+          const rawConfigs = await response.json();
+          const configs = Array.isArray(rawConfigs) ? rawConfigs : rawConfigs?.data || [];
+          const _existingConfig = configs.find((c: any) => c.church_id === church.id);
           // Não bloquear o salvamento - permitir múltiplas configurações
           setConfigExists(false);
         }
       } catch (error) {
         console.error('Erro ao verificar configurações existentes:', error);
       }
-      
+
       loadMembers();
     }
   };
@@ -699,14 +710,14 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       ...prev,
       voters: (prev.voters || []).includes(memberId)
         ? (prev.voters || []).filter(id => id !== memberId)
-        : [...(prev.voters || []), memberId]
+        : [...(prev.voters || []), memberId],
     }));
   };
 
   const handleCriteriaChange = (field: string, value: any) => {
     setConfig(prev => {
       const newConfig = { ...prev };
-      
+
       // Ensure criteria object exists
       if (!newConfig.criteria) {
         newConfig.criteria = {
@@ -715,7 +726,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           churchTime: { enabled: true, minimumMonths: 12 },
           positionLimit: { enabled: true, maxPositions: 2 },
           eldersCount: { enabled: true, count: 1 },
-          classification: { enabled: true, frequente: true, naoFrequente: false, aResgatar: false }
+          classification: { enabled: true, frequente: true, naoFrequente: false, aResgatar: false },
         };
       }
 
@@ -730,7 +741,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       } else {
         (newConfig.criteria as Record<string, unknown>)[field] = value;
       }
-      
+
       return newConfig;
     });
   };
@@ -740,7 +751,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       ...prev,
       positions: (prev.positions || []).includes(position)
         ? (prev.positions || []).filter(p => p !== position)
-        : [...(prev.positions || []), position]
+        : [...(prev.positions || []), position],
     }));
   };
 
@@ -759,11 +770,19 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
   };
 
   const handleSaveEditPosition = () => {
-    if (editingPosition && editingPositionName.trim() && !customPositions.includes(editingPositionName.trim())) {
-      setCustomPositions(prev => prev.map(p => p === editingPosition ? editingPositionName.trim() : p));
+    if (
+      editingPosition &&
+      editingPositionName.trim() &&
+      !customPositions.includes(editingPositionName.trim())
+    ) {
+      setCustomPositions(prev =>
+        prev.map(p => (p === editingPosition ? editingPositionName.trim() : p))
+      );
       setConfig(prev => ({
         ...prev,
-        positions: prev.positions?.map(p => p === editingPosition ? editingPositionName.trim() : p)
+        positions: prev.positions?.map(p =>
+          p === editingPosition ? editingPositionName.trim() : p
+        ),
       }));
       setEditingPosition(null);
       setEditingPositionName('');
@@ -774,7 +793,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
     setCustomPositions(prev => prev.filter(p => p !== position));
     setConfig(prev => ({
       ...prev,
-      positions: prev.positions?.filter(p => p !== position)
+      positions: prev.positions?.filter(p => p !== position),
     }));
   };
 
@@ -782,8 +801,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
     const currentIndex = customPositions.indexOf(position);
     if (currentIndex > 0) {
       const newPositions = [...customPositions];
-      [newPositions[currentIndex - 1], newPositions[currentIndex]] = 
-        [newPositions[currentIndex], newPositions[currentIndex - 1]];
+      [newPositions[currentIndex - 1], newPositions[currentIndex]] = [
+        newPositions[currentIndex],
+        newPositions[currentIndex - 1],
+      ];
       setCustomPositions(newPositions);
       // Atualizar também a ordem em config.positions se o cargo estiver selecionado
       setConfig(prev => {
@@ -791,11 +812,13 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         const positionIndex = currentPositions.indexOf(position);
         if (positionIndex > 0) {
           const newConfigPositions = [...currentPositions];
-          [newConfigPositions[positionIndex - 1], newConfigPositions[positionIndex]] = 
-            [newConfigPositions[positionIndex], newConfigPositions[positionIndex - 1]];
+          [newConfigPositions[positionIndex - 1], newConfigPositions[positionIndex]] = [
+            newConfigPositions[positionIndex],
+            newConfigPositions[positionIndex - 1],
+          ];
           return {
             ...prev,
-            positions: newConfigPositions
+            positions: newConfigPositions,
           };
         }
         return prev;
@@ -807,8 +830,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
     const currentIndex = customPositions.indexOf(position);
     if (currentIndex < customPositions.length - 1) {
       const newPositions = [...customPositions];
-      [newPositions[currentIndex], newPositions[currentIndex + 1]] = 
-        [newPositions[currentIndex + 1], newPositions[currentIndex]];
+      [newPositions[currentIndex], newPositions[currentIndex + 1]] = [
+        newPositions[currentIndex + 1],
+        newPositions[currentIndex],
+      ];
       setCustomPositions(newPositions);
       // Atualizar também a ordem em config.positions se o cargo estiver selecionado
       setConfig(prev => {
@@ -816,11 +841,13 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         const positionIndex = currentPositions.indexOf(position);
         if (positionIndex >= 0 && positionIndex < currentPositions.length - 1) {
           const newConfigPositions = [...currentPositions];
-          [newConfigPositions[positionIndex], newConfigPositions[positionIndex + 1]] = 
-            [newConfigPositions[positionIndex + 1], newConfigPositions[positionIndex]];
+          [newConfigPositions[positionIndex], newConfigPositions[positionIndex + 1]] = [
+            newConfigPositions[positionIndex + 1],
+            newConfigPositions[positionIndex],
+          ];
           return {
             ...prev,
-            positions: newConfigPositions
+            positions: newConfigPositions,
           };
         }
         return prev;
@@ -848,7 +875,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
     if (editingDescription) {
       setPositionDescriptions(prev => ({
         ...prev,
-        [editingDescription]: editingDescriptionText
+        [editingDescription]: editingDescriptionText,
       }));
       setEditingDescription(null);
       setEditingDescriptionText('');
@@ -863,14 +890,14 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
   const handleSelectAllPositions = () => {
     setConfig(prev => ({
       ...prev,
-      positions: [...customPositions]
+      positions: [...customPositions],
     }));
   };
 
   const handleDeselectAllPositions = () => {
     setConfig(prev => ({
       ...prev,
-      positions: []
+      positions: [],
     }));
   };
 
@@ -884,7 +911,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
   const handleRemoveEligibleCandidate = (candidate: any) => {
     setEligibleCandidates(prev => prev.filter(c => c.id !== candidate.id));
     setIneligibleCandidates(prev => {
-      const alreadyExists = prev.some((c) => c.id === candidate.id);
+      const alreadyExists = prev.some(c => c.id === candidate.id);
       return alreadyExists ? prev : [...prev, candidate];
     });
   };
@@ -895,16 +922,20 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
       if (response.ok) {
         const users = await response.json();
-        
+
         // Filtrar membros da igreja selecionada
         const churchMembers = users.filter((user: any) => {
           const isAdmin = user.role === 'superadmin' || user.role === 'pastor';
-          return user.church === config.churchName &&
+          return (
+            user.church === config.churchName &&
             (user.role?.includes('member') || isAdmin) &&
-            (user.status === 'approved' || user.status === 'pending');
+            (user.status === 'approved' || user.status === 'pending')
+          );
         });
 
-        console.log(`🔍 Encontrados ${churchMembers.length} membros na igreja ${config.churchName}`);
+        console.log(
+          `🔍 Encontrados ${churchMembers.length} membros na igreja ${config.churchName}`
+        );
 
         // Filtrar candidatos baseado nos critérios
         const eligibleCandidates = [];
@@ -913,15 +944,15 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
         for (const member of churchMembers) {
           let isEligible = true;
-          let eligibilityReasons: string[] = [];
+          const eligibilityReasons: string[] = [];
 
           // Dados de teste para Vagner (ID 2227)
           if (member.id === 2227) {
             member.extra_data = {
-              dizimistaType: "Pontual (1-3)",
-              ofertanteType: "Recorrente (8-13)",
-              teveParticipacao: "Recorrente (8-13/14)",
-              tempoBatismoAnos: 5
+              dizimistaType: 'Pontual (1-3)',
+              ofertanteType: 'Recorrente (8-13)',
+              teveParticipacao: 'Recorrente (8-13/14)',
+              tempoBatismoAnos: 5,
             };
           }
 
@@ -930,20 +961,21 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             dizimistaType: member.extra_data?.dizimistaType,
             ofertanteType: member.extra_data?.ofertanteType,
             teveParticipacao: member.extra_data?.teveParticipacao,
-            criteria: config.criteria
+            criteria: config.criteria,
           });
 
           // Critério de Fidelidade - usando a mesma lógica do UserDetailModal
           if (config.criteria?.faithfulness?.enabled) {
             let hasFaithfulness = false;
-            const extraData = typeof member.extra_data === 'string' 
-              ? JSON.parse(member.extra_data || '{}') 
-              : member.extra_data || {};
-            
+            const extraData =
+              typeof member.extra_data === 'string'
+                ? JSON.parse(member.extra_data || '{}')
+                : member.extra_data || {};
+
             // Verificar dizimista - usando coluna direta
             const dizimistaType = member.dizimista_type;
             const isDizimista = member.is_donor || member.isDonor || dizimistaType;
-            
+
             if (isDizimista) {
               console.log(`  📊 Verificando dizimista: ${dizimistaType}`);
               if (config.criteria.faithfulness.punctual && dizimistaType?.includes('Pontual')) {
@@ -959,12 +991,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                 console.log(`    ✅ Passou em Recorrente`);
               }
             }
-            
+
             // Verificar ofertante - usando coluna direta
             if (!hasFaithfulness) {
               const ofertanteType = member.ofertante_type;
               const isOfertante = member.isOffering || ofertanteType;
-              
+
               console.log(`  💰 Verificando ofertante: ${ofertanteType}`);
               if (isOfertante) {
                 if (config.criteria.faithfulness.punctual && ofertanteType?.includes('Pontual')) {
@@ -975,13 +1007,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                   hasFaithfulness = true;
                   console.log(`    ✅ Passou em Sazonal (ofertante)`);
                 }
-                if (config.criteria.faithfulness.recurring && ofertanteType?.includes('Recorrente')) {
+                if (
+                  config.criteria.faithfulness.recurring &&
+                  ofertanteType?.includes('Recorrente')
+                ) {
                   hasFaithfulness = true;
                   console.log(`    ✅ Passou em Recorrente (ofertante)`);
                 }
               }
             }
-            
+
             console.log(`  🎯 Resultado fidelidade: ${hasFaithfulness}`);
             if (!hasFaithfulness) {
               isEligible = false;
@@ -992,13 +1027,14 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           // Critério de Presença - usando a mesma lógica do UserDetailModal
           if (config.criteria?.attendance?.enabled) {
             let hasAttendance = false;
-            const extraData = typeof member.extra_data === 'string' 
-              ? JSON.parse(member.extra_data || '{}') 
-              : member.extra_data || {};
-            
+            const extraData =
+              typeof member.extra_data === 'string'
+                ? JSON.parse(member.extra_data || '{}')
+                : member.extra_data || {};
+
             // Verificar participação - exatamente como no UserDetailModal
             const teveParticipacao = extraData.teveParticipacao;
-            
+
             console.log(`  📅 Verificando participação: ${teveParticipacao}`);
             if (teveParticipacao && teveParticipacao !== 'Não informado') {
               if (config.criteria.attendance.punctual && teveParticipacao.includes('Pontual')) {
@@ -1014,7 +1050,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                 console.log(`    ✅ Passou em Recorrente (participação)`);
               }
             }
-            
+
             console.log(`  🎯 Resultado participação: ${hasAttendance}`);
             if (!hasAttendance) {
               isEligible = false;
@@ -1024,16 +1060,19 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
           // Critério de Tempo na Igreja (baseado no tempo de batismo)
           if (config.criteria?.churchTime?.enabled) {
-            const extraData = typeof member.extra_data === 'string' 
-              ? JSON.parse(member.extra_data || '{}') 
-              : member.extra_data || {};
-            
+            const extraData =
+              typeof member.extra_data === 'string'
+                ? JSON.parse(member.extra_data || '{}')
+                : member.extra_data || {};
+
             const tempoBatismoAnos = member.tempo_batismo_anos || 0;
             const minimumYears = Math.round((config.criteria.churchTime.minimumMonths || 12) / 12);
-            
+
             if (tempoBatismoAnos < minimumYears) {
               isEligible = false;
-              eligibilityReasons.push(`Tempo de batismo insuficiente (${tempoBatismoAnos} anos, mínimo: ${minimumYears} anos)`);
+              eligibilityReasons.push(
+                `Tempo de batismo insuficiente (${tempoBatismoAnos} anos, mínimo: ${minimumYears} anos)`
+              );
             }
           }
 
@@ -1042,13 +1081,18 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             const memberClassification = (member.classificacao || '').toLowerCase();
             let hasValidClassification = false;
 
-            console.log(`  📊 Verificando classificação para ${member.name}: ${memberClassification}`);
-            
+            console.log(
+              `  📊 Verificando classificação para ${member.name}: ${memberClassification}`
+            );
+
             if (config.criteria.classification.frequente && memberClassification === 'frequente') {
               hasValidClassification = true;
               console.log(`    ✅ Passou em Frequente`);
             }
-            if (config.criteria.classification.naoFrequente && memberClassification === 'não frequente') {
+            if (
+              config.criteria.classification.naoFrequente &&
+              memberClassification === 'não frequente'
+            ) {
               hasValidClassification = true;
               console.log(`    ✅ Passou em Não Frequente`);
             }
@@ -1056,17 +1100,20 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
               hasValidClassification = true;
               console.log(`    ✅ Passou em A Resgatar`);
             }
-            
+
             console.log(`  🎯 Resultado classificação: ${hasValidClassification}`);
             if (!hasValidClassification) {
               isEligible = false;
-              eligibilityReasons.push(`Classificação não atende aos critérios (${member.classificacao || 'não informado'})`);
+              eligibilityReasons.push(
+                `Classificação não atende aos critérios (${member.classificacao || 'não informado'})`
+              );
             }
           }
 
-          const extraData = typeof member.extra_data === 'string' 
-            ? JSON.parse(member.extra_data || '{}') 
-            : member.extra_data || {};
+          const extraData =
+            typeof member.extra_data === 'string'
+              ? JSON.parse(member.extra_data || '{}')
+              : member.extra_data || {};
 
           const candidateData = {
             id: member.id,
@@ -1081,14 +1128,18 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             attendance: extraData.teveParticipacao || 'Não informado',
             classification: member.classificacao || 'Não informado',
             // Tempo baseado no batismo - usando coluna direta
-            churchTime: member.tempo_batismo_anos ? `${member.tempo_batismo_anos} anos` : 'Não informado',
+            churchTime: member.tempo_batismo_anos
+              ? `${member.tempo_batismo_anos} anos`
+              : 'Não informado',
             churchTimeYears: member.tempo_batismo_anos || 0,
             extraData: member.extra_data,
-            eligibilityReasons
+            eligibilityReasons,
           };
 
-          console.log(`  🏆 Resultado final: elegível=${isEligible}, motivos=${eligibilityReasons.join(', ')}`);
-          
+          console.log(
+            `  🏆 Resultado final: elegível=${isEligible}, motivos=${eligibilityReasons.join(', ')}`
+          );
+
           if (isEligible) {
             eligibleCandidates.push(candidateData);
           } else {
@@ -1104,9 +1155,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
     } catch (error) {
       console.error('Erro ao carregar candidatos:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao carregar candidatos elegíveis",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Erro ao carregar candidatos elegíveis',
+        variant: 'destructive',
       });
     } finally {
       setLoadingCandidates(false);
@@ -1116,16 +1167,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
   const handleRemoveCandidate = (candidateId: number) => {
     setRemovedCandidates(prev => [...prev, candidateId]);
     toast({
-      title: "Candidato removido",
-      description: "O candidato foi removido da lista de elegíveis.",
+      title: 'Candidato removido',
+      description: 'O candidato foi removido da lista de elegíveis.',
     });
   };
 
   const handleAddCandidate = (candidateId: number) => {
     setRemovedCandidates(prev => prev.filter(id => id !== candidateId));
     toast({
-      title: "Candidato adicionado",
-      description: "O candidato foi adicionado à lista de elegíveis.",
+      title: 'Candidato adicionado',
+      description: 'O candidato foi adicionado à lista de elegíveis.',
     });
   };
 
@@ -1152,15 +1203,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       // Validar dados antes de enviar
       if (!config.churchId || !config.churchName || config.positions.length === 0) {
         toast({
-          title: "Erro",
-          description: "Por favor, selecione uma igreja e pelo menos um cargo.",
-          variant: "destructive",
+          title: 'Erro',
+          description: 'Por favor, selecione uma igreja e pelo menos um cargo.',
+          variant: 'destructive',
         });
         setSaving(false);
         return;
       }
 
-      const normalizedTitle = config.title?.trim() || `Nomeação ${config.churchName} - ${new Date().toLocaleDateString('pt-BR')}`;
+      const normalizedTitle =
+        config.title?.trim() ||
+        `Nomeação ${config.churchName} - ${new Date().toLocaleDateString('pt-BR')}`;
 
       const payload = {
         ...config,
@@ -1168,7 +1221,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         custom_positions: customPositions,
         position_descriptions: positionDescriptions,
         current_leaders: currentLeaders,
-        removed_candidates: removedCandidates
+        removed_candidates: removedCandidates,
       };
 
       console.log('🔧 [FRONTEND] Enviando configuração:', payload);
@@ -1178,15 +1231,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       // CRÍTICO: Se estamos criando uma nova nomeação (não é edição), não usar ID antigo
       const targetConfigId = isEditing ? (config.id ?? editingConfigId ?? undefined) : undefined;
       const isUpdate = Boolean(targetConfigId);
-      const endpoint = isUpdate ? `/api/elections/config/${targetConfigId}` : '/api/elections/config';
+      const endpoint = isUpdate
+        ? `/api/elections/config/${targetConfigId}`
+        : '/api/elections/config';
       const method = isUpdate ? 'PUT' : 'POST';
-      
+
       console.log('📝 Modo de salvamento:', {
         isEditing,
         targetConfigId,
         isUpdate,
         method,
-        endpoint
+        endpoint,
       });
 
       const response = await fetch(endpoint, {
@@ -1194,9 +1249,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          Pragma: 'no-cache',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -1204,7 +1259,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           let responseData: any = null;
           try {
             responseData = await response.json();
-          } catch (parseError) {
+          } catch (_parseError) {
             responseData = null;
           }
 
@@ -1221,8 +1276,8 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           setConfigExists(true);
           setConfig(prev => ({ ...prev, id: data.id }));
           toast({
-            title: "Configuração salva",
-            description: "Os parâmetros da nomeação foram salvos com sucesso.",
+            title: 'Configuração salva',
+            description: 'Os parâmetros da nomeação foram salvos com sucesso.',
           });
           setCurrentStep(2); // Avança para o próximo passo
         }
@@ -1233,9 +1288,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       }
     } catch (error) {
       toast({
-        title: "Erro",
-        description: "Não foi possível salvar a configuração.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível salvar a configuração.',
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -1245,18 +1300,18 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
   const startElection = async () => {
     if (!config.voters || config.voters.length === 0) {
       toast({
-        title: "Erro",
-        description: "Selecione pelo menos um votante.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Selecione pelo menos um votante.',
+        variant: 'destructive',
       });
       return;
     }
 
     if (!config.positions || config.positions.length === 0) {
       toast({
-        title: "Erro",
-        description: "Selecione pelo menos um cargo.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Selecione pelo menos um cargo.',
+        variant: 'destructive',
       });
       return;
     }
@@ -1268,28 +1323,29 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          Pragma: 'no-cache',
         },
         body: JSON.stringify({
           ...config,
-          configId: config.id
-        })
+          configId: config.id,
+        }),
       });
 
       if (response.ok) {
         setConfig(prev => ({ ...prev, status: 'active' }));
         toast({
-          title: "Eleição iniciada",
-          description: "A eleição foi iniciada com sucesso. Os votantes já podem acessar a página de votação.",
+          title: 'Eleição iniciada',
+          description:
+            'A eleição foi iniciada com sucesso. Os votantes já podem acessar a página de votação.',
         });
       } else {
         throw new Error('Erro ao iniciar eleição');
       }
     } catch (error) {
       toast({
-        title: "Erro",
-        description: "Não foi possível iniciar a eleição.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível iniciar a eleição.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -1298,20 +1354,19 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
   const filteredMembers = members.filter(member => {
     const matchesChurch = member.church === config.churchName || config.churchName === '';
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch =
+      searchTerm === '' ||
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesChurch && matchesSearch;
   });
 
-  const selectedVoters = members.filter(member => 
-    config.voters?.includes(member.id) || false
-  );
+  const selectedVoters = members.filter(member => config.voters?.includes(member.id) || false);
 
   const filteredEligibleCandidates = useMemo(() => {
     // Primeiro, filtrar candidatos removidos manualmente
-    const activeEligible = eligibleCandidates.filter(candidate => 
-      !removedCandidates.includes(candidate.id)
+    const activeEligible = eligibleCandidates.filter(
+      candidate => !removedCandidates.includes(candidate.id)
     );
 
     const term = eligibleSearchTerm.trim().toLowerCase();
@@ -1319,7 +1374,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       return activeEligible;
     }
 
-    return activeEligible.filter((candidate) => {
+    return activeEligible.filter(candidate => {
       const name = candidate?.name?.toLowerCase() ?? '';
       const email = candidate?.email?.toLowerCase() ?? '';
       const role = candidate?.role?.toLowerCase() ?? '';
@@ -1333,7 +1388,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       return ineligibleCandidates;
     }
 
-    return ineligibleCandidates.filter((candidate) => {
+    return ineligibleCandidates.filter(candidate => {
       const name = candidate?.name?.toLowerCase() ?? '';
       const email = candidate?.email?.toLowerCase() ?? '';
       const role = candidate?.role?.toLowerCase() ?? '';
@@ -1354,10 +1409,11 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
   }
 
   // Verificar se o usuário tem permissão para acessar a configuração de eleição
-  const canAccessElectionConfig = hasAdminAccess(user) || 
-                                  user?.email?.includes('admin') ||
-                                  user?.name?.toLowerCase().includes('admin') ||
-                                  user?.name?.toLowerCase().includes('pastor');
+  const canAccessElectionConfig =
+    hasAdminAccess(user) ||
+    user?.email?.includes('admin') ||
+    user?.name?.toLowerCase().includes('admin') ||
+    user?.name?.toLowerCase().includes('pastor');
 
   if (!canAccessElectionConfig) {
     return (
@@ -1368,9 +1424,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           <p className="text-muted-foreground">Apenas administradores podem configurar eleições.</p>
           <div className="mt-4 p-4 bg-gray-100 rounded-lg text-left">
             <p className="text-sm text-gray-600">
-              <strong>Usuário atual:</strong><br/>
-              Nome: {user?.name || 'N/A'}<br/>
-              Email: {user?.email || 'N/A'}<br/>
+              <strong>Usuário atual:</strong>
+              <br />
+              Nome: {user?.name || 'N/A'}
+              <br />
+              Email: {user?.email || 'N/A'}
+              <br />
               Role: {user?.role || 'N/A'}
             </p>
           </div>
@@ -1393,47 +1452,47 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           enabled: true,
           punctual: true,
           seasonal: true,
-          recurring: true
+          recurring: true,
         },
         attendance: {
           enabled: true,
           punctual: true,
           seasonal: true,
-          recurring: true
+          recurring: true,
         },
         churchTime: {
           enabled: true,
-          minimumMonths: 12
+          minimumMonths: 12,
         },
         positionLimit: {
           enabled: true,
-          maxPositions: 2
+          maxPositions: 2,
         },
         eldersCount: {
           enabled: true,
-          count: 1
+          count: 1,
         },
         classification: {
           enabled: true,
           frequente: true,
           naoFrequente: false,
-          aResgatar: false
-        }
+          aResgatar: false,
+        },
       },
       positions: [],
-      status: 'draft'
+      status: 'draft',
     });
     setCurrentStep(1);
     setConfigExists(false);
     setEligibleCandidates([]);
     setIneligibleCandidates([]);
-    
+
     // Limpa URL
     window.history.pushState({}, '', '/election-config');
-    
+
     toast({
-      title: "Nova Nomeação",
-      description: "Iniciando configuração de nova nomeação",
+      title: 'Nova Nomeação',
+      description: 'Iniciando configuração de nova nomeação',
     });
   };
 
@@ -1452,10 +1511,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                   </Badge>
                 )}
               </div>
-              <p className="text-muted-foreground">Configure os parâmetros da nomeação de liderança</p>
+              <p className="text-muted-foreground">
+                Configure os parâmetros da nomeação de liderança
+              </p>
             </div>
           </div>
-          
+
           {/* Botão Nova Nomeação */}
           <Button
             variant="default"
@@ -1469,40 +1530,42 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         </div>
 
         {/* Indicador de Passos */}
-      <div className="flex items-center justify-center space-x-4 mb-6">
-        {[1, 2, 3, 4, 5].map((step) => (
-          <div key={step} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep >= step 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 text-gray-600'
-            }`}>
-              {step}
+        <div className="flex items-center justify-center space-x-4 mb-6">
+          {[1, 2, 3, 4, 5].map(step => (
+            <div key={step} className="flex items-center">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {step}
+              </div>
+              <span
+                className={`ml-2 text-sm font-medium ${
+                  currentStep >= step ? 'text-blue-600' : 'text-gray-500'
+                }`}
+              >
+                {step === 1 && 'Igreja'}
+                {step === 2 && 'Votantes'}
+                {step === 3 && 'Critérios'}
+                {step === 4 && 'Cargos'}
+                {step === 5 && 'Candidatos'}
+              </span>
+              {step < 5 && (
+                <div
+                  className={`w-8 h-0.5 mx-2 ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`}
+                />
+              )}
             </div>
-            <span className={`ml-2 text-sm font-medium ${
-              currentStep >= step ? 'text-blue-600' : 'text-gray-500'
-            }`}>
-              {step === 1 && 'Igreja'}
-              {step === 2 && 'Votantes'}
-              {step === 3 && 'Critérios'}
-              {step === 4 && 'Cargos'}
-              {step === 5 && 'Candidatos'}
-            </span>
-            {step < 5 && (
-              <div className={`w-8 h-0.5 mx-2 ${
-                currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
-              }`} />
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
         {/* Indicador de Modo (Edição ou Criação) */}
         {isEditing ? (
           <Alert className="mb-4 border-blue-500 bg-blue-50">
             <Edit className="h-4 w-4 text-blue-600" />
             <AlertDescription>
-              <strong>Modo Edição</strong> - Você está editando a nomeação ID #{editingConfigId}. 
+              <strong>Modo Edição</strong> - Você está editando a nomeação ID #{editingConfigId}.
               Clique em "Nova Nomeação" para criar uma nova configuração do zero.
             </AlertDescription>
           </Alert>
@@ -1510,25 +1573,24 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           <Alert className="mb-4 border-green-500 bg-green-50">
             <Plus className="h-4 w-4 text-green-600" />
             <AlertDescription>
-              <strong>Modo Criação</strong> - Você está criando uma nova nomeação. 
-              Todas as alterações serão salvas como uma nova configuração.
+              <strong>Modo Criação</strong> - Você está criando uma nova nomeação. Todas as
+              alterações serão salvas como uma nova configuração.
             </AlertDescription>
           </Alert>
         )}
-        
+
         {/* Alerta de Configuração Existente */}
         {configExists && (
           <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Configuração já existe!</strong> Já existe uma configuração para esta igreja. 
+              <strong>Configuração já existe!</strong> Já existe uma configuração para esta igreja.
               Você pode editar a configuração existente ou criar uma nova.
             </AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
-
           {currentStep === 1 && (
             <Card>
               <CardHeader>
@@ -1548,21 +1610,25 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     type="text"
                     placeholder="Ex.: Nomeação 2025 - Comissão de Nomeações"
                     value={config.title || ''}
-                    onChange={(e) => setConfig(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={e => setConfig(prev => ({ ...prev, title: e.target.value }))}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Defina um nome para identificar esta nomeação. Útil quando houver várias nomeações para a mesma igreja.
+                    Defina um nome para identificar esta nomeação. Útil quando houver várias
+                    nomeações para a mesma igreja.
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="church">Igreja</Label>
-                  <Select value={config.churchId?.toString() || ''} onValueChange={handleChurchChange}>
+                  <Select
+                    value={config.churchId?.toString() || ''}
+                    onValueChange={handleChurchChange}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma igreja" />
                     </SelectTrigger>
                     <SelectContent>
-                      {churches.map((church) => (
+                      {churches.map(church => (
                         <SelectItem key={church.id} value={church.id?.toString() || ''}>
                           {church.name}
                         </SelectItem>
@@ -1570,7 +1636,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 {config.churchName && (
                   <Alert>
                     <CheckCircle className="h-4 w-4" />
@@ -1591,7 +1657,8 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                   Seleção de Votantes
                 </CardTitle>
                 <CardDescription>
-                  Selecione quais membros da igreja "{config.churchName || 'Selecione uma igreja'}" poderão votar na eleição
+                  Selecione quais membros da igreja "{config.churchName || 'Selecione uma igreja'}"
+                  poderão votar na eleição
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1599,7 +1666,8 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Selecione uma igreja na aba "Configuração Básica" para visualizar os membros disponíveis.
+                      Selecione uma igreja na aba "Configuração Básica" para visualizar os membros
+                      disponíveis.
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -1612,25 +1680,24 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         type="text"
                         placeholder="Digite o nome ou email do membro para pesquisar..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={e => setSearchTerm(e.target.value)}
                         className="w-full"
                       />
                     </div>
 
                     {/* Contadores */}
                     <div className="flex justify-between items-center text-sm text-muted-foreground">
-                      <span>
-                        {filteredMembers.length} membro(s) encontrado(s)
-                      </span>
-                      <span>
-                        {selectedVoters.length} votante(s) selecionado(s)
-                      </span>
+                      <span>{filteredMembers.length} membro(s) encontrado(s)</span>
+                      <span>{selectedVoters.length} votante(s) selecionado(s)</span>
                     </div>
 
                     {/* Lista de Membros */}
                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {filteredMembers.map((member) => (
-                        <div key={member.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                      {filteredMembers.map(member => (
+                        <div
+                          key={member.id}
+                          className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                        >
                           <Checkbox
                             id={`voter-${member.id}`}
                             checked={config.voters?.includes(member.id) || false}
@@ -1639,9 +1706,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-medium text-sm truncate">
-                                  {member.name}
-                                </span>
+                                <span className="font-medium text-sm truncate">{member.name}</span>
                                 <span className="text-xs text-muted-foreground truncate">
                                   {member.email}
                                 </span>
@@ -1650,8 +1715,8 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                 <Badge variant="secondary" className="text-xs">
                                   {member.role}
                                 </Badge>
-                                <Badge 
-                                  variant={member.status === 'approved' ? 'default' : 'outline'} 
+                                <Badge
+                                  variant={member.status === 'approved' ? 'default' : 'outline'}
                                   className="text-xs"
                                 >
                                   {member.status === 'approved' ? 'Ativo' : 'Pendente'}
@@ -1665,7 +1730,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         </div>
                       ))}
                     </div>
-                    
+
                     {filteredMembers.length === 0 && searchTerm && (
                       <div className="text-center py-8">
                         <div className="text-muted-foreground mb-2">
@@ -1681,7 +1746,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         <div className="text-muted-foreground mb-2">
                           <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                           <p>Nenhum membro encontrado para a igreja "{config.churchName}"</p>
-                          <p className="text-xs mt-1">Verifique se a igreja foi selecionada corretamente</p>
+                          <p className="text-xs mt-1">
+                            Verifique se a igreja foi selecionada corretamente
+                          </p>
                         </div>
                       </div>
                     )}
@@ -1696,7 +1763,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                             const allMemberIds = filteredMembers.map(m => m.id);
                             setConfig(prev => ({
                               ...prev,
-                              voters: allMemberIds
+                              voters: allMemberIds,
                             }));
                           }}
                           className="flex-1"
@@ -1709,7 +1776,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           onClick={() => {
                             setConfig(prev => ({
                               ...prev,
-                              voters: []
+                              voters: [],
                             }));
                           }}
                           className="flex-1"
@@ -1724,8 +1791,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       <div className="space-y-2">
                         <Label>Votantes selecionados ({selectedVoters.length})</Label>
                         <div className="flex flex-wrap gap-2">
-                          {selectedVoters.map((voter) => (
-                            <Badge key={voter.id} variant="secondary" className="flex items-center gap-1">
+                          {selectedVoters.map(voter => (
+                            <Badge
+                              key={voter.id}
+                              variant="secondary"
+                              className="flex items-center gap-1"
+                            >
                               <UserCheck className="h-3 w-3" />
                               {voter.name}
                             </Badge>
@@ -1759,7 +1830,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         <Checkbox
                           id="faithfulness-enabled"
                           checked={config.criteria?.faithfulness?.enabled || false}
-                          onCheckedChange={(checked) => handleCriteriaChange('faithfulness.enabled', checked)}
+                          onCheckedChange={checked =>
+                            handleCriteriaChange('faithfulness.enabled', checked)
+                          }
                         />
                         <Label htmlFor="faithfulness-enabled" className="cursor-pointer">
                           Fidelidade nos dízimos e ofertas
@@ -1770,8 +1843,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     {config.criteria?.faithfulness?.enabled && (
                       <div className="ml-6 space-y-4">
                         <div className="space-y-3">
-                          <Label className="text-sm font-medium">Tipos de fidelidade obrigatórios:</Label>
-                          
+                          <Label className="text-sm font-medium">
+                            Tipos de fidelidade obrigatórios:
+                          </Label>
+
                           {/* Campo inline para Pontual */}
                           <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
                             <div className="flex items-center space-x-3">
@@ -1780,13 +1855,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Pontual</Label>
-                                <p className="text-xs text-muted-foreground">Dízimos pagos no prazo</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Dízimos pagos no prazo
+                                </p>
                               </div>
                             </div>
                             <Checkbox
                               id="punctual"
                               checked={config.criteria?.faithfulness?.punctual || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('faithfulness.punctual', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('faithfulness.punctual', checked)
+                              }
                             />
                           </div>
 
@@ -1798,13 +1877,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Sazonal</Label>
-                                <p className="text-xs text-muted-foreground">Ofertas especiais e campanhas</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Ofertas especiais e campanhas
+                                </p>
                               </div>
                             </div>
                             <Checkbox
                               id="seasonal"
                               checked={config.criteria?.faithfulness?.seasonal || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('faithfulness.seasonal', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('faithfulness.seasonal', checked)
+                              }
                             />
                           </div>
 
@@ -1816,13 +1899,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Recorrente</Label>
-                                <p className="text-xs text-muted-foreground">Contribuições regulares</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Contribuições regulares
+                                </p>
                               </div>
                             </div>
                             <Checkbox
                               id="recurring"
                               checked={config.criteria?.faithfulness?.recurring || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('faithfulness.recurring', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('faithfulness.recurring', checked)
+                              }
                             />
                           </div>
                         </div>
@@ -1831,27 +1918,42 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-center space-x-2 mb-2">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <Label className="text-sm font-medium text-blue-800">Critérios Ativos:</Label>
+                            <Label className="text-sm font-medium text-blue-800">
+                              Critérios Ativos:
+                            </Label>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {config.criteria?.faithfulness?.punctual && (
-                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-blue-100 text-blue-700"
+                              >
                                 Pontual
                               </Badge>
                             )}
                             {config.criteria?.faithfulness?.seasonal && (
-                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-green-100 text-green-700"
+                              >
                                 Sazonal
                               </Badge>
                             )}
                             {config.criteria?.faithfulness?.recurring && (
-                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-purple-100 text-purple-700"
+                              >
                                 Recorrente
                               </Badge>
                             )}
-                            {!config.criteria?.faithfulness?.punctual && !config.criteria?.faithfulness?.seasonal && !config.criteria?.faithfulness?.recurring && (
-                              <span className="text-xs text-muted-foreground">Nenhum critério selecionado</span>
-                            )}
+                            {!config.criteria?.faithfulness?.punctual &&
+                              !config.criteria?.faithfulness?.seasonal &&
+                              !config.criteria?.faithfulness?.recurring && (
+                                <span className="text-xs text-muted-foreground">
+                                  Nenhum critério selecionado
+                                </span>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -1866,7 +1968,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       <Checkbox
                         id="attendance-enabled"
                         checked={config.criteria?.attendance?.enabled || false}
-                        onCheckedChange={(checked) => handleCriteriaChange('attendance.enabled', checked)}
+                        onCheckedChange={checked =>
+                          handleCriteriaChange('attendance.enabled', checked)
+                        }
                       />
                       <Label htmlFor="attendance-enabled" className="cursor-pointer">
                         Presença regular (teveParticipacao)
@@ -1876,50 +1980,65 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     {config.criteria?.attendance?.enabled && (
                       <div className="ml-6 space-y-3">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">Tipos de participação aceitos:</Label>
-                          
+                          <Label className="text-sm font-medium">
+                            Tipos de participação aceitos:
+                          </Label>
+
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="attendance-punctual"
                               checked={config.criteria?.attendance?.punctual || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('attendance.punctual', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('attendance.punctual', checked)
+                              }
                             />
                             <Label htmlFor="attendance-punctual" className="cursor-pointer text-sm">
                               Pontual (Recorrente)
                             </Label>
                           </div>
-                          
+
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="attendance-seasonal"
                               checked={config.criteria?.attendance?.seasonal || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('attendance.seasonal', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('attendance.seasonal', checked)
+                              }
                             />
                             <Label htmlFor="attendance-seasonal" className="cursor-pointer text-sm">
                               Sazonal (Sazonal + Recorrente)
                             </Label>
                           </div>
-                          
+
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="attendance-recurring"
                               checked={config.criteria?.attendance?.recurring || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('attendance.recurring', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('attendance.recurring', checked)
+                              }
                             />
-                            <Label htmlFor="attendance-recurring" className="cursor-pointer text-sm">
+                            <Label
+                              htmlFor="attendance-recurring"
+                              className="cursor-pointer text-sm"
+                            >
                               Recorrente (apenas Recorrente)
                             </Label>
                           </div>
                         </div>
-                        
+
                         <Alert>
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription className="text-xs">
-                            <strong>Critérios de participação:</strong><br/>
-                            • <strong>Pontual:</strong> Apenas membros com participação "Recorrente"<br/>
-                            • <strong>Sazonal:</strong> Membros com participação "Sazonal" ou "Recorrente"<br/>
-                            • <strong>Recorrente:</strong> Apenas membros com participação "Recorrente"<br/>
-                            • <strong>Exclusão:</strong> Membros com "Sem participação" são automaticamente excluídos
+                            <strong>Critérios de participação:</strong>
+                            <br />• <strong>Pontual:</strong> Apenas membros com participação
+                            "Recorrente"
+                            <br />• <strong>Sazonal:</strong> Membros com participação "Sazonal" ou
+                            "Recorrente"
+                            <br />• <strong>Recorrente:</strong> Apenas membros com participação
+                            "Recorrente"
+                            <br />• <strong>Exclusão:</strong> Membros com "Sem participação" são
+                            automaticamente excluídos
                           </AlertDescription>
                         </Alert>
                       </div>
@@ -1934,7 +2053,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       <Checkbox
                         id="church-time-enabled"
                         checked={config.criteria?.churchTime?.enabled || false}
-                        onCheckedChange={(checked) => handleCriteriaChange('churchTime.enabled', checked)}
+                        onCheckedChange={checked =>
+                          handleCriteriaChange('churchTime.enabled', checked)
+                        }
                       />
                       <Label htmlFor="church-time-enabled" className="cursor-pointer">
                         Tempo mínimo de batismo
@@ -1949,11 +2070,20 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           type="number"
                           min="1"
                           max="50"
-                          value={Math.round((config.criteria?.churchTime?.minimumMonths || 12) / 12)}
-                          onChange={(e) => handleCriteriaChange('churchTime.minimumMonths', (parseInt(e.target.value) || 1) * 12)}
+                          value={Math.round(
+                            (config.criteria?.churchTime?.minimumMonths || 12) / 12
+                          )}
+                          onChange={e =>
+                            handleCriteriaChange(
+                              'churchTime.minimumMonths',
+                              (parseInt(e.target.value) || 1) * 12
+                            )
+                          }
                         />
                         <p className="text-sm text-muted-foreground">
-                          Membros com menos de {Math.round((config.criteria?.churchTime?.minimumMonths || 12) / 12)} anos de batismo não poderão ser candidatos
+                          Membros com menos de{' '}
+                          {Math.round((config.criteria?.churchTime?.minimumMonths || 12) / 12)} anos
+                          de batismo não poderão ser candidatos
                         </p>
                       </div>
                     )}
@@ -1968,7 +2098,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         <Checkbox
                           id="classification-enabled"
                           checked={config.criteria?.classification?.enabled || false}
-                          onCheckedChange={(checked) => handleCriteriaChange('classification.enabled', checked)}
+                          onCheckedChange={checked =>
+                            handleCriteriaChange('classification.enabled', checked)
+                          }
                         />
                         <Label htmlFor="classification-enabled" className="cursor-pointer">
                           Classificação do Membro
@@ -1979,8 +2111,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     {config.criteria?.classification?.enabled && (
                       <div className="ml-6 space-y-4">
                         <div className="space-y-3">
-                          <Label className="text-sm font-medium">Tipos de classificação aceitos:</Label>
-                          
+                          <Label className="text-sm font-medium">
+                            Tipos de classificação aceitos:
+                          </Label>
+
                           {/* Campo inline para Frequente */}
                           <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
                             <div className="flex items-center space-x-3">
@@ -1989,13 +2123,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Frequente</Label>
-                                <p className="text-xs text-muted-foreground">Membros com participação regular</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Membros com participação regular
+                                </p>
                               </div>
                             </div>
                             <Checkbox
                               id="classification-frequente"
                               checked={config.criteria?.classification?.frequente || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('classification.frequente', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('classification.frequente', checked)
+                              }
                             />
                           </div>
 
@@ -2007,13 +2145,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Não Frequente</Label>
-                                <p className="text-xs text-muted-foreground">Membros com baixa participação</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Membros com baixa participação
+                                </p>
                               </div>
                             </div>
                             <Checkbox
                               id="classification-naoFrequente"
                               checked={config.criteria?.classification?.naoFrequente || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('classification.naoFrequente', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('classification.naoFrequente', checked)
+                              }
                             />
                           </div>
 
@@ -2025,13 +2167,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">A Resgatar</Label>
-                                <p className="text-xs text-muted-foreground">Membros inativos/afastados</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Membros inativos/afastados
+                                </p>
                               </div>
                             </div>
                             <Checkbox
                               id="classification-aResgatar"
                               checked={config.criteria?.classification?.aResgatar || false}
-                              onCheckedChange={(checked) => handleCriteriaChange('classification.aResgatar', checked)}
+                              onCheckedChange={checked =>
+                                handleCriteriaChange('classification.aResgatar', checked)
+                              }
                             />
                           </div>
                         </div>
@@ -2040,27 +2186,42 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-center space-x-2 mb-2">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <Label className="text-sm font-medium text-blue-800">Critérios Ativos:</Label>
+                            <Label className="text-sm font-medium text-blue-800">
+                              Critérios Ativos:
+                            </Label>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {config.criteria?.classification?.frequente && (
-                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-green-100 text-green-700"
+                              >
                                 Frequente
                               </Badge>
                             )}
                             {config.criteria?.classification?.naoFrequente && (
-                              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-orange-100 text-orange-700"
+                              >
                                 Não Frequente
                               </Badge>
                             )}
                             {config.criteria?.classification?.aResgatar && (
-                              <Badge variant="secondary" className="text-xs bg-red-100 text-red-700">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-red-100 text-red-700"
+                              >
                                 A Resgatar
                               </Badge>
                             )}
-                            {!config.criteria?.classification?.frequente && !config.criteria?.classification?.naoFrequente && !config.criteria?.classification?.aResgatar && (
-                              <span className="text-xs text-muted-foreground">Nenhum critério selecionado</span>
-                            )}
+                            {!config.criteria?.classification?.frequente &&
+                              !config.criteria?.classification?.naoFrequente &&
+                              !config.criteria?.classification?.aResgatar && (
+                                <span className="text-xs text-muted-foreground">
+                                  Nenhum critério selecionado
+                                </span>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -2075,7 +2236,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       <Checkbox
                         id="position-limit-enabled"
                         checked={config.criteria?.positionLimit?.enabled || false}
-                        onCheckedChange={(checked) => handleCriteriaChange('positionLimit.enabled', checked)}
+                        onCheckedChange={checked =>
+                          handleCriteriaChange('positionLimit.enabled', checked)
+                        }
                       />
                       <Label htmlFor="position-limit-enabled" className="cursor-pointer">
                         Limite de cargos por pessoa
@@ -2091,10 +2254,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           min="1"
                           max="4"
                           value={config.criteria?.positionLimit?.maxPositions || 2}
-                          onChange={(e) => handleCriteriaChange('positionLimit.maxPositions', parseInt(e.target.value))}
+                          onChange={e =>
+                            handleCriteriaChange(
+                              'positionLimit.maxPositions',
+                              parseInt(e.target.value)
+                            )
+                          }
                         />
                         <p className="text-sm text-muted-foreground">
-                          Uma pessoa pode ser eleita para no máximo {config.criteria?.positionLimit?.maxPositions || 2} cargo(s)
+                          Uma pessoa pode ser eleita para no máximo{' '}
+                          {config.criteria?.positionLimit?.maxPositions || 2} cargo(s)
                         </p>
                       </div>
                     )}
@@ -2108,7 +2277,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       <Checkbox
                         id="elders-count-enabled"
                         checked={config.criteria?.eldersCount?.enabled || false}
-                        onCheckedChange={(checked) => handleCriteriaChange('eldersCount.enabled', checked)}
+                        onCheckedChange={checked =>
+                          handleCriteriaChange('eldersCount.enabled', checked)
+                        }
                       />
                       <Label htmlFor="elders-count-enabled" className="cursor-pointer">
                         Quantidade de anciãos a serem eleitos
@@ -2124,10 +2295,13 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           min="1"
                           max="10"
                           value={config.criteria?.eldersCount?.count || 1}
-                          onChange={(e) => handleCriteriaChange('eldersCount.count', parseInt(e.target.value))}
+                          onChange={e =>
+                            handleCriteriaChange('eldersCount.count', parseInt(e.target.value))
+                          }
                         />
                         <p className="text-sm text-muted-foreground">
-                          Serão eleitos {config.criteria?.eldersCount?.count || 1} ancião(s) para a igreja
+                          Serão eleitos {config.criteria?.eldersCount?.count || 1} ancião(s) para a
+                          igreja
                         </p>
                       </div>
                     )}
@@ -2145,12 +2319,11 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                   Cargos para Eleição
                 </CardTitle>
                 <CardDescription>
-                  Gerencie todos os cargos disponíveis para eleição. Você pode adicionar, editar e excluir cargos conforme necessário.
+                  Gerencie todos os cargos disponíveis para eleição. Você pode adicionar, editar e
+                  excluir cargos conforme necessário.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-
-
                 {/* CARGOS PERSONALIZADOS */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b">
@@ -2168,7 +2341,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       Adicionar
                     </Button>
                   </div>
-                  
+
                   {/* Formulário para adicionar novo cargo */}
                   {showAddPosition && (
                     <div className="ml-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
@@ -2176,9 +2349,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         <Input
                           placeholder="Nome do cargo"
                           value={newPositionName}
-                          onChange={(e) => setNewPositionName(e.target.value)}
+                          onChange={e => setNewPositionName(e.target.value)}
                           className="flex-1"
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddCustomPosition()}
+                          onKeyPress={e => e.key === 'Enter' && handleAddCustomPosition()}
                         />
                         <Button
                           size="sm"
@@ -2187,11 +2360,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         >
                           <Save className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancelAdd}
-                        >
+                        <Button size="sm" variant="outline" onClick={handleCancelAdd}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -2209,16 +2378,29 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         <table className="w-full border-collapse">
                           <thead>
                             <tr className="border-b border-orange-200">
-                              <th className="text-left p-2 text-xs font-medium text-orange-700">Selecionar</th>
-                              <th className="text-left p-2 text-xs font-medium text-orange-700">Departamento/Ministério</th>
-                              <th className="text-left p-2 text-xs font-medium text-orange-700">Descrição/Atribuições</th>
-                              <th className="text-left p-2 text-xs font-medium text-orange-700">Líder Atual</th>
-                              <th className="text-left p-2 text-xs font-medium text-orange-700">Ações</th>
+                              <th className="text-left p-2 text-xs font-medium text-orange-700">
+                                Selecionar
+                              </th>
+                              <th className="text-left p-2 text-xs font-medium text-orange-700">
+                                Departamento/Ministério
+                              </th>
+                              <th className="text-left p-2 text-xs font-medium text-orange-700">
+                                Descrição/Atribuições
+                              </th>
+                              <th className="text-left p-2 text-xs font-medium text-orange-700">
+                                Líder Atual
+                              </th>
+                              <th className="text-left p-2 text-xs font-medium text-orange-700">
+                                Ações
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
                             {customPositions.map((position, index) => (
-                              <tr key={position} className="border-b border-orange-100 hover:bg-orange-25">
+                              <tr
+                                key={position}
+                                className="border-b border-orange-100 hover:bg-orange-25"
+                              >
                                 <td className="p-2">
                                   <Checkbox
                                     id={`custom-position-${position}`}
@@ -2231,9 +2413,11 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                     <div className="flex items-center gap-2">
                                       <Input
                                         value={editingPositionName}
-                                        onChange={(e) => setEditingPositionName(e.target.value)}
+                                        onChange={e => setEditingPositionName(e.target.value)}
                                         className="flex-1 text-sm"
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSaveEditPosition()}
+                                        onKeyPress={e =>
+                                          e.key === 'Enter' && handleSaveEditPosition()
+                                        }
                                       />
                                       <Button
                                         size="sm"
@@ -2253,7 +2437,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                       </Button>
                                     </div>
                                   ) : (
-                                    <Label htmlFor={`custom-position-${position}`} className="cursor-pointer text-sm font-medium">
+                                    <Label
+                                      htmlFor={`custom-position-${position}`}
+                                      className="cursor-pointer text-sm font-medium"
+                                    >
                                       {position}
                                     </Label>
                                   )}
@@ -2263,7 +2450,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                     <div className="space-y-2">
                                       <textarea
                                         value={editingDescriptionText}
-                                        onChange={(e) => setEditingDescriptionText(e.target.value)}
+                                        onChange={e => setEditingDescriptionText(e.target.value)}
                                         className="w-full min-h-[60px] p-2 text-xs border rounded-md resize-none"
                                         placeholder="Digite as atribuições e responsabilidades deste cargo..."
                                       />
@@ -2302,16 +2489,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                 <td className="p-2">
                                   <Select
                                     value={currentLeaders[position]?.toString() || undefined}
-                                    onValueChange={(value) => {
+                                    onValueChange={value => {
                                       if (value === 'none') {
                                         setCurrentLeaders(prev => ({
                                           ...prev,
-                                          [position]: null
+                                          [position]: null,
                                         }));
                                       } else {
                                         setCurrentLeaders(prev => ({
                                           ...prev,
-                                          [position]: value ? parseInt(value) : null
+                                          [position]: value ? parseInt(value) : null,
                                         }));
                                       }
                                     }}
@@ -2324,7 +2511,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                       {members
                                         .filter(member => member.church === config.churchName)
                                         .sort((a, b) => a.name.localeCompare(b.name))
-                                        .map((member) => (
+                                        .map(member => (
                                           <SelectItem key={member.id} value={member.id.toString()}>
                                             {member.name}
                                           </SelectItem>
@@ -2408,11 +2595,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     >
                       Desmarcar Todos
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectAllPositions}
-                    >
+                    <Button variant="outline" size="sm" onClick={handleSelectAllPositions}>
                       Marcar Todos
                     </Button>
                   </div>
@@ -2430,20 +2613,23 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                   Candidatos Elegíveis
                 </CardTitle>
                 <CardDescription>
-                  Visualize os membros que atendem aos critérios definidos e podem ser candidatos nas nomeações.
+                  Visualize os membros que atendem aos critérios definidos e podem ser candidatos
+                  nas nomeações.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <Button 
-                    onClick={loadEligibleCandidates} 
+                  <Button
+                    onClick={loadEligibleCandidates}
                     disabled={loadingCandidates || !config.churchId}
                     variant="outline"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loadingCandidates ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`h-4 w-4 mr-2 ${loadingCandidates ? 'animate-spin' : ''}`}
+                    />
                     {loadingCandidates ? 'Carregando...' : 'Atualizar Lista'}
                   </Button>
-                  
+
                   {eligibleCandidates.length > 0 && (
                     <div className="text-sm text-muted-foreground">
                       {eligibleCandidates.length} candidato(s) elegível(eis)
@@ -2459,12 +2645,13 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                 ) : eligibleCandidates.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum candidato elegível</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Nenhum candidato elegível
+                    </h3>
                     <p className="text-gray-500 mb-4">
-                      {config.churchId ? 
-                        'Nenhum membro da igreja selecionada atende aos critérios definidos.' :
-                        'Selecione uma igreja primeiro para visualizar os candidatos.'
-                      }
+                      {config.churchId
+                        ? 'Nenhum membro da igreja selecionada atende aos critérios definidos.'
+                        : 'Selecione uma igreja primeiro para visualizar os candidatos.'}
                     </p>
                     {config.churchId && (
                       <Button onClick={loadEligibleCandidates} variant="outline">
@@ -2484,7 +2671,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           id="eligible-search"
                           placeholder="Buscar candidato por nome, e-mail ou função"
                           value={eligibleSearchTerm}
-                          onChange={(event) => setEligibleSearchTerm(event.target.value)}
+                          onChange={event => setEligibleSearchTerm(event.target.value)}
                         />
                       </div>
                       <div className="text-sm text-muted-foreground md:text-right">
@@ -2497,7 +2684,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       </div>
                     ) : (
                       <div className="grid gap-4">
-                        {filteredEligibleCandidates.map((candidate) => (
+                        {filteredEligibleCandidates.map(candidate => (
                           <Card key={candidate.id} className="p-4">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-4">
@@ -2509,55 +2696,89 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                   <p className="text-sm text-muted-foreground">{candidate.email}</p>
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center space-x-2">
-                                <Badge variant={candidate.status === 'approved' ? 'default' : 'secondary'}>
+                                <Badge
+                                  variant={
+                                    candidate.status === 'approved' ? 'default' : 'secondary'
+                                  }
+                                >
                                   {candidate.status === 'approved' ? 'Ativo' : 'Pendente'}
                                 </Badge>
-                                <Badge variant="outline">
-                                  {candidate.role}
-                                </Badge>
+                                <Badge variant="outline">{candidate.role}</Badge>
                               </div>
                             </div>
-                            
+
                             <div className="mt-3 pt-3 border-t space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Tempo de batismo:</span>
-                                  <Badge variant={candidate.churchTime?.includes('Não') ? 'secondary' : 'default'}>
-                                    {candidate.churchTimeYears > 0 ? `${candidate.churchTimeYears} anos` : 'Não informado'}
+                                  <Badge
+                                    variant={
+                                      candidate.churchTime?.includes('Não')
+                                        ? 'secondary'
+                                        : 'default'
+                                    }
+                                  >
+                                    {candidate.churchTimeYears > 0
+                                      ? `${candidate.churchTimeYears} anos`
+                                      : 'Não informado'}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Dizimista:</span>
-                                  <Badge variant={candidate.isTither?.includes('Não') || candidate.isTither === 'Não informado' ? 'secondary' : 'default'}>
+                                  <Badge
+                                    variant={
+                                      candidate.isTither?.includes('Não') ||
+                                      candidate.isTither === 'Não informado'
+                                        ? 'secondary'
+                                        : 'default'
+                                    }
+                                  >
                                     {candidate.isTither}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Ofertante:</span>
-                                  <Badge variant={candidate.isDonor?.includes('Não') || candidate.isDonor === 'Não informado' ? 'secondary' : 'default'}>
+                                  <Badge
+                                    variant={
+                                      candidate.isDonor?.includes('Não') ||
+                                      candidate.isDonor === 'Não informado'
+                                        ? 'secondary'
+                                        : 'default'
+                                    }
+                                  >
                                     {candidate.isDonor}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Presença:</span>
-                                  <Badge variant={candidate.attendance?.includes('Não') || candidate.attendance === 'Não informado' ? 'secondary' : 'default'}>
+                                  <Badge
+                                    variant={
+                                      candidate.attendance?.includes('Não') ||
+                                      candidate.attendance === 'Não informado'
+                                        ? 'secondary'
+                                        : 'default'
+                                    }
+                                  >
                                     {candidate.attendance}
                                   </Badge>
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium text-sm">Classificação:</span>
-                                  <Badge 
+                                  <Badge
                                     variant="outline"
                                     className={
-                                      candidate.classification === 'Frequente' ? 'bg-green-50 text-green-700 border-green-300' :
-                                      candidate.classification === 'Não Frequente' ? 'bg-orange-50 text-orange-700 border-orange-300' :
-                                      candidate.classification === 'A Resgatar' ? 'bg-red-50 text-red-700 border-red-300' :
-                                      'bg-gray-50 text-gray-600'
+                                      candidate.classification === 'Frequente'
+                                        ? 'bg-green-50 text-green-700 border-green-300'
+                                        : candidate.classification === 'Não Frequente'
+                                          ? 'bg-orange-50 text-orange-700 border-orange-300'
+                                          : candidate.classification === 'A Resgatar'
+                                            ? 'bg-red-50 text-red-700 border-red-300'
+                                            : 'bg-gray-50 text-gray-600'
                                     }
                                   >
                                     {candidate.classification}
@@ -2581,8 +2802,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     <Alert>
                       <Info className="h-4 w-4" />
                       <AlertDescription>
-                        Esta lista mostra apenas os membros que atendem aos critérios definidos. 
-                        Durante a nomeação, apenas estes membros poderão ser indicados como candidatos.
+                        Esta lista mostra apenas os membros que atendem aos critérios definidos.
+                        Durante a nomeação, apenas estes membros poderão ser indicados como
+                        candidatos.
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -2598,11 +2820,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                       </h3>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Membros que não atendem aos critérios definidos, mas podem ser adicionados manualmente pelo administrador.
+                      Membros que não atendem aos critérios definidos, mas podem ser adicionados
+                      manualmente pelo administrador.
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {ineligibleCandidates.map((candidate) => (
+                      {ineligibleCandidates.map(candidate => (
                         <Card key={candidate.id} className="border-orange-200">
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between">
@@ -2610,12 +2833,14 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                 <h4 className="font-medium text-orange-800">{candidate.name}</h4>
                                 <p className="text-sm text-muted-foreground">{candidate.email}</p>
                                 <div className="flex items-center gap-2 mt-2">
-                                  <Badge variant={candidate.status === 'approved' ? 'default' : 'secondary'}>
+                                  <Badge
+                                    variant={
+                                      candidate.status === 'approved' ? 'default' : 'secondary'
+                                    }
+                                  >
                                     {candidate.status === 'approved' ? 'Ativo' : 'Pendente'}
                                   </Badge>
-                                  <Badge variant="outline">
-                                    {candidate.role}
-                                  </Badge>
+                                  <Badge variant="outline">{candidate.role}</Badge>
                                 </div>
                               </div>
                               <Button
@@ -2628,60 +2853,95 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                 Adicionar
                               </Button>
                             </div>
-                            
+
                             <div className="mt-3 pt-3 border-t border-orange-100">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Tempo de batismo:</span>
-                                  <Badge variant={candidate.churchTimeYears === 0 ? 'secondary' : 'default'}>
-                                    {candidate.churchTimeYears > 0 ? `${candidate.churchTimeYears} anos` : 'Não informado'}
+                                  <Badge
+                                    variant={
+                                      candidate.churchTimeYears === 0 ? 'secondary' : 'default'
+                                    }
+                                  >
+                                    {candidate.churchTimeYears > 0
+                                      ? `${candidate.churchTimeYears} anos`
+                                      : 'Não informado'}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Dizimista:</span>
-                                  <Badge variant={candidate.isTither?.includes('Não') || candidate.isTither === 'Não informado' ? 'secondary' : 'default'}>
+                                  <Badge
+                                    variant={
+                                      candidate.isTither?.includes('Não') ||
+                                      candidate.isTither === 'Não informado'
+                                        ? 'secondary'
+                                        : 'default'
+                                    }
+                                  >
                                     {candidate.isTither}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Ofertante:</span>
-                                  <Badge variant={candidate.isDonor?.includes('Não') || candidate.isDonor === 'Não informado' ? 'secondary' : 'default'}>
+                                  <Badge
+                                    variant={
+                                      candidate.isDonor?.includes('Não') ||
+                                      candidate.isDonor === 'Não informado'
+                                        ? 'secondary'
+                                        : 'default'
+                                    }
+                                  >
                                     {candidate.isDonor}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="font-medium">Presença:</span>
-                                  <Badge variant={candidate.attendance?.includes('Não') || candidate.attendance === 'Não informado' ? 'secondary' : 'default'}>
+                                  <Badge
+                                    variant={
+                                      candidate.attendance?.includes('Não') ||
+                                      candidate.attendance === 'Não informado'
+                                        ? 'secondary'
+                                        : 'default'
+                                    }
+                                  >
                                     {candidate.attendance}
                                   </Badge>
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center space-x-2 mt-3">
                                 <span className="font-medium text-sm">Classificação:</span>
-                                <Badge 
+                                <Badge
                                   variant="outline"
                                   className={
-                                    candidate.classification === 'Frequente' ? 'bg-green-50 text-green-700 border-green-300' :
-                                    candidate.classification === 'Não Frequente' ? 'bg-orange-50 text-orange-700 border-orange-300' :
-                                    candidate.classification === 'A Resgatar' ? 'bg-red-50 text-red-700 border-red-300' :
-                                    'bg-gray-50 text-gray-600'
+                                    candidate.classification === 'Frequente'
+                                      ? 'bg-green-50 text-green-700 border-green-300'
+                                      : candidate.classification === 'Não Frequente'
+                                        ? 'bg-orange-50 text-orange-700 border-orange-300'
+                                        : candidate.classification === 'A Resgatar'
+                                          ? 'bg-red-50 text-red-700 border-red-300'
+                                          : 'bg-gray-50 text-gray-600'
                                   }
                                 >
                                   {candidate.classification}
                                 </Badge>
                               </div>
-                              
+
                               {/* Motivos de não elegibilidade */}
                               <div className="mt-3 pt-3 border-t border-orange-100">
                                 <p className="text-sm font-medium text-orange-700 mb-2">Motivos:</p>
                                 <div className="space-y-1">
-                                  {candidate.eligibilityReasons.map((reason: string, index: number) => (
-                                    <div key={index} className="flex items-center gap-2 text-sm text-orange-600">
-                                      <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-                                      <span>{reason}</span>
-                                    </div>
-                                  ))}
+                                  {candidate.eligibilityReasons.map(
+                                    (reason: string, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="flex items-center gap-2 text-sm text-orange-600"
+                                      >
+                                        <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                                        <span>{reason}</span>
+                                      </div>
+                                    )
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -2693,8 +2953,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     <Alert className="mt-4 border-orange-200">
                       <AlertTriangle className="h-4 w-4 text-orange-600" />
                       <AlertDescription className="text-orange-800">
-                        Estes membros não atendem aos critérios definidos, mas podem ser adicionados manualmente 
-                        clicando no botão "Adicionar" se o administrador considerar apropriado.
+                        Estes membros não atendem aos critérios definidos, mas podem ser adicionados
+                        manualmente clicando no botão "Adicionar" se o administrador considerar
+                        apropriado.
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -2716,38 +2977,41 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {eligibleCandidates
                         .filter(c => removedCandidates.includes(c.id))
-                        .map((candidate) => (
-                        <Card key={candidate.id} className="border-red-200 bg-red-50">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-red-800">{candidate.name}</h4>
-                                <p className="text-sm text-muted-foreground">{candidate.email}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Badge variant="outline" className="text-xs bg-red-100 text-red-700 border-red-300">
-                                    Removido
-                                  </Badge>
+                        .map(candidate => (
+                          <Card key={candidate.id} className="border-red-200 bg-red-50">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-red-800">{candidate.name}</h4>
+                                  <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-red-100 text-red-700 border-red-300"
+                                    >
+                                      Removido
+                                    </Badge>
+                                  </div>
                                 </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleAddCandidate(candidate.id)}
+                                  className="ml-2 border-green-300 text-green-700 hover:bg-green-50"
+                                >
+                                  <UserPlus className="h-4 w-4 mr-1" />
+                                  Adicionar de Volta
+                                </Button>
                               </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleAddCandidate(candidate.id)}
-                                className="ml-2 border-green-300 text-green-700 hover:bg-green-50"
-                              >
-                                <UserPlus className="h-4 w-4 mr-1" />
-                                Adicionar de Volta
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                            </CardContent>
+                          </Card>
+                        ))}
                     </div>
 
                     <Alert className="mt-4 border-red-200 bg-red-50">
                       <Info className="h-4 w-4 text-red-600" />
                       <AlertDescription className="text-red-800">
-                        Estes candidatos foram removidos manualmente e não participarão da eleição. 
+                        Estes candidatos foram removidos manualmente e não participarão da eleição.
                         Você pode adicioná-los de volta clicando em "Adicionar de Volta".
                       </AlertDescription>
                     </Alert>
@@ -2756,22 +3020,21 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
               </CardContent>
             </Card>
           )}
-
         </div>
 
         {/* Navegação entre Passos */}
         <div className="flex justify-between items-center pt-6 border-t">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
             disabled={currentStep === 1}
           >
             Anterior
           </Button>
-          
+
           <div className="flex gap-3">
             {currentStep < 5 ? (
-              <Button 
+              <Button
                 onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
                 disabled={!canProceedToNextStep()}
               >
@@ -2779,20 +3042,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
               </Button>
             ) : (
               <>
-                <Button 
-                  onClick={saveConfig} 
-                  disabled={saving}
-                  variant="outline"
-                >
+                <Button onClick={saveConfig} disabled={saving} variant="outline">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Salvar Configuração'}
                 </Button>
-                
-                <Button 
-                  onClick={startElection} 
-                  disabled={loading}
-                  variant="default"
-                >
+
+                <Button onClick={startElection} disabled={loading} variant="default">
                   <Play className="h-4 w-4 mr-2" />
                   {loading ? 'Iniciando...' : 'Iniciar Nomeação'}
                 </Button>

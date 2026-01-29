@@ -21,7 +21,11 @@ interface BirthdayCardProps {
   isLoading?: boolean;
 }
 
-export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = false }: BirthdayCardProps) => {
+export const BirthdayCard = ({
+  birthdaysToday,
+  birthdaysThisMonth,
+  isLoading = false,
+}: BirthdayCardProps) => {
   const formatDate = (dateString: string) => {
     try {
       if (!dateString || typeof dateString !== 'string') {
@@ -30,10 +34,10 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
 
       // Para formato YYYY-MM-DD simples, extrai diretamente os componentes
       if (dateString.includes('-') && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [year, month, day] = dateString.split('-');
+        const [_year, month, day] = dateString.split('-');
         const parsedDay = parseInt(day);
         const parsedMonth = parseInt(month);
-        
+
         // Validação básica
         if (parsedDay >= 1 && parsedDay <= 31 && parsedMonth >= 1 && parsedMonth <= 12) {
           return `${String(parsedDay).padStart(2, '0')}/${String(parsedMonth).padStart(2, '0')}`;
@@ -43,35 +47,35 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
       // Para formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ), extrai apenas a parte da data
       if (dateString.includes('T') && dateString.includes('Z')) {
         const datePart = dateString.split('T')[0]; // Pega apenas YYYY-MM-DD
-        const [year, month, day] = datePart.split('-');
+        const [_year, month, day] = datePart.split('-');
         const parsedDay = parseInt(day);
         const parsedMonth = parseInt(month);
-        
+
         // Validação básica
         if (parsedDay >= 1 && parsedDay <= 31 && parsedMonth >= 1 && parsedMonth <= 12) {
           return `${String(parsedDay).padStart(2, '0')}/${String(parsedMonth).padStart(2, '0')}`;
         }
       }
-      
+
       // Para outros formatos, usa a lógica anterior
       const date = new Date(dateString);
-      
+
       // Se a data for inválida, tenta parsear manualmente
       if (isNaN(date.getTime())) {
         // Tenta parsear formato DD/MM/YYYY
         if (dateString.includes('/')) {
           const parts = dateString.split('/');
           if (parts.length === 3) {
-            const [day, month, year] = parts;
+            const [day, month, yearStr] = parts;
             const parsedDay = parseInt(day);
             const parsedMonth = parseInt(month);
-            let parsedYear = parseInt(year);
-            
+            let parsedYear = parseInt(yearStr);
+
             // Se o ano tem 2 dígitos, converte para 4 dígitos
             if (parsedYear < 100) {
               parsedYear += parsedYear < 50 ? 2000 : 1900;
             }
-            
+
             // Validação básica
             if (parsedDay >= 1 && parsedDay <= 31 && parsedMonth >= 1 && parsedMonth <= 12) {
               // Cria a data usando data local para evitar problemas de fuso horário
@@ -82,10 +86,10 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
             }
           }
         }
-        
+
         return 'Data inválida';
       }
-      
+
       // Para datas válidas, usa data local para evitar problemas de fuso horário
       const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       return localDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
@@ -104,23 +108,23 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
       const today = new Date();
       const currentYear = today.getFullYear();
       const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-      
+
       // Para formato YYYY-MM-DD simples ou ISO com Z/T
       if (dateString.includes('-')) {
         const datePart = dateString.split('T')[0]; // Remove parte do horário se existir
-        const [year, month, day] = datePart.split('-');
+        const [_year, month, day] = datePart.split('-');
         // SEMPRE usar data local para evitar problemas de fuso horário
         const localDate = new Date(currentYear, parseInt(month) - 1, parseInt(day));
         return dayNames[localDate.getDay()];
       }
-      
+
       // Para formato DD/MM/YYYY ou DD/MM
       if (dateString.includes('/')) {
         const parts = dateString.split('/');
         if (parts.length >= 2) {
           const day = parseInt(parts[0]);
           const month = parseInt(parts[1]);
-          
+
           // Validação básica
           if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
             const localDate = new Date(currentYear, month - 1, day);
@@ -128,7 +132,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
           }
         }
       }
-      
+
       return 'Dia inválido';
     } catch (error) {
       console.error('Erro ao formatar nome do dia:', error, 'Data:', dateString);
@@ -138,16 +142,16 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
 
   const isToday = (dateString: string) => {
     const today = new Date();
-    
+
     // Para datas ISO, extrai apenas a parte da data para evitar problemas de fuso horário
     let dateToProcess = dateString;
     if (dateString.includes('T') && dateString.includes('Z')) {
       const datePart = dateString.split('T')[0]; // Pega apenas YYYY-MM-DD
       dateToProcess = datePart;
     }
-    
+
     const birthDate = new Date(dateToProcess);
-    
+
     // Se a data for inválida, tenta parsear manualmente
     if (isNaN(birthDate.getTime())) {
       // Tenta parsear formato DD/MM/YYYY
@@ -157,25 +161,30 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
           const [day, month] = parts;
           const parsedDay = parseInt(day);
           const parsedMonth = parseInt(month);
-          
+
           // Compara usando data local para evitar problemas de fuso horário
           return today.getDate() === parsedDay && today.getMonth() === parsedMonth - 1;
         }
       }
-      
+
       // Tenta parsear formato YYYY-MM-DD
-      if (dateString && typeof dateString === 'string' && dateString.includes('-') && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [year, month, day] = dateString.split('-');
+      if (
+        dateString &&
+        typeof dateString === 'string' &&
+        dateString.includes('-') &&
+        dateString.match(/^\d{4}-\d{2}-\d{2}$/)
+      ) {
+        const [_year, month, day] = dateString.split('-');
         const parsedDay = parseInt(day);
         const parsedMonth = parseInt(month);
-        
+
         // Compara usando data local para evitar problemas de fuso horário
         return today.getDate() === parsedDay && today.getMonth() === parsedMonth - 1;
       }
-      
+
       return false;
     }
-    
+
     // Para datas válidas, compara usando data local para evitar problemas de fuso horário
     return today.getDate() === birthDate.getDate() && today.getMonth() === birthDate.getMonth();
   };
@@ -209,10 +218,11 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
       // Evita problemas de fuso horário criando as datas de forma explícita
       const dateA = new Date(a.birthDate);
       const dateB = new Date(b.birthDate);
-      
+
       // Se as datas forem inválidas, tenta parsear manualmente
-      let dayA = 0, dayB = 0;
-      
+      let dayA = 0,
+        dayB = 0;
+
       if (!isNaN(dateA.getTime())) {
         dayA = dateA.getDate();
       } else if (a.birthDate && typeof a.birthDate === 'string' && a.birthDate.includes('/')) {
@@ -220,11 +230,16 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
         if (parts.length === 3) {
           dayA = parseInt(parts[0]);
         }
-      } else if (a.birthDate && typeof a.birthDate === 'string' && a.birthDate.includes('-') && a.birthDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      } else if (
+        a.birthDate &&
+        typeof a.birthDate === 'string' &&
+        a.birthDate.includes('-') &&
+        a.birthDate.match(/^\d{4}-\d{2}-\d{2}$/)
+      ) {
         const parts = a.birthDate.split('-');
         dayA = parseInt(parts[2]);
       }
-      
+
       if (!isNaN(dateB.getTime())) {
         dayB = dateB.getDate();
       } else if (b.birthDate && typeof b.birthDate === 'string' && b.birthDate.includes('/')) {
@@ -232,11 +247,16 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
         if (parts.length === 3) {
           dayB = parseInt(parts[0]);
         }
-      } else if (b.birthDate && typeof b.birthDate === 'string' && b.birthDate.includes('-') && b.birthDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      } else if (
+        b.birthDate &&
+        typeof b.birthDate === 'string' &&
+        b.birthDate.includes('-') &&
+        b.birthDate.match(/^\d{4}-\d{2}-\d{2}$/)
+      ) {
         const parts = b.birthDate.split('-');
         dayB = parseInt(parts[2]);
       }
-      
+
       return dayA - dayB;
     });
 
@@ -274,11 +294,17 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
         </CardTitle>
         <div className="flex items-center gap-1 lg:gap-2">
           {todayInCurrentMonth.length > 0 && (
-            <Badge variant="destructive" className="text-[10px] lg:text-xs bg-red-500/80 text-white border-0">
+            <Badge
+              variant="destructive"
+              className="text-[10px] lg:text-xs bg-red-500/80 text-white border-0"
+            >
               {todayInCurrentMonth.length} hoje
             </Badge>
           )}
-          <Badge variant="outline" className="text-[10px] lg:text-xs bg-white/20 text-white border-white/30">
+          <Badge
+            variant="outline"
+            className="text-[10px] lg:text-xs bg-white/20 text-white border-white/30"
+          >
             {totalBirthdays} total
           </Badge>
         </div>
@@ -287,9 +313,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
         {totalBirthdays === 0 ? (
           <div className="text-center py-2 lg:py-8">
             <Cake className="h-6 w-6 lg:h-12 lg:w-12 text-white/60 mx-auto mb-1 lg:mb-3" />
-            <p className="text-[10px] lg:text-sm text-white/70">
-              Nenhum aniversariante este mês
-            </p>
+            <p className="text-[10px] lg:text-sm text-white/70">Nenhum aniversariante este mês</p>
           </div>
         ) : (
           <>
@@ -306,7 +330,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                           Aniversariantes de Hoje
                         </h4>
                         <div className="space-y-1">
-                          {todayInCurrentMonth.map((user) => (
+                          {todayInCurrentMonth.map(user => (
                             <div
                               key={user.id}
                               className="flex items-center justify-between p-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30"
@@ -319,7 +343,9 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold truncate text-white">{user.name}</p>
+                                  <p className="text-xs font-semibold truncate text-white">
+                                    {user.name}
+                                  </p>
                                   <div className="flex items-center gap-1 text-[10px] text-white/70">
                                     <Calendar className="h-2 w-2" />
                                     <span>{formatDate(user.birthDate)}</span>
@@ -328,14 +354,19 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                                     {user.church && (
                                       <>
                                         <span>•</span>
-                                        <span className="text-white/50 truncate">{user.church}</span>
+                                        <span className="text-white/50 truncate">
+                                          {user.church}
+                                        </span>
                                       </>
                                     )}
                                   </div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Badge variant="destructive" className="text-[10px] px-1 py-0 bg-red-500/80 text-white border-0">
+                                <Badge
+                                  variant="destructive"
+                                  className="text-[10px] px-1 py-0 bg-red-500/80 text-white border-0"
+                                >
                                   Hoje!
                                 </Badge>
                                 {isValidWhatsAppNumber(user.phone) && (
@@ -354,7 +385,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                           ))}
                         </div>
                       </div>
-                      
+
                       {/* Separador */}
                       {otherBirthdays.length > 0 && (
                         <div className="border-t border-white/30 my-2"></div>
@@ -369,7 +400,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                         Outros aniversariantes do mês
                       </h4>
                       <div className="space-y-1">
-                        {otherBirthdays.map((user) => (
+                        {otherBirthdays.map(user => (
                           <div
                             key={user.id}
                             className="flex items-center justify-between p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
@@ -382,7 +413,9 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate text-white/90">{user.name}</p>
+                                <p className="text-xs font-medium truncate text-white/90">
+                                  {user.name}
+                                </p>
                                 <div className="flex items-center gap-1 text-[10px] text-white/60">
                                   <Calendar className="h-2 w-2" />
                                   <span>{formatDate(user.birthDate)}</span>
@@ -391,7 +424,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                                   {user.church && (
                                     <>
                                       <span>•</span>
-                                        <span className="text-white/50 truncate">{user.church}</span>
+                                      <span className="text-white/50 truncate">{user.church}</span>
                                     </>
                                   )}
                                 </div>
@@ -430,7 +463,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                           Aniversariantes de Hoje
                         </h4>
                         <div className="space-y-2">
-                          {todayInCurrentMonth.map((user) => (
+                          {todayInCurrentMonth.map(user => (
                             <div
                               key={user.id}
                               className="flex items-center justify-between p-3 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 shadow-sm"
@@ -444,8 +477,13 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-sm font-semibold truncate text-white">{user.name}</p>
-                                    <Badge variant="destructive" className="text-xs px-2 py-0 bg-red-500/80 text-white border-0">
+                                    <p className="text-sm font-semibold truncate text-white">
+                                      {user.name}
+                                    </p>
+                                    <Badge
+                                      variant="destructive"
+                                      className="text-xs px-2 py-0 bg-red-500/80 text-white border-0"
+                                    >
                                       Hoje!
                                     </Badge>
                                   </div>
@@ -478,7 +516,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                           ))}
                         </div>
                       </div>
-                      
+
                       {/* Separador */}
                       {otherBirthdays.length > 0 && (
                         <div className="border-t border-white/30 my-4"></div>
@@ -493,7 +531,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                         Outros aniversariantes do mês
                       </h4>
                       <div className="space-y-2">
-                        {otherBirthdays.map((user) => (
+                        {otherBirthdays.map(user => (
                           <div
                             key={user.id}
                             className="flex items-center justify-between p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
@@ -507,7 +545,9 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                               </Avatar>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <p className="text-sm font-medium truncate text-white/90">{user.name}</p>
+                                  <p className="text-sm font-medium truncate text-white/90">
+                                    {user.name}
+                                  </p>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-white/60">
                                   <Calendar className="h-3 w-3" />
@@ -517,7 +557,7 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
                                   {user.church && (
                                     <>
                                       <span>•</span>
-                                        <span className="text-white/50">{user.church}</span>
+                                      <span className="text-white/50">{user.church}</span>
                                     </>
                                   )}
                                 </div>
@@ -547,4 +587,4 @@ export const BirthdayCard = ({ birthdaysToday, birthdaysThisMonth, isLoading = f
       </CardContent>
     </Card>
   );
-}; 
+};

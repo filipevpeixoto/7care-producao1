@@ -3,7 +3,7 @@
  * Métodos relacionados a relacionamentos entre usuários
  */
 
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
@@ -105,7 +105,7 @@ export class RelationshipRepository {
   async update(id: number, updates: Partial<Relationship>): Promise<Relationship | null> {
     try {
       // Remover createdAt do updates para evitar conflito de tipos
-      const { createdAt, ...safeUpdates } = updates;
+      const { createdAt: _createdAt, ...safeUpdates } = updates;
       const [relationship] = await db
         .update(schema.relationships)
         .set({
@@ -126,9 +126,7 @@ export class RelationshipRepository {
    */
   async delete(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(schema.relationships)
-        .where(eq(schema.relationships.id, id));
+      await db.delete(schema.relationships).where(eq(schema.relationships.id, id));
       return true;
     } catch (error) {
       logger.error('Erro ao deletar relacionamento:', error);
@@ -161,12 +159,14 @@ export class RelationshipRepository {
       missionaryId: record.missionaryId ? Number(record.missionaryId) : undefined,
       status: String(record.status || 'pending'),
       notes: record.notes ? String(record.notes) : undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : String(record.createdAt || ''),
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : String(record.updatedAt || ''),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : String(record.createdAt || ''),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : String(record.updatedAt || ''),
     };
   }
 }

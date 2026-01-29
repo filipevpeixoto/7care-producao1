@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { DialogWithModalTracking, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,10 +23,10 @@ interface EditUserModalProps {
   user: any;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (userId: number, data: any) => void;
+  _onUpdate: (userId: number, data: any) => void;
 }
 
-export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModalProps) => {
+export const EditUserModal = ({ user, isOpen, onClose, _onUpdate }: EditUserModalProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
@@ -34,28 +45,28 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ userId, data }: { userId: number, data: any }) => 
-      fetch(`/api/users/${userId}`, { 
-        method: 'PUT', 
+    mutationFn: ({ userId, data }: { userId: number; data: any }) =>
+      fetch(`/api/users/${userId}`, {
+        method: 'PUT',
         body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       window.dispatchEvent(new CustomEvent('user-updated'));
       toast({
-        title: "Usuário atualizado",
-        description: "As informações do usuário foram atualizadas com sucesso.",
+        title: 'Usuário atualizado',
+        description: 'As informações do usuário foram atualizadas com sucesso.',
       });
       onClose();
     },
     onError: () => {
       toast({
-        title: "Erro",
-        description: "Erro ao atualizar usuário. Tente novamente.",
-        variant: "destructive"
+        title: 'Erro',
+        description: 'Erro ao atualizar usuário. Tente novamente.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -72,12 +83,12 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
   if (!user) return null;
 
   return (
-    <DialogWithModalTracking 
+    <DialogWithModalTracking
       modalId="edit-user-modal"
-      open={isOpen} 
-      onOpenChange={(open) => !open && onClose()}
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
     >
-      <DialogContent 
+      <DialogContent
         className="max-w-2xl w-[90vw]"
         style={{ maxHeight: 'calc(100vh - 2rem)' }}
         aria-describedby="edit-user-modal-description"
@@ -88,7 +99,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
         <DialogHeader>
           <DialogTitle>Editar Usuário - {user.name}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Informações Básicas */}
@@ -97,7 +108,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={e => handleInputChange('name', e.target.value)}
                 required
               />
             </div>
@@ -108,7 +119,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={e => handleInputChange('email', e.target.value)}
                 required
               />
             </div>
@@ -118,7 +129,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onChange={e => handleInputChange('phone', e.target.value)}
                 placeholder="(11) 99999-9999"
               />
             </div>
@@ -129,13 +140,16 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
                 id="birthDate"
                 type="date"
                 value={formData.birthDate}
-                onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                onChange={e => handleInputChange('birthDate', e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="role">Função</Label>
-              <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+              <Select
+                value={formData.role}
+                onValueChange={value => handleInputChange('role', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -150,7 +164,10 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+              <Select
+                value={formData.status}
+                onValueChange={value => handleInputChange('status', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -167,13 +184,16 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
               <Input
                 id="church"
                 value={formData.church}
-                onChange={(e) => handleInputChange('church', e.target.value)}
+                onChange={e => handleInputChange('church', e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="civilStatus">Estado Civil</Label>
-              <Select value={formData.civilStatus} onValueChange={(value) => handleInputChange('civilStatus', value)}>
+              <Select
+                value={formData.civilStatus}
+                onValueChange={value => handleInputChange('civilStatus', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -191,7 +211,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
               <Input
                 id="occupation"
                 value={formData.occupation}
-                onChange={(e) => handleInputChange('occupation', e.target.value)}
+                onChange={e => handleInputChange('occupation', e.target.value)}
               />
             </div>
 
@@ -200,7 +220,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
               <Input
                 id="education"
                 value={formData.education}
-                onChange={(e) => handleInputChange('education', e.target.value)}
+                onChange={e => handleInputChange('education', e.target.value)}
               />
             </div>
           </div>
@@ -211,7 +231,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
             <Textarea
               id="address"
               value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
+              onChange={e => handleInputChange('address', e.target.value)}
               placeholder="Rua, número, bairro, cidade, estado"
               rows={3}
             />
@@ -223,7 +243,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
             <Textarea
               id="observations"
               value={formData.observations}
-              onChange={(e) => handleInputChange('observations', e.target.value)}
+              onChange={e => handleInputChange('observations', e.target.value)}
               placeholder="Observações sobre o usuário..."
               rows={3}
             />
@@ -234,10 +254,7 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              disabled={updateUserMutation.isPending}
-            >
+            <Button type="submit" disabled={updateUserMutation.isPending}>
               {updateUserMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </div>
@@ -245,4 +262,4 @@ export const EditUserModal = ({ user, isOpen, onClose, onUpdate }: EditUserModal
       </DialogContent>
     </DialogWithModalTracking>
   );
-}; 
+};

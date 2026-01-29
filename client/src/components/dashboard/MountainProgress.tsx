@@ -1,16 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Mountain, TrendingUp, Crown } from 'lucide-react';
-import { 
-  getLevelByPoints, 
-  getNextLevel, 
-  getProgressToNextLevel, 
+import { Mountain, Crown } from 'lucide-react';
+import {
+  getLevelByPoints,
+  getNextLevel,
+  getProgressToNextLevel,
   getPointsToNextLevel,
   getMountName,
-  getLevelName,
   getLevelIcon,
-  getLevelColor
 } from '@/lib/gamification';
 import { MountIcon } from '@/components/ui/mount-icon';
 
@@ -42,19 +39,15 @@ export const MountainProgress = ({ userPoints, showDetails = true }: MountainPro
               <div className="text-xs text-muted-foreground">{currentLevel.name}</div>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-center gap-4 mb-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {userPoints}
-              </div>
+              <div className="text-2xl font-bold text-purple-600">{userPoints}</div>
               <div className="text-xs text-muted-foreground">Pontos</div>
             </div>
             {nextLevel && (
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {pointsToNext}
-                </div>
+                <div className="text-2xl font-bold text-orange-600">{pointsToNext}</div>
                 <div className="text-xs text-muted-foreground">Para próximo</div>
               </div>
             )}
@@ -69,10 +62,9 @@ export const MountainProgress = ({ userPoints, showDetails = true }: MountainPro
             </div>
             <Progress value={progress} className="h-2" />
             <div className="text-center text-xs text-muted-foreground">
-              {pointsToNext > 0 
+              {pointsToNext > 0
                 ? `${pointsToNext} pontos para ${nextLevel.mount}`
-                : 'Monte máximo alcançado!'
-              }
+                : 'Monte máximo alcançado!'}
             </div>
           </div>
         )}
@@ -94,12 +86,10 @@ export const MountainProgress = ({ userPoints, showDetails = true }: MountainPro
         {userPoints >= 1000 && (
           <div className="flex items-center justify-center gap-2 mt-3 p-2 bg-yellow-50 rounded-lg">
             <Crown className="h-4 w-4 text-yellow-600" />
-            <span className="text-xs font-medium text-yellow-700">
-              Status Máximo Alcançado!
-            </span>
+            <span className="text-xs font-medium text-yellow-700">Status Máximo Alcançado!</span>
           </div>
         )}
       </CardContent>
     </Card>
   );
-}; 
+};

@@ -39,13 +39,17 @@ export default function Chat() {
   const [searchParams] = useSearchParams();
   const isAdmin = useMemo(() => hasAdminAccess(user), [user]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; avatar?: string } | null>(null);
+  const [selectedUser, setSelectedUser] = useState<{
+    id: number;
+    name: string;
+    avatar?: string;
+  } | null>(null);
 
   // Handle query string parameters for direct chat
   useEffect(() => {
     const userId = searchParams.get('user');
     const userName = searchParams.get('name');
-    
+
     if (userId && userName && user?.id) {
       // Create a conversation object for the user specified in query params
       const targetUserId = parseInt(userId);
@@ -53,21 +57,23 @@ export default function Chat() {
         id: targetUserId, // Use userId as conversation ID for direct chat
         type: 'direct',
         name: decodeURIComponent(userName),
-        participants: [{ 
-          id: targetUserId, 
-          name: decodeURIComponent(userName), 
-          role: 'user', 
-          isOnline: false 
-        }],
-        lastMessage: { 
-          content: '', 
-          timestamp: new Date().toISOString(), 
-          senderId: 0, 
-          senderName: '' 
+        participants: [
+          {
+            id: targetUserId,
+            name: decodeURIComponent(userName),
+            role: 'user',
+            isOnline: false,
+          },
+        ],
+        lastMessage: {
+          content: '',
+          timestamp: new Date().toISOString(),
+          senderId: 0,
+          senderName: '',
         },
         unreadCount: 0,
         isPinned: false,
-        isArchived: false
+        isArchived: false,
       };
       setSelectedConversation(conversation);
     }
@@ -101,13 +107,17 @@ export default function Chat() {
     return undefined;
   };
 
-  const handleSelectUserToChat = async (targetUser: { id: number; name: string; avatar?: string }) => {
+  const handleSelectUserToChat = async (targetUser: {
+    id: number;
+    name: string;
+    avatar?: string;
+  }) => {
     if (!user?.id) return;
     try {
       const resp = await fetch('/api/conversations/direct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userAId: Number(user.id), userBId: targetUser.id })
+        body: JSON.stringify({ userAId: Number(user.id), userBId: targetUser.id }),
       });
       if (!resp.ok) throw new Error('Falha ao abrir conversa');
       const conv = await resp.json();
@@ -116,10 +126,15 @@ export default function Chat() {
         type: 'direct',
         name: targetUser.name,
         participants: [{ id: targetUser.id, name: targetUser.name, role: 'user', isOnline: false }],
-        lastMessage: { content: '', timestamp: new Date().toISOString(), senderId: 0, senderName: '' },
+        lastMessage: {
+          content: '',
+          timestamp: new Date().toISOString(),
+          senderId: 0,
+          senderName: '',
+        },
         unreadCount: 0,
         isPinned: false,
-        isArchived: false
+        isArchived: false,
       } as any);
       setSelectedUser(targetUser);
       setShowNewChat(false);
@@ -148,11 +163,16 @@ export default function Chat() {
           <div className="md:col-span-2 h-full min-h-0">
             {selectedConversation ? (
               <ChatInterface
-                conversationId={selectedConversation.id}
                 chatUser={getChatUser(selectedConversation)}
                 isGroup={selectedConversation.type === 'group'}
-                groupName={selectedConversation.type === 'group' ? selectedConversation.name : undefined}
-                groupMembers={selectedConversation.type === 'group' ? selectedConversation.participants : undefined}
+                groupName={
+                  selectedConversation.type === 'group' ? selectedConversation.name : undefined
+                }
+                groupMembers={
+                  selectedConversation.type === 'group'
+                    ? selectedConversation.participants
+                    : undefined
+                }
               />
             ) : showNewChat ? (
               <Card className="h-full flex items-center justify-center">
@@ -168,7 +188,9 @@ export default function Chat() {
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">Selecione uma conversa</h3>
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    Selecione uma conversa
+                  </h3>
                   <p className="text-muted-foreground">
                     Escolha uma conversa da lista para começar a conversar.
                   </p>

@@ -2,18 +2,22 @@
  * Funções helper para verificação de permissões no frontend
  */
 
-export interface User {
-  id?: string | number;
-  role?: string;
-  email?: string;
-  districtId?: number | null;
-  church?: string;
-}
+// Tipo unificado que aceita tanto o User do auth quanto objetos parciais
+export type UserLike =
+  | {
+      id?: string | number;
+      role?: string;
+      email?: string;
+      districtId?: number | null;
+      church?: string | null;
+    }
+  | null
+  | undefined;
 
 /**
  * Verifica se o usuário tem acesso de administrador (superadmin ou pastor)
  */
-export const hasAdminAccess = (user: User | null | undefined): boolean => {
+export const hasAdminAccess = (user: UserLike): boolean => {
   if (!user) return false;
   return user.role === 'superadmin' || user.role === 'pastor';
 };
@@ -21,7 +25,7 @@ export const hasAdminAccess = (user: User | null | undefined): boolean => {
 /**
  * Verifica se o usuário é superadmin
  */
-export const isSuperAdmin = (user: User | null | undefined): boolean => {
+export const isSuperAdmin = (user: UserLike): boolean => {
   if (!user) return false;
   return user.role === 'superadmin';
 };
@@ -29,7 +33,7 @@ export const isSuperAdmin = (user: User | null | undefined): boolean => {
 /**
  * Verifica se o usuário é pastor
  */
-export const isPastor = (user: User | null | undefined): boolean => {
+export const isPastor = (user: UserLike): boolean => {
   if (!user) return false;
   return user.role === 'pastor';
 };
@@ -37,14 +41,14 @@ export const isPastor = (user: User | null | undefined): boolean => {
 /**
  * Verifica se o usuário pode gerenciar pastores (apenas superadmin)
  */
-export const canManagePastors = (user: User | null | undefined): boolean => {
+export const canManagePastors = (user: UserLike): boolean => {
   return isSuperAdmin(user);
 };
 
 /**
  * Verifica se o usuário pode acessar todas as igrejas (apenas superadmin)
  */
-export const canAccessAllChurches = (user: User | null | undefined): boolean => {
+export const canAccessAllChurches = (user: UserLike): boolean => {
   return isSuperAdmin(user);
 };
 
@@ -67,4 +71,3 @@ export const getRoleDisplayName = (role: string | undefined): string => {
       return role || 'Usuário';
   }
 };
-

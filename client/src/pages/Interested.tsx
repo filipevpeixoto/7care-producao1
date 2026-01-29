@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { UserPlus, Heart, Phone, MessageCircle, MapPin, Filter, Search } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserPlus, Heart, Phone, MessageCircle, MapPin, Search } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,60 +11,60 @@ import { hasAdminAccess } from '@/lib/permissions';
 const mockInterested = [
   {
     id: 1,
-    name: "Ana Costa",
-    email: "ana@email.com",
-    phone: "(11) 99999-1111",
-    address: "Rua das Flores, 123",
-    status: "new",
-    assignedTo: "",
-    lastContact: "",
-    source: "site"
+    name: 'Ana Costa',
+    email: 'ana@email.com',
+    phone: '(11) 99999-1111',
+    address: 'Rua das Flores, 123',
+    status: 'new',
+    assignedTo: '',
+    lastContact: '',
+    source: 'site',
   },
   {
     id: 2,
-    name: "Pedro Lima",
-    email: "pedro@email.com", 
-    phone: "(11) 88888-2222",
-    address: "Av. Principal, 456",
-    status: "contacted",
-    assignedTo: "Maria Santos",
-    lastContact: "2024-12-20",
-    source: "whatsapp"
+    name: 'Pedro Lima',
+    email: 'pedro@email.com',
+    phone: '(11) 88888-2222',
+    address: 'Av. Principal, 456',
+    status: 'contacted',
+    assignedTo: 'Maria Santos',
+    lastContact: '2024-12-20',
+    source: 'whatsapp',
   },
   {
     id: 3,
-    name: "Julia Ferreira",
-    email: "julia@email.com",
-    phone: "(11) 77777-3333", 
-    address: "Praça Central, 789",
-    status: "studying",
-    assignedTo: "Maria Santos",
-    lastContact: "2024-12-21",
-    source: "indicacao"
-  }
+    name: 'Julia Ferreira',
+    email: 'julia@email.com',
+    phone: '(11) 77777-3333',
+    address: 'Praça Central, 789',
+    status: 'studying',
+    assignedTo: 'Maria Santos',
+    lastContact: '2024-12-21',
+    source: 'indicacao',
+  },
 ];
 
 const statusColors = {
-  new: "bg-yellow-500 text-white",
-  contacted: "bg-blue-500 text-white",
-  studying: "bg-green-500 text-white",
-  baptized: "bg-purple-500 text-white",
-  inactive: "bg-gray-500 text-white"
+  new: 'bg-yellow-500 text-white',
+  contacted: 'bg-blue-500 text-white',
+  studying: 'bg-green-500 text-white',
+  baptized: 'bg-purple-500 text-white',
+  inactive: 'bg-gray-500 text-white',
 };
 
 const statusLabels = {
-  new: "Novo",
-  contacted: "Contatado", 
-  studying: "Estudando",
-  baptized: "Batizado",
-  inactive: "Inativo"
+  new: 'Novo',
+  contacted: 'Contatado',
+  studying: 'Estudando',
+  baptized: 'Batizado',
+  inactive: 'Inativo',
 };
 
 const sourceLabels = {
-  site: "Site",
-  whatsapp: "WhatsApp",
-  indicacao: "Indicação",
-  evento: "Evento"
+  site: 'Site',
+  whatsapp: 'WhatsApp',
+  indicacao: 'Indicação',
+  evento: 'Evento',
 };
 
 const Interested = () => {
@@ -74,33 +74,40 @@ const Interested = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredInterested = interested.filter(person => {
-    const matchesSearch = person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         person.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      person.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || person.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
   const handleAssignToMe = (personId: number) => {
-    setInterested(prev => prev.map(person => 
-      person.id === personId ? { ...person, assignedTo: user?.name || '' } : person
-    ));
+    setInterested(prev =>
+      prev.map(person =>
+        person.id === personId ? { ...person, assignedTo: user?.name || '' } : person
+      )
+    );
   };
 
   const handleUpdateStatus = (personId: number, newStatus: string) => {
-    setInterested(prev => prev.map(person => 
-      person.id === personId ? { 
-        ...person, 
-        status: newStatus,
-        lastContact: new Date().toISOString().split('T')[0] 
-      } : person
-    ));
+    setInterested(prev =>
+      prev.map(person =>
+        person.id === personId
+          ? {
+              ...person,
+              status: newStatus,
+              lastContact: new Date().toISOString().split('T')[0],
+            }
+          : person
+      )
+    );
   };
 
   const stats = {
     total: interested.length,
     new: interested.filter(p => p.status === 'new').length,
     studying: interested.filter(p => p.status === 'studying').length,
-    myAssigned: interested.filter(p => p.assignedTo === user?.name).length
+    myAssigned: interested.filter(p => p.assignedTo === user?.name).length,
   };
 
   const canManage = hasAdminAccess(user) || user?.role === 'missionary';
@@ -111,7 +118,9 @@ const Interested = () => {
         <div className="p-4 text-center">
           <UserPlus className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
-          <p className="text-muted-foreground">Apenas administradores e missionários podem gerenciar amigos.</p>
+          <p className="text-muted-foreground">
+            Apenas administradores e missionários podem gerenciar amigos.
+          </p>
         </div>
       </MobileLayout>
     );
@@ -166,16 +175,16 @@ const Interested = () => {
             <Input
               placeholder="Buscar amigos..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
-          
+
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {['all', 'new', 'contacted', 'studying', 'baptized'].map((status) => (
+            {['all', 'new', 'contacted', 'studying', 'baptized'].map(status => (
               <Button
                 key={status}
-                variant={filterStatus === status ? "default" : "outline"}
+                variant={filterStatus === status ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterStatus(status)}
                 className="whitespace-nowrap"
@@ -188,7 +197,7 @@ const Interested = () => {
 
         {/* Interested List */}
         <div className="space-y-3">
-          {filteredInterested.map((person) => (
+          {filteredInterested.map(person => (
             <Card key={person.id} className="shadow-sm">
               <CardContent className="p-4">
                 <div className="space-y-3">
@@ -241,8 +250,8 @@ const Interested = () => {
                   </div>
 
                   {!person.assignedTo && (
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="w-full bg-gradient-primary hover:opacity-90"
                       onClick={() => handleAssignToMe(person.id)}
                     >
@@ -254,8 +263,8 @@ const Interested = () => {
                   {person.assignedTo === user?.name && (
                     <div className="flex gap-2">
                       {person.status === 'new' && (
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           className="flex-1"
                           onClick={() => handleUpdateStatus(person.id, 'contacted')}
                         >
@@ -263,8 +272,8 @@ const Interested = () => {
                         </Button>
                       )}
                       {person.status === 'contacted' && (
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           className="flex-1"
                           onClick={() => handleUpdateStatus(person.id, 'studying')}
                         >

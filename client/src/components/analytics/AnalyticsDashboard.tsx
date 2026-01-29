@@ -1,17 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
   Calendar,
   MessageCircle,
   Star,
   Download,
-  Filter,
-  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -45,13 +41,16 @@ interface AnalyticsDashboardProps {
   showExport?: boolean;
 }
 
-export const AnalyticsDashboard = ({ 
-  period = '30d', 
-  showExport = true 
+export const AnalyticsDashboard = ({
+  period: _period = '30d',
+  showExport = true,
 }: AnalyticsDashboardProps) => {
-
   // Buscar estatísticas em tempo real
-  const { data: stats, isLoading, error } = useQuery<DashboardStats>({
+  const {
+    data: stats,
+    isLoading,
+    error,
+  } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const response = await fetch('/api/dashboard/stats');
@@ -66,7 +65,10 @@ export const AnalyticsDashboard = ({
     if (!stats) return [];
 
     const previousMembers = stats.totalMembers - 5; // Simulação de crescimento
-    const growth = previousMembers > 0 ? Math.round(((stats.totalMembers - previousMembers) / previousMembers) * 100) : 0;
+    const growth =
+      previousMembers > 0
+        ? Math.round(((stats.totalMembers - previousMembers) / previousMembers) * 100)
+        : 0;
 
     return [
       {
@@ -75,7 +77,7 @@ export const AnalyticsDashboard = ({
         change: growth,
         changeType: growth > 0 ? 'increase' : growth < 0 ? 'decrease' : 'neutral',
         icon: Users,
-        color: 'text-blue-600'
+        color: 'text-blue-600',
       },
       {
         title: 'Amigos',
@@ -83,7 +85,7 @@ export const AnalyticsDashboard = ({
         change: 8,
         changeType: 'increase',
         icon: Star,
-        color: 'text-orange-600'
+        color: 'text-orange-600',
       },
       {
         title: 'Eventos Esta Semana',
@@ -91,7 +93,7 @@ export const AnalyticsDashboard = ({
         change: 12,
         changeType: 'increase',
         icon: Calendar,
-        color: 'text-green-600'
+        color: 'text-green-600',
       },
       {
         title: 'Aprovações Pendentes',
@@ -99,8 +101,8 @@ export const AnalyticsDashboard = ({
         change: -5,
         changeType: 'decrease',
         icon: MessageCircle,
-        color: 'text-purple-600'
-      }
+        color: 'text-purple-600',
+      },
     ];
   };
 
@@ -173,8 +175,9 @@ export const AnalyticsDashboard = ({
               </div>
               <div className="flex items-center mt-4">
                 {getChangeIcon(metric.changeType)}
-                <span className={cn("text-sm font-medium ml-1", getChangeColor(metric.changeType))}>
-                  {metric.change > 0 ? '+' : ''}{metric.change}%
+                <span className={cn('text-sm font-medium ml-1', getChangeColor(metric.changeType))}>
+                  {metric.change > 0 ? '+' : ''}
+                  {metric.change}%
                 </span>
                 <span className="text-sm text-muted-foreground ml-1">vs período anterior</span>
               </div>

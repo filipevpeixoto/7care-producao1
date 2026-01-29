@@ -5,7 +5,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,8 +23,8 @@ export const Header = () => {
   const handleLogout = () => {
     logout();
     toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso",
+      title: 'Logout realizado',
+      description: 'Você foi desconectado com sucesso',
     });
     navigate('/');
   };
@@ -72,58 +71,61 @@ export const Header = () => {
         <div className="flex items-center gap-2">
           {/* Offline Indicator - Visível em todas as telas */}
           <OfflineIndicator userRole={user?.role} compact />
-          
+
           <ThemeToggle variant="icon" />
-          
+
           {user && (
             <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <div className="relative w-8 h-8">
-                  {getPhotoUrl() ? (
-                    <>
-                      <img
-                        src={getPhotoUrl() || ''}
-                        alt={`Foto de ${user.name}`}
-                        className="w-8 h-8 rounded-full object-cover border"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
-                        }}
-                      />
-                      <div
-                        className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-sm"
-                        style={{ display: 'none' }}
-                      >
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <div className="relative w-8 h-8">
+                    {getPhotoUrl() ? (
+                      <>
+                        <img
+                          src={getPhotoUrl() || ''}
+                          alt={`Foto de ${user.name}`}
+                          className="w-8 h-8 rounded-full object-cover border"
+                          onError={e => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div
+                          className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-sm"
+                          style={{ display: 'none' }}
+                        >
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
-                    </>
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <span className="hidden md:inline-block">{user.name}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 bg-popover">
-              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-                <SettingsIcon className="mr-2 h-4 w-4" />
-                Configurações
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleProfile} className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Meu Cadastro
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    )}
+                  </div>
+                  <span className="hidden md:inline-block">{user.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 bg-popover">
+                <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                  <SettingsIcon className="mr-2 h-4 w-4" />
+                  Configurações
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleProfile} className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  Meu Cadastro
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
@@ -135,9 +137,7 @@ export const Header = () => {
             <h3 className="text-xl font-semibold text-gray-800">
               {greeting}, {user?.name}! (Estado: {isExpanded ? 'EXPANDIDO' : 'CONTRAÍDO'})
             </h3>
-            <p className="text-gray-600">
-              Bem-vindo ao painel de controle
-            </p>
+            <p className="text-gray-600">Bem-vindo ao painel de controle</p>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               Sistema online • Dados em tempo real

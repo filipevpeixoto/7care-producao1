@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { DialogWithModalTracking, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 interface ScheduleVisitModalProps {
   user: any;
@@ -28,60 +33,62 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
   const scheduleVisitMutation = useMutation({
     mutationFn: async (data: any) => {
       // Primeiro, criar o evento no calendário
-      const eventResponse = await fetch('/api/calendar/events', { 
-        method: 'POST', 
+      const eventResponse = await fetch('/api/calendar/events', {
+        method: 'POST',
         body: JSON.stringify({
-          events: [{
-            title: `Visita - ${user?.name}`,
-            description: data.notes || `Visita agendada para ${user?.name}`,
-            startDate: data.scheduledAt + 'T' + data.scheduledTime,
-            endDate: data.scheduledAt + 'T' + data.scheduledTime, // Data de início e fim sempre iguais
-            category: 'Visitas', // Categoria sempre "Visitas"
-            location: user?.address || '',
-            maxAttendees: 2
-          }]
+          events: [
+            {
+              title: `Visita - ${user?.name}`,
+              description: data.notes || `Visita agendada para ${user?.name}`,
+              startDate: `${data.scheduledAt}T${data.scheduledTime}`,
+              endDate: `${data.scheduledAt}T${data.scheduledTime}`, // Data de início e fim sempre iguais
+              category: 'Visitas', // Categoria sempre "Visitas"
+              location: user?.address || '',
+              maxAttendees: 2,
+            },
+          ],
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
-      
+
       const eventResult = await eventResponse.json();
-      
+
       if (!eventResponse.ok) {
         throw new Error(eventResult.error || 'Erro ao criar evento no calendário');
       }
-      
+
       // Depois, sincronizar com a planilha do Google Drive
       try {
         const syncResponse = await fetch('/api/google-drive/process-pending', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
-        
+
         const syncResult = await syncResponse.json();
         console.log('📊 Sincronização com planilha:', syncResult);
       } catch (syncError) {
         console.warn('⚠️ Erro na sincronização com planilha:', syncError);
         // Não falha o agendamento se a sincronização falhar
       }
-      
+
       return eventResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({
-        title: "Visita agendada",
-        description: "A visita foi agendada com sucesso na agenda e sincronizada com a planilha.",
+        title: 'Visita agendada',
+        description: 'A visita foi agendada com sucesso na agenda e sincronizada com a planilha.',
       });
       onClose();
     },
-    onError: (error) => {
+    onError: error => {
       toast({
-        title: "Erro",
+        title: 'Erro',
         description: `Erro ao agendar visita: ${error.message}`,
-        variant: "destructive"
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -90,9 +97,9 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
       scheduleVisitMutation.mutate(formData);
     } else {
       toast({
-        title: "Data e hora obrigatórias",
-        description: "Por favor, selecione uma data e hora para a visita.",
-        variant: "destructive"
+        title: 'Data e hora obrigatórias',
+        description: 'Por favor, selecione uma data e hora para a visita.',
+        variant: 'destructive',
       });
     }
   };
@@ -104,12 +111,12 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
   if (!user) return null;
 
   return (
-    <DialogWithModalTracking 
+    <DialogWithModalTracking
       modalId="schedule-visit-modal"
-      open={isOpen} 
-      onOpenChange={(open) => !open && onClose()}
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
     >
-      <DialogContent 
+      <DialogContent
         className="max-w-sm w-[90vw]"
         style={{ maxHeight: 'calc(100vh - 2rem)' }}
         aria-describedby="schedule-visit-modal-description"
@@ -123,38 +130,52 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
             Agendar Visita
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Informações do usuário */}
           <div className="bg-muted/30 p-3 rounded-lg">
             <h4 className="font-medium text-sm mb-2">Visitando:</h4>
             <div className="text-sm space-y-1">
-              <p><strong>Nome:</strong> {user.name}</p>
-              {user.phone && <p><strong>Telefone:</strong> {user.phone}</p>}
-              {user.address && <p><strong>Endereço:</strong> {user.address}</p>}
+              <p>
+                <strong>Nome:</strong> {user.name}
+              </p>
+              {user.phone && (
+                <p>
+                  <strong>Telefone:</strong> {user.phone}
+                </p>
+              )}
+              {user.address && (
+                <p>
+                  <strong>Endereço:</strong> {user.address}
+                </p>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="scheduledAt" className="text-sm">Data</Label>
+              <Label htmlFor="scheduledAt" className="text-sm">
+                Data
+              </Label>
               <Input
                 id="scheduledAt"
                 type="date"
                 value={formData.scheduledAt}
-                onChange={(e) => handleInputChange('scheduledAt', e.target.value)}
+                onChange={e => handleInputChange('scheduledAt', e.target.value)}
                 required
                 className="h-9"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="scheduledTime" className="text-sm">Hora</Label>
+              <Label htmlFor="scheduledTime" className="text-sm">
+                Hora
+              </Label>
               <Input
                 id="scheduledTime"
                 type="time"
                 value={formData.scheduledTime}
-                onChange={(e) => handleInputChange('scheduledTime', e.target.value)}
+                onChange={e => handleInputChange('scheduledTime', e.target.value)}
                 required
                 className="h-9"
               />
@@ -162,11 +183,13 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-sm">Observações</Label>
+            <Label htmlFor="notes" className="text-sm">
+              Observações
+            </Label>
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
+              onChange={e => handleInputChange('notes', e.target.value)}
               placeholder="Motivo da visita, objetivos..."
               rows={2}
               className="text-sm"
@@ -178,8 +201,8 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
             <Button type="button" variant="outline" onClick={onClose} size="sm">
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={scheduleVisitMutation.isPending}
               className="bg-purple-600 hover:bg-purple-700"
               size="sm"
@@ -191,4 +214,4 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
       </DialogContent>
     </DialogWithModalTracking>
   );
-}; 
+};

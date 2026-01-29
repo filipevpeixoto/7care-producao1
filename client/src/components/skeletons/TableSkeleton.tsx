@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -6,7 +6,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 
 interface TableSkeletonProps {
   columns?: number;
@@ -24,7 +24,7 @@ export function TableSkeleton({
   showHeader = true,
   showCheckbox = false,
 }: TableSkeletonProps) {
-  const totalColumns = showCheckbox ? columns + 1 : columns;
+  const _totalColumns = showCheckbox ? columns + 1 : columns;
 
   return (
     <div className="rounded-md border animate-pulse">
@@ -55,10 +55,7 @@ export function TableSkeleton({
               )}
               {Array.from({ length: columns }).map((_, colIndex) => (
                 <TableCell key={colIndex}>
-                  <Skeleton 
-                    className="h-4" 
-                    style={{ width: `${Math.random() * 40 + 60}%` }}
-                  />
+                  <Skeleton className="h-4" style={{ width: `${Math.random() * 40 + 60}%` }} />
                 </TableCell>
               ))}
             </TableRow>

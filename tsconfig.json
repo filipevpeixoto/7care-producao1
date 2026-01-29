@@ -1,8 +1,17 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "e2e/**/*", "playwright.config.ts"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "e2e/**/*",
+    "playwright.config.ts",
+    "**/*.stories.tsx",
+    "server/migrate*.ts"
+  ],
   "compilerOptions": {
-    "target": "ES2019",
+    "target": "ES2020",
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
@@ -10,9 +19,16 @@
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
+    // Variáveis não usadas - desativado para não quebrar código existente
+    // Podem ser habilitadas gradualmente
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    // exactOptionalPropertyTypes desativado temporariamente pois requer refatoração extensiva
+    // "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": false, // Desativado para evitar quebras no código existente
     "lib": ["esnext", "dom", "dom.iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,

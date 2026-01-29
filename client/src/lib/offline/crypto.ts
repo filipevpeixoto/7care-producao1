@@ -75,7 +75,7 @@ function generateUUID(): string {
     return crypto.randomUUID();
   }
   // Fallback para navegadores sem randomUUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -246,7 +246,9 @@ async function encryptWithKey<T>(key: CryptoKey, data: T): Promise<string> {
  */
 async function decryptWithKey<T>(key: CryptoKey, encryptedString: string): Promise<T> {
   const combined = new Uint8Array(
-    atob(encryptedString).split('').map(c => c.charCodeAt(0))
+    atob(encryptedString)
+      .split('')
+      .map(c => c.charCodeAt(0))
   );
 
   // Detectar formato: novo (com versão) ou legado (sem versão)
@@ -271,7 +273,10 @@ async function decryptWithKey<T>(key: CryptoKey, encryptedString: string): Promi
   const decryptedBuffer = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: iv.buffer as ArrayBuffer },
     key,
-    encryptedData.buffer.slice(encryptedData.byteOffset, encryptedData.byteOffset + encryptedData.byteLength) as ArrayBuffer
+    encryptedData.buffer.slice(
+      encryptedData.byteOffset,
+      encryptedData.byteOffset + encryptedData.byteLength
+    ) as ArrayBuffer
   );
 
   const decoder = new TextDecoder();
@@ -395,7 +400,7 @@ export async function hashData(data: string): Promise<string> {
       let hash = 0;
       for (let i = 0; i < data.length; i++) {
         const char = data.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
+        hash = (hash << 5) - hash + char;
         hash = hash & hash;
       }
       return `fallback-${Math.abs(hash).toString(16)}`;
@@ -405,12 +410,12 @@ export async function hashData(data: string): Promise<string> {
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch (error) {
+  } catch (_error) {
     // Fallback em caso de erro
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return `fallback-${Math.abs(hash).toString(16)}`;

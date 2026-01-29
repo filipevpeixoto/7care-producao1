@@ -5,12 +5,9 @@
 
 import { db } from '../neonConfig';
 import { schema } from '../schema';
-import { eq, and, desc, asc, ne, or, inArray, sql as drizzleSql } from 'drizzle-orm';
+import { eq, and, desc, asc, ne, or, sql as drizzleSql } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { 
-  CreateUserInput, 
-  UpdateUserInput 
-} from '../types/storage';
+import { CreateUserInput, UpdateUserInput } from '../types/storage';
 import { User } from '../../shared/schema';
 
 /**
@@ -32,7 +29,7 @@ export function toUser(row: Record<string, unknown>): User {
     avatarUrl: row.avatarUrl == null ? null : String(row.avatarUrl),
     points: row.points == null ? 0 : Number(row.points),
     streak: row.streak == null ? 0 : Number(row.streak),
-    level: row.level == null ? 1 : (typeof row.level === 'number' ? row.level : String(row.level)),
+    level: row.level == null ? 1 : typeof row.level === 'number' ? row.level : String(row.level),
     status: (row.status == null ? 'active' : String(row.status)) as User['status'],
     visitedBy: row.visitedBy == null ? null : Number(row.visitedBy),
     howKnew: row.howKnew == null ? null : String(row.howKnew),
@@ -40,10 +37,22 @@ export function toUser(row: Record<string, unknown>): User {
     maritalStatus: row.maritalStatus == null ? null : String(row.maritalStatus),
     gender: row.gender == null ? null : String(row.gender),
     ministries: row.ministries == null ? null : String(row.ministries),
-    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
-    updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt ?? ''),
-    lastLogin: row.lastLogin == null ? null : (row.lastLogin instanceof Date ? row.lastLogin.toISOString() : String(row.lastLogin)),
-    lastStreak: row.lastStreak == null ? null : (row.lastStreak instanceof Date ? row.lastStreak.toISOString() : String(row.lastStreak)),
+    createdAt:
+      row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
+    updatedAt:
+      row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt ?? ''),
+    lastLogin:
+      row.lastLogin == null
+        ? null
+        : row.lastLogin instanceof Date
+          ? row.lastLogin.toISOString()
+          : String(row.lastLogin),
+    lastStreak:
+      row.lastStreak == null
+        ? null
+        : row.lastStreak instanceof Date
+          ? row.lastStreak.toISOString()
+          : String(row.lastStreak),
   };
 }
 
@@ -52,7 +61,7 @@ export function toUser(row: Record<string, unknown>): User {
  */
 export async function getAllUsers(): Promise<User[]> {
   const rows = await db.select().from(schema.users).orderBy(asc(schema.users.name));
-  return rows.map((row) => toUser(row as Record<string, unknown>));
+  return rows.map(row => toUser(row as Record<string, unknown>));
 }
 
 /**
@@ -64,18 +73,14 @@ export async function getVisitedUsers(): Promise<User[]> {
     .from(schema.users)
     .where(drizzleSql`${schema.users.status} = 'visited'`)
     .orderBy(desc(schema.users.createdAt));
-  return rows.map((row) => toUser(row as Record<string, unknown>));
+  return rows.map(row => toUser(row as Record<string, unknown>));
 }
 
 /**
  * Busca usuário por ID
  */
 export async function getUserById(id: number): Promise<User | null> {
-  const rows = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, id))
-    .limit(1);
+  const rows = await db.select().from(schema.users).where(eq(schema.users.id, id)).limit(1);
   if (rows.length === 0) return null;
   return toUser(rows[0] as Record<string, unknown>);
 }
@@ -84,11 +89,7 @@ export async function getUserById(id: number): Promise<User | null> {
  * Busca usuário por email
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const rows = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.email, email))
-    .limit(1);
+  const rows = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   if (rows.length === 0) return null;
   return toUser(rows[0] as Record<string, unknown>);
 }
@@ -102,7 +103,7 @@ export async function getUsersByChurchId(churchId: number): Promise<User[]> {
     .from(schema.users)
     .where(eq(schema.users.districtId, churchId)) // Usando districtId como proxy
     .orderBy(asc(schema.users.name));
-  return rows.map((row) => toUser(row as Record<string, unknown>));
+  return rows.map(row => toUser(row as Record<string, unknown>));
 }
 
 /**
@@ -114,7 +115,7 @@ export async function getUsersByDistrictId(districtId: number): Promise<User[]> 
     .from(schema.users)
     .where(eq(schema.users.districtId, districtId))
     .orderBy(asc(schema.users.name));
-  return rows.map((row) => toUser(row as Record<string, unknown>));
+  return rows.map(row => toUser(row as Record<string, unknown>));
 }
 
 /**
@@ -126,7 +127,7 @@ export async function getUsersByRole(role: string): Promise<User[]> {
     .from(schema.users)
     .where(drizzleSql`${schema.users.role} = ${role}`)
     .orderBy(asc(schema.users.name));
-  return rows.map((row) => toUser(row as Record<string, unknown>));
+  return rows.map(row => toUser(row as Record<string, unknown>));
 }
 
 /**
@@ -138,7 +139,7 @@ export async function createUser(userData: CreateUserInput): Promise<User> {
     : await bcrypt.hash('temp123', 10);
 
   // Extrair dados válidos para inserção
-  const insertData: Record<string, unknown> = {
+  const insertData: typeof schema.users.$inferInsert = {
     name: userData.name,
     email: userData.email,
     password: hashedPassword,
@@ -152,15 +153,20 @@ export async function createUser(userData: CreateUserInput): Promise<User> {
     updatedAt: new Date(),
   };
 
-  // Adicionar campos opcionais se existirem
-  if (userData.phone !== undefined) insertData.phone = userData.phone;
+  // Adicionar campos opcionais se existirem (usando Record para campos não no schema)
+  const optionalData: Record<string, unknown> = {};
+  if (userData.phone !== undefined) optionalData.phone = userData.phone;
   if (userData.address !== undefined) insertData.address = userData.address;
   if (userData.birthDate !== undefined) insertData.birthDate = userData.birthDate;
-  if (userData.avatarUrl !== undefined) insertData.avatarUrl = userData.avatarUrl;
+  if (userData.avatarUrl !== undefined) optionalData.avatarUrl = userData.avatarUrl;
+
+  // Merge optional data
+  const finalInsertData = { ...insertData, ...optionalData };
 
   const [inserted] = await db
     .insert(schema.users)
-    .values(insertData)
+
+    .values(finalInsertData as any)
     .returning();
 
   return toUser(inserted as Record<string, unknown>);
@@ -171,7 +177,7 @@ export async function createUser(userData: CreateUserInput): Promise<User> {
  */
 export async function updateUser(id: number, updates: UpdateUserInput): Promise<User | null> {
   const safeUpdates: Record<string, unknown> = {};
-  
+
   for (const [key, value] of Object.entries(updates)) {
     if (value !== undefined) {
       if (key === 'password' && value) {
@@ -197,9 +203,12 @@ export async function updateUser(id: number, updates: UpdateUserInput): Promise<
 /**
  * Atualiza usuário diretamente (sem hash de senha)
  */
-export async function updateUserDirectly(id: number, updates: UpdateUserInput): Promise<User | null> {
+export async function updateUserDirectly(
+  id: number,
+  updates: UpdateUserInput
+): Promise<User | null> {
   const safeUpdates: Record<string, unknown> = {};
-  
+
   for (const [key, value] of Object.entries(updates)) {
     if (value !== undefined) {
       safeUpdates[key] = value;
@@ -233,9 +242,7 @@ export async function deleteUser(id: number): Promise<boolean> {
  * Conta total de usuários
  */
 export async function countUsers(): Promise<number> {
-  const result = await db
-    .select({ count: drizzleSql<number>`count(*)` })
-    .from(schema.users);
+  const result = await db.select({ count: drizzleSql<number>`count(*)` }).from(schema.users);
   return Number(result[0]?.count ?? 0);
 }
 
@@ -278,31 +285,36 @@ export async function getUsersPaginated(
     conditions.push(drizzleSql`${schema.users.status} = ${filters.status}`);
   }
   if (filters?.search) {
-    conditions.push(
-      or(
-        drizzleSql`${schema.users.name} ILIKE ${'%' + filters.search + '%'}`,
-        drizzleSql`${schema.users.email} ILIKE ${'%' + filters.search + '%'}`
-      )
+    const searchCondition = or(
+      drizzleSql`${schema.users.name} ILIKE ${`%${filters.search}%`}`,
+      drizzleSql`${schema.users.email} ILIKE ${`%${filters.search}%`}`
     );
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
   }
 
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  // Garantir que whereClause nunca seja undefined
+  const whereClause =
+    conditions.length > 0 ? (and(...conditions) as ReturnType<typeof drizzleSql>) : drizzleSql`1=1`;
 
   const [countResult, rows] = await Promise.all([
-    db.select({ count: drizzleSql<number>`count(*)` })
+    db
+      .select({ count: drizzleSql<number>`count(*)` })
       .from(schema.users)
       .where(whereClause),
-    db.select()
+    db
+      .select()
       .from(schema.users)
       .where(whereClause)
       .orderBy(asc(schema.users.name))
       .limit(limit)
-      .offset(offset)
+      .offset(offset),
   ]);
 
   const total = Number(countResult[0]?.count ?? 0);
   const pages = Math.ceil(total / limit);
-  const users = rows.map((row) => toUser(row as Record<string, unknown>));
+  const users = rows.map(row => toUser(row as Record<string, unknown>));
 
   return { users, total, pages };
 }
@@ -343,24 +355,17 @@ export async function updateUserPoints(id: number, points: number, streak?: numb
   if (streak !== undefined) {
     updates.streak = streak;
   }
-  
-  await db
-    .update(schema.users)
-    .set(updates)
-    .where(eq(schema.users.id, id));
+
+  await db.update(schema.users).set(updates).where(eq(schema.users.id, id));
 }
 
 /**
  * Busca ranking de usuários por pontos
  */
 export async function getUsersRanking(limit: number = 10): Promise<User[]> {
-  const rows = await db
-    .select()
-    .from(schema.users)
-    .orderBy(desc(schema.users.points))
-    .limit(limit);
-  
-  return rows.map((row) => toUser(row as Record<string, unknown>));
+  const rows = await db.select().from(schema.users).orderBy(desc(schema.users.points)).limit(limit);
+
+  return rows.map(row => toUser(row as Record<string, unknown>));
 }
 
 export default {

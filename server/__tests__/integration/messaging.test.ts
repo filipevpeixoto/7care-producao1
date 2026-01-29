@@ -5,19 +5,31 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
+// Mock types for tests
+interface MockMessage {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  content: string;
+  isRead?: boolean;
+  createdAt?: string;
+  senderName?: string;
+  receiverName?: string;
+}
+
 // Mock do NeonAdapter
 const mockStorage = {
-  getAllMessages: jest.fn<() => Promise<any[]>>(),
-  getMessageById: jest.fn<(id: number) => Promise<any | null>>(),
-  createMessage: jest.fn<(data: any) => Promise<any>>(),
-  updateMessage: jest.fn<(id: number, data: any) => Promise<any | null>>(),
+  getAllMessages: jest.fn<() => Promise<MockMessage[]>>(),
+  getMessageById: jest.fn<(id: number) => Promise<MockMessage | null>>(),
+  createMessage: jest.fn<(data: Partial<MockMessage>) => Promise<MockMessage>>(),
+  updateMessage: jest.fn<(id: number, data: Partial<MockMessage>) => Promise<MockMessage | null>>(),
   deleteMessage: jest.fn<(id: number) => Promise<boolean>>(),
-  getConversation: jest.fn<(user1: number, user2: number) => Promise<any[]>>(),
-  markAsRead: jest.fn<(messageId: number) => Promise<boolean>>()
+  getConversation: jest.fn<(user1: number, user2: number) => Promise<MockMessage[]>>(),
+  markAsRead: jest.fn<(messageId: number) => Promise<boolean>>(),
 };
 
 jest.mock('../../neonAdapter', () => ({
-  NeonAdapter: jest.fn().mockImplementation(() => mockStorage)
+  NeonAdapter: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 const mockMessages = [
@@ -29,7 +41,7 @@ const mockMessages = [
     isRead: false,
     createdAt: '2025-01-20T10:00:00',
     senderName: 'Pastor Pedro',
-    receiverName: 'João Silva'
+    receiverName: 'João Silva',
   },
   {
     id: 2,
@@ -39,7 +51,7 @@ const mockMessages = [
     isRead: true,
     createdAt: '2025-01-20T10:15:00',
     senderName: 'João Silva',
-    receiverName: 'Pastor Pedro'
+    receiverName: 'Pastor Pedro',
   },
   {
     id: 3,
@@ -49,7 +61,7 @@ const mockMessages = [
     isRead: false,
     createdAt: '2025-01-20T10:20:00',
     senderName: 'Pastor Pedro',
-    receiverName: 'João Silva'
+    receiverName: 'João Silva',
   },
   {
     id: 4,
@@ -59,8 +71,8 @@ const mockMessages = [
     isRead: false,
     createdAt: '2025-01-20T14:00:00',
     senderName: 'Missionária Clara',
-    receiverName: 'Maria Santos'
-  }
+    receiverName: 'Maria Santos',
+  },
 ];
 
 describe('Messaging Integration Tests', () => {
@@ -132,8 +144,7 @@ describe('Messaging Integration Tests', () => {
   describe('GET /api/messages/conversation/:user1/:user2', () => {
     it('deve retornar conversação entre dois usuários', async () => {
       const conversation = mockMessages.filter(
-        m => (m.senderId === 5 && m.receiverId === 10) ||
-             (m.senderId === 10 && m.receiverId === 5)
+        m => (m.senderId === 5 && m.receiverId === 10) || (m.senderId === 10 && m.receiverId === 5)
       );
       mockStorage.getConversation.mockResolvedValueOnce(conversation);
 
@@ -144,8 +155,10 @@ describe('Messaging Integration Tests', () => {
 
     it('deve ordenar por data crescente', () => {
       const conversation = mockMessages
-        .filter(m => (m.senderId === 5 && m.receiverId === 10) ||
-                     (m.senderId === 10 && m.receiverId === 5))
+        .filter(
+          m =>
+            (m.senderId === 5 && m.receiverId === 10) || (m.senderId === 10 && m.receiverId === 5)
+        )
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
       expect(conversation[0].id).toBe(1);
@@ -159,14 +172,14 @@ describe('Messaging Integration Tests', () => {
       const newMessage = {
         senderId: 11,
         receiverId: 6,
-        content: 'Obrigada pela atenção! Estou gostando muito dos estudos.'
+        content: 'Obrigada pela atenção! Estou gostando muito dos estudos.',
       };
 
       mockStorage.createMessage.mockResolvedValueOnce({
         id: 5,
         ...newMessage,
         isRead: false,
-        createdAt: '2025-01-20T15:00:00'
+        createdAt: '2025-01-20T15:00:00',
       });
 
       const created = await mockStorage.createMessage(newMessage);
@@ -180,7 +193,7 @@ describe('Messaging Integration Tests', () => {
       const validMessage = {
         senderId: 1,
         receiverId: 2,
-        content: 'Teste'
+        content: 'Teste',
       };
 
       expect(validMessage.senderId).toBeDefined();
@@ -206,7 +219,7 @@ describe('Messaging Integration Tests', () => {
     it('deve marcar mensagem como lida', async () => {
       mockStorage.updateMessage.mockResolvedValueOnce({
         ...mockMessages[0],
-        isRead: true
+        isRead: true,
       });
 
       const updated = await mockStorage.updateMessage(1, { isRead: true });
@@ -272,9 +285,7 @@ describe('Messaging Integration Tests', () => {
 
   describe('Business Logic Tests', () => {
     it('deve contar mensagens não lidas por usuário', () => {
-      const unreadForUser10 = mockMessages.filter(
-        m => m.receiverId === 10 && !m.isRead
-      );
+      const unreadForUser10 = mockMessages.filter(m => m.receiverId === 10 && !m.isRead);
 
       expect(unreadForUser10).toHaveLength(2);
     });

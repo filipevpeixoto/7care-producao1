@@ -7,14 +7,201 @@ import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { sql } from '../neonConfig';
 import { handleError } from '../utils/errorHandler';
-import { checkReadOnlyAccess, extractUserId } from '../middleware';
-import { User, insertUserSchema } from '../../shared/schema';
-import { parseDate, parseBirthDate, parseCargos, parseBoolean, parseNumber } from '../utils/parsers';
+import { checkReadOnlyAccess } from '../middleware';
+import { User } from '../../shared/schema';
+import {
+  parseDate,
+  parseBirthDate,
+  parseCargos,
+  parseBoolean,
+  parseNumber,
+} from '../utils/parsers';
 import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import * as bcrypt from 'bcryptjs';
-import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
-import { createUserSchema, updateUserSchema, userIdParamSchema } from '../schemas';
+import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { createUserSchema } from '../schemas';
 import { logger } from '../utils/logger';
+import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
+import { CACHE_TTL } from '../constants';
+
+// Tipo para dados extras do usuário (para cálculo de pontos)
+interface UserExtraData {
+  engajamento?: string;
+  classificacao?: string;
+  dizimistaType?: string;
+  ofertanteType?: string;
+  tempoBatismoAnos?: number;
+  temCargo?: string;
+  departamentosCargos?: string;
+  nomeUnidade?: string;
+  temLicao?: boolean | string;
+  totalPresenca?: number | string;
+  comunhao?: number;
+  missao?: number;
+  estudoBiblico?: number;
+  batizouAlguem?: string;
+  discipuladoPosBatismo?: number;
+  cpfValido?: string;
+  camposVaziosACMS?: string;
+  [key: string]: unknown;
+}
+
+// Tipo para configuração de pontos
+interface PointsConfig {
+  basicPoints?: number;
+  engajamento?: { alto?: number; medio?: number; baixo?: number };
+  classificacao?: { frequente?: number; naoFrequente?: number };
+  dizimista?: { naoDizimista?: number; recorrente?: number; sazonal?: number; pontual?: number };
+  ofertante?: { naoOfertante?: number; recorrente?: number; sazonal?: number; pontual?: number };
+  tempobatismo?: { maisVinte?: number; dezAnos?: number; cincoAnos?: number; doisAnos?: number };
+  cargos?: { tresOuMais?: number; doisCargos?: number; umCargo?: number };
+  nomeunidade?: { comUnidade?: number };
+  temlicao?: { comLicao?: number };
+  totalpresenca?: { oitoATreze?: number; quatroASete?: number };
+  escolasabatina?: { comunhao?: number; missao?: number; estudoBiblico?: number };
+  batizouAlguem?: { sim?: number };
+  discipuladoPosBatismo?: { multiplicador?: number };
+  cpfvalido?: { valido?: number };
+  cpfValido?: { valido?: number };
+  camposvaziosacms?: { completos?: number };
+  camposVaziosACMS?: { completos?: number };
+}
+
+// Helper function to parse extraData
+const parseExtraData = (user: User): UserExtraData => {
+  if (!user.extraData) return {};
+  if (typeof user.extraData === 'string') {
+    try {
+      return JSON.parse(user.extraData) as UserExtraData;
+    } catch {
+      return {};
+    }
+  }
+  return user.extraData as UserExtraData;
+};
+
+// Helper function to calculate user points from configuration
+const calculateUserPointsFromConfig = (user: User, config: PointsConfig): number => {
+  let points = 0;
+  const extraData = parseExtraData(user);
+
+  // 1. ENGAJAMENTO
+  const engajamento = extraData.engajamento?.toLowerCase() || '';
+  if (engajamento.includes('alto')) {
+    points += config.engajamento?.alto || 0;
+  } else if (engajamento.includes('medio')) {
+    points += config.engajamento?.medio || 0;
+  } else if (engajamento.includes('baixo')) {
+    points += config.engajamento?.baixo || 0;
+  }
+
+  // 2. CLASSIFICAÇÃO
+  const classificacao = extraData.classificacao?.toLowerCase() || '';
+  if (classificacao.includes('frequente')) {
+    points += config.classificacao?.frequente || 0;
+  } else if (classificacao.includes('naofrequente')) {
+    points += config.classificacao?.naoFrequente || 0;
+  }
+
+  // 3. DIZIMISTA
+  const dizimistaType = extraData.dizimistaType?.toLowerCase() || '';
+  if (dizimistaType.includes('recorrente')) {
+    points += config.dizimista?.recorrente || 0;
+  } else if (dizimistaType.includes('sazonal')) {
+    points += config.dizimista?.sazonal || 0;
+  } else if (dizimistaType.includes('pontual')) {
+    points += config.dizimista?.pontual || 0;
+  }
+
+  // 4. OFERTANTE
+  const ofertanteType = extraData.ofertanteType?.toLowerCase() || '';
+  if (ofertanteType.includes('recorrente')) {
+    points += config.ofertante?.recorrente || 0;
+  } else if (ofertanteType.includes('sazonal')) {
+    points += config.ofertante?.sazonal || 0;
+  } else if (ofertanteType.includes('pontual')) {
+    points += config.ofertante?.pontual || 0;
+  }
+
+  // 5. TEMPO DE BATISMO
+  const tempoBatismoAnos = extraData.tempoBatismoAnos || 0;
+  if (tempoBatismoAnos >= 20) {
+    points += config.tempobatismo?.maisVinte || 0;
+  } else if (tempoBatismoAnos >= 10) {
+    points += config.tempobatismo?.dezAnos || 0;
+  } else if (tempoBatismoAnos >= 5) {
+    points += config.tempobatismo?.cincoAnos || 0;
+  } else if (tempoBatismoAnos >= 2) {
+    points += config.tempobatismo?.doisAnos || 0;
+  }
+
+  // 6. CARGOS
+  if (extraData.temCargo === 'Sim' && extraData.departamentosCargos) {
+    const numCargos = extraData.departamentosCargos.split(';').length;
+    if (numCargos >= 3) {
+      points += config.cargos?.tresOuMais || 0;
+    } else if (numCargos === 2) {
+      points += config.cargos?.doisCargos || 0;
+    } else if (numCargos === 1) {
+      points += config.cargos?.umCargo || 0;
+    }
+  }
+
+  // 7. NOME DA UNIDADE
+  if (extraData.nomeUnidade?.trim()) {
+    points += config.nomeunidade?.comUnidade || 0;
+  }
+
+  // 8. TEM LIÇÃO
+  if (extraData.temLicao === true || extraData.temLicao === 'true') {
+    points += config.temlicao?.comLicao || 0;
+  }
+
+  // 9. TOTAL DE PRESENÇA
+  if (extraData.totalPresenca !== undefined && extraData.totalPresenca !== null) {
+    const presenca =
+      typeof extraData.totalPresenca === 'string'
+        ? parseInt(extraData.totalPresenca)
+        : extraData.totalPresenca;
+    if (presenca >= 8 && presenca <= 13) {
+      points += config.totalpresenca?.oitoATreze || 0;
+    } else if (presenca >= 4 && presenca <= 7) {
+      points += config.totalpresenca?.quatroASete || 0;
+    }
+  }
+
+  // 10. ESCOLA SABATINA - COMUNHÃO
+  if (extraData.comunhao && extraData.comunhao > 0) {
+    points += extraData.comunhao * (config.escolasabatina?.comunhao || 0);
+  }
+
+  // 11. ESCOLA SABATINA - MISSÃO
+  if (extraData.missao && extraData.missao > 0) {
+    points += extraData.missao * (config.escolasabatina?.missao || 0);
+  }
+
+  // 12. ESCOLA SABATINA - ESTUDO BÍBLICO
+  if (extraData.estudoBiblico && extraData.estudoBiblico > 0) {
+    points += extraData.estudoBiblico * (config.escolasabatina?.estudoBiblico || 0);
+  }
+
+  // 13. ESCOLA SABATINA - DISCIPULADO PÓS-BATISMO
+  if (extraData.discipuladoPosBatismo && extraData.discipuladoPosBatismo > 0) {
+    points += extraData.discipuladoPosBatismo * (config.discipuladoPosBatismo?.multiplicador || 0);
+  }
+
+  // 14. CPF VÁLIDO
+  if (extraData.cpfValido === 'Sim' || extraData.cpfValido === 'true') {
+    points += config.cpfValido?.valido || 0;
+  }
+
+  // 15. CAMPOS VAZIOS ACMS
+  if (extraData.camposVaziosACMS === 'false') {
+    points += config.camposVaziosACMS?.completos || 0;
+  }
+
+  return Math.round(points);
+};
 
 export const userRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -70,147 +257,154 @@ export const userRoutes = (app: Express): void => {
    *                     totalPages:
    *                       type: integer
    */
-  app.get("/api/users", async (req: Request, res: Response) => {
-    try {
-      logger.debug('🔍 [GET /api/users] Iniciando busca de usuários');
-      const { role, status, church } = req.query;
-      
-      // Paginação
-      const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50)); // Máximo 500
-      const offset = (page - 1) * limit;
-      
-      const requestingUserId = parseInt(req.headers['x-user-id'] as string || '0');
-      
-      logger.debug('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
-      
-      // Buscar dados do usuário que está fazendo a requisição
-      let requestingUser = null;
-      if (requestingUserId) {
-        requestingUser = await storage.getUserById(requestingUserId);
-      }
-      
-      let users = await storage.getAllUsers();
-      logger.debug(`✅ ${users.length} usuários encontrados no banco`);
+  app.get(
+    '/api/users',
+    cacheMiddleware('users', CACHE_TTL.USERS),
+    async (req: Request, res: Response) => {
+      try {
+        logger.debug('🔍 [GET /api/users] Iniciando busca de usuários');
+        const { role, status, church } = req.query;
 
-      if (role) {
-        users = users.filter(u => u.role === role);
-      }
-      if (status) {
-        users = users.filter(u => u.status === status);
-      }
-      
-      // Filtrar por igreja se especificado ou se o usuário não for super admin
-      if (church) {
-        users = users.filter(u => u.church === church);
-      } else if (requestingUser && !isSuperAdmin(requestingUser)) {
-        // Se não for super admin, filtrar pela igreja do usuário
-        const userChurch = requestingUser.church;
-        if (userChurch) {
-          users = users.filter(u => u.church === userChurch);
+        // Paginação
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50)); // Máximo 500
+        const offset = (page - 1) * limit;
+
+        const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+
+        logger.debug('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
+
+        // Buscar dados do usuário que está fazendo a requisição
+        let requestingUser = null;
+        if (requestingUserId) {
+          requestingUser = await storage.getUserById(requestingUserId);
         }
-      }
 
-      const totalUsers = users.length;
-      const totalPages = Math.ceil(totalUsers / limit);
+        let users = await storage.getAllUsers();
+        logger.debug(`✅ ${users.length} usuários encontrados no banco`);
 
-      // Lógica especial para missionários
-      if (req.headers['x-user-role'] === 'missionary' || req.headers['x-user-id']) {
-        const missionaryId = parseInt(req.headers['x-user-id'] as string || '0');
-        const missionary = users.find(u => u.id === missionaryId);
-
-        if (missionary && missionary.role === 'missionary') {
-          const churchInterested = users.filter(u =>
-            u.role === 'interested' &&
-            u.church === missionary.church &&
-            u.churchCode === missionary.churchCode
-          );
-
-          const relationships = await storage.getRelationshipsByMissionary(missionaryId);
-          const linkedInterestedIds = relationships.map(r => r.interestedId);
-
-          const processedUsers = churchInterested.map(user => {
-            const isLinked = linkedInterestedIds.includes(user.id);
-
-            if (isLinked) {
-              return user;
-            } else {
-              return {
-                ...user,
-                id: user.id,
-                name: user.name,
-                role: user.role,
-                status: user.status,
-                church: user.church,
-                churchCode: user.churchCode,
-                email: user.email ? '***@***.***' : null,
-                phone: user.phone ? '***-***-****' : null,
-                address: user.address ? '*** *** ***' : null,
-                birthDate: user.birthDate ? '**/**/****' : null,
-                cpf: user.cpf ? '***.***.***-**' : null,
-                occupation: user.occupation ? '***' : null,
-                education: user.education ? '***' : null,
-                previousReligion: user.previousReligion ? '***' : null,
-                interestedSituation: user.interestedSituation ? '***' : null,
-                points: 0,
-                level: '***',
-                attendance: 0,
-                biblicalInstructor: null,
-                isLinked: false,
-                canRequestDiscipleship: true
-              };
-            }
-          });
-
-          const otherUsers = users.filter(u =>
-            u.role !== 'interested' ||
-            (u.church !== missionary.church || u.churchCode !== missionary.churchCode)
-          );
-
-          const finalUsers = [...processedUsers, ...otherUsers];
-          
-          // Aplicar paginação
-          const paginatedUsers = finalUsers.slice(offset, offset + limit);
-          
-          const safeUsers = paginatedUsers.map(({ password, ...user }) => user);
-          res.json({
-            data: safeUsers,
-            pagination: {
-              page,
-              limit,
-              total: finalUsers.length,
-              totalPages: Math.ceil(finalUsers.length / limit)
-            }
-          });
-          return;
+        if (role) {
+          users = users.filter(u => u.role === role);
         }
-      }
-
-      // Calcular pontuação apenas para os usuários da página atual (otimização)
-      const paginatedUsers = users.slice(offset, offset + limit);
-      const pointsMap = await storage.calculateUserPointsBatch(paginatedUsers);
-      const usersWithPoints = paginatedUsers.map(user => ({
-        ...user,
-        calculatedPoints: pointsMap.get(user.id) ?? 0
-      }));
-
-      const safeUsers = usersWithPoints.map(({ password, ...user }) => user);
-      logger.debug(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
-      
-      res.json({
-        data: safeUsers,
-        pagination: {
-          page,
-          limit,
-          total: totalUsers,
-          totalPages
+        if (status) {
+          users = users.filter(u => u.status === status);
         }
-      });
-    } catch (error) {
-      logger.error('❌ Erro na rota GET /api/users:', error);
-      handleError(res, error, "Get users");
+
+        // Filtrar por igreja se especificado ou se o usuário não for super admin
+        if (church) {
+          users = users.filter(u => u.church === church);
+        } else if (requestingUser && !isSuperAdmin(requestingUser)) {
+          // Se não for super admin, filtrar pela igreja do usuário
+          const userChurch = requestingUser.church;
+          if (userChurch) {
+            users = users.filter(u => u.church === userChurch);
+          }
+        }
+
+        const totalUsers = users.length;
+        const totalPages = Math.ceil(totalUsers / limit);
+
+        // Lógica especial para missionários
+        if (req.headers['x-user-role'] === 'missionary' || req.headers['x-user-id']) {
+          const missionaryId = parseInt((req.headers['x-user-id'] as string) || '0');
+          const missionary = users.find(u => u.id === missionaryId);
+
+          if (missionary && missionary.role === 'missionary') {
+            const churchInterested = users.filter(
+              u =>
+                u.role === 'interested' &&
+                u.church === missionary.church &&
+                u.churchCode === missionary.churchCode
+            );
+
+            const relationships = await storage.getRelationshipsByMissionary(missionaryId);
+            const linkedInterestedIds = relationships.map(r => r.interestedId);
+
+            const processedUsers = churchInterested.map(user => {
+              const isLinked = linkedInterestedIds.includes(user.id);
+
+              if (isLinked) {
+                return user;
+              } else {
+                return {
+                  ...user,
+                  id: user.id,
+                  name: user.name,
+                  role: user.role,
+                  status: user.status,
+                  church: user.church,
+                  churchCode: user.churchCode,
+                  email: user.email ? '***@***.***' : null,
+                  phone: user.phone ? '***-***-****' : null,
+                  address: user.address ? '*** *** ***' : null,
+                  birthDate: user.birthDate ? '**/**/****' : null,
+                  cpf: user.cpf ? '***.***.***-**' : null,
+                  occupation: user.occupation ? '***' : null,
+                  education: user.education ? '***' : null,
+                  previousReligion: user.previousReligion ? '***' : null,
+                  interestedSituation: user.interestedSituation ? '***' : null,
+                  points: 0,
+                  level: '***',
+                  attendance: 0,
+                  biblicalInstructor: null,
+                  isLinked: false,
+                  canRequestDiscipleship: true,
+                };
+              }
+            });
+
+            const otherUsers = users.filter(
+              u =>
+                u.role !== 'interested' ||
+                u.church !== missionary.church ||
+                u.churchCode !== missionary.churchCode
+            );
+
+            const finalUsers = [...processedUsers, ...otherUsers];
+
+            // Aplicar paginação
+            const paginatedUsers = finalUsers.slice(offset, offset + limit);
+
+            const safeUsers = paginatedUsers.map(({ password: _password, ...user }) => user);
+            res.json({
+              data: safeUsers,
+              pagination: {
+                page,
+                limit,
+                total: finalUsers.length,
+                totalPages: Math.ceil(finalUsers.length / limit),
+              },
+            });
+            return;
+          }
+        }
+
+        // Calcular pontuação apenas para os usuários da página atual (otimização)
+        const paginatedUsers = users.slice(offset, offset + limit);
+        const pointsMap = await storage.calculateUserPointsBatch(paginatedUsers);
+        const usersWithPoints = paginatedUsers.map(user => ({
+          ...user,
+          calculatedPoints: pointsMap.get(user.id) ?? 0,
+        }));
+
+        const safeUsers = usersWithPoints.map(({ password: _password, ...user }) => user);
+        logger.debug(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
+
+        res.json({
+          data: safeUsers,
+          pagination: {
+            page,
+            limit,
+            total: totalUsers,
+            totalPages,
+          },
+        });
+      } catch (error) {
+        logger.error('❌ Erro na rota GET /api/users:', error);
+        handleError(res, error, 'Get users');
+      }
     }
-  });
+  );
 
   /**
    * @swagger
@@ -230,24 +424,24 @@ export const userRoutes = (app: Express): void => {
    *       404:
    *         description: Usuário não encontrado
    */
-  app.get("/api/users/:id(\\d+)", async (req: Request, res: Response) => {
+  app.get('/api/users/:id(\\d+)', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
-        res.status(400).json({ error: "ID inválido" });
+        res.status(400).json({ error: 'ID inválido' });
         return;
       }
       const user = await storage.getUserById(id);
 
       if (!user) {
-        res.status(404).json({ error: "User not found" });
+        res.status(404).json({ error: 'User not found' });
         return;
       }
 
-      const { password, ...safeUser } = user;
+      const { password: _password, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {
-      handleError(res, error, "Get user");
+      handleError(res, error, 'Get user');
     }
   });
 
@@ -269,48 +463,54 @@ export const userRoutes = (app: Express): void => {
    *       201:
    *         description: Usuário criado
    */
-  app.post("/api/users", checkReadOnlyAccess, validateBody(createUserSchema), async (req: Request, res: Response) => {
-    try {
-      const userData = (req as ValidatedRequest<typeof createUserSchema._type>).validatedBody;
-      logger.info(`Creating new user: ${userData.email}`);
+  app.post(
+    '/api/users',
+    checkReadOnlyAccess,
+    invalidateCacheMiddleware('users'),
+    validateBody(createUserSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const userData = (req as ValidatedRequest<typeof createUserSchema._type>).validatedBody;
+        logger.info(`Creating new user: ${userData.email}`);
 
-      const hashedPassword = userData.password ?
-        await bcrypt.hash(userData.password, 10) :
-        await bcrypt.hash('meu7care', 10);
+        const hashedPassword = userData.password
+          ? await bcrypt.hash(userData.password, 10)
+          : await bcrypt.hash('meu7care', 10);
 
-      let processedChurch: string | null = null;
-      if (userData.church && userData.church.trim() !== '') {
-        try {
-          const church = await storage.getOrCreateChurch(userData.church.trim());
-          processedChurch = church.name;
-        } catch (error) {
-          logger.error(`Erro ao processar igreja "${userData.church}":`, error);
-          processedChurch = 'Igreja Principal';
+        let _processedChurch: string | null = null;
+        if (userData.church && userData.church.trim() !== '') {
+          try {
+            const church = await storage.getOrCreateChurch(userData.church.trim());
+            _processedChurch = church.name;
+          } catch (error) {
+            logger.error(`Erro ao processar igreja "${userData.church}":`, error);
+            _processedChurch = 'Igreja Principal';
+          }
         }
+
+        const processedUserData = {
+          ...userData,
+          password: hashedPassword,
+          firstAccess: true,
+          status: 'pending',
+          isApproved: userData.isApproved || false,
+          role: userData.role || 'interested',
+          points: 0,
+          level: 'Bronze',
+          attendance: 0,
+        };
+
+        const newUser = await storage.createUser({
+          ...processedUserData,
+          biblicalInstructor: processedUserData.biblicalInstructor ?? null,
+        } as Parameters<typeof storage.createUser>[0]);
+
+        res.status(201).json(newUser);
+      } catch (error) {
+        handleError(res, error, 'Create user');
       }
-
-      const processedUserData = {
-        ...userData,
-        password: hashedPassword,
-        firstAccess: true,
-        status: "pending",
-        isApproved: userData.isApproved || false,
-        role: userData.role || "interested",
-        points: 0,
-        level: 'Bronze',
-        attendance: 0
-      };
-
-      const newUser = await storage.createUser({
-        ...processedUserData,
-        biblicalInstructor: processedUserData.biblicalInstructor ?? null
-      } as Parameters<typeof storage.createUser>[0]);
-
-      res.status(201).json(newUser);
-    } catch (error) {
-      handleError(res, error, "Create user");
     }
-  });
+  );
 
   /**
    * @swagger
@@ -336,37 +536,42 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuário atualizado
    */
-  app.put("/api/users/:id(\\d+)", checkReadOnlyAccess, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updateData = req.body;
+  app.put(
+    '/api/users/:id(\\d+)',
+    checkReadOnlyAccess,
+    invalidateCacheMiddleware('users'),
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const updateData = req.body;
 
-      if (updateData.biblicalInstructor !== undefined) {
-        if (updateData.biblicalInstructor) {
-          const existingRelationship = await storage.getRelationshipsByInterested(id);
-          if (!existingRelationship || existingRelationship.length === 0) {
-            await storage.createRelationship({
-              missionaryId: parseInt(updateData.biblicalInstructor),
-              interestedId: id,
-              status: 'active',
-              notes: "Vinculado pelo admin"
-            });
+        if (updateData.biblicalInstructor !== undefined) {
+          if (updateData.biblicalInstructor) {
+            const existingRelationship = await storage.getRelationshipsByInterested(id);
+            if (!existingRelationship || existingRelationship.length === 0) {
+              await storage.createRelationship({
+                missionaryId: parseInt(updateData.biblicalInstructor),
+                interestedId: id,
+                status: 'active',
+                notes: 'Vinculado pelo admin',
+              });
+            }
           }
         }
-      }
 
-      const user = await storage.updateUser(id, updateData);
-      if (!user) {
-        res.status(404).json({ error: "User not found" });
-        return;
-      }
+        const user = await storage.updateUser(id, updateData);
+        if (!user) {
+          res.status(404).json({ error: 'User not found' });
+          return;
+        }
 
-      const { password, ...safeUser } = user;
-      res.json(safeUser);
-    } catch (error) {
-      handleError(res, error, "Update user");
+        const { password: _password2, ...safeUser } = user;
+        res.json(safeUser);
+      } catch (error) {
+        handleError(res, error, 'Update user');
+      }
     }
-  });
+  );
 
   /**
    * @swagger
@@ -386,41 +591,47 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuário removido
    */
-  app.delete("/api/users/:id(\\d+)", checkReadOnlyAccess, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
+  app.delete(
+    '/api/users/:id(\\d+)',
+    checkReadOnlyAccess,
+    invalidateCacheMiddleware('users'),
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
 
-      const user = await storage.getUserById(id);
-      if (!user) {
-        res.status(404).json({ error: "User not found" }); return;
+        const user = await storage.getUserById(id);
+        if (!user) {
+          res.status(404).json({ error: 'User not found' });
+          return;
+        }
+
+        if (user.email === 'admin@7care.com') {
+          res.status(403).json({
+            error: 'Não é possível excluir o Super Administrador do sistema',
+          });
+          return;
+        }
+
+        if (hasAdminAccess(user)) {
+          res.status(403).json({
+            error: 'Não é possível excluir usuários administradores do sistema',
+          });
+          return;
+        }
+
+        const success = await storage.deleteUser(id);
+
+        if (!success) {
+          res.status(404).json({ error: 'User not found' });
+          return;
+        }
+
+        res.json({ success: true });
+      } catch (error) {
+        handleError(res, error, 'Delete user');
       }
-
-      if (user.email === 'admin@7care.com') {
-        res.status(403).json({
-          error: "Não é possível excluir o Super Administrador do sistema"
-        });
-        return;
-      }
-
-      if (hasAdminAccess(user)) {
-        res.status(403).json({
-          error: "Não é possível excluir usuários administradores do sistema"
-        });
-        return;
-      }
-
-      const success = await storage.deleteUser(id);
-
-      if (!success) {
-        res.status(404).json({ error: "User not found" });
-        return;
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      handleError(res, error, "Delete user");
     }
-  });
+  );
 
   /**
    * @swagger
@@ -440,22 +651,26 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuário aprovado
    */
-  app.post("/api/users/:id(\\d+)/approve", checkReadOnlyAccess, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const user = await storage.approveUser(id);
+  app.post(
+    '/api/users/:id(\\d+)/approve',
+    checkReadOnlyAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const user = await storage.approveUser(id);
 
-      if (!user) {
-        res.status(404).json({ error: "User not found" });
-        return;
+        if (!user) {
+          res.status(404).json({ error: 'User not found' });
+          return;
+        }
+
+        const { password: _password3, ...safeUser } = user;
+        res.json(safeUser);
+      } catch (error) {
+        handleError(res, error, 'Approve user');
       }
-
-      const { password, ...safeUser } = user;
-      res.json(safeUser);
-    } catch (error) {
-      handleError(res, error, "Approve user");
     }
-  });
+  );
 
   /**
    * @swagger
@@ -475,22 +690,26 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuário rejeitado
    */
-  app.post("/api/users/:id(\\d+)/reject", checkReadOnlyAccess, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const user = await storage.rejectUser(id);
+  app.post(
+    '/api/users/:id(\\d+)/reject',
+    checkReadOnlyAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const user = await storage.rejectUser(id);
 
-      if (!user) {
-        res.status(404).json({ error: "User not found" });
-        return;
+        if (!user) {
+          res.status(404).json({ error: 'User not found' });
+          return;
+        }
+
+        const { password: _password4, ...safeUser } = user;
+        res.json(safeUser);
+      } catch (error) {
+        handleError(res, error, 'Reject user');
       }
-
-      const { password, ...safeUser } = user;
-      res.json(safeUser);
-    } catch (error) {
-      handleError(res, error, "Reject user");
     }
-  });
+  );
 
   /**
    * @swagger
@@ -508,7 +727,7 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Pontos calculados
    */
-  app.get("/api/users/:id(\\d+)/calculate-points", async (req: Request, res: Response) => {
+  app.get('/api/users/:id(\\d+)/calculate-points', async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
 
@@ -517,10 +736,10 @@ export const userRoutes = (app: Express): void => {
       if (result && result.success) {
         res.json(result);
       } else {
-        res.status(404).json(result || { error: "Usuário não encontrado" });
+        res.status(404).json(result || { error: 'Usuário não encontrado' });
       }
     } catch (error) {
-      handleError(res, error, "Calculate user points");
+      handleError(res, error, 'Calculate user points');
     }
   });
 
@@ -540,13 +759,13 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Detalhes dos pontos
    */
-  app.get("/api/users/:id(\\d+)/points-details", async (req: Request, res: Response) => {
+  app.get('/api/users/:id(\\d+)/points-details', async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
 
       const user = await storage.getUserById(userId);
       if (!user) {
-        res.status(404).json({ error: "Usuário não encontrado" });
+        res.status(404).json({ error: 'Usuário não encontrado' });
         return;
       }
 
@@ -562,7 +781,7 @@ export const userRoutes = (app: Express): void => {
           level: result.level || user.level,
           breakdown: result.breakdown || {},
           details: result.details || {},
-          userData: result.userData || {}
+          userData: result.userData || {},
         });
       } else {
         res.json({
@@ -574,11 +793,11 @@ export const userRoutes = (app: Express): void => {
           level: user.level,
           breakdown: {},
           details: {},
-          error: result?.error || "Erro ao calcular pontos"
+          error: result?.error || 'Erro ao calcular pontos',
         });
       }
     } catch (error) {
-      handleError(res, error, "Get user points details");
+      handleError(res, error, 'Get user points details');
     }
   });
 
@@ -592,7 +811,7 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de aniversariantes
    */
-  app.get("/api/users/birthdays", async (req: Request, res: Response) => {
+  app.get('/api/users/birthdays', async (req: Request, res: Response) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       const userRole = req.headers['x-user-role'] as string;
@@ -628,7 +847,9 @@ export const userRoutes = (app: Express): void => {
 
       const birthdaysToday = usersWithBirthDates.filter(user => {
         const birthDate = parseDate(user.birthDate);
-        return birthDate && birthDate.getMonth() === currentMonth && birthDate.getDate() === currentDay;
+        return (
+          birthDate && birthDate.getMonth() === currentMonth && birthDate.getDate() === currentDay
+        );
       });
 
       const birthdaysThisMonth = usersWithBirthDates.filter(user => {
@@ -650,7 +871,7 @@ export const userRoutes = (app: Express): void => {
         phone: user.phone,
         birthDate: user.birthDate || '',
         profilePhoto: user.profilePhoto,
-        church: user.church || null
+        church: user.church || null,
       });
 
       const allBirthdays = usersWithBirthDates.sort((a, b) => {
@@ -667,11 +888,10 @@ export const userRoutes = (app: Express): void => {
         today: birthdaysToday.map(formatBirthdayUser),
         thisMonth: birthdaysThisMonth.map(formatBirthdayUser),
         all: allBirthdays.map(formatBirthdayUser),
-        filteredByChurch: userChurch || null
+        filteredByChurch: userChurch || null,
       });
-
     } catch (error) {
-      handleError(res, error, "Get birthdays");
+      handleError(res, error, 'Get birthdays');
     }
   });
 
@@ -687,23 +907,24 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de interessados
    */
-  app.get("/api/my-interested", async (req: Request, res: Response) => {
+  app.get('/api/my-interested', async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       if (!userId) {
-        res.status(401).json({ error: "Usuário não autenticado" }); return;
+        res.status(401).json({ error: 'Usuário não autenticado' });
+        return;
       }
 
       const user = await storage.getUserById(userId);
       if (!user || (user.role !== 'missionary' && user.role !== 'member')) {
-        res.status(403).json({ error: "Apenas missionários e membros podem acessar esta rota" }); return;
+        res.status(403).json({ error: 'Apenas missionários e membros podem acessar esta rota' });
+        return;
       }
 
       const allUsers = await storage.getAllUsers();
 
-      const churchInterested = allUsers.filter(u =>
-        u.role === 'interested' &&
-        u.church === user.church
+      const churchInterested = allUsers.filter(
+        u => u.role === 'interested' && u.church === user.church
       );
 
       const relationships = await storage.getRelationshipsByMissionary(userId);
@@ -716,7 +937,7 @@ export const userRoutes = (app: Express): void => {
           return {
             ...user,
             isLinked: true,
-            relationshipId: relationships.find(r => r.interestedId === user.id)?.id
+            relationshipId: relationships.find(r => r.interestedId === user.id)?.id,
           };
         } else {
           return {
@@ -741,15 +962,15 @@ export const userRoutes = (app: Express): void => {
             attendance: 0,
             biblicalInstructor: null,
             isLinked: false,
-            canRequestDiscipleship: true
+            canRequestDiscipleship: true,
           };
         }
       });
 
-      const safeUsers = processedUsers.map(({ password, ...user }) => user);
+      const safeUsers = processedUsers.map(({ password: _password5, ...user }) => user);
       res.json(safeUsers);
     } catch (error) {
-      handleError(res, error, "Get my interested");
+      handleError(res, error, 'Get my interested');
     }
   });
 
@@ -776,12 +997,26 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuários importados
    */
-  app.post("/api/users/bulk-import", async (req: Request, res: Response) => {
+  app.post('/api/users/bulk-import', async (req: Request, res: Response) => {
     try {
       const { users } = req.body;
 
       if (!Array.isArray(users) || users.length === 0) {
-        res.status(400).json({ error: "Users array is required and must not be empty" }); return;
+        res.status(400).json({ error: 'Users array is required and must not be empty' });
+        return;
+      }
+
+      // Obter configuração de pontos atual
+      let pointsConfig: PointsConfig = {};
+      try {
+        const configData = await storage.getPointsConfiguration();
+        pointsConfig = configData || {};
+        logger.info('Configuração de pontos carregada para importação em massa');
+      } catch (configError) {
+        logger.warn(
+          'Não foi possível carregar configuração de pontos, importando sem calcular pontos:',
+          configError
+        );
       }
 
       const processedUsers: Record<string, unknown>[] = [];
@@ -792,11 +1027,20 @@ export const userRoutes = (app: Express): void => {
         try {
           const existingUser = await storage.getUserByEmail(userData.email);
           if (existingUser) {
-            errors.push({ userId: userData.email, userName: userData.name, error: `User with email ${userData.email} already exists` });
+            errors.push({
+              userId: userData.email,
+              userName: userData.name,
+              error: `User with email ${userData.email} already exists`,
+            });
             continue;
           }
 
-          const normalize = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          const normalize = (str: string) =>
+            str
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-zA-Z0-9]/g, '')
+              .toLowerCase();
           const nameParts = userData.name.trim().split(' ');
           let baseUsername = '';
           if (nameParts.length === 1) {
@@ -810,19 +1054,26 @@ export const userRoutes = (app: Express): void => {
           let finalUsername = baseUsername;
           let counter = 1;
           const allUsers = await storage.getAllUsers();
-          while (allUsers.some(u => {
-            const normalize = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-            const nameParts = u.name.trim().split(' ');
-            let generatedUsername = '';
-            if (nameParts.length === 1) {
-              generatedUsername = normalize(nameParts[0]);
-            } else {
-              const firstName = normalize(nameParts[0]);
-              const lastName = normalize(nameParts[nameParts.length - 1]);
-              generatedUsername = `${firstName}.${lastName}`;
-            }
-            return generatedUsername === finalUsername;
-          })) {
+          while (
+            allUsers.some(u => {
+              const normalize = (str: string) =>
+                str
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .replace(/[^a-zA-Z0-9]/g, '')
+                  .toLowerCase();
+              const nameParts = u.name.trim().split(' ');
+              let generatedUsername = '';
+              if (nameParts.length === 1) {
+                generatedUsername = normalize(nameParts[0]);
+              } else {
+                const firstName = normalize(nameParts[0]);
+                const lastName = normalize(nameParts[nameParts.length - 1]);
+                generatedUsername = `${firstName}.${lastName}`;
+              }
+              return generatedUsername === finalUsername;
+            })
+          ) {
             finalUsername = `${baseUsername}${counter}`;
             counter++;
           }
@@ -830,7 +1081,9 @@ export const userRoutes = (app: Express): void => {
           const hashedPassword = await bcrypt.hash('meu7care', 10);
 
           const processedBirthDate = userData.birthDate ? parseBirthDate(userData.birthDate) : null;
-          const processedBaptismDate = userData.baptismDate ? parseBirthDate(userData.baptismDate) : null;
+          const processedBaptismDate = userData.baptismDate
+            ? parseBirthDate(userData.baptismDate)
+            : null;
 
           let processedChurch: string | null = null;
           if (userData.church && userData.church.trim() !== '') {
@@ -850,24 +1103,42 @@ export const userRoutes = (app: Express): void => {
             church: processedChurch,
             password: hashedPassword,
             firstAccess: true,
-            status: "pending",
-            isApproved: false
+            status: 'pending',
+            isApproved: false,
           };
 
           const newUser = await storage.createUser({
-        ...processedUserData,
-        biblicalInstructor: processedUserData.biblicalInstructor ?? null
-      } as Parameters<typeof storage.createUser>[0]);
+            ...processedUserData,
+            biblicalInstructor: processedUserData.biblicalInstructor ?? null,
+          } as Parameters<typeof storage.createUser>[0]);
+
+          // Calcular e atualizar pontos do usuário recém-criado
+          let calculatedPoints = 0;
+          if (Object.keys(pointsConfig).length > 0) {
+            try {
+              calculatedPoints = calculateUserPointsFromConfig(newUser as User, pointsConfig);
+              if (calculatedPoints > 0) {
+                await storage.updateUser(newUser.id, { points: calculatedPoints });
+                logger.info(`Pontos calculados para ${newUser.name}: ${calculatedPoints}`);
+              }
+            } catch (pointsError) {
+              logger.warn(`Erro ao calcular pontos para ${newUser.name}:`, pointsError);
+            }
+          }
 
           processedUsers.push({
             ...newUser,
+            points: calculatedPoints,
             generatedUsername: finalUsername,
-            defaultPassword: 'meu7care'
+            defaultPassword: 'meu7care',
           });
-
         } catch (error) {
           logger.error(`Error processing user ${i + 1}:`, error);
-          errors.push({ userId: userData.email, userName: userData.name, error: error instanceof Error ? error.message : 'Unknown error' });
+          errors.push({
+            userId: userData.email,
+            userName: userData.name,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
       }
 
@@ -875,11 +1146,10 @@ export const userRoutes = (app: Express): void => {
         success: true,
         message: `Successfully processed ${processedUsers.length} users`,
         users: processedUsers,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
       });
-
     } catch (error) {
-      handleError(res, error, "Bulk import");
+      handleError(res, error, 'Bulk import');
     }
   });
 
@@ -904,12 +1174,13 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuários atualizados
    */
-  app.post("/api/users/update-from-powerbi", async (req: Request, res: Response) => {
+  app.post('/api/users/update-from-powerbi', async (req: Request, res: Response) => {
     try {
       const { users: usersData } = req.body;
 
       if (!Array.isArray(usersData) || usersData.length === 0) {
-        res.status(400).json({ error: "Users array is required and must not be empty" }); return;
+        res.status(400).json({ error: 'Users array is required and must not be empty' });
+        return;
       }
 
       let updatedCount = 0;
@@ -939,30 +1210,61 @@ export const userRoutes = (app: Express): void => {
 
           let currentExtraData = {};
           if (user.extra_data) {
-            currentExtraData = typeof user.extra_data === 'string'
-              ? JSON.parse(user.extra_data)
-              : user.extra_data;
+            currentExtraData =
+              typeof user.extra_data === 'string' ? JSON.parse(user.extra_data) : user.extra_data;
           }
 
           const updatedExtraData = {
             ...currentExtraData,
             engajamento: userData.engajamento || userData.Engajamento,
-            classificacao: userData.classificacao || userData.Classificacao || userData.Classificação,
+            classificacao:
+              userData.classificacao || userData.Classificacao || userData.Classificação,
             dizimistaType: userData.dizimista || userData.Dizimista,
             ofertanteType: userData.ofertante || userData.Ofertante,
-            tempoBatismoAnos: userData.tempoBatismo || userData.TempoBatismo || userData['Tempo Batismo'],
+            tempoBatismoAnos:
+              userData.tempoBatismo || userData.TempoBatismo || userData['Tempo Batismo'],
             cargos: parseCargos(userData.cargos || userData.Cargos),
             nomeUnidade: userData.nomeUnidade || userData.NomeUnidade || userData['Nome Unidade'],
-            temLicao: parseBoolean(userData.temLicao || userData.TemLicao || userData['Tem Licao'] || userData['Tem Lição']),
+            temLicao: parseBoolean(
+              userData.temLicao ||
+                userData.TemLicao ||
+                userData['Tem Licao'] ||
+                userData['Tem Lição']
+            ),
             comunhao: parseNumber(userData.comunhao || userData.Comunhao || userData.Comunhão),
             missao: userData.missao || userData.Missao || userData.Missão,
-            estudoBiblico: parseNumber(userData.estudoBiblico || userData.EstudoBiblico || userData['Estudo Biblico'] || userData['Estudo Bíblico']),
-            totalPresenca: parseNumber(userData.totalPresenca || userData.TotalPresenca || userData['Total Presenca'] || userData['Total Presença']),
-            batizouAlguem: parseBoolean(userData.batizouAlguem || userData.BatizouAlguem || userData['Batizou Alguem'] || userData['Batizou Alguém']),
-            discPosBatismal: parseNumber(userData.discipuladoPosBatismo || userData.DiscipuladoPosBatismo || userData['Discipulado Pos-Batismo']),
-            cpfValido: userData.cpfValido || userData.CPFValido || userData['CPF Valido'] || userData['CPF Válido'],
-            camposVaziosACMS: parseBoolean(userData.camposVaziosACMS || userData.CamposVaziosACMS || userData['Campos Vazios']),
-            lastPowerBIUpdate: new Date().toISOString()
+            estudoBiblico: parseNumber(
+              userData.estudoBiblico ||
+                userData.EstudoBiblico ||
+                userData['Estudo Biblico'] ||
+                userData['Estudo Bíblico']
+            ),
+            totalPresenca: parseNumber(
+              userData.totalPresenca ||
+                userData.TotalPresenca ||
+                userData['Total Presenca'] ||
+                userData['Total Presença']
+            ),
+            batizouAlguem: parseBoolean(
+              userData.batizouAlguem ||
+                userData.BatizouAlguem ||
+                userData['Batizou Alguem'] ||
+                userData['Batizou Alguém']
+            ),
+            discPosBatismal: parseNumber(
+              userData.discipuladoPosBatismo ||
+                userData.DiscipuladoPosBatismo ||
+                userData['Discipulado Pos-Batismo']
+            ),
+            cpfValido:
+              userData.cpfValido ||
+              userData.CPFValido ||
+              userData['CPF Valido'] ||
+              userData['CPF Válido'],
+            camposVaziosACMS: parseBoolean(
+              userData.camposVaziosACMS || userData.CamposVaziosACMS || userData['Campos Vazios']
+            ),
+            lastPowerBIUpdate: new Date().toISOString(),
           };
 
           await sql`
@@ -974,7 +1276,10 @@ export const userRoutes = (app: Express): void => {
           updatedCount++;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          errors.push({ userName: userData.nome || userData.Nome || userData.name, error: errorMessage });
+          errors.push({
+            userName: userData.nome || userData.Nome || userData.name,
+            error: errorMessage,
+          });
         }
       }
 
@@ -989,11 +1294,10 @@ export const userRoutes = (app: Express): void => {
         message: `${updatedCount} usuários atualizados com sucesso`,
         updated: updatedCount,
         notFound: notFoundCount,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
       });
-
     } catch (error) {
-      handleError(res, error, "Update from Power BI");
+      handleError(res, error, 'Update from Power BI');
     }
   });
 };

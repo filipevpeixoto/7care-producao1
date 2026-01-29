@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Filter, Cake, RefreshCw } from 'lucide-react';
+import { Filter, Cake, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuCheckboxItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MonthlyCalendarView } from '@/components/calendar/MonthlyCalendarView';
 import { EventModal } from '@/components/calendar/EventModal';
@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { CalendarEvent, EVENT_TYPES, EventType } from '@/types/calendar';
+import { CalendarEvent, EVENT_TYPES } from '@/types/calendar';
 import { notificationService } from '@/lib/notificationService';
 import { toast as sonnerToast } from 'sonner';
 
@@ -24,13 +24,13 @@ import { toast as sonnerToast } from 'sonner';
 const GOOGLE_SHEETS_CONFIG = {
   proxyUrl: '/api/google-sheets/proxy',
   spreadsheetId: '1i-x-0KiciwACRztoKX-YHlXT4FsrAzaKwuH-hHkD8go',
-  sheetName: 'Agenda' // Nome da aba para eventos
+  sheetName: 'Agenda', // Nome da aba para eventos
 };
 
 export default function Calendar() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
@@ -38,15 +38,22 @@ export default function Calendar() {
   const [showBirthdays, setShowBirthdays] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const isAdmin = hasAdminAccess(user);
-  const { getAvailableEventTypes, canFilterEventType, permissions, isLoading: permissionsLoading } = useEventFilterPermissions();
-  
+  const _isAdmin = hasAdminAccess(user);
+  const {
+    getAvailableEventTypes,
+    canFilterEventType,
+    permissions,
+    isLoading: permissionsLoading,
+  } = useEventFilterPermissions();
+
   // Garantir que não há nada bloqueando a navegação
   useEffect(() => {
     // Interceptar e suprimir erros de extensões do Chrome
     const handleUnhandledRejection = (event: PromiseRejectionEvent): void => {
-      if (event.reason?.message?.includes('message channel closed') ||
-          event.reason?.message?.includes('listener indicated an asynchronous response')) {
+      if (
+        event.reason?.message?.includes('message channel closed') ||
+        event.reason?.message?.includes('listener indicated an asynchronous response')
+      ) {
         console.warn('🔇 Erro de extensão do Chrome suprimido:', event.reason?.message);
         event.preventDefault();
         event.stopPropagation();
@@ -55,8 +62,10 @@ export default function Calendar() {
 
     // Interceptar erros globais de extensões
     const handleError = (event: ErrorEvent): void => {
-      if (event.message?.includes('message channel closed') ||
-          event.message?.includes('listener indicated an asynchronous response')) {
+      if (
+        event.message?.includes('message channel closed') ||
+        event.message?.includes('listener indicated an asynchronous response')
+      ) {
         console.warn('🔇 Erro de extensão do Chrome suprimido:', event.message);
         event.preventDefault();
         event.stopPropagation();
@@ -72,66 +81,72 @@ export default function Calendar() {
       // Remover listeners
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       window.removeEventListener('error', handleError);
-      
+
       // Fechar qualquer modal/dropdown que possa estar aberto
       setShowEventModal(false);
       console.log('🧹 Calendar desmontado - limpeza completa');
     };
   }, []);
-  
+
   // ========================================
   // BUSCAR EVENTOS COM CACHE OTIMIZADO
   // ========================================
-  const { data: rawEvents, isLoading: eventsLoading, refetch } = useQuery<any[]>({
+  const {
+    data: rawEvents,
+    isLoading: _eventsLoading,
+    refetch,
+  } = useQuery<any[]>({
     queryKey: ['events'],
     queryFn: async () => {
       console.log('📡 [API] Buscando eventos do servidor...');
       const response = await fetch('/api/calendar/events', {
-        headers: { 
-          'x-user-id': '1'
-        }
+        headers: {
+          'x-user-id': '1',
+        },
       });
       if (!response.ok) throw new Error('Erro ao buscar eventos');
-      const events = await response.json();
+      const rawEvents = await response.json();
+      // A API pode retornar { data: [] } ou array diretamente
+      const events = Array.isArray(rawEvents) ? rawEvents : rawEvents?.data || [];
       console.log(`✅ [API] ${events.length} eventos carregados da API`);
-      
+
       // Remover duplicatas no frontend (proteção extra)
       const uniqueEvents = Array.from(
-        new Map(events.map((e: any) => [
-          `${e.title}_${e.date}_${e.type}`, 
-          e
-        ])).values()
+        new Map(events.map((e: any) => [`${e.title}_${e.date}_${e.type}`, e])).values()
       );
-      
+
       if (uniqueEvents.length < events.length) {
-        console.log(`⚠️ [API] Removidas ${events.length - uniqueEvents.length} duplicatas do frontend`);
+        console.log(
+          `⚠️ [API] Removidas ${events.length - uniqueEvents.length} duplicatas do frontend`
+        );
       }
-      
+
       return uniqueEvents;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos - cache inteligente
     gcTime: 5 * 60 * 1000, // 5 minutos - manter em cache
     refetchInterval: 10 * 60 * 1000, // 10 minutos - refresh automático
     refetchOnMount: false, // Usar cache se disponível
-    refetchOnWindowFocus: false // Não refazer ao focar janela
+    refetchOnWindowFocus: false, // Não refazer ao focar janela
   });
 
   // Normalizar eventos (converter date/end_date para startDate/endDate)
-  const allEvents = rawEvents?.map((event: any) => ({
-    ...event,
-    startDate: event.date || event.startDate,
-    endDate: event.end_date || event.endDate || event.date
-  })) || [];
+  const allEvents =
+    rawEvents?.map((event: any) => ({
+      ...event,
+      startDate: event.date || event.startDate,
+      endDate: event.end_date || event.endDate || event.date,
+    })) || [];
 
   // Extrair tipos de eventos dinâmicos dos eventos reais (incluindo novos do Google Sheets)
   const dynamicEventTypes = React.useMemo(() => {
     const uniqueTypes = new Map();
-    
+
     // Primeiro adicionar os tipos predefinidos
     EVENT_TYPES.forEach(type => {
       uniqueTypes.set(type.id, type);
     });
-    
+
     // Depois adicionar novos tipos dos eventos (sobrescrever se necessário)
     allEvents.forEach((event: any) => {
       if (event.type && !uniqueTypes.has(event.type)) {
@@ -139,23 +154,24 @@ export default function Calendar() {
         const hexColor = event.color || '#64748b'; // Usar cor do evento ou padrão
         uniqueTypes.set(event.type, {
           id: event.type,
-          label: event.type.split('-').map((word: string) => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-          ).join(' '),
+          label: event.type
+            .split('-')
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' '),
           hexColor: hexColor,
           color: 'dynamic', // Flag para saber que é cor dinâmica
-          isDynamic: true
+          isDynamic: true,
         });
       }
     });
-    
+
     return Array.from(uniqueTypes.values());
   }, [allEvents]);
 
   // ========================================
   // FUNÇÃO DE SINCRONIZAÇÃO DO GOOGLE SHEETS
   // ========================================
-  
+
   /**
    * Sincronizar DO Google Sheets para o banco de dados (SIMPLIFICADO)
    */
@@ -163,29 +179,32 @@ export default function Calendar() {
     try {
       console.log('⬅️ [SYNC] Sincronizando do Google Sheets...');
       if (showToast) sonnerToast.info('Sincronizando...');
-      
+
       // Buscar config
       const configResponse = await fetch('/api/calendar/google-drive-config');
       const config = await configResponse.json();
-      
+
       if (!config.spreadsheetUrl) {
         console.log('⚠️ Nenhuma planilha configurada');
         return;
       }
-      
+
       // Sincronizar
       const syncResponse = await fetch('/api/calendar/sync-google-drive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spreadsheetUrl: config.spreadsheetUrl })
+        body: JSON.stringify({ spreadsheetUrl: config.spreadsheetUrl }),
       });
-      
+
       if (syncResponse.ok) {
         const result = await syncResponse.json();
-        const hasChanges = (result.importedCount > 0) || (result.updatedCount > 0) || (result.deletedCount > 0);
-        
-        console.log(`✅ [SYNC] ${result.importedCount || 0} novos, ${result.updatedCount || 0} atualizados, ${result.deletedCount || 0} removidos`);
-        
+        const hasChanges =
+          result.importedCount > 0 || result.updatedCount > 0 || result.deletedCount > 0;
+
+        console.log(
+          `✅ [SYNC] ${result.importedCount || 0} novos, ${result.updatedCount || 0} atualizados, ${result.deletedCount || 0} removidos`
+        );
+
         // Atualizar APENAS se houver mudanças
         if (hasChanges) {
           await refetch();
@@ -200,14 +219,14 @@ export default function Calendar() {
 
   // Inicializar filtros com TODAS as categorias (incluindo dinâmicas)
   useEffect(() => {
-    console.log('🔄 useEffect triggered:', { 
-      userRole: user?.role, 
-      permissions: !!permissions, 
+    console.log('🔄 useEffect triggered:', {
+      userRole: user?.role,
+      permissions: !!permissions,
       permissionsLoading,
       permissionsData: permissions,
-      totalEventTypes: dynamicEventTypes.length
+      totalEventTypes: dynamicEventTypes.length,
     });
-    
+
     if (user?.role && permissions && !permissionsLoading && dynamicEventTypes.length > 0) {
       // Incluir TODAS as categorias (dinâmicas + padrão)
       const allTypes = dynamicEventTypes.map(t => t.id);
@@ -219,13 +238,15 @@ export default function Calendar() {
   // Effect para escutar eventos de importação bem-sucedida
   useEffect(() => {
     let isMounted = true;
-    
+
     const handleImportSuccess = (event: CustomEvent) => {
       try {
         if (!isMounted) return;
-        
+
         if (event.detail && event.detail.type === 'calendar-events') {
-          console.log(`📅 Importação de eventos bem-sucedida: ${event.detail.count} eventos importados`);
+          console.log(
+            `📅 Importação de eventos bem-sucedida: ${event.detail.count} eventos importados`
+          );
           // A data da última importação será atualizada automaticamente pelo Settings
         }
       } catch (error) {
@@ -246,7 +267,7 @@ export default function Calendar() {
   // ========================================
   // SINCRONIZAÇÃO COM GOOGLE SHEETS - MANUAL POR ENQUANTO
   // ========================================
-  
+
   // DESABILITADO: Sincronização automática (estava causando duplicatas)
   // useEffect(() => {
   //   syncFromGoogleSheets(false);
@@ -282,18 +303,18 @@ export default function Calendar() {
             end_date: eventData.endDate || eventData.startDate,
             type: eventData.type || 'reunioes',
             location: eventData.location || '',
-            created_by: 1
-          })
+            created_by: 1,
+          }),
         });
-        
+
         if (!response.ok) throw new Error('Erro ao criar evento');
         const result = await response.json();
-        
+
         // Adicionar ao Google Sheets
         await addEventToGoogleSheets(result);
-        
+
         sonnerToast.success('Evento criado!');
-        
+
         // Notificação
         if (eventData.title && eventData.startDate) {
           try {
@@ -313,19 +334,19 @@ export default function Calendar() {
             date: eventData.startDate,
             end_date: eventData.endDate,
             type: eventData.type,
-            location: eventData.location
-          })
+            location: eventData.location,
+          }),
         });
-        
+
         if (!response.ok) throw new Error('Erro ao atualizar evento');
         const result = await response.json();
-        
+
         // Atualizar no Google Sheets
         await updateEventInGoogleSheets(result);
-        
+
         sonnerToast.success('Evento atualizado!');
       }
-      
+
       // Atualizar lista
       await refetch();
       setShowEventModal(false);
@@ -340,16 +361,16 @@ export default function Calendar() {
       // Deletar do banco
       const response = await fetch(`/api/calendar/events/${eventId}`, {
         method: 'DELETE',
-        headers: { 'x-user-id': '1' }
+        headers: { 'x-user-id': '1' },
       });
-      
+
       if (!response.ok) throw new Error('Erro ao deletar evento');
-      
+
       // Deletar do Google Sheets
       await deleteEventFromGoogleSheets(eventId);
-      
+
       sonnerToast.success('Evento deletado!');
-      
+
       // Atualizar lista
       await refetch();
       setShowEventModal(false);
@@ -362,7 +383,7 @@ export default function Calendar() {
   // ========================================
   // FUNÇÕES DE GOOGLE SHEETS (seguindo padrão de Tasks)
   // ========================================
-  
+
   /**
    * Adicionar evento ao Google Sheets
    */
@@ -375,23 +396,23 @@ export default function Calendar() {
         data_fim: event.end_date || event.endDate || event.date || event.startDate,
         categoria: event.type,
         descricao: event.description || '',
-        local: event.location || ''
+        local: event.location || '',
       };
-      
+
       const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
         body: JSON.stringify({
           action: 'addEvent',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
           sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-          eventData
-        })
+          eventData,
+        }),
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -411,18 +432,18 @@ export default function Calendar() {
       // Deletar linha antiga
       await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
         body: JSON.stringify({
           action: 'deleteEvent',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
           sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-          eventId: event.id
-        })
+          eventId: event.id,
+        }),
       });
-      
+
       // Adicionar com dados atualizados
       await addEventToGoogleSheets(event);
       console.log(`✅ [UPDATE] Evento ${event.id} atualizado no Google Sheets!`);
@@ -437,21 +458,21 @@ export default function Calendar() {
   const deleteEventFromGoogleSheets = async (eventId: number) => {
     try {
       console.log(`🗑️ [DELETE] Deletando evento ${eventId} do Google Sheets...`);
-      
+
       const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1'
+          'x-user-id': '1',
         },
         body: JSON.stringify({
           action: 'deleteEvent',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
           sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-          eventId: eventId
-        })
+          eventId: eventId,
+        }),
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -474,9 +495,9 @@ export default function Calendar() {
     // Verificar se o usuário tem permissão para filtrar este tipo de evento
     if (user?.role && !canFilterEventType(user.role, filterId)) {
       toast({
-        title: "Acesso negado",
-        description: "Você não tem permissão para filtrar este tipo de evento.",
-        variant: "destructive",
+        title: 'Acesso negado',
+        description: 'Você não tem permissão para filtrar este tipo de evento.',
+        variant: 'destructive',
       });
       return;
     }
@@ -492,7 +513,7 @@ export default function Calendar() {
     setActiveFilters([]);
   };
 
-  const selectAllFilters = () => {
+  const _selectAllFilters = () => {
     if (user?.role) {
       const availableTypes = getAvailableEventTypes(user.role);
       setActiveFilters(availableTypes);
@@ -501,7 +522,6 @@ export default function Calendar() {
       setActiveFilters(dynamicEventTypes.map(type => type.id));
     }
   };
-
 
   return (
     <MobileLayout>
@@ -528,9 +548,9 @@ export default function Calendar() {
               <DropdownMenuContent align="start" className="w-56">
                 <div className="flex items-center justify-between p-2">
                   <span className="text-sm font-medium">Tipos de Evento</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={clearAllFilters}
                     className="h-auto p-1 text-xs"
                   >
@@ -539,22 +559,28 @@ export default function Calendar() {
                 </div>
                 {dynamicEventTypes
                   .filter(type => !user?.role || canFilterEventType(user.role, type.id))
-                  .map((type) => (
+                  .map(type => (
                     <DropdownMenuCheckboxItem
                       key={type.id}
                       checked={activeFilters.includes(type.id)}
-                      onCheckedChange={(checked) => handleFilterChange(type.id, checked)}
+                      onCheckedChange={checked => handleFilterChange(type.id, checked)}
                       className="cursor-pointer"
                     >
                       <div className="flex items-center space-x-2">
-                        <div 
+                        <div
                           className={`w-4 h-4 rounded-full shadow-sm ${!type.isDynamic ? type.color : ''}`}
-                          style={type.isDynamic ? { 
-                            backgroundColor: type.hexColor || '#64748b' 
-                          } : {}}
+                          style={
+                            type.isDynamic
+                              ? {
+                                  backgroundColor: type.hexColor || '#64748b',
+                                }
+                              : {}
+                          }
                         />
                         <span>{type.label}</span>
-                        {type.isDynamic && <span className="text-xs text-emerald-600 ml-1">✨</span>}
+                        {type.isDynamic && (
+                          <span className="text-xs text-emerald-600 ml-1">✨</span>
+                        )}
                       </div>
                     </DropdownMenuCheckboxItem>
                   ))}
@@ -563,13 +589,17 @@ export default function Calendar() {
 
             {/* Botão de Aniversariantes */}
             <Button
-              variant={showBirthdays ? "default" : "outline"}
+              variant={showBirthdays ? 'default' : 'outline'}
               size="sm"
-              className={showBirthdays ? "h-8 bg-pink-100 border-pink-300 text-pink-800 hover:bg-pink-200" : "h-8 bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100"}
+              className={
+                showBirthdays
+                  ? 'h-8 bg-pink-100 border-pink-300 text-pink-800 hover:bg-pink-200'
+                  : 'h-8 bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100'
+              }
               onClick={() => setShowBirthdays(!showBirthdays)}
             >
               <Cake className="h-4 w-4 mr-2" />
-              {showBirthdays ? "Ocultar Aniversariantes" : "Mostrar Aniversariantes"}
+              {showBirthdays ? 'Ocultar Aniversariantes' : 'Mostrar Aniversariantes'}
             </Button>
 
             {/* Botão de Sincronização com Google Sheets */}
@@ -581,10 +611,9 @@ export default function Calendar() {
               className="h-8 flex items-center gap-2 bg-blue-50 border-blue-200 hover:bg-blue-100"
             >
               <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? "Sincronizando..." : "Sincronizar"}
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
             </Button>
           </div>
-
         </div>
 
         {/* Filtros Ativos */}
@@ -594,9 +623,9 @@ export default function Calendar() {
             {activeFilters.map(filterId => {
               const type = EVENT_TYPES.find(t => t.id === filterId);
               return type ? (
-                <Badge 
-                  key={filterId} 
-                  variant="secondary" 
+                <Badge
+                  key={filterId}
+                  variant="secondary"
                   className={`${type.color} font-medium shadow-sm hover:shadow-md transition-shadow`}
                 >
                   {type.label}
@@ -607,11 +636,10 @@ export default function Calendar() {
         )}
 
         {/* Calendar Component */}
-        <MonthlyCalendarView 
+        <MonthlyCalendarView
           onEventClick={handleEventClick}
           onNewEvent={handleNewEvent}
           activeFilters={activeFilters}
-          eventTypes={EVENT_TYPES}
           showBirthdays={showBirthdays}
         />
 
@@ -625,8 +653,6 @@ export default function Calendar() {
           isEditing={isCreatingEvent}
           eventTypes={EVENT_TYPES}
         />
-
-
       </div>
     </MobileLayout>
   );

@@ -7,23 +7,41 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@je
 
 // Mock do bcryptjs
 jest.mock('bcryptjs', () => ({
-  hash: jest.fn<(password: string, salt: number) => Promise<string>>().mockResolvedValue('$2a$10$hashedpassword'),
-  compare: jest.fn<(password: string, hash: string) => Promise<boolean>>().mockImplementation((password: string, _hash: string) => {
-    return Promise.resolve(password === 'meu7care' || password === 'correctpassword');
-  })
+  hash: jest
+    .fn<(password: string, salt: number) => Promise<string>>()
+    .mockResolvedValue('$2a$10$hashedpassword'),
+  compare: jest
+    .fn<(password: string, hash: string) => Promise<boolean>>()
+    .mockImplementation((password: string, _hash: string) => {
+      return Promise.resolve(password === 'meu7care' || password === 'correctpassword');
+    }),
 }));
+
+// Mock types for tests
+interface MockUser {
+  id: number;
+  name?: string;
+  email: string;
+  password?: string;
+  role?: string;
+  church?: string;
+  isApproved?: boolean;
+  status?: string;
+  firstAccess?: boolean;
+  districtId?: number | null;
+}
 
 // Mock do NeonAdapter
 const mockStorage = {
-  getUserByEmail: jest.fn<(email: string) => Promise<any | null>>(),
-  getUserById: jest.fn<(id: number) => Promise<any | null>>(),
-  createUser: jest.fn<(data: any) => Promise<any>>(),
-  updateUser: jest.fn<(id: number, data: any) => Promise<any | null>>(),
-  getAllUsers: jest.fn<() => Promise<any[]>>().mockResolvedValue([])
+  getUserByEmail: jest.fn<(email: string) => Promise<MockUser | null>>(),
+  getUserById: jest.fn<(id: number) => Promise<MockUser | null>>(),
+  createUser: jest.fn<(data: Partial<MockUser>) => Promise<MockUser>>(),
+  updateUser: jest.fn<(id: number, data: Partial<MockUser>) => Promise<MockUser | null>>(),
+  getAllUsers: jest.fn<() => Promise<MockUser[]>>().mockResolvedValue([]),
 };
 
 jest.mock('../../neonAdapter', () => ({
-  NeonAdapter: jest.fn().mockImplementation(() => mockStorage)
+  NeonAdapter: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 describe('Auth Integration Tests', () => {
@@ -51,7 +69,7 @@ describe('Auth Integration Tests', () => {
         isApproved: true,
         status: 'approved',
         firstAccess: false,
-        districtId: null
+        districtId: null,
       };
 
       mockStorage.getUserByEmail.mockResolvedValueOnce(mockUser);
@@ -90,7 +108,7 @@ describe('Auth Integration Tests', () => {
       const newUser = {
         name: 'New User',
         email: 'newuser@example.com',
-        role: 'interested'
+        role: 'interested',
       };
 
       mockStorage.getUserByEmail.mockResolvedValueOnce(null);
@@ -99,7 +117,7 @@ describe('Auth Integration Tests', () => {
         ...newUser,
         isApproved: true,
         status: 'approved',
-        firstAccess: true
+        firstAccess: true,
       });
 
       const existingUser = await mockStorage.getUserByEmail(newUser.email);
@@ -114,7 +132,7 @@ describe('Auth Integration Tests', () => {
       const existingUser = {
         id: 1,
         email: 'existing@example.com',
-        name: 'Existing User'
+        name: 'Existing User',
       };
 
       mockStorage.getUserByEmail.mockResolvedValueOnce(existingUser);
@@ -136,15 +154,16 @@ describe('Auth Integration Tests', () => {
 
   describe('POST /api/auth/change-password', () => {
     it('deve alterar senha com dados válidos', async () => {
-      const mockUser = {
+      const mockUser: MockUser = {
         id: 1,
-        password: '$2a$10$hashedpassword'
+        email: 'test@example.com',
+        password: '$2a$10$hashedpassword',
       };
 
       mockStorage.getUserById.mockResolvedValueOnce(mockUser);
       mockStorage.updateUser.mockResolvedValueOnce({
         ...mockUser,
-        firstAccess: false
+        firstAccess: false,
       });
 
       const user = await mockStorage.getUserById(1);
@@ -152,7 +171,7 @@ describe('Auth Integration Tests', () => {
 
       const updatedUser = await mockStorage.updateUser(1, {
         password: 'newhashedpassword',
-        firstAccess: false
+        firstAccess: false,
       });
       expect(updatedUser?.firstAccess).toBe(false);
     });
@@ -174,7 +193,7 @@ describe('Auth Integration Tests', () => {
         email: 'test@example.com',
         role: 'member',
         church: 'Igreja Teste',
-        password: 'hashedpassword'
+        password: 'hashedpassword',
       };
 
       mockStorage.getUserById.mockResolvedValueOnce(mockUser);
@@ -184,7 +203,7 @@ describe('Auth Integration Tests', () => {
       expect(user?.email).toBe('test@example.com');
 
       // Simular remoção da senha da resposta
-      const { password, ...safeUser } = user!;
+      const { password: _password, ...safeUser } = user!;
       expect(safeUser).not.toHaveProperty('password');
     });
 

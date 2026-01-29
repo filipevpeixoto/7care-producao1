@@ -17,7 +17,7 @@ function calculateUserPoints(
   activities: { type: string; count: number }[]
 ): number {
   let total = 0;
-  
+
   for (const activity of activities) {
     switch (activity.type) {
       case 'basic':
@@ -34,7 +34,7 @@ function calculateUserPoints(
         break;
     }
   }
-  
+
   return total;
 }
 
@@ -55,7 +55,7 @@ const ROLE_HIERARCHY: Record<Role, number> = {
   pastor: 60,
   missionary: 40,
   member: 20,
-  interested: 10
+  interested: 10,
 };
 
 function hasPermission(userRole: Role, requiredRole: Role): boolean {
@@ -98,9 +98,8 @@ function filterApprovedUsers(users: User[]): User[] {
 
 function searchUsers(users: User[], query: string): User[] {
   const lowerQuery = query.toLowerCase();
-  return users.filter(u => 
-    u.name.toLowerCase().includes(lowerQuery) ||
-    u.email.toLowerCase().includes(lowerQuery)
+  return users.filter(
+    u => u.name.toLowerCase().includes(lowerQuery) || u.email.toLowerCase().includes(lowerQuery)
   );
 }
 
@@ -117,7 +116,7 @@ function getPaginationInfo(totalItems: number, page: number, pageSize: number) {
     totalPages,
     totalItems,
     hasNextPage: page < totalPages,
-    hasPrevPage: page > 1
+    hasPrevPage: page > 1,
   };
 }
 
@@ -128,15 +127,15 @@ function isToday(date: Date | string): boolean {
   return d.toDateString() === today.toDateString();
 }
 
-function isBirthdayThisWeek(birthDate: string): boolean {
+function _isBirthdayThisWeek(birthDate: string): boolean {
   const birth = new Date(birthDate);
   const today = new Date();
   const weekFromNow = new Date(today);
   weekFromNow.setDate(today.getDate() + 7);
-  
+
   // Adjust birth year to current year
   birth.setFullYear(today.getFullYear());
-  
+
   return birth >= today && birth <= weekFromNow;
 }
 
@@ -152,7 +151,7 @@ describe('Sistema de Pontuação', () => {
     basicPoints: 10,
     attendancePoints: 25,
     eventPoints: 50,
-    visitPoints: 15
+    visitPoints: 15,
   };
 
   describe('calculateUserPoints', () => {
@@ -171,7 +170,7 @@ describe('Sistema de Pontuação', () => {
         { type: 'basic', count: 5 },
         { type: 'attendance', count: 4 },
         { type: 'event', count: 2 },
-        { type: 'visit', count: 3 }
+        { type: 'visit', count: 3 },
       ];
       expect(calculateUserPoints(defaultConfig, activities)).toBe(50 + 100 + 100 + 45);
     });
@@ -286,10 +285,42 @@ describe('Sistema de Permissões', () => {
 
 describe('Filtros de Usuários', () => {
   const sampleUsers: User[] = [
-    { id: 1, name: 'John Admin', email: 'john@church.com', role: 'admin', churchCode: 'CTR', districtId: 1, isApproved: true },
-    { id: 2, name: 'Jane Pastor', email: 'jane@church.com', role: 'pastor', churchCode: 'CTR', districtId: 1, isApproved: true },
-    { id: 3, name: 'Bob Member', email: 'bob@church.com', role: 'member', churchCode: 'CTR', districtId: 1, isApproved: false },
-    { id: 4, name: 'Alice Member', email: 'alice@other.com', role: 'member', churchCode: 'OTH', districtId: 2, isApproved: true }
+    {
+      id: 1,
+      name: 'John Admin',
+      email: 'john@church.com',
+      role: 'admin',
+      churchCode: 'CTR',
+      districtId: 1,
+      isApproved: true,
+    },
+    {
+      id: 2,
+      name: 'Jane Pastor',
+      email: 'jane@church.com',
+      role: 'pastor',
+      churchCode: 'CTR',
+      districtId: 1,
+      isApproved: true,
+    },
+    {
+      id: 3,
+      name: 'Bob Member',
+      email: 'bob@church.com',
+      role: 'member',
+      churchCode: 'CTR',
+      districtId: 1,
+      isApproved: false,
+    },
+    {
+      id: 4,
+      name: 'Alice Member',
+      email: 'alice@other.com',
+      role: 'member',
+      churchCode: 'OTH',
+      districtId: 2,
+      isApproved: true,
+    },
   ];
 
   describe('filterUsersByChurch', () => {
@@ -444,7 +475,7 @@ describe('Ordenação e Agrupamento', () => {
     { id: 1, title: 'Culto', date: '2024-01-15', category: 'worship' },
     { id: 2, title: 'Estudo Bíblico', date: '2024-01-10', category: 'study' },
     { id: 3, title: 'Oração', date: '2024-01-20', category: 'prayer' },
-    { id: 4, title: 'Jovens', date: '2024-01-12', category: 'youth' }
+    { id: 4, title: 'Jovens', date: '2024-01-12', category: 'youth' },
   ];
 
   describe('sortByDate', () => {
@@ -470,13 +501,16 @@ describe('Ordenação e Agrupamento', () => {
 
   describe('groupByCategory', () => {
     const groupByCategory = (events: Event[]) => {
-      return events.reduce((acc, event) => {
-        if (!acc[event.category]) {
-          acc[event.category] = [];
-        }
-        acc[event.category].push(event);
-        return acc;
-      }, {} as Record<string, Event[]>);
+      return events.reduce(
+        (acc, event) => {
+          if (!acc[event.category]) {
+            acc[event.category] = [];
+          }
+          acc[event.category].push(event);
+          return acc;
+        },
+        {} as Record<string, Event[]>
+      );
     };
 
     it('should group events by category', () => {

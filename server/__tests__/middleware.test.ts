@@ -6,21 +6,25 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { validateBody, validateQuery, validateParams, combineValidations } from '../middleware/validation';
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+  combineValidations,
+} from '../middleware/validation';
 
 // Mock Response
 const mockResponse = () => {
-  const res: Partial<Response> = {
-    status: jest.fn().mockImplementation(function(this: any) {
-      return this;
-    }) as unknown as Response['status'],
-    json: jest.fn().mockImplementation(function(this: any) {
-      // Marcar headersSent como true após chamar json (simula resposta enviada)
-      this.headersSent = true;
-      return this;
-    }) as unknown as Response['json'],
-    headersSent: false
+  const res: Partial<Response> & { headersSent: boolean } = {
+    headersSent: false,
+    status: undefined as unknown as Response['status'],
+    json: undefined as unknown as Response['json'],
   };
+  res.status = jest.fn().mockImplementation(() => res) as unknown as Response['status'];
+  res.json = jest.fn().mockImplementation(() => {
+    res.headersSent = true;
+    return res;
+  }) as unknown as Response['json'];
   return res as Response;
 };
 
@@ -29,12 +33,12 @@ const mockRequest = (data: { body?: unknown; query?: unknown; params?: unknown }
   return {
     body: data.body || {},
     query: data.query || {},
-    params: data.params || {}
+    params: data.params || {},
   } as Request;
 };
 
 // Mock Next Function
-const mockNext = jest.fn() as NextFunction;
+const _mockNext = jest.fn() as NextFunction;
 
 describe('Validation Middleware', () => {
   beforeEach(() => {
@@ -48,12 +52,12 @@ describe('Validation Middleware', () => {
     const userSchema = z.object({
       name: z.string().min(2),
       email: z.string().email(),
-      age: z.number().optional()
+      age: z.number().optional(),
     });
 
     it('should pass valid data and add to validatedBody', () => {
       const req = mockRequest({
-        body: { name: 'John Doe', email: 'john@example.com' }
+        body: { name: 'John Doe', email: 'john@example.com' },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -62,15 +66,15 @@ describe('Validation Middleware', () => {
       middleware(req, res, next);
 
       expect(next).toHaveBeenCalled();
-      expect((req as any).validatedBody).toEqual({
+      expect((req as Request & { validatedBody?: unknown }).validatedBody).toEqual({
         name: 'John Doe',
-        email: 'john@example.com'
+        email: 'john@example.com',
       });
     });
 
     it('should pass valid data with optional fields', () => {
       const req = mockRequest({
-        body: { name: 'John Doe', email: 'john@example.com', age: 25 }
+        body: { name: 'John Doe', email: 'john@example.com', age: 25 },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -79,12 +83,12 @@ describe('Validation Middleware', () => {
       middleware(req, res, next);
 
       expect(next).toHaveBeenCalled();
-      expect((req as any).validatedBody.age).toBe(25);
+      expect((req as Request & { validatedBody?: { age?: number } }).validatedBody?.age).toBe(25);
     });
 
     it('should reject invalid email', () => {
       const req = mockRequest({
-        body: { name: 'John Doe', email: 'invalid-email' }
+        body: { name: 'John Doe', email: 'invalid-email' },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -94,15 +98,17 @@ describe('Validation Middleware', () => {
 
       expect(next).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: false,
-        error: 'Erro de validação'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'Erro de validação',
+        })
+      );
     });
 
     it('should reject short name', () => {
       const req = mockRequest({
-        body: { name: 'J', email: 'john@example.com' }
+        body: { name: 'J', email: 'john@example.com' },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -134,14 +140,16 @@ describe('Validation Middleware', () => {
       const middleware = validateBody(userSchema);
       middleware(req, res, next);
 
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        details: expect.arrayContaining([
-          expect.objectContaining({
-            field: expect.any(String),
-            message: expect.any(String)
-          })
-        ])
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.arrayContaining([
+            expect.objectContaining({
+              field: expect.any(String),
+              message: expect.any(String),
+            }),
+          ]),
+        })
+      );
     });
   });
 
@@ -152,12 +160,12 @@ describe('Validation Middleware', () => {
     const querySchema = z.object({
       page: z.string().optional(),
       limit: z.string().optional(),
-      search: z.string().optional()
+      search: z.string().optional(),
     });
 
     it('should pass valid query params', () => {
       const req = mockRequest({
-        query: { page: '1', limit: '10' }
+        query: { page: '1', limit: '10' },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -181,7 +189,7 @@ describe('Validation Middleware', () => {
 
     it('should reject invalid query params', () => {
       const strictQuerySchema = z.object({
-        page: z.string().regex(/^\d+$/)
+        page: z.string().regex(/^\d+$/),
       });
 
       const req = mockRequest({ query: { page: 'abc' } });
@@ -193,9 +201,11 @@ describe('Validation Middleware', () => {
 
       expect(next).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Parâmetros de consulta inválidos'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Parâmetros de consulta inválidos',
+        })
+      );
     });
   });
 
@@ -204,7 +214,7 @@ describe('Validation Middleware', () => {
   // ============================================
   describe('validateParams', () => {
     const paramsSchema = z.object({
-      id: z.string().regex(/^\d+$/)
+      id: z.string().regex(/^\d+$/),
     });
 
     it('should pass valid params', () => {
@@ -228,9 +238,11 @@ describe('Validation Middleware', () => {
 
       expect(next).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Parâmetros de rota inválidos'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Parâmetros de rota inválidos',
+        })
+      );
     });
 
     it('should reject missing required params', () => {
@@ -251,25 +263,22 @@ describe('Validation Middleware', () => {
   // ============================================
   describe('combineValidations', () => {
     const paramsSchema = z.object({
-      id: z.string().regex(/^\d+$/)
+      id: z.string().regex(/^\d+$/),
     });
 
     const bodySchema = z.object({
-      name: z.string().min(2)
+      name: z.string().min(2),
     });
 
     it('should run all validators in sequence', async () => {
       const req = mockRequest({
         params: { id: '123' },
-        body: { name: 'John Doe' }
+        body: { name: 'John Doe' },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
 
-      const middleware = combineValidations(
-        validateParams(paramsSchema),
-        validateBody(bodySchema)
-      );
+      const middleware = combineValidations(validateParams(paramsSchema), validateBody(bodySchema));
 
       await middleware(req, res, next);
 
@@ -287,11 +296,11 @@ describe('Validation Middleware', () => {
   describe('Edge Cases', () => {
     it('should handle schema with transformations', () => {
       const transformSchema = z.object({
-        email: z.string().email().toLowerCase()
+        email: z.string().email().toLowerCase(),
       });
 
       const req = mockRequest({
-        body: { email: 'TEST@EXAMPLE.COM' }
+        body: { email: 'TEST@EXAMPLE.COM' },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -300,17 +309,19 @@ describe('Validation Middleware', () => {
       middleware(req, res, next);
 
       expect(next).toHaveBeenCalled();
-      expect((req as any).validatedBody.email).toBe('test@example.com');
+      expect((req as Request & { validatedBody?: { email?: string } }).validatedBody?.email).toBe(
+        'test@example.com'
+      );
     });
 
     it('should handle schema with defaults', () => {
       const defaultSchema = z.object({
         name: z.string(),
-        role: z.string().default('member')
+        role: z.string().default('member'),
       });
 
       const req = mockRequest({
-        body: { name: 'John' }
+        body: { name: 'John' },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -319,7 +330,9 @@ describe('Validation Middleware', () => {
       middleware(req, res, next);
 
       expect(next).toHaveBeenCalled();
-      expect((req as any).validatedBody.role).toBe('member');
+      expect((req as Request & { validatedBody?: { role?: string } }).validatedBody?.role).toBe(
+        'member'
+      );
     });
 
     it('should handle nested objects', () => {
@@ -327,18 +340,18 @@ describe('Validation Middleware', () => {
         user: z.object({
           name: z.string(),
           address: z.object({
-            city: z.string()
-          })
-        })
+            city: z.string(),
+          }),
+        }),
       });
 
       const req = mockRequest({
         body: {
           user: {
             name: 'John',
-            address: { city: 'São Paulo' }
-          }
-        }
+            address: { city: 'São Paulo' },
+          },
+        },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -352,14 +365,14 @@ describe('Validation Middleware', () => {
     it('should format nested error paths correctly', () => {
       const nestedSchema = z.object({
         user: z.object({
-          email: z.string().email()
-        })
+          email: z.string().email(),
+        }),
       });
 
       const req = mockRequest({
         body: {
-          user: { email: 'invalid' }
-        }
+          user: { email: 'invalid' },
+        },
       });
       const res = mockResponse();
       const next = jest.fn() as NextFunction;
@@ -367,22 +380,24 @@ describe('Validation Middleware', () => {
       const middleware = validateBody(nestedSchema);
       middleware(req, res, next);
 
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        details: expect.arrayContaining([
-          expect.objectContaining({
-            field: 'user.email'
-          })
-        ])
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.arrayContaining([
+            expect.objectContaining({
+              field: 'user.email',
+            }),
+          ]),
+        })
+      );
     });
 
     it('should handle arrays in schema', () => {
       const arraySchema = z.object({
-        tags: z.array(z.string()).min(1)
+        tags: z.array(z.string()).min(1),
       });
 
       const validReq = mockRequest({
-        body: { tags: ['tag1', 'tag2'] }
+        body: { tags: ['tag1', 'tag2'] },
       });
       const res1 = mockResponse();
       const next1 = jest.fn() as NextFunction;
@@ -392,7 +407,7 @@ describe('Validation Middleware', () => {
       expect(next1).toHaveBeenCalled();
 
       const invalidReq = mockRequest({
-        body: { tags: [] }
+        body: { tags: [] },
       });
       const res2 = mockResponse();
       const next2 = jest.fn() as NextFunction;

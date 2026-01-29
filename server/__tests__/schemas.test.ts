@@ -19,7 +19,7 @@ import {
   createMessageSchema,
   createNotificationSchema,
   createEmotionalCheckInSchema,
-  createDiscipleshipRequestSchema
+  createDiscipleshipRequestSchema,
 } from '../schemas';
 
 describe('Auth Schemas', () => {
@@ -27,16 +27,26 @@ describe('Auth Schemas', () => {
     it('should validate correct login data', () => {
       const validData = {
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
       const result = loginSchema.safeParse(validData);
       expect(result.success).toBe(true);
     });
 
-    it('should reject invalid email', () => {
+    it('should accept username format (not just email)', () => {
+      // loginSchema aceita email OU username, portanto qualquer string válida é aceita
+      const validData = {
+        email: 'admin',
+        password: 'password123',
+      };
+      const result = loginSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject empty email/username', () => {
       const invalidData = {
-        email: 'invalid-email',
-        password: 'password123'
+        email: '',
+        password: 'password123',
       };
       const result = loginSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -45,7 +55,7 @@ describe('Auth Schemas', () => {
     it('should reject empty password', () => {
       const invalidData = {
         email: 'test@example.com',
-        password: ''
+        password: '',
       };
       const result = loginSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -63,7 +73,7 @@ describe('Auth Schemas', () => {
         name: 'John Doe',
         email: 'john@example.com',
         password: 'Test@123!',
-        role: 'member'
+        role: 'member',
       };
       const result = registerSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -72,7 +82,7 @@ describe('Auth Schemas', () => {
     it('should reject short name', () => {
       const invalidData = {
         name: 'J',
-        email: 'john@example.com'
+        email: 'john@example.com',
       };
       const result = registerSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -81,7 +91,7 @@ describe('Auth Schemas', () => {
     it('should accept optional password', () => {
       const validData = {
         name: 'John Doe',
-        email: 'john@example.com'
+        email: 'john@example.com',
       };
       const result = registerSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -91,7 +101,7 @@ describe('Auth Schemas', () => {
       const invalidData = {
         name: 'John Doe',
         email: 'john@example.com',
-        role: 'invalid_role'
+        role: 'invalid_role',
       };
       const result = registerSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -103,7 +113,7 @@ describe('Auth Schemas', () => {
       const validData = {
         userId: 1,
         currentPassword: 'OldPass@123',
-        newPassword: 'NewPass@456'
+        newPassword: 'NewPass@456',
       };
       const result = changePasswordSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -113,7 +123,7 @@ describe('Auth Schemas', () => {
       const invalidData = {
         userId: 1,
         currentPassword: 'oldpass',
-        newPassword: '12345'
+        newPassword: '12345',
       };
       const result = changePasswordSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -123,7 +133,7 @@ describe('Auth Schemas', () => {
       const invalidData = {
         userId: 1,
         currentPassword: 'oldpass',
-        newPassword: 'NewPass123'
+        newPassword: 'NewPass123',
       };
       const result = changePasswordSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -133,7 +143,7 @@ describe('Auth Schemas', () => {
       const invalidData = {
         userId: -1,
         currentPassword: 'oldpass',
-        newPassword: 'newpass123'
+        newPassword: 'newpass123',
       };
       const result = changePasswordSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -161,7 +171,7 @@ describe('User Schemas', () => {
       const validData = {
         name: 'John Doe',
         email: 'john@example.com',
-        role: 'member'
+        role: 'member',
       };
       const result = createUserSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -170,7 +180,7 @@ describe('User Schemas', () => {
     it('should set default role to member', () => {
       const validData = {
         name: 'John Doe',
-        email: 'john@example.com'
+        email: 'john@example.com',
       };
       const result = createUserSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -180,13 +190,20 @@ describe('User Schemas', () => {
     });
 
     it('should accept all valid roles', () => {
-      const roles = ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'];
+      const roles = [
+        'superadmin',
+        'pastor',
+        'member',
+        'interested',
+        'missionary',
+        'admin_readonly',
+      ];
 
       roles.forEach(role => {
         const data = {
           name: 'John Doe',
           email: 'john@example.com',
-          role
+          role,
         };
         const result = createUserSchema.safeParse(data);
         expect(result.success).toBe(true);
@@ -200,7 +217,7 @@ describe('User Schemas', () => {
         phone: '11999999999',
         address: 'Rua Teste, 123',
         birthDate: '1990-01-01',
-        church: 'Igreja Central'
+        church: 'Igreja Central',
       };
       const result = createUserSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -210,7 +227,7 @@ describe('User Schemas', () => {
   describe('updateUserSchema', () => {
     it('should accept partial updates', () => {
       const validData = {
-        name: 'Jane Doe'
+        name: 'Jane Doe',
       };
       const result = updateUserSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -227,7 +244,7 @@ describe('Church Schemas', () => {
   describe('createChurchSchema', () => {
     it('should validate correct church data', () => {
       const validData = {
-        name: 'Igreja Central'
+        name: 'Igreja Central',
       };
       const result = createChurchSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -235,7 +252,7 @@ describe('Church Schemas', () => {
 
     it('should reject short name', () => {
       const invalidData = {
-        name: 'A'
+        name: 'A',
       };
       const result = createChurchSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -246,7 +263,7 @@ describe('Church Schemas', () => {
         name: 'Igreja Central',
         address: 'Rua Principal, 100',
         email: 'contato@igreja.com',
-        phone: '11999999999'
+        phone: '11999999999',
       };
       const result = createChurchSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -259,7 +276,7 @@ describe('Event Schemas', () => {
     it('should validate correct event data', () => {
       const validData = {
         title: 'Culto Dominical',
-        date: '2024-01-15'
+        date: '2024-01-15',
       };
       const result = createEventSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -267,7 +284,7 @@ describe('Event Schemas', () => {
 
     it('should reject missing title', () => {
       const invalidData = {
-        date: '2024-01-15'
+        date: '2024-01-15',
       };
       const result = createEventSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -275,7 +292,7 @@ describe('Event Schemas', () => {
 
     it('should reject missing date', () => {
       const invalidData = {
-        title: 'Culto'
+        title: 'Culto',
       };
       const result = createEventSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -288,7 +305,7 @@ describe('Event Schemas', () => {
         description: 'Culto de adoração',
         location: 'Igreja Central',
         type: 'culto',
-        isRecurring: true
+        isRecurring: true,
       };
       const result = createEventSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -302,7 +319,7 @@ describe('Meeting Schemas', () => {
       const validData = {
         title: 'Reunião de Líderes',
         scheduledAt: '2024-01-15T10:00:00Z',
-        requesterId: 1
+        requesterId: 1,
       };
       const result = createMeetingSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -312,7 +329,7 @@ describe('Meeting Schemas', () => {
       const invalidData = {
         title: 'Reunião',
         scheduledAt: '2024-01-15T10:00:00Z',
-        requesterId: -1
+        requesterId: -1,
       };
       const result = createMeetingSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -322,7 +339,7 @@ describe('Meeting Schemas', () => {
       const validData = {
         title: 'Reunião',
         scheduledAt: '2024-01-15T10:00:00Z',
-        requesterId: 1
+        requesterId: 1,
       };
       const result = createMeetingSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -340,7 +357,7 @@ describe('Relationship Schemas', () => {
     it('should validate correct relationship data', () => {
       const validData = {
         interestedId: 1,
-        missionaryId: 2
+        missionaryId: 2,
       };
       const result = createRelationshipSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -349,7 +366,7 @@ describe('Relationship Schemas', () => {
     it('should reject invalid IDs', () => {
       const invalidData = {
         interestedId: 0,
-        missionaryId: -1
+        missionaryId: -1,
       };
       const result = createRelationshipSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -358,7 +375,7 @@ describe('Relationship Schemas', () => {
     it('should set default status to active', () => {
       const validData = {
         interestedId: 1,
-        missionaryId: 2
+        missionaryId: 2,
       };
       const result = createRelationshipSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -374,7 +391,7 @@ describe('Prayer Schemas', () => {
     it('should validate correct prayer data', () => {
       const validData = {
         userId: 1,
-        title: 'Pedido de oração'
+        title: 'Pedido de oração',
       };
       const result = createPrayerSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -382,7 +399,7 @@ describe('Prayer Schemas', () => {
 
     it('should reject missing title', () => {
       const invalidData = {
-        userId: 1
+        userId: 1,
       };
       const result = createPrayerSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -391,7 +408,7 @@ describe('Prayer Schemas', () => {
     it('should set default values', () => {
       const validData = {
         userId: 1,
-        title: 'Pedido'
+        title: 'Pedido',
       };
       const result = createPrayerSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -409,7 +426,7 @@ describe('Message Schemas', () => {
       const validData = {
         conversationId: 1,
         senderId: 2,
-        content: 'Hello!'
+        content: 'Hello!',
       };
       const result = createMessageSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -419,7 +436,7 @@ describe('Message Schemas', () => {
       const invalidData = {
         conversationId: 1,
         senderId: 2,
-        content: ''
+        content: '',
       };
       const result = createMessageSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -429,7 +446,7 @@ describe('Message Schemas', () => {
       const validData = {
         conversationId: 1,
         senderId: 2,
-        content: 'Hello!'
+        content: 'Hello!',
       };
       const result = createMessageSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -446,7 +463,7 @@ describe('Notification Schemas', () => {
       const validData = {
         userId: 1,
         title: 'Nova mensagem',
-        message: 'Você recebeu uma nova mensagem'
+        message: 'Você recebeu uma nova mensagem',
       };
       const result = createNotificationSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -454,7 +471,7 @@ describe('Notification Schemas', () => {
 
     it('should reject missing fields', () => {
       const invalidData = {
-        userId: 1
+        userId: 1,
       };
       const result = createNotificationSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -468,7 +485,7 @@ describe('Emotional Check-in Schemas', () => {
       const validData = {
         userId: 1,
         emotionalScore: 4,
-        mood: 'happy'
+        mood: 'happy',
       };
       const result = createEmotionalCheckInSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -477,7 +494,7 @@ describe('Emotional Check-in Schemas', () => {
     it('should reject invalid score range', () => {
       const invalidData = {
         userId: 1,
-        emotionalScore: 10
+        emotionalScore: 10,
       };
       const result = createEmotionalCheckInSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -487,7 +504,7 @@ describe('Emotional Check-in Schemas', () => {
       for (let score = 1; score <= 5; score++) {
         const validData = {
           userId: 1,
-          emotionalScore: score
+          emotionalScore: score,
         };
         const result = createEmotionalCheckInSchema.safeParse(validData);
         expect(result.success).toBe(true);
@@ -501,7 +518,7 @@ describe('Discipleship Schemas', () => {
     it('should validate correct discipleship request data', () => {
       const validData = {
         interestedId: 1,
-        missionaryId: 2
+        missionaryId: 2,
       };
       const result = createDiscipleshipRequestSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -510,7 +527,7 @@ describe('Discipleship Schemas', () => {
     it('should reject invalid IDs', () => {
       const invalidData = {
         interestedId: 0,
-        missionaryId: 0
+        missionaryId: 0,
       };
       const result = createDiscipleshipRequestSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
@@ -520,7 +537,7 @@ describe('Discipleship Schemas', () => {
       const validData = {
         interestedId: 1,
         missionaryId: 2,
-        notes: 'Pedido de acompanhamento'
+        notes: 'Pedido de acompanhamento',
       };
       const result = createDiscipleshipRequestSchema.safeParse(validData);
       expect(result.success).toBe(true);

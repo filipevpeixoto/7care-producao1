@@ -1,11 +1,19 @@
-export type UserRole = 'superadmin' | 'pastor' | 'missionary' | 'member' | 'interested';
+export type UserRole =
+  | 'superadmin'
+  | 'pastor'
+  | 'missionary'
+  | 'member'
+  | 'interested'
+  | 'admin_readonly';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  church?: string;
+  church?: string | null;
+  churchCode?: string | null;
+  districtId?: number | null;
   avatar?: string;
   phone?: string;
   profilePhoto?: string;
@@ -14,7 +22,6 @@ export interface User {
   status?: string;
   firstAccess?: boolean;
   usingDefaultPassword?: boolean;
-  districtId?: number | null;
   createdAt: string;
 }
 

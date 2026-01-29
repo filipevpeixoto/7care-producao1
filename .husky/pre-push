@@ -1,0 +1,23 @@
+#!/bin/sh
+# Pre-push hook - Executa testes antes de push para garantir qualidade
+
+echo "🧪 Executando testes antes do push..."
+
+# Executar testes unitários
+npm test -- --watchAll=false --passWithNoTests
+
+if [ $? -ne 0 ]; then
+  echo "❌ Testes falharam! Push cancelado."
+  echo "   Corrija os testes antes de fazer push."
+  exit 1
+fi
+
+# Executar testes do client (Vitest)
+npm run test:client 2>/dev/null
+
+if [ $? -ne 0 ]; then
+  echo "❌ Testes do client falharam! Push cancelado."
+  exit 1
+fi
+
+echo "✅ Todos os testes passaram! Continuando push..."

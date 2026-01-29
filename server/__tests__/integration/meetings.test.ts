@@ -5,18 +5,34 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
+// Mock types for tests
+interface MockMeeting {
+  id: number;
+  title: string;
+  description?: string;
+  scheduledAt: string;
+  duration?: number;
+  location?: string;
+  requesterId: number;
+  attendeeId?: number;
+  status?: string;
+  priority?: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
 // Mock do NeonAdapter
 const mockStorage = {
-  getAllMeetings: jest.fn<() => Promise<any[]>>(),
-  getMeetingById: jest.fn<(id: number) => Promise<any | null>>(),
-  createMeeting: jest.fn<(data: any) => Promise<any>>(),
-  updateMeeting: jest.fn<(id: number, data: any) => Promise<any | null>>(),
+  getAllMeetings: jest.fn<() => Promise<MockMeeting[]>>(),
+  getMeetingById: jest.fn<(id: number) => Promise<MockMeeting | null>>(),
+  createMeeting: jest.fn<(data: Partial<MockMeeting>) => Promise<MockMeeting>>(),
+  updateMeeting: jest.fn<(id: number, data: Partial<MockMeeting>) => Promise<MockMeeting | null>>(),
   deleteMeeting: jest.fn<(id: number) => Promise<boolean>>(),
-  getMeetingsByUserId: jest.fn<(userId: number) => Promise<any[]>>()
+  getMeetingsByUserId: jest.fn<(userId: number) => Promise<MockMeeting[]>>(),
 };
 
 jest.mock('../../neonAdapter', () => ({
-  NeonAdapter: jest.fn().mockImplementation(() => mockStorage)
+  NeonAdapter: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 const mockMeetings = [
@@ -32,7 +48,7 @@ const mockMeetings = [
     status: 'scheduled',
     priority: 'medium',
     notes: null,
-    createdAt: '2025-01-20T10:00:00'
+    createdAt: '2025-01-20T10:00:00',
   },
   {
     id: 2,
@@ -46,7 +62,7 @@ const mockMeetings = [
     status: 'confirmed',
     priority: 'high',
     notes: 'Preparar slides',
-    createdAt: '2025-01-20T11:00:00'
+    createdAt: '2025-01-20T11:00:00',
   },
   {
     id: 3,
@@ -60,8 +76,8 @@ const mockMeetings = [
     status: 'completed',
     priority: 'high',
     notes: 'Reunião muito produtiva',
-    createdAt: '2025-01-18T09:00:00'
-  }
+    createdAt: '2025-01-18T09:00:00',
+  },
 ];
 
 describe('Meetings Integration Tests', () => {
@@ -100,8 +116,8 @@ describe('Meetings Integration Tests', () => {
     });
 
     it('deve ordenar por data', () => {
-      const sorted = [...mockMeetings].sort((a, b) =>
-        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+      const sorted = [...mockMeetings].sort(
+        (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
       );
 
       expect(sorted[0].id).toBe(3); // 24/01
@@ -159,7 +175,7 @@ describe('Meetings Integration Tests', () => {
         scheduledAt: '2025-01-27T10:00:00',
         requesterId: 13,
         attendeeId: 7,
-        duration: 30
+        duration: 30,
       };
 
       mockStorage.createMeeting.mockResolvedValueOnce({
@@ -167,7 +183,7 @@ describe('Meetings Integration Tests', () => {
         ...newMeeting,
         status: 'scheduled',
         priority: 'medium',
-        createdAt: '2025-01-20T15:00:00'
+        createdAt: '2025-01-20T15:00:00',
       });
 
       const created = await mockStorage.createMeeting(newMeeting);
@@ -181,7 +197,7 @@ describe('Meetings Integration Tests', () => {
       const validMeeting = {
         title: 'Reunião',
         scheduledAt: '2025-01-25T10:00:00',
-        requesterId: 1
+        requesterId: 1,
       };
 
       expect(validMeeting.title).toBeDefined();
@@ -199,10 +215,10 @@ describe('Meetings Integration Tests', () => {
     });
 
     it('deve usar valores default', () => {
-      const minimalMeeting = {
+      const _minimalMeeting = {
         title: 'Reunião Simples',
         scheduledAt: '2025-01-25T10:00:00',
-        requesterId: 1
+        requesterId: 1,
       };
 
       // Default values esperados
@@ -220,12 +236,12 @@ describe('Meetings Integration Tests', () => {
     it('deve atualizar reunião', async () => {
       const updates = {
         status: 'confirmed',
-        notes: 'Confirmado com o interessado'
+        notes: 'Confirmado com o interessado',
       };
 
       mockStorage.updateMeeting.mockResolvedValueOnce({
         ...mockMeetings[0],
-        ...updates
+        ...updates,
       });
 
       const updated = await mockStorage.updateMeeting(1, updates);
@@ -238,12 +254,12 @@ describe('Meetings Integration Tests', () => {
       mockStorage.updateMeeting.mockResolvedValueOnce({
         ...mockMeetings[0],
         status: 'completed',
-        notes: 'Reunião realizada com sucesso'
+        notes: 'Reunião realizada com sucesso',
       });
 
       const updated = await mockStorage.updateMeeting(1, {
         status: 'completed',
-        notes: 'Reunião realizada com sucesso'
+        notes: 'Reunião realizada com sucesso',
       });
 
       expect(updated?.status).toBe('completed');
@@ -253,12 +269,12 @@ describe('Meetings Integration Tests', () => {
       mockStorage.updateMeeting.mockResolvedValueOnce({
         ...mockMeetings[0],
         status: 'cancelled',
-        notes: 'Cancelado por conflito de agenda'
+        notes: 'Cancelado por conflito de agenda',
       });
 
       const updated = await mockStorage.updateMeeting(1, {
         status: 'cancelled',
-        notes: 'Cancelado por conflito de agenda'
+        notes: 'Cancelado por conflito de agenda',
       });
 
       expect(updated?.status).toBe('cancelled');

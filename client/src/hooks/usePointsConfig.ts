@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 
 export interface PointsConfig {
@@ -74,59 +73,59 @@ const defaultConfig: PointsConfig = {
   },
   classificacao: {
     frequente: 75,
-    naoFrequente: 25
+    naoFrequente: 25,
   },
   dizimista: {
     naoDizimista: 0,
     pontual: 25,
     sazonal: 50,
-    recorrente: 100
+    recorrente: 100,
   },
   ofertante: {
     naoOfertante: 0,
     pontual: 25,
     sazonal: 50,
-    recorrente: 100
+    recorrente: 100,
   },
   tempoBatismo: {
     doisAnos: 25,
     cincoAnos: 50,
     dezAnos: 100,
     vinteAnos: 150,
-    maisVinte: 200
+    maisVinte: 200,
   },
   cargos: {
     umCargo: 50,
     doisCargos: 100,
-    tresOuMais: 150
+    tresOuMais: 150,
   },
   nomeUnidade: {
-    comUnidade: 25
+    comUnidade: 25,
   },
   temLicao: {
-    comLicao: 50
+    comLicao: 50,
   },
   pontuacaoDinamica: {
-    multiplicador: 5
+    multiplicador: 5,
   },
   totalPresenca: {
     zeroATres: 25,
     quatroASete: 50,
-    oitoATreze: 100
+    oitoATreze: 100,
   },
   escolaSabatina: {
     comunhao: 50,
     missao: 75,
     estudoBiblico: 100,
     batizouAlguem: 200,
-    discipuladoPosBatismo: 25
+    discipuladoPosBatismo: 25,
   },
   cpfValido: {
-    valido: 50
+    valido: 50,
   },
   camposVaziosACMS: {
-    semCamposVazios: 100
-  }
+    semCamposVazios: 100,
+  },
 };
 
 export const usePointsConfig = () => {
@@ -172,45 +171,47 @@ export const usePointsConfig = () => {
       const response = await fetch('/api/system/points-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newConfig)
+        body: JSON.stringify(newConfig),
       });
-      
+
       if (!response.ok) {
         throw new Error('Erro ao salvar no servidor');
       }
-      
+
       const result = await response.json();
-      
+
       // Salvar no localStorage como backup
       localStorage.setItem('pointsConfig', JSON.stringify(newConfig));
-      
+
       setConfig(newConfig);
-      
+
       // Mostrar mensagem de sucesso com informações do recálculo
       if (result.updatedUsers > 0) {
-        console.log(`✅ Configuração salva e ${result.updatedUsers} usuários atualizados automaticamente!`);
+        console.log(
+          `✅ Configuração salva e ${result.updatedUsers} usuários atualizados automaticamente!`
+        );
         toast({
-          title: "Configurações salvas!",
+          title: 'Configurações salvas!',
           description: `${result.updatedUsers} usuários tiveram seus pontos recalculados automaticamente.`,
         });
       } else {
         console.log('✅ Configuração salva com sucesso!');
         toast({
-          title: "Configurações salvas!",
-          description: "As configurações foram salvas com sucesso.",
+          title: 'Configurações salvas!',
+          description: 'As configurações foram salvas com sucesso.',
         });
       }
-      
+
       return true;
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
-      
+
       toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações.",
-        variant: "destructive",
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar as configurações.',
+        variant: 'destructive',
       });
-      
+
       return false;
     } finally {
       setIsLoading(false);
@@ -220,10 +221,10 @@ export const usePointsConfig = () => {
   const resetConfig = () => {
     setConfig(defaultConfig);
     localStorage.removeItem('pointsConfig');
-    
+
     toast({
-      title: "Configurações resetadas",
-      description: "As pontuações foram restauradas para os valores padrão.",
+      title: 'Configurações resetadas',
+      description: 'As pontuações foram restauradas para os valores padrão.',
     });
   };
 
@@ -232,8 +233,8 @@ export const usePointsConfig = () => {
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -243,9 +244,9 @@ export const usePointsConfig = () => {
     const attendancePoints = (config as any).attendancePoints || 0;
     const eventPoints = (config as any).eventPoints || 0;
     const donationPoints = (config as any).donationPoints || 0;
-    
+
     // Pontos por categoria (apenas valores máximos)
-    const categoryPoints = 
+    const categoryPoints =
       (config.engajamento?.alto || 0) +
       (config.classificacao?.frequente || 0) +
       (config.dizimista?.recorrente || 0) +
@@ -257,17 +258,23 @@ export const usePointsConfig = () => {
       (config.totalPresenca?.oitoATreze || 0) +
       (config.cpfValido?.valido || 0) +
       (config.camposVaziosACMS?.semCamposVazios || 0);
-    
+
     // Escola Sabatina (máximos)
-    const escolaSabatinaPoints = 
+    const escolaSabatinaPoints =
       (config.escolaSabatina?.comunhao || 0) +
       (config.escolaSabatina?.missao || 0) +
       (config.escolaSabatina?.estudoBiblico || 0) +
       (config.escolaSabatina?.batizouAlguem || 0) +
       (config.escolaSabatina?.discipuladoPosBatismo || 0);
-    
-    return basicPoints + attendancePoints + eventPoints + donationPoints + 
-           categoryPoints + escolaSabatinaPoints;
+
+    return (
+      basicPoints +
+      attendancePoints +
+      eventPoints +
+      donationPoints +
+      categoryPoints +
+      escolaSabatinaPoints
+    );
   };
 
   const getConfigSummary = () => {
@@ -276,7 +283,7 @@ export const usePointsConfig = () => {
       categoriesCount: Object.keys(config).length,
       criteriaCount: Object.values(config).reduce((total, section) => {
         return total + Object.keys(section).length;
-      }, 0)
+      }, 0),
     };
   };
 
@@ -302,21 +309,26 @@ export const usePointsConfig = () => {
         throw new Error('Erro ao obter usuários');
       }
       const users = await response.json();
-      
+
       // Filtrar apenas usuários regulares (não admin)
       const regularUsers = users.filter((user: any) => user.email !== 'admin@7care.com');
-      
+
       if (regularUsers.length === 0) {
         return 0;
       }
-      
+
       // Calcular média dos pontos dos usuários (usando campo points ou calculando mock)
       const totalPoints = regularUsers.reduce((sum: number, user: any) => {
         // Se o usuário tem pontos, usar; senão calcular mock baseado no role
-        const points = user.points || 
-          (hasAdminAccess(user) ? 1000 : 
-           user.role === 'member' ? 500 : 
-           user.role === 'missionary' ? 750 : 250);
+        const points =
+          user.points ||
+          (hasAdminAccess(user)
+            ? 1000
+            : user.role === 'member'
+              ? 500
+              : user.role === 'missionary'
+                ? 750
+                : 250);
         return sum + points;
       }, 0);
       return totalPoints / regularUsers.length;
@@ -325,7 +337,6 @@ export const usePointsConfig = () => {
       return 0;
     }
   };
-
 
   return {
     config,
@@ -336,6 +347,6 @@ export const usePointsConfig = () => {
     getTotalMaxPoints,
     getConfigSummary,
     getCurrentParameterAverage,
-    getCurrentUserAverage
+    getCurrentUserAverage,
   };
-}; 
+};

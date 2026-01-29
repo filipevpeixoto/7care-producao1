@@ -1,0 +1,731 @@
+/**
+ * Página de Gerenciamento de Convites de Pastores
+ * Permite superadmin criar convites, visualizar pendentes e aprovar/rejeitar
+ */
+
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Mail,
+  Plus,
+  Check,
+  X,
+  Clock,
+  Search,
+  Eye,
+  Copy,
+  Send,
+  UserPlus,
+  Building2,
+  Users,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { isSuperAdmin } from '@/lib/permissions';
+import { PastorInvite, InviteStatus } from '@/types/pastor-invite';
+import { fetchWithAuth } from '@/lib/api';
+
+export default function PastorInvites() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<string>('submitted');
+
+  // Dialogs
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [selectedInvite, setSelectedInvite] = useState<PastorInvite | null>(null);
+
+  // Form data
+  const [newEmail, setNewEmail] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  // Buscar convites
+  const { data: invites = [], isLoading } = useQuery<PastorInvite[]>({
+    queryKey: ['/api/invites'],
+    queryFn: async () => {
+      const response = await fetchWithAuth('/api/invites');
+      if (!response.ok) throw new Error('Erro ao buscar convites');
+      return response.json();
+    },
+    enabled: isSuperAdmin(user),
+  });
+
+  // Criar convite
+  const createMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await fetchWithAuth('/api/invites', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao criar convite');
+      }
+      return response.json();
+    },
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
+      toast({
+        title: 'Convite criado',
+        description: `O link de convite foi gerado. Copie e envie para ${newEmail}.`,
+      });
+
+      // Copiar link para clipboard
+      const inviteLink = `${window.location.origin}/onboarding/${data.token}`;
+      navigator.clipboard.writeText(inviteLink);
+
+      setIsCreateDialogOpen(false);
+      setNewEmail('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível criar o convite.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Aprovar convite
+  const approveMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetchWithAuth(`/api/invites/${id}/approve`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao aprovar convite');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pastors'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
+      toast({
+        title: 'Convite aprovado',
+        description: 'O pastor foi cadastrado com sucesso no sistema.',
+      });
+      setIsDetailsDialogOpen(false);
+      setSelectedInvite(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível aprovar o convite.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Rejeitar convite
+  const rejectMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: number; reason: string }) => {
+      const response = await fetchWithAuth(`/api/invites/${id}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao rejeitar convite');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
+      toast({
+        title: 'Convite rejeitado',
+        description: 'O convite foi rejeitado e o pastor foi notificado.',
+      });
+      setIsRejectDialogOpen(false);
+      setIsDetailsDialogOpen(false);
+      setSelectedInvite(null);
+      setRejectionReason('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível rejeitar o convite.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleCreate = () => {
+    if (!newEmail.trim()) return;
+    createMutation.mutate(newEmail.trim());
+  };
+
+  const handleViewDetails = (invite: PastorInvite) => {
+    setSelectedInvite(invite);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const handleApprove = () => {
+    if (selectedInvite) {
+      approveMutation.mutate(selectedInvite.id);
+    }
+  };
+
+  const handleReject = () => {
+    if (selectedInvite && rejectionReason.trim()) {
+      rejectMutation.mutate({ id: selectedInvite.id, reason: rejectionReason.trim() });
+    }
+  };
+
+  const copyInviteLink = (token: string) => {
+    const inviteLink = `${window.location.origin}/onboarding/${token}`;
+    navigator.clipboard.writeText(inviteLink);
+    toast({
+      title: 'Link copiado',
+      description: 'O link de convite foi copiado para a área de transferência.',
+    });
+  };
+
+  const getStatusBadge = (status: InviteStatus) => {
+    switch (status) {
+      case 'pending':
+        return (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            <Clock className="w-3 h-3 mr-1" />
+            Pendente
+          </Badge>
+        );
+      case 'submitted':
+        return (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            <Send className="w-3 h-3 mr-1" />
+            Enviado
+          </Badge>
+        );
+      case 'approved':
+        return (
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Aprovado
+          </Badge>
+        );
+      case 'rejected':
+        return (
+          <Badge variant="secondary" className="bg-red-100 text-red-800">
+            <XCircle className="w-3 h-3 mr-1" />
+            Rejeitado
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  // Filtrar convites
+  const filteredInvites = invites.filter(invite => {
+    const matchesSearch =
+      invite.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invite.onboardingData?.personal?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invite.onboardingData?.district?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesTab = activeTab === 'all' || invite.status === activeTab;
+
+    return matchesSearch && matchesTab;
+  });
+
+  // Contadores
+  const pendingCount = invites.filter(i => i.status === 'pending').length;
+  const submittedCount = invites.filter(i => i.status === 'submitted').length;
+  const approvedCount = invites.filter(i => i.status === 'approved').length;
+  const rejectedCount = invites.filter(i => i.status === 'rejected').length;
+
+  if (!isSuperAdmin(user)) {
+    return (
+      <MobileLayout>
+        <div className="p-4 text-center">
+          <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
+          <p className="text-muted-foreground">
+            Apenas superadmin pode gerenciar convites de pastores.
+          </p>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  return (
+    <MobileLayout>
+      <div className="p-4 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Convites de Pastores</h1>
+            <p className="text-muted-foreground text-sm">Gerencie convites e aprove cadastros</p>
+          </div>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Convite
+          </Button>
+        </div>
+
+        {/* Resumo em Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="bg-yellow-50 border-yellow-200">
+            <CardContent className="p-3 text-center">
+              <Clock className="w-5 h-5 text-yellow-600 mx-auto mb-1" />
+              <p className="text-xl font-bold text-yellow-900">{pendingCount}</p>
+              <p className="text-xs text-yellow-700">Aguardando</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-3 text-center">
+              <Send className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+              <p className="text-xl font-bold text-blue-900">{submittedCount}</p>
+              <p className="text-xs text-blue-700">Para Revisar</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-3 text-center">
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto mb-1" />
+              <p className="text-xl font-bold text-green-900">{approvedCount}</p>
+              <p className="text-xs text-green-700">Aprovados</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-3 text-center">
+              <XCircle className="w-5 h-5 text-red-600 mx-auto mb-1" />
+              <p className="text-xl font-bold text-red-900">{rejectedCount}</p>
+              <p className="text-xs text-red-700">Rejeitados</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Busca e Filtros */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por email, nome ou distrito..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {/* Tabs de Status */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="all">Todos</TabsTrigger>
+            <TabsTrigger value="pending">Pendentes</TabsTrigger>
+            <TabsTrigger value="submitted">Enviados</TabsTrigger>
+            <TabsTrigger value="approved">Aprovados</TabsTrigger>
+            <TabsTrigger value="rejected">Rejeitados</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Lista de Convites */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : filteredInvites.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">Nenhum convite encontrado</h3>
+              <p className="text-muted-foreground text-sm">
+                {searchTerm
+                  ? 'Tente ajustar sua busca'
+                  : 'Crie um novo convite para convidar pastores'}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {filteredInvites.map(invite => (
+              <Card key={invite.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        {getStatusBadge(invite.status)}
+                        {invite.status === 'pending' && new Date(invite.expiresAt) < new Date() && (
+                          <Badge variant="destructive" className="text-xs">
+                            Expirado
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-1">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">{invite.email}</span>
+                      </div>
+
+                      {invite.onboardingData?.personal?.name && (
+                        <div className="flex items-center gap-2 mb-1 text-sm text-muted-foreground">
+                          <UserPlus className="w-4 h-4" />
+                          <span>{invite.onboardingData.personal.name}</span>
+                        </div>
+                      )}
+
+                      {invite.onboardingData?.district?.name && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Building2 className="w-4 h-4" />
+                          <span>{invite.onboardingData.district.name}</span>
+                          {invite.onboardingData.churches && (
+                            <span className="text-xs">
+                              ({invite.onboardingData.churches.length} igrejas)
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Criado em {formatDate(invite.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      {invite.status === 'pending' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyInviteLink(invite.token)}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      )}
+
+                      {invite.status === 'submitted' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(invite)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => {
+                              setSelectedInvite(invite);
+                              approveMutation.mutate(invite.id);
+                            }}
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedInvite(invite);
+                              setIsRejectDialogOpen(true);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+
+                      {(invite.status === 'approved' || invite.status === 'rejected') && (
+                        <Button variant="ghost" size="sm" onClick={() => handleViewDetails(invite)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Dialog: Criar Convite */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Convite de Pastor</DialogTitle>
+            <DialogDescription>
+              Insira o email do pastor que deseja convidar. Um link único será gerado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email do Pastor</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="pastor@exemplo.com"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreate} disabled={!newEmail.trim() || createMutation.isPending}>
+              {createMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Mail className="w-4 h-4 mr-2" />
+              )}
+              Criar Convite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Detalhes do Convite */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Cadastro</DialogTitle>
+            <DialogDescription>Revise as informações enviadas pelo pastor</DialogDescription>
+          </DialogHeader>
+
+          {selectedInvite && (
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-6">
+                {/* Status */}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(selectedInvite.status)}
+                  <span className="text-sm text-muted-foreground">
+                    Enviado em {formatDate(selectedInvite.submittedAt || selectedInvite.createdAt)}
+                  </span>
+                </div>
+
+                <Separator />
+
+                {/* Dados Pessoais */}
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Dados Pessoais
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Nome</p>
+                      <p className="font-medium">
+                        {selectedInvite.onboardingData?.personal?.name || '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Email</p>
+                      <p className="font-medium">{selectedInvite.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Telefone</p>
+                      <p className="font-medium">
+                        {selectedInvite.onboardingData?.personal?.phone || '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Distrito */}
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Distrito
+                  </h3>
+                  <div className="text-sm">
+                    <div className="mb-2">
+                      <p className="text-muted-foreground">Nome do Distrito</p>
+                      <p className="font-medium">
+                        {selectedInvite.onboardingData?.district?.name || '-'}
+                      </p>
+                    </div>
+                    {selectedInvite.onboardingData?.district?.description && (
+                      <div>
+                        <p className="text-muted-foreground">Descrição</p>
+                        <p>{selectedInvite.onboardingData.district.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Igrejas */}
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Igrejas ({selectedInvite.onboardingData?.churches?.length || 0})
+                  </h3>
+                  {selectedInvite.onboardingData?.churches &&
+                  selectedInvite.onboardingData.churches.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedInvite.onboardingData.churches.map((church, index) => (
+                        <div key={index} className="p-3 bg-muted rounded-lg">
+                          <p className="font-medium">{church.name}</p>
+                          {church.address && (
+                            <p className="text-sm text-muted-foreground">{church.address}</p>
+                          )}
+                          {church.isNew && (
+                            <Badge variant="outline" className="mt-1 text-xs">
+                              Nova igreja
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhuma igreja cadastrada</p>
+                  )}
+                </div>
+
+                {/* Membros Importados */}
+                {selectedInvite.onboardingData?.excelData && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Membros Importados
+                      </h3>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="font-medium">
+                          {selectedInvite.onboardingData.excelData.fileName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedInvite.onboardingData.excelData.totalRows} membros
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Motivo da Rejeição (se rejeitado) */}
+                {selectedInvite.status === 'rejected' && selectedInvite.rejectionReason && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-3 flex items-center gap-2 text-red-600">
+                        <AlertCircle className="w-4 h-4" />
+                        Motivo da Rejeição
+                      </h3>
+                      <p className="text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                        {selectedInvite.rejectionReason}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+
+          <DialogFooter className="mt-4">
+            {selectedInvite?.status === 'submitted' && (
+              <>
+                <Button variant="destructive" onClick={() => setIsRejectDialogOpen(true)}>
+                  <X className="w-4 h-4 mr-2" />
+                  Rejeitar
+                </Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={handleApprove}
+                  disabled={approveMutation.isPending}
+                >
+                  {approveMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-2" />
+                  )}
+                  Aprovar
+                </Button>
+              </>
+            )}
+            {(selectedInvite?.status === 'approved' || selectedInvite?.status === 'rejected') && (
+              <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>
+                Fechar
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Rejeitar Convite */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeitar Cadastro</DialogTitle>
+            <DialogDescription>
+              Informe o motivo da rejeição. O pastor será notificado por email.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="reason">Motivo da Rejeição</Label>
+              <Textarea
+                id="reason"
+                placeholder="Ex: Dados incompletos, distrito já existe, etc."
+                value={rejectionReason}
+                onChange={e => setRejectionReason(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={!rejectionReason.trim() || rejectMutation.isPending}
+            >
+              {rejectMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <X className="w-4 h-4 mr-2" />
+              )}
+              Confirmar Rejeição
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </MobileLayout>
+  );
+}

@@ -5,7 +5,7 @@
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { eq, asc } from 'drizzle-orm';
-import { resolveChurchCode, mapChurchRecord } from './helpers';
+import { resolveChurchCode } from './helpers';
 import type { Church } from '../../shared/schema';
 import type { CreateChurchInput, UpdateChurchInput } from '../types/storage';
 
@@ -21,7 +21,8 @@ export async function getAllChurches(): Promise<Church[]> {
 
 export async function getChurchesByDistrict(districtId: number): Promise<Church[]> {
   try {
-    const result = await db.select()
+    const result = await db
+      .select()
       .from(schema.churches)
       .where(eq(schema.churches.districtId, districtId))
       .orderBy(asc(schema.churches.id));
@@ -34,7 +35,11 @@ export async function getChurchesByDistrict(districtId: number): Promise<Church[
 
 export async function getChurchById(id: number): Promise<Church | null> {
   try {
-    const result = await db.select().from(schema.churches).where(eq(schema.churches.id, id)).limit(1);
+    const result = await db
+      .select()
+      .from(schema.churches)
+      .where(eq(schema.churches.id, id))
+      .limit(1);
     return (result[0] || null) as unknown as Church | null;
   } catch (error) {
     console.error('Erro ao buscar igreja por ID:', error);
@@ -50,7 +55,7 @@ export async function createChurch(churchData: CreateChurchInput): Promise<Churc
       ...churchData,
       code,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     const result = await db.insert(schema.churches).values(newChurch).returning();
@@ -91,7 +96,8 @@ export async function deleteChurch(id: number): Promise<boolean> {
 export async function getOrCreateChurch(churchName: string): Promise<Church> {
   try {
     // Buscar igreja existente pelo nome
-    const existing = await db.select()
+    const existing = await db
+      .select()
       .from(schema.churches)
       .where(eq(schema.churches.name, churchName))
       .limit(1);
@@ -110,7 +116,8 @@ export async function getOrCreateChurch(churchName: string): Promise<Church> {
 
 export async function getDefaultChurch(): Promise<Church | null> {
   try {
-    const result = await db.select()
+    const result = await db
+      .select()
       .from(schema.churches)
       .orderBy(asc(schema.churches.id))
       .limit(1);
@@ -123,7 +130,8 @@ export async function getDefaultChurch(): Promise<Church | null> {
 
 export async function setDefaultChurch(churchId: number): Promise<boolean> {
   try {
-    await db.update(schema.churches)
+    await db
+      .update(schema.churches)
       .set({ updatedAt: new Date() })
       .where(eq(schema.churches.id, churchId));
     return true;

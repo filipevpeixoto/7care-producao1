@@ -4,12 +4,20 @@
 
 import { Router, Request, Response } from 'express';
 import twoFactorService from '../services/twoFactorService';
+import '../types/express'; // Importar tipos customizados do Express
+import { logger } from '../utils/logger';
 
 const router = Router();
 
+// Interface para Request autenticado
+interface AuthenticatedRequest extends Request {
+  userId?: number;
+  user?: { id?: number; email?: string; role?: string } | null;
+}
+
 // Helper para extrair userId de forma type-safe
-const getUserId = (req: Request): number | undefined => req.userId;
-const getUserEmail = (req: Request): string | undefined => req.user?.email;
+const getUserId = (req: AuthenticatedRequest): number | undefined => req.userId;
+const getUserEmail = (req: AuthenticatedRequest): string | undefined => req.user?.email;
 
 /**
  * GET /api/2fa/status
@@ -18,15 +26,15 @@ const getUserEmail = (req: Request): string | undefined => req.user?.email;
 router.get('/status', async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
-    
+
     const status = await twoFactorService.checkTwoFactorStatus(userId);
     return res.json(status);
   } catch (error) {
-    console.error('Erro ao verificar status 2FA:', error);
+    logger.error('Erro ao verificar status 2FA', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -39,34 +47,34 @@ router.post('/setup', async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
     const userEmail = getUserEmail(req) || 'user@7care.com';
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
-    
+
     // Verifica se já tem 2FA ativado
     const status = await twoFactorService.checkTwoFactorStatus(userId);
     if (status.enabled) {
       return res.status(400).json({ error: '2FA já está ativado' });
     }
-    
+
     // Gera o secret e QR code
     const { secret, qrCodeDataUrl, otpauthUrl } = await twoFactorService.generateTwoFactorSecret(
       userId,
       userEmail,
       '7Care'
     );
-    
+
     // Salva o secret pendente
     await twoFactorService.savePendingTwoFactorSecret(userId, secret);
-    
+
     return res.json({
       qrCode: qrCodeDataUrl,
       manualKey: secret, // Para entrada manual no app
       otpauthUrl,
     });
   } catch (error) {
-    console.error('Erro ao configurar 2FA:', error);
+    logger.error('Erro ao configurar 2FA', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -79,24 +87,24 @@ router.post('/enable', async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
     const { token } = req.body;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
-    
+
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ error: 'Código é obrigatório' });
     }
-    
+
     const result = await twoFactorService.enableTwoFactor(userId, token);
-    
+
     if (!result.valid) {
       return res.status(400).json({ error: result.message });
     }
-    
+
     return res.json({ success: true, message: result.message });
   } catch (error) {
-    console.error('Erro ao ativar 2FA:', error);
+    logger.error('Erro ao ativar 2FA', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -109,24 +117,24 @@ router.post('/disable', async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
     const { token } = req.body;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
-    
+
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ error: 'Código é obrigatório' });
     }
-    
+
     const result = await twoFactorService.disableTwoFactor(userId, token);
-    
+
     if (!result.valid) {
       return res.status(400).json({ error: result.message });
     }
-    
+
     return res.json({ success: true, message: result.message });
   } catch (error) {
-    console.error('Erro ao desativar 2FA:', error);
+    logger.error('Erro ao desativar 2FA', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -139,20 +147,20 @@ router.post('/verify', async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
     const { token } = req.body;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
-    
+
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ error: 'Código é obrigatório' });
     }
-    
+
     const result = await twoFactorService.verifyTwoFactorToken(userId, token);
-    
+
     return res.json({ valid: result.valid, message: result.message });
   } catch (error) {
-    console.error('Erro ao verificar 2FA:', error);
+    logger.error('Erro ao verificar 2FA', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -165,24 +173,24 @@ router.post('/verify-recovery', async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
     const { code } = req.body;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
-    
+
     if (!code || typeof code !== 'string') {
       return res.status(400).json({ error: 'Código de recuperação é obrigatório' });
     }
-    
+
     const result = await twoFactorService.verifyRecoveryCode(userId, code);
-    
+
     if (!result.valid) {
       return res.status(400).json({ error: result.message });
     }
-    
+
     return res.json({ valid: true, message: result.message });
   } catch (error) {
-    console.error('Erro ao verificar código de recuperação:', error);
+    logger.error('Erro ao verificar código de recuperação', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -195,21 +203,21 @@ router.post('/regenerate-recovery', async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
     const { token } = req.body;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
-    
+
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ error: 'Código 2FA é obrigatório' });
     }
-    
+
     const result = await twoFactorService.regenerateRecoveryCodes(userId, token);
-    
+
     if ('valid' in result && !result.valid) {
       return res.status(400).json({ error: result.message });
     }
-    
+
     if ('codes' in result) {
       return res.json({
         success: true,
@@ -219,7 +227,7 @@ router.post('/regenerate-recovery', async (req: Request, res: Response) => {
     }
     return res.status(500).json({ error: 'Erro inesperado' });
   } catch (error) {
-    console.error('Erro ao regenerar códigos de recuperação:', error);
+    logger.error('Erro ao regenerar códigos de recuperação', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });

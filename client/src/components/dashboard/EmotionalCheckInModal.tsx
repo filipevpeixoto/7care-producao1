@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { DialogWithModalTracking, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -7,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Heart, MessageCircle, Lock, Users, BookOpen, Search, Info } from 'lucide-react';
+import { Heart, MessageCircle, Lock, Users, BookOpen, Search } from 'lucide-react';
 
 interface EmotionalCheckInModalProps {
   isOpen: boolean;
@@ -37,7 +42,8 @@ const spiritualLevels: SpiritualLevel[] = [
     label: 'Distante',
     verse: 'Tenho, porém, contra ti que deixaste o teu primeiro amor.',
     reference: 'Apocalipse 2:4',
-    description: 'Quase não oro, minha Bíblia está fechada, e percebo que outras coisas têm ocupado o lugar de Deus na minha vida.'
+    description:
+      'Quase não oro, minha Bíblia está fechada, e percebo que outras coisas têm ocupado o lugar de Deus na minha vida.',
   },
   {
     score: 2,
@@ -45,7 +51,8 @@ const spiritualLevels: SpiritualLevel[] = [
     label: 'Buscando',
     verse: 'Buscai ao Senhor enquanto se pode achar, invocai-o enquanto está perto.',
     reference: 'Isaías 55:6',
-    description: 'Sinto falta de Deus, faço algumas orações rápidas, ouço mensagens e até abro a Bíblia, mas ainda sem constância.'
+    description:
+      'Sinto falta de Deus, faço algumas orações rápidas, ouço mensagens e até abro a Bíblia, mas ainda sem constância.',
   },
   {
     score: 3,
@@ -53,7 +60,8 @@ const spiritualLevels: SpiritualLevel[] = [
     label: 'Enraizando',
     verse: 'Antes, tem o seu prazer na lei do Senhor, e na sua lei medita de dia e de noite.',
     reference: 'Salmo 1:2',
-    description: 'Já leio a Bíblia com mais frequência, encontro respostas, começo a praticar e percebo mudanças no meu coração.'
+    description:
+      'Já leio a Bíblia com mais frequência, encontro respostas, começo a praticar e percebo mudanças no meu coração.',
   },
   {
     score: 4,
@@ -61,7 +69,8 @@ const spiritualLevels: SpiritualLevel[] = [
     label: 'Frutificando',
     verse: 'Eu sou a videira, vós as varas; quem permanece em mim, e eu nele, esse dá muito fruto.',
     reference: 'João 15:5',
-    description: 'Minha fé começa a transbordar em atitudes, ajudo pessoas, testemunho de Cristo e inspiro outros a segui-lo.'
+    description:
+      'Minha fé começa a transbordar em atitudes, ajudo pessoas, testemunho de Cristo e inspiro outros a segui-lo.',
   },
   {
     score: 5,
@@ -69,8 +78,9 @@ const spiritualLevels: SpiritualLevel[] = [
     label: 'Intimidade',
     verse: 'E andou Enoque com Deus; e já não apareceu, porquanto Deus para si o tomou.',
     reference: 'Gênesis 5:24',
-    description: 'Vivo em comunhão diária com Deus, oro constantemente, ouço Sua voz e procuro andar em plena sintonia com Ele.'
-  }
+    description:
+      'Vivo em comunhão diária com Deus, oro constantemente, ouço Sua voz e procuro andar em plena sintonia com Ele.',
+  },
 ];
 
 export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModalProps) => {
@@ -79,7 +89,7 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
     score: 0,
     prayerRequest: '',
     isPrivate: false,
-    allowChurchMembers: false
+    allowChurchMembers: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -89,20 +99,20 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
   };
 
   const handleSubmit = async () => {
-          if (spiritualState.score === 0) {
-        toast({
-          title: "Selecione como está espiritualmente",
-          description: "Por favor, escolha uma nota de 1 a 5 para continuar.",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (spiritualState.score === 0) {
+      toast({
+        title: 'Selecione como está espiritualmente',
+        description: 'Por favor, escolha uma nota de 1 a 5 para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (!user?.id) {
       toast({
-        title: "Usuário não identificado",
-        description: "Por favor, faça login novamente.",
-        variant: "destructive"
+        title: 'Usuário não identificado',
+        description: 'Por favor, faça login novamente.',
+        variant: 'destructive',
       });
       return;
     }
@@ -117,14 +127,15 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
           emotionalScore: spiritualState.score,
           prayerRequest: spiritualState.prayerRequest,
           isPrivate: spiritualState.isPrivate,
-          allowChurchMembers: spiritualState.allowChurchMembers
-        })
+          allowChurchMembers: spiritualState.allowChurchMembers,
+        }),
       });
 
       if (response.ok) {
         toast({
-          title: "Check-in espiritual enviado!",
-          description: "Obrigado por compartilhar seu estado espiritual. Suas orações serão levadas ao Senhor.",
+          title: 'Check-in espiritual enviado!',
+          description:
+            'Obrigado por compartilhar seu estado espiritual. Suas orações serão levadas ao Senhor.',
         });
         onClose();
       } else {
@@ -132,11 +143,14 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
         throw new Error(errorData.error || 'Erro ao enviar check-in');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Não foi possível enviar seu check-in. Tente novamente.";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível enviar seu check-in. Tente novamente.';
       toast({
-        title: "Erro ao enviar",
+        title: 'Erro ao enviar',
         description: errorMessage,
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -144,12 +158,12 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
   };
 
   return (
-    <DialogWithModalTracking 
+    <DialogWithModalTracking
       modalId="emotional-checkin-modal"
-      open={isOpen} 
-      onOpenChange={(open) => !open && onClose()}
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
     >
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-md w-[90vw]"
         style={{ maxHeight: 'calc(100vh - 2rem)' }}
         aria-describedby="emotional-checkin-description"
@@ -159,7 +173,10 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
             <Heart className="h-5 w-5 text-red-500" />
             Como está sua vida espiritual hoje?
           </DialogTitle>
-          <p id="emotional-checkin-description" className="text-sm text-muted-foreground text-center">
+          <p
+            id="emotional-checkin-description"
+            className="text-sm text-muted-foreground text-center"
+          >
             Compartilhe seu estado espiritual e, se desejar, um pedido de oração
           </p>
         </DialogHeader>
@@ -169,7 +186,7 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
           <div className="space-y-3">
             <Label className="text-base font-medium">Selecione sua nota espiritual:</Label>
             <div className="grid grid-cols-5 gap-2">
-              {spiritualLevels.map((level) => (
+              {spiritualLevels.map(level => (
                 <Popover key={level.score}>
                   <PopoverTrigger asChild>
                     <button
@@ -195,18 +212,20 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
                           </h4>
                         </div>
                       </div>
-                      
+
                       {/* Bible Verse */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border-l-4 border-blue-400">
                         <div className="flex items-start gap-2">
                           <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <div>
                             <p className="text-sm text-gray-800 italic">"{level.verse}"</p>
-                            <p className="text-xs text-blue-600 font-medium mt-1">{level.reference}</p>
+                            <p className="text-xs text-blue-600 font-medium mt-1">
+                              {level.reference}
+                            </p>
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Description */}
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border-l-4 border-green-400">
                         <div className="flex items-start gap-2">
@@ -234,10 +253,12 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
               id="prayerRequest"
               placeholder="Compartilhe seu pedido de oração ou agradecimento..."
               value={spiritualState.prayerRequest}
-              onChange={(e) => setSpiritualState(prev => ({ 
-                ...prev, 
-                prayerRequest: e.target.value 
-              }))}
+              onChange={e =>
+                setSpiritualState(prev => ({
+                  ...prev,
+                  prayerRequest: e.target.value,
+                }))
+              }
               rows={3}
             />
           </div>
@@ -245,15 +266,17 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
           {/* Privacy Settings */}
           <div className="space-y-3">
             <Label className="text-base font-medium">Configurações de privacidade:</Label>
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="isPrivate"
                 checked={spiritualState.isPrivate}
-                onCheckedChange={(checked) => setSpiritualState(prev => ({ 
-                  ...prev, 
-                  isPrivate: checked as boolean 
-                }))}
+                onCheckedChange={checked =>
+                  setSpiritualState(prev => ({
+                    ...prev,
+                    isPrivate: checked as boolean,
+                  }))
+                }
               />
               <Label htmlFor="isPrivate" className="flex items-center gap-2 text-sm">
                 <Lock className="h-4 w-4" />
@@ -265,10 +288,12 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
               <Checkbox
                 id="allowChurchMembers"
                 checked={spiritualState.allowChurchMembers}
-                onCheckedChange={(checked) => setSpiritualState(prev => ({ 
-                  ...prev, 
-                  allowChurchMembers: checked as boolean 
-                }))}
+                onCheckedChange={checked =>
+                  setSpiritualState(prev => ({
+                    ...prev,
+                    allowChurchMembers: checked as boolean,
+                  }))
+                }
                 disabled={spiritualState.isPrivate}
               />
               <Label htmlFor="allowChurchMembers" className="flex items-center gap-2 text-sm">
@@ -279,8 +304,8 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
           </div>
 
           {/* Submit Button */}
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={isSubmitting || spiritualState.score === 0}
             className="w-full"
           >

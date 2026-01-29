@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -13,41 +13,41 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { FileDown, FileSpreadsheet, FileText, Search, ArrowLeft, ArrowRight } from "lucide-react";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { format } from "date-fns";
-import { getRoleDisplayName } from "@/lib/permissions";
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { FileDown, FileSpreadsheet, FileText, Search, ArrowLeft, ArrowRight } from 'lucide-react';
+import { exportToExcel } from '@/lib/excel';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { getRoleDisplayName } from '@/lib/permissions';
 
 interface ExportMenuProps {
   data: any[];
 }
 
 const AVAILABLE_COLUMNS = [
-  { id: "name", label: "Nome" },
-  { id: "email", label: "Email" },
-  { id: "role", label: "Perfil" },
-  { id: "status", label: "Status" },
-  { id: "church", label: "Igreja" },
-  { id: "points", label: "Pontos" },
-  { id: "phone", label: "Telefone" },
-  { id: "createdAt", label: "Data de Cadastro" },
+  { id: 'name', label: 'Nome' },
+  { id: 'email', label: 'Email' },
+  { id: 'role', label: 'Perfil' },
+  { id: 'status', label: 'Status' },
+  { id: 'church', label: 'Igreja' },
+  { id: 'points', label: 'Pontos' },
+  { id: 'phone', label: 'Telefone' },
+  { id: 'createdAt', label: 'Data de Cadastro' },
 ];
 
 export function ExportMenu({ data }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
-  const [exportFormat, setExportFormat] = useState<"excel" | "pdf" | null>(null);
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf' | null>(null);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(
-    AVAILABLE_COLUMNS.map((col) => col.id)
+    AVAILABLE_COLUMNS.map(col => col.id)
   );
-  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const getUserId = (user: any) => user.id || user._id || user.email;
@@ -55,63 +55,64 @@ export function ExportMenu({ data }: ExportMenuProps) {
   const filteredUsers = useMemo(() => {
     if (!userSearchTerm) return data;
     const term = userSearchTerm.toLowerCase();
-    return data.filter(user => 
-      (user.name?.toLowerCase() || "").includes(term) ||
-      (user.email?.toLowerCase() || "").includes(term)
+    return data.filter(
+      user =>
+        (user.name?.toLowerCase() || '').includes(term) ||
+        (user.email?.toLowerCase() || '').includes(term)
     );
   }, [data, userSearchTerm]);
 
   const translateRole = (role: string) => {
-    if (role === "admin") return "Administrador";
+    if (role === 'admin') return 'Administrador';
     const legacyRoles: { [key: string]: string } = {
-      leader: "Líder",
-      disciple: "Discípulo",
-      visitor: "Visitante",
+      leader: 'Líder',
+      disciple: 'Discípulo',
+      visitor: 'Visitante',
     };
     return legacyRoles[role] || getRoleDisplayName(role);
   };
 
   const translateStatus = (status: string) => {
     const statuses: { [key: string]: string } = {
-      active: "Ativo",
-      inactive: "Inativo",
-      pending: "Pendente",
+      active: 'Ativo',
+      inactive: 'Inativo',
+      pending: 'Pendente',
     };
     return statuses[status] || status;
   };
 
   const getFormattedValue = (user: any, columnId: string) => {
     switch (columnId) {
-      case "role":
+      case 'role':
         return translateRole(user.role);
-      case "status":
+      case 'status':
         return translateStatus(user.status);
-      case "church":
-        return user.church || "-";
-      case "points":
+      case 'church':
+        return user.church || '-';
+      case 'points':
         return user.points || 0;
-      case "phone":
-        return user.phone || "-";
-      case "createdAt":
-        return user.createdAt ? format(new Date(user.createdAt), "dd/MM/yyyy") : "-";
+      case 'phone':
+        return user.phone || '-';
+      case 'createdAt':
+        return user.createdAt ? format(new Date(user.createdAt), 'dd/MM/yyyy') : '-';
       default:
         return user[columnId];
     }
   };
 
-  const handleOpenModal = (format: "excel" | "pdf") => {
+  const handleOpenModal = (format: 'excel' | 'pdf') => {
     setExportFormat(format);
     setStep(1);
-    setUserSearchTerm("");
+    setUserSearchTerm('');
     // Initialize with all users selected
     setSelectedUsers(data.map(getUserId));
     setIsOpen(true);
   };
 
   const handleConfirmExport = () => {
-    if (exportFormat === "excel") {
+    if (exportFormat === 'excel') {
       exportExcel();
-    } else if (exportFormat === "pdf") {
+    } else if (exportFormat === 'pdf') {
       exportPDF();
     }
     setIsOpen(false);
@@ -120,11 +121,11 @@ export function ExportMenu({ data }: ExportMenuProps) {
   const getExportData = () => {
     // Filter data based on selectedUsers
     const usersToExport = data.filter(user => selectedUsers.includes(getUserId(user)));
-    
-    return usersToExport.map((user) => {
+
+    return usersToExport.map(user => {
       const row: { [key: string]: any } = {};
-      selectedColumns.forEach((colId) => {
-        const column = AVAILABLE_COLUMNS.find((c) => c.id === colId);
+      selectedColumns.forEach(colId => {
+        const column = AVAILABLE_COLUMNS.find(c => c.id === colId);
         if (column) {
           row[column.label] = getFormattedValue(user, colId);
         }
@@ -133,27 +134,28 @@ export function ExportMenu({ data }: ExportMenuProps) {
     });
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     const exportData = getExportData();
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Usuários");
-    XLSX.writeFile(wb, `relatorio_usuarios_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    await exportToExcel(
+      exportData,
+      `relatorio_usuarios_${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
+      'Usuários'
+    );
   };
 
   const exportPDF = () => {
     const doc = new jsPDF();
     const usersToExport = data.filter(user => selectedUsers.includes(getUserId(user)));
-    
+
     doc.setFontSize(16);
-    doc.text("Relatório de Usuários", 14, 20);
-    
+    doc.text('Relatório de Usuários', 14, 20);
+
     doc.setFontSize(10);
-    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, 14, 28);
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
     doc.text(`Total de registros: ${usersToExport.length}`, 14, 34);
 
     const exportData = getExportData();
-    
+
     const headers = selectedColumns
       .map(colId => AVAILABLE_COLUMNS.find(c => c.id === colId)?.label)
       .filter(Boolean) as string[];
@@ -165,17 +167,15 @@ export function ExportMenu({ data }: ExportMenuProps) {
       body: tableRows,
       startY: 40,
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [66, 66, 66] }
+      headStyles: { fillColor: [66, 66, 66] },
     });
 
-    doc.save(`relatorio_usuarios_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    doc.save(`relatorio_usuarios_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
   const toggleColumn = (columnId: string) => {
-    setSelectedColumns((prev) =>
-      prev.includes(columnId)
-        ? prev.filter((id) => id !== columnId)
-        : [...prev, columnId]
+    setSelectedColumns(prev =>
+      prev.includes(columnId) ? prev.filter(id => id !== columnId) : [...prev, columnId]
     );
   };
 
@@ -183,22 +183,20 @@ export function ExportMenu({ data }: ExportMenuProps) {
     if (selectedColumns.length === AVAILABLE_COLUMNS.length) {
       setSelectedColumns([]);
     } else {
-      setSelectedColumns(AVAILABLE_COLUMNS.map((c) => c.id));
+      setSelectedColumns(AVAILABLE_COLUMNS.map(c => c.id));
     }
   };
 
   const toggleUser = (userId: string) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+    setSelectedUsers(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
     );
   };
 
   const toggleAllUsers = () => {
     const filteredIds = filteredUsers.map(getUserId);
     const allFilteredSelected = filteredIds.every(id => selectedUsers.includes(id));
-    
+
     if (allFilteredSelected) {
       // Deselect all visible users
       setSelectedUsers(prev => prev.filter(id => !filteredIds.includes(id)));
@@ -219,11 +217,11 @@ export function ExportMenu({ data }: ExportMenuProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handleOpenModal("pdf")} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => handleOpenModal('pdf')} className="cursor-pointer">
             <FileText className="mr-2 h-4 w-4" />
             Exportar PDF
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleOpenModal("excel")} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => handleOpenModal('excel')} className="cursor-pointer">
             <FileSpreadsheet className="mr-2 h-4 w-4" />
             Exportar Excel
           </DropdownMenuItem>
@@ -233,38 +231,40 @@ export function ExportMenu({ data }: ExportMenuProps) {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              {step === 1 ? "Selecionar Colunas" : "Selecionar Usuários"}
-            </DialogTitle>
+            <DialogTitle>{step === 1 ? 'Selecionar Colunas' : 'Selecionar Usuários'}</DialogTitle>
             <DialogDescription>
-              {step === 1 
-                ? `Escolha quais colunas incluir no relatório ${exportFormat === "pdf" ? "PDF" : "Excel"}.`
-                : "Selecione quais usuários devem aparecer no relatório."}
+              {step === 1
+                ? `Escolha quais colunas incluir no relatório ${exportFormat === 'pdf' ? 'PDF' : 'Excel'}.`
+                : 'Selecione quais usuários devem aparecer no relatório.'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             {step === 1 ? (
               <>
                 <div className="flex items-center space-x-2 mb-4">
-                  <Checkbox 
-                    id="select-all-cols" 
+                  <Checkbox
+                    id="select-all-cols"
                     checked={selectedColumns.length === AVAILABLE_COLUMNS.length}
                     onCheckedChange={toggleAllColumns}
                   />
-                  <Label htmlFor="select-all-cols" className="font-bold">Selecionar Todas</Label>
+                  <Label htmlFor="select-all-cols" className="font-bold">
+                    Selecionar Todas
+                  </Label>
                 </div>
-                
+
                 <ScrollArea className="h-[300px] w-full rounded-md border p-4">
                   <div className="space-y-4">
-                    {AVAILABLE_COLUMNS.map((column) => (
+                    {AVAILABLE_COLUMNS.map(column => (
                       <div key={column.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={column.id}
                           checked={selectedColumns.includes(column.id)}
                           onCheckedChange={() => toggleColumn(column.id)}
                         />
-                        <Label htmlFor={column.id} className="cursor-pointer">{column.label}</Label>
+                        <Label htmlFor={column.id} className="cursor-pointer">
+                          {column.label}
+                        </Label>
                       </div>
                     ))}
                   </div>
@@ -278,23 +278,26 @@ export function ExportMenu({ data }: ExportMenuProps) {
                     <Input
                       placeholder="Buscar usuários..."
                       value={userSearchTerm}
-                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      onChange={e => setUserSearchTerm(e.target.value)}
                       className="pl-8"
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-2 mb-2 pb-2 border-b">
-                  <Checkbox 
-                    id="select-all-users" 
-                    checked={filteredUsers.length > 0 && filteredUsers.every(u => selectedUsers.includes(getUserId(u)))}
+                  <Checkbox
+                    id="select-all-users"
+                    checked={
+                      filteredUsers.length > 0 &&
+                      filteredUsers.every(u => selectedUsers.includes(getUserId(u)))
+                    }
                     onCheckedChange={toggleAllUsers}
                   />
                   <Label htmlFor="select-all-users" className="font-bold">
                     Selecionar Todos ({selectedUsers.length} selecionados)
                   </Label>
                 </div>
-                
+
                 <ScrollArea className="h-[300px] w-full rounded-md border p-4">
                   <div className="space-y-3">
                     {filteredUsers.length === 0 ? (
@@ -302,7 +305,7 @@ export function ExportMenu({ data }: ExportMenuProps) {
                         Nenhum usuário encontrado.
                       </div>
                     ) : (
-                      filteredUsers.map((user) => {
+                      filteredUsers.map(user => {
                         const userId = getUserId(user);
                         return (
                           <div key={userId} className="flex items-start space-x-2 py-1">
@@ -313,7 +316,7 @@ export function ExportMenu({ data }: ExportMenuProps) {
                               className="mt-1"
                             />
                             <div className="grid gap-0.5 leading-none">
-                              <Label 
+                              <Label
                                 htmlFor={`user-${userId}`}
                                 className="font-medium cursor-pointer"
                               >

@@ -1,17 +1,13 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { 
-  User, 
-  Phone, 
-  MapPin, 
-  MoreVertical,
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  User,
+  Phone,
+  MapPin,
   CheckCircle,
   Clock,
-  XCircle,
-  AlertTriangle,
-  Edit,
   Trash2,
   Eye,
   MessageCircle,
@@ -19,28 +15,38 @@ import {
   Square,
   Star,
   Calendar,
-  BookOpen,
   Heart,
-  Check, 
-  ChevronsUpDown
-} from "lucide-react";
-import { getMountName, getLevelName, getLevelIcon } from "@/lib/gamification";
-import { MountIcon } from "@/components/ui/mount-icon";
+  Check,
+  ChevronsUpDown,
+} from 'lucide-react';
+import { getMountName, getLevelName, getLevelIcon } from '@/lib/gamification';
+import { MountIcon } from '@/components/ui/mount-icon';
 
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DiscipuladoresManager } from "./DiscipuladoresManager";
-import { DiscipuladorButton } from "./DiscipuladorButton";
-import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DiscipuladoresManager } from './DiscipuladoresManager';
+import { DiscipuladorButton } from './DiscipuladorButton';
+import { cn } from '@/lib/utils';
 
-import { useState, useEffect, useCallback } from "react";
-import { MarkVisitModal } from "./MarkVisitModal";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { MarkVisitModal } from './MarkVisitModal';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface UserCardProps {
   user: any;
@@ -58,20 +64,20 @@ interface UserCardProps {
   hasPendingDiscipleRequest?: boolean;
 }
 
-export function UserCardResponsive({ 
-  user, 
-  onClick, 
-  onApprove, 
-  onReject, 
-  onEdit, 
-  onDelete, 
-  onView, 
+export function UserCardResponsive({
+  user,
+  onClick,
+  onApprove: _onApprove,
+  onReject: _onReject,
+  onEdit: _onEdit,
+  onDelete,
+  onView,
   onScheduleVisit,
   onDiscipleRequest,
   showActions = true,
   relationshipsData = [],
-  potentialMissionaries = [],
-  hasPendingDiscipleRequest = false
+  potentialMissionaries: _potentialMissionaries = [],
+  hasPendingDiscipleRequest = false,
 }: UserCardProps) {
   const [localUser, setLocalUser] = useState(user);
   const [isMarkingVisit, setIsMarkingVisit] = useState(false);
@@ -83,7 +89,7 @@ export function UserCardResponsive({
   const [selectedSituation, setSelectedSituation] = useState(localUser.interestedSituation || '');
   const [userSpiritual, setUserSpiritual] = useState<any>(null);
   const [currentDiscipuladores, setCurrentDiscipuladores] = useState<any[]>([]);
-  
+
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
 
@@ -97,7 +103,7 @@ export function UserCardResponsive({
     { value: 'baptized', label: 'Batizado', description: 'Já foi batizado' },
     { value: 'member', label: 'Membro', description: 'Tornou-se membro da igreja' },
     { value: 'inactive', label: 'Inativo', description: 'Não responde mais' },
-    { value: 'rejected', label: 'Rejeitou', description: 'Não tem interesse' }
+    { value: 'rejected', label: 'Rejeitou', description: 'Não tem interesse' },
   ];
 
   // Atualizar usuário local quando prop mudar
@@ -109,13 +115,17 @@ export function UserCardResponsive({
   useEffect(() => {
     const loadSpiritualCheckIn = async () => {
       try {
-        const response = await fetch(`/api/spiritual-check-in/${localUser.id}`);
+        const response = await fetch(`/api/emotional-checkins/user/${localUser.id}`);
         if (response.ok) {
           const data = await response.json();
-          setUserSpiritual(data);
+          // A API retorna um array de check-ins, pegar o mais recente
+          const checkIns = Array.isArray(data) ? data : [];
+          if (checkIns.length > 0) {
+            setUserSpiritual(checkIns[0]);
+          }
         }
       } catch (error) {
-        console.error('Erro ao carregar check-in espiritual:', error);
+        // Silenciar erro - não é crítico
       }
     };
 
@@ -130,18 +140,18 @@ export function UserCardResponsive({
       relationshipsData: relationshipsData?.length,
       localUserRole: localUser.role,
       localUserId: localUser.id,
-      relationshipsDataSample: relationshipsData?.slice(0, 2)
+      relationshipsDataSample: relationshipsData?.slice(0, 2),
     });
-    
+
     if (relationshipsData && localUser.role === 'interested') {
       const userDiscipuladores = relationshipsData
         .filter(rel => rel.interestedId === localUser.id && rel.status === 'active')
         .map(rel => ({
           id: rel.missionaryId,
           name: rel.missionaryName || 'Usuário não encontrado',
-          relationshipId: rel.id
+          relationshipId: rel.id,
         }));
-      
+
       console.log('🔍 UserCardResponsive - Discipuladores encontrados:', userDiscipuladores);
       setCurrentDiscipuladores(userDiscipuladores);
     }
@@ -165,7 +175,7 @@ export function UserCardResponsive({
 
   const handleWhatsApp = () => {
     if (!localUser.phone) return;
-    
+
     const cleanPhone = localUser.phone.replace(/\D/g, '');
     const whatsappUrl = `https://wa.me/55${cleanPhone}`;
     window.open(whatsappUrl, '_blank');
@@ -183,7 +193,7 @@ export function UserCardResponsive({
 
   const handleMarkVisit = async () => {
     if (isMarkingVisit) return;
-    
+
     setIsMarkingVisit(true);
     try {
       const response = await fetch(`/api/users/${localUser.id}/visit`, {
@@ -192,7 +202,7 @@ export function UserCardResponsive({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          visitDate: new Date().toISOString().split('T')[0]
+          visitDate: new Date().toISOString().split('T')[0],
         }),
       });
 
@@ -203,11 +213,11 @@ export function UserCardResponsive({
           ...prev,
           extraData: {
             ...prev.extraData,
-            ...result.extraData
-          }
+            ...result.extraData,
+          },
         }));
         toast({
-          title: "Visita marcada!",
+          title: 'Visita marcada!',
           description: `Visita registrada para ${localUser.name}`,
         });
       } else {
@@ -216,9 +226,9 @@ export function UserCardResponsive({
     } catch (error) {
       console.error('Erro ao marcar visita:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível marcar a visita. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível marcar a visita. Tente novamente.',
+        variant: 'destructive',
       });
     } finally {
       setIsMarkingVisit(false);
@@ -233,7 +243,7 @@ export function UserCardResponsive({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          visitDate: visitDate
+          visitDate: visitDate,
         }),
       });
 
@@ -244,12 +254,12 @@ export function UserCardResponsive({
           ...prev,
           extraData: {
             ...prev.extraData,
-            ...result.extraData
-          }
+            ...result.extraData,
+          },
         }));
         setShowMarkVisitModal(false);
         toast({
-          title: "Visita marcada!",
+          title: 'Visita marcada!',
           description: `Visita registrada para ${localUser.name}`,
         });
       } else {
@@ -258,9 +268,9 @@ export function UserCardResponsive({
     } catch (error) {
       console.error('Erro ao marcar visita:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível marcar a visita. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível marcar a visita. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
@@ -282,11 +292,11 @@ export function UserCardResponsive({
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
-  const loadVisitHistory = async (userId: number) => {
+  const _loadVisitHistory = async (userId: number) => {
     try {
       const response = await fetch(`/api/visits/user/${userId}`);
       if (response.ok) {
@@ -300,20 +310,26 @@ export function UserCardResponsive({
 
   const generateFirstAccessUsername = (name: string) => {
     if (!name) return 'usuario';
-    
+
     const nameParts = name.trim().split(/\s+/);
     if (nameParts.length === 1) {
       return nameParts[0].toLowerCase();
     }
-    
+
     // Pegar primeiro e último nome
     const firstName = nameParts[0].toLowerCase();
     const lastName = nameParts[nameParts.length - 1].toLowerCase();
-    
+
     // Remover caracteres especiais e acentos
-    const cleanFirstName = firstName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-    const cleanLastName = lastName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-    
+    const cleanFirstName = firstName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+    const cleanLastName = lastName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+
     return `${cleanFirstName}.${cleanLastName}`;
   };
 
@@ -342,7 +358,7 @@ export function UserCardResponsive({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          interestedSituation: newSituation
+          interestedSituation: newSituation,
         }),
       });
 
@@ -351,7 +367,7 @@ export function UserCardResponsive({
         setSelectedSituation(newSituation);
         setOpenSituationPopover(false);
         toast({
-          title: "Situação atualizada!",
+          title: 'Situação atualizada!',
           description: `Situação do amigo atualizada para: ${situations.find(s => s.value === newSituation)?.label}`,
         });
       } else {
@@ -360,22 +376,24 @@ export function UserCardResponsive({
     } catch (error) {
       console.error('Erro ao atualizar situação:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível atualizar a situação. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Não foi possível atualizar a situação. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
 
-
   return (
-    <Card 
-      className={`cursor-pointer transition-all duration-200 hover:shadow-md border-l-4 ${
-        (localUser.role === 'superadmin' || localUser.role === 'pastor') ? 'border-l-blue-500' :
-        localUser.role.includes('missionary') ? 'border-l-purple-500' :
-        localUser.role.includes('member') ? 'border-l-green-500' :
-        'border-l-orange-500'
-      } ${isVisited() ? 'bg-green-50 border-green-200' : 'bg-white'}`}
+    <Card
+      className={`cursor-pointer transition-all duration-200 hover:shadow-md dark:hover:shadow-slate-700/50 border-l-4 ${
+        localUser.role === 'superadmin' || localUser.role === 'pastor'
+          ? 'border-l-blue-500'
+          : localUser.role.includes('missionary')
+            ? 'border-l-purple-500'
+            : localUser.role.includes('member')
+              ? 'border-l-green-500'
+              : 'border-l-orange-500'
+      } ${isVisited() ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50' : 'bg-card'}`}
       onClick={onClick}
     >
       <CardContent className="p-3 sm:p-4">
@@ -384,9 +402,9 @@ export function UserCardResponsive({
           {/* Avatar e informações básicas */}
           <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
             <div className="flex-shrink-0">
-              <Avatar 
+              <Avatar
                 className="h-10 w-10 sm:h-12 sm:w-12 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all duration-200"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   if (hasAdminAccess(currentUser)) {
                     setIsPhotoPreviewOpen(true);
@@ -406,34 +424,41 @@ export function UserCardResponsive({
                 </AvatarFallback>
               </Avatar>
             </div>
-            
+
             <div className="flex-1 min-w-0">
               {/* Nome e botões na mesma linha */}
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-semibold text-foreground truncate flex-1" data-testid={`text-name-${localUser.id}`}>
+                <h3
+                  className="text-base sm:text-lg font-semibold text-foreground truncate flex-1"
+                  data-testid={`text-name-${localUser.id}`}
+                >
                   {localUser.name || 'Usuário sem nome'}
                 </h3>
-                
+
                 {/* Botões de ação - Horizontal ao lado do nome */}
                 {showActions && (
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                     {/* Botão de Marcar Visita */}
                     <Button
                       size="sm"
                       variant="ghost"
                       disabled={isMarkingVisit}
                       className={`h-7 transition-all duration-200 rounded-full ${
-                        isVisited() 
-                          ? "text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 border border-green-200" 
-                          : "text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200"
+                        isVisited()
+                          ? 'text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-800/40 dark:text-green-400 border border-green-200 dark:border-green-700/50'
+                          : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-700/50'
                       } ${isMarkingVisit ? 'opacity-50 cursor-not-allowed' : ''} ${
                         isVisited() && getVisitCount() > 1 ? 'px-2' : 'w-7 px-0'
                       }`}
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         handleVisitButtonClick();
                       }}
-                      title={isVisited() ? "🖱️ Clique: atualizar data da visita" : "Marcar visita como realizada"}
+                      title={
+                        isVisited()
+                          ? '🖱️ Clique: atualizar data da visita'
+                          : 'Marcar visita como realizada'
+                      }
                     >
                       {isMarkingVisit ? (
                         <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
@@ -441,9 +466,7 @@ export function UserCardResponsive({
                         <div className="flex items-center gap-1">
                           <CheckSquare className="h-3 w-3" />
                           {getVisitCount() > 1 && (
-                            <span className="text-[10px] font-medium">
-                              {getVisitCount()}x
-                            </span>
+                            <span className="text-[10px] font-medium">{getVisitCount()}x</span>
                           )}
                         </div>
                       ) : (
@@ -454,8 +477,8 @@ export function UserCardResponsive({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-full border border-green-200"
-                      onClick={(e) => {
+                      className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30 rounded-full border border-green-200 dark:border-green-700/50"
+                      onClick={e => {
                         e.stopPropagation();
                         onView?.();
                       }}
@@ -463,7 +486,6 @@ export function UserCardResponsive({
                     >
                       <Eye className="h-3 w-3" />
                     </Button>
-
 
                     {/* Botão de Discipuladores - Apenas para usuários interessados */}
                     {localUser.role === 'interested' && (
@@ -478,7 +500,7 @@ export function UserCardResponsive({
                       size="sm"
                       variant="ghost"
                       className="h-7 w-7 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-full border border-purple-200"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         onScheduleVisit?.();
                       }}
@@ -491,8 +513,8 @@ export function UserCardResponsive({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-full border border-green-200"
-                        onClick={(e) => {
+                        className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30 rounded-full border border-green-200 dark:border-green-700/50"
+                        onClick={e => {
                           e.stopPropagation();
                           handleWhatsApp();
                         }}
@@ -506,7 +528,7 @@ export function UserCardResponsive({
                       size="sm"
                       variant="ghost"
                       className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full border border-red-200"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         onDelete?.();
                       }}
@@ -517,37 +539,37 @@ export function UserCardResponsive({
                   </div>
                 )}
               </div>
-              
+
               {/* Badges em linha compacta para mobile */}
               <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
                 {/* Badges de role */}
                 {(localUser.role === 'superadmin' || localUser.role === 'pastor') && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-300"
                   >
                     Admin
                   </Badge>
                 )}
                 {localUser.role.includes('member') && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-100 text-green-700 border-green-300"
                   >
                     Membro
                   </Badge>
                 )}
                 {localUser.role.includes('missionary') && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 border-purple-300"
                   >
                     Missionário
                   </Badge>
                 )}
                 {localUser.role === 'interested' && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 border-orange-300"
                   >
                     Amigo
@@ -555,25 +577,29 @@ export function UserCardResponsive({
                 )}
 
                 {/* Badge de status */}
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 ${
-                    localUser.status === 'approved' ? 'bg-green-100 text-green-700 border-green-300' :
-                    localUser.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
-                    'bg-red-100 text-red-700 border-red-300'
+                    localUser.status === 'approved'
+                      ? 'bg-green-100 text-green-700 border-green-300'
+                      : localUser.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                        : 'bg-red-100 text-red-700 border-red-300'
                   }`}
                 >
-                  {localUser.status === 'approved' ? 'Aprovado' :
-                   localUser.status === 'pending' ? 'Pendente' :
-                   'Rejeitado'}
+                  {localUser.status === 'approved'
+                    ? 'Aprovado'
+                    : localUser.status === 'pending'
+                      ? 'Pendente'
+                      : 'Rejeitado'}
                 </Badge>
 
                 {/* Badge de autorização de discipulado - apenas para interessados com solicitação pendente */}
                 {localUser.role === 'interested' && hasPendingDiscipleRequest && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-300 cursor-pointer hover:bg-blue-200 transition-colors"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       onDiscipleRequest?.();
                     }}
@@ -588,7 +614,7 @@ export function UserCardResponsive({
             </div>
           </div>
         </div>
-        
+
         {/* Informações detalhadas - Mobile: coluna única, Desktop: mantém layout */}
         <div className="mt-2 space-y-1.5 sm:space-y-1 text-xs sm:text-sm text-muted-foreground">
           {/* Usuário para primeiro acesso */}
@@ -598,7 +624,7 @@ export function UserCardResponsive({
               <strong>{generateFirstAccessUsername(localUser.name)}</strong>
             </span>
           </div>
-          
+
           {/* Gerenciador de Discipuladores - Apenas para usuários interessados */}
           {localUser.role === 'interested' && (
             <div className="mt-1 flex items-center justify-start">
@@ -610,24 +636,27 @@ export function UserCardResponsive({
               />
             </div>
           )}
-          
-          
+
           {/* Informações de contato */}
           <div className="space-y-1">
             {localUser.phone && (
               <div className="flex items-center gap-1">
                 <Phone className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate" data-testid={`text-phone-${localUser.id}`}>{localUser.phone}</span>
+                <span className="truncate" data-testid={`text-phone-${localUser.id}`}>
+                  {localUser.phone}
+                </span>
               </div>
             )}
-            
+
             {localUser.church && (
               <div className="flex items-center gap-1">
                 <MapPin className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate" data-testid={`text-church-${localUser.id}`}>{localUser.church}</span>
+                <span className="truncate" data-testid={`text-church-${localUser.id}`}>
+                  {localUser.church}
+                </span>
               </div>
             )}
-            
+
             {localUser.address && (
               <div className="flex items-start gap-1">
                 <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
@@ -642,7 +671,7 @@ export function UserCardResponsive({
               </div>
             )}
           </div>
-          
+
           {/* Situação do Amigo - Apenas para usuários amigos */}
           {localUser.role === 'interested' && (
             <div className="flex items-center gap-2">
@@ -653,14 +682,14 @@ export function UserCardResponsive({
                     role="combobox"
                     aria-expanded={openSituationPopover}
                     className="w-[200px] justify-between text-xs h-7"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       setOpenSituationPopover(!openSituationPopover);
                     }}
                   >
                     {selectedSituation
-                      ? situations.find((situation) => situation.value === selectedSituation)?.label
-                      : "Selecionar situação..."}
+                      ? situations.find(situation => situation.value === selectedSituation)?.label
+                      : 'Selecionar situação...'}
                     <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -677,8 +706,8 @@ export function UserCardResponsive({
                     </Button>
                   </div>
                   <Command>
-                    <CommandInput 
-                      placeholder="Buscar situação..." 
+                    <CommandInput
+                      placeholder="Buscar situação..."
                       className="h-8"
                       id="situation-search"
                       name="situation-search"
@@ -686,24 +715,26 @@ export function UserCardResponsive({
                     <CommandEmpty>Nenhuma situação encontrada.</CommandEmpty>
                     <CommandGroup>
                       <CommandList>
-                        {situations.map((situation) => (
+                        {situations.map(situation => (
                           <CommandItem
                             key={situation.value}
                             value={situation.value}
-                            onSelect={(currentValue) => {
+                            onSelect={currentValue => {
                               handleSituationChange(currentValue);
                             }}
                             className="text-xs"
                           >
                             <Check
                               className={cn(
-                                "mr-2 h-3 w-3",
-                                selectedSituation === situation.value ? "opacity-100" : "opacity-0"
+                                'mr-2 h-3 w-3',
+                                selectedSituation === situation.value ? 'opacity-100' : 'opacity-0'
                               )}
                             />
                             <div className="flex flex-col">
                               <span className="font-medium">{situation.label}</span>
-                              <span className="text-xs text-muted-foreground">{situation.description}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {situation.description}
+                              </span>
                             </div>
                           </CommandItem>
                         ))}
@@ -712,16 +743,16 @@ export function UserCardResponsive({
                   </Command>
                 </PopoverContent>
               </Popover>
-              
-              <Badge 
-                variant="outline" 
+
+              <Badge
+                variant="outline"
                 className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border-blue-300"
               >
                 {localUser.interestedSituation || 'Não definida'}
               </Badge>
             </div>
           )}
-          
+
           {/* Informações de Gamificação - Monte e Pontuação */}
           {true && (
             <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100">
@@ -731,14 +762,11 @@ export function UserCardResponsive({
                   {localUser.points || 0} pts
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-1">
-                <MountIcon 
-                  iconType={getLevelIcon(localUser.points || 0)} 
-                  className="h-3 w-3" 
-                />
-                <span 
-                  className="text-[10px] sm:text-xs font-medium" 
+                <MountIcon iconType={getLevelIcon(localUser.points || 0)} className="h-3 w-3" />
+                <span
+                  className="text-[10px] sm:text-xs font-medium"
                   title={getLevelName(localUser.points || 0)}
                 >
                   {getMountName(localUser.points || 0)}
@@ -754,7 +782,7 @@ export function UserCardResponsive({
                 <Heart className="h-3 w-3 text-pink-500" />
                 <span className="text-[10px] sm:text-xs font-medium">Check-in Espiritual:</span>
               </div>
-              
+
               {userSpiritual && userSpiritual.checkIns && userSpiritual.checkIns.length > 0 ? (
                 <div className="flex items-center gap-1">
                   {(() => {
@@ -763,14 +791,18 @@ export function UserCardResponsive({
                     return (
                       <>
                         <span className="text-sm sm:text-lg">{spiritualLevel.emoji}</span>
-                        <Badge className={`${spiritualLevel.color} text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5`}>
+                        <Badge
+                          className={`${spiritualLevel.color} text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5`}
+                        >
                           {spiritualLevel.label}
                         </Badge>
-                        
+
                         {latestCheckIn.notes && (
                           <div className="flex items-center gap-1 ml-1 sm:ml-2">
                             <MessageCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500" />
-                            <span className="text-[10px] sm:text-xs text-blue-600">Com observações</span>
+                            <span className="text-[10px] sm:text-xs text-blue-600">
+                              Com observações
+                            </span>
                           </div>
                         )}
                       </>
@@ -784,7 +816,7 @@ export function UserCardResponsive({
               )}
             </div>
           )}
-          
+
           {/* Informações de visita */}
           {isVisited() && (
             <div className="mt-1.5 flex items-center gap-2 text-[10px] sm:text-xs">
@@ -793,7 +825,10 @@ export function UserCardResponsive({
                 <span>Visitado</span>
               </div>
               {getVisitCount() > 1 && (
-                <Badge variant="secondary" className="text-[10px] sm:text-xs px-1 py-0 bg-green-100 text-green-700">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] sm:text-xs px-1 py-0 bg-green-100 text-green-700"
+                >
                   {getVisitCount()} visitas
                 </Badge>
               )}
@@ -806,7 +841,7 @@ export function UserCardResponsive({
           )}
         </div>
       </CardContent>
-      
+
       {/* Modal para marcar visita */}
       <MarkVisitModal
         isOpen={showMarkVisitModal}
@@ -820,49 +855,44 @@ export function UserCardResponsive({
 
       {/* Modal para visualizar foto */}
       <Dialog open={showPhotoPreview} onOpenChange={setIsPhotoPreviewOpen}>
-        <DialogContent 
-          className="max-w-md w-[90vw]"
-          style={{ maxHeight: 'calc(100vh - 7rem)' }}
-        >
+        <DialogContent className="max-w-md w-[90vw]" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
           <DialogHeader>
             <DialogTitle>Foto de Perfil</DialogTitle>
-            <DialogDescription>
-              Foto de perfil de {localUser.name}
-            </DialogDescription>
+            <DialogDescription>Foto de perfil de {localUser.name}</DialogDescription>
           </DialogHeader>
-          
+
           {getPhotoUrl() ? (
             <div className="flex justify-center">
-              <img 
-                src={getPhotoUrl()} 
+              <img
+                src={getPhotoUrl()}
                 alt={localUser.name}
                 className="max-w-full max-h-96 object-contain rounded-lg"
               />
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">Este usuário ainda não possui foto de perfil.</div>
+            <div className="text-sm text-muted-foreground">
+              Este usuário ainda não possui foto de perfil.
+            </div>
           )}
         </DialogContent>
       </Dialog>
 
       {/* Modal para histórico de visitas */}
       <Dialog open={showVisitHistory} onOpenChange={setShowVisitHistory}>
-        <DialogContent 
-          className="max-w-md w-[90vw]"
-          style={{ maxHeight: 'calc(100vh - 7rem)' }}
-        >
+        <DialogContent className="max-w-md w-[90vw]" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
           <DialogHeader>
             <DialogTitle>Histórico de Visitas</DialogTitle>
-            <DialogDescription>
-              Histórico de visitas para {localUser.name}
-            </DialogDescription>
+            <DialogDescription>Histórico de visitas para {localUser.name}</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {visitHistory.length > 0 ? (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {visitHistory.map((visit, index) => (
-                  <div key={visit.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div
+                    key={visit.id || index}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg border dark:border-slate-700"
+                  >
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <span className="text-sm font-medium">
