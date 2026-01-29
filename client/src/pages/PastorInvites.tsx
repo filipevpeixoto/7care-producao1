@@ -96,7 +96,7 @@ export default function PastorInvites() {
       });
 
       // Copiar link para clipboard
-      const inviteLink = `${window.location.origin}/onboarding/${data.token}`;
+      const inviteLink = `${window.location.origin}/pastor-onboarding/${data.token}`;
       navigator.clipboard.writeText(inviteLink);
 
       setIsCreateDialogOpen(false);
@@ -199,7 +199,7 @@ export default function PastorInvites() {
   };
 
   const copyInviteLink = (token: string) => {
-    const inviteLink = `${window.location.origin}/onboarding/${token}`;
+    const inviteLink = `${window.location.origin}/pastor-onboarding/${token}`;
     navigator.clipboard.writeText(inviteLink);
     toast({
       title: 'Link copiado',
