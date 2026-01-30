@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: 7care-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install --legacy-peer-deps
+    startCommand: npm run dev
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://7careapp-2026.netlify.app,http://localhost:5173,http://localhost:3065
