@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "npx vite build",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist-server/index.js --packages=external",
+    "start:server": "NODE_ENV=production node dist-server/index.js",
     "build:full": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
@@ -142,6 +144,7 @@
     "react-router-dom": "^7.7.1",
     "recharts": "^2.15.2",
     "redis": "^5.10.0",
+    "resend": "^6.9.1",
     "sonner": "^2.0.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
