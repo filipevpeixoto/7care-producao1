@@ -1,11 +1,12 @@
 /**
  * Step 4: Importação de Planilha Excel
  * Upload e preview de membros existentes
+ * Design elegante e moderno
+ * Processamento de Excel feito no cliente para compatibilidade com Netlify Functions
  */
 
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Table,
@@ -15,18 +16,30 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Upload, FileSpreadsheet, X, AlertCircle, CheckCircle, Users } from 'lucide-react';
+import {
+  Upload,
+  FileSpreadsheet,
+  X,
+  AlertCircle,
+  CheckCircle,
+  Users,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  SkipForward,
+} from 'lucide-react';
 import { ExcelData, ExcelRow } from '@/types/pastor-invite';
+import { readExcelFile } from '@/lib/excel';
 
 interface Step4ExcelImportProps {
   data?: ExcelData;
   onUpdate: (data: ExcelData | undefined) => void;
   onNext: () => void;
   onBack: () => void;
-  token: string;
+  token?: string; // Mantido para compatibilidade, mas não é mais usado
 }
 
-export function Step4ExcelImport({ data, onUpdate, onNext, onBack, token }: Step4ExcelImportProps) {
+export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelImportProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<ExcelRow[]>(data?.data || []);
@@ -58,29 +71,40 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack, token }: Step
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // Processar Excel localmente no navegador
+      const result = await readExcelFile(file);
 
-      const response = await fetch(`/api/invites/${token}/upload-excel`, {
-        method: 'POST',
-        body: formData,
-      });
+      // Converter dados para formato ExcelRow
+      const formattedData: ExcelRow[] = result.data
+        .map(row => ({
+          nome: String(row.nome || row.Nome || row.name || '').trim(),
+          igreja: String(row.igreja || row.Igreja || row.church || '').trim(),
+          telefone:
+            row.telefone || row.Telefone || row.phone
+              ? String(row.telefone || row.Telefone || row.phone).trim()
+              : undefined,
+          email: row.email || row.Email ? String(row.email || row.Email).trim() : undefined,
+          cargo:
+            row.cargo || row.Cargo || row.role
+              ? String(row.cargo || row.Cargo || row.role).trim()
+              : undefined,
+        }))
+        .filter(row => row.nome && row.igreja); // Filtrar linhas sem dados obrigatórios
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao processar planilha');
+      if (formattedData.length === 0) {
+        throw new Error(
+          'Nenhum dado válido encontrado no arquivo. Verifique se há colunas "Nome" e "Igreja".'
+        );
       }
-
-      const result = await response.json();
 
       const excelData: ExcelData = {
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
-        totalRows: result.data.length,
-        data: result.data,
+        totalRows: formattedData.length,
+        data: formattedData,
       };
 
-      setPreviewData(result.data);
+      setPreviewData(formattedData);
       onUpdate(excelData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao processar planilha');
@@ -108,19 +132,25 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack, token }: Step
   );
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Importar Membros</h2>
-        <p className="text-gray-600 mt-2">
-          Você pode importar uma planilha com os membros existentes do seu distrito. Este passo é
-          opcional.
+    <div className="p-8 md:p-10">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
+          <Sparkles className="w-4 h-4 text-blue-500" />
+          <span className="text-sm font-medium text-blue-700">Passo 4 de 6</span>
+        </div>
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          Importar Membros
+        </h2>
+        <p className="text-gray-500 mt-3 text-lg">
+          Importe uma planilha com os membros existentes. Este passo é opcional.
         </p>
       </div>
 
       {/* Área de Upload */}
       {previewData.length === 0 ? (
-        <Card className="border-2 border-dashed border-gray-300 hover:border-primary transition-colors">
-          <CardContent className="p-8">
+        <div className="border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-400 transition-all bg-gradient-to-br from-gray-50 to-white">
+          <div className="p-10">
             <div className="flex flex-col items-center justify-center text-center">
               <input
                 ref={fileInputRef}
@@ -131,89 +161,97 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack, token }: Step
                 id="excel-upload"
               />
 
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <FileSpreadsheet className="w-8 h-8 text-primary" />
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mb-6 shadow-lg">
+                <FileSpreadsheet className="w-10 h-10 text-blue-500" />
               </div>
 
-              <h3 className="text-lg font-semibold mb-2">Arraste sua planilha aqui</h3>
-              <p className="text-gray-500 text-sm mb-4">ou</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                Arraste sua planilha aqui
+              </h3>
+              <p className="text-gray-400 text-sm mb-6">ou</p>
 
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="mb-4"
+                className="h-12 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all"
               >
-                <Upload className="w-4 h-4 mr-2" />
+                <Upload className="w-5 h-5 mr-2" />
                 {isUploading ? 'Processando...' : 'Selecionar Arquivo'}
               </Button>
 
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 mt-4">
                 Formatos aceitos: Excel (.xlsx, .xls) ou CSV. Máximo 5MB.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
         /* Preview da Planilha */
-        <Card>
-          <CardHeader>
+        <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
+                  <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{data?.fileName}</CardTitle>
-                  <CardDescription>
+                  <h3 className="text-lg font-semibold text-gray-900">{data?.fileName}</h3>
+                  <p className="text-sm text-gray-500">
                     {previewData.length} membros • {uniqueChurches.size} igrejas encontradas
-                  </CardDescription>
+                  </p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleRemoveFile}>
-                <X className="w-4 h-4" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveFile}
+                className="rounded-xl hover:bg-red-50 hover:text-red-600"
+              >
+                <X className="w-5 h-5" />
               </Button>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+
+          <div className="p-6">
             {/* Resumo */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-center gap-2 text-blue-700 mb-1">
-                  <Users className="w-4 h-4" />
-                  <span className="font-medium">Total de Membros</span>
+              <div className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl">
+                <div className="flex items-center gap-2 text-blue-700 mb-2">
+                  <Users className="w-5 h-5" />
+                  <span className="font-semibold">Total de Membros</span>
                 </div>
-                <p className="text-2xl font-bold text-blue-900">{previewData.length}</p>
+                <p className="text-3xl font-bold text-blue-900">{previewData.length}</p>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <div className="flex items-center gap-2 text-purple-700 mb-1">
-                  <FileSpreadsheet className="w-4 h-4" />
-                  <span className="font-medium">Igrejas Únicas</span>
+              <div className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl">
+                <div className="flex items-center gap-2 text-purple-700 mb-2">
+                  <FileSpreadsheet className="w-5 h-5" />
+                  <span className="font-semibold">Igrejas Únicas</span>
                 </div>
-                <p className="text-2xl font-bold text-purple-900">{uniqueChurches.size}</p>
+                <p className="text-3xl font-bold text-purple-900">{uniqueChurches.size}</p>
               </div>
             </div>
 
             {/* Tabela de Preview */}
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
               <div className="max-h-64 overflow-y-auto">
                 <Table>
                   <TableHeader className="sticky top-0 bg-gray-50">
                     <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Igreja</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Cargo</TableHead>
+                      <TableHead className="w-12 font-semibold">#</TableHead>
+                      <TableHead className="font-semibold">Nome</TableHead>
+                      <TableHead className="font-semibold">Igreja</TableHead>
+                      <TableHead className="font-semibold">Telefone</TableHead>
+                      <TableHead className="font-semibold">Cargo</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {previewData.slice(0, 10).map((row, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="text-gray-500">{index + 1}</TableCell>
-                        <TableCell className="font-medium">{row.nome}</TableCell>
-                        <TableCell>{row.igreja}</TableCell>
-                        <TableCell>{row.telefone || '-'}</TableCell>
-                        <TableCell>{row.cargo || '-'}</TableCell>
+                      <TableRow key={index} className="hover:bg-blue-50/50">
+                        <TableCell className="text-gray-400 font-medium">{index + 1}</TableCell>
+                        <TableCell className="font-medium text-gray-900">{row.nome}</TableCell>
+                        <TableCell className="text-gray-600">{row.igreja}</TableCell>
+                        <TableCell className="text-gray-600">{row.telefone || '-'}</TableCell>
+                        <TableCell className="text-gray-600">{row.cargo || '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -225,55 +263,71 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack, token }: Step
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Mensagem de Erro */}
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="destructive" className="mt-6 rounded-xl">
+          <AlertCircle className="h-5 w-5" />
+          <AlertDescription className="ml-2">{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Instrução sobre formato */}
-      <Card className="bg-gray-50">
-        <CardContent className="p-4">
-          <h4 className="font-medium text-sm mb-2">Formato esperado da planilha:</h4>
-          <p className="text-xs text-gray-600 mb-2">
-            A primeira linha deve conter os cabeçalhos. Colunas esperadas:
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-            <div className="bg-white px-2 py-1 rounded border">
-              <span className="font-medium text-red-600">*</span> Nome
-            </div>
-            <div className="bg-white px-2 py-1 rounded border">
-              <span className="font-medium text-red-600">*</span> Igreja
-            </div>
-            <div className="bg-white px-2 py-1 rounded border">Telefone</div>
-            <div className="bg-white px-2 py-1 rounded border">Email</div>
-            <div className="bg-white px-2 py-1 rounded border">Cargo</div>
+      <div className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-2xl p-6 mt-6">
+        <h4 className="font-semibold text-gray-800 mb-3">📋 Formato esperado da planilha:</h4>
+        <p className="text-sm text-gray-600 mb-3">
+          A primeira linha deve conter os cabeçalhos. Colunas esperadas:
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
+          <div className="bg-white px-3 py-2 rounded-xl border border-gray-200 font-medium">
+            <span className="text-red-500">*</span> Nome
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            <span className="text-red-600">*</span> Campos obrigatórios
-          </p>
-        </CardContent>
-      </Card>
+          <div className="bg-white px-3 py-2 rounded-xl border border-gray-200 font-medium">
+            <span className="text-red-500">*</span> Igreja
+          </div>
+          <div className="bg-white px-3 py-2 rounded-xl border border-gray-200">Telefone</div>
+          <div className="bg-white px-3 py-2 rounded-xl border border-gray-200">Email</div>
+          <div className="bg-white px-3 py-2 rounded-xl border border-gray-200">Cargo</div>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">
+          <span className="text-red-500">*</span> Campos obrigatórios
+        </p>
+      </div>
 
-      {/* Botões de Navegação */}
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onBack}>
+      {/* Actions */}
+      <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          size="lg"
+          className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Voltar
         </Button>
         <div className="flex gap-3">
           {previewData.length === 0 && (
-            <Button variant="ghost" onClick={handleSkip}>
-              Pular este passo
+            <Button
+              variant="ghost"
+              onClick={handleSkip}
+              size="lg"
+              className="h-14 px-6 text-lg rounded-xl hover:bg-gray-100"
+            >
+              <SkipForward className="w-5 h-5 mr-2" />
+              Pular
             </Button>
           )}
-          <Button onClick={onNext} disabled={isUploading}>
+          <Button
+            onClick={onNext}
+            disabled={isUploading}
+            size="lg"
+            className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+          >
             {previewData.length > 0 ? 'Continuar' : 'Próximo'}
+            <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
       </div>

@@ -16586,6 +16586,153 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // POST /api/invites/:token/validate-churches - Validar correspondência de igrejas
+    if (path.match(/^\/api\/invites\/[a-f0-9]+\/validate-churches$/) && method === 'POST') {
+      try {
+        const token = path.split('/')[3];
+        const parsedBody = JSON.parse(body || '{}');
+        const { excelData } = parsedBody;
+
+        // Validar token
+        const invites = await sql`
+          SELECT * FROM pastor_invites
+          WHERE token = ${token}
+          LIMIT 1
+        `;
+
+        if (invites.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Convite não encontrado' })
+          };
+        }
+
+        const invite = invites[0];
+
+        if (invite.status !== 'pending') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Convite inválido' })
+          };
+        }
+
+        if (!excelData || !excelData.data || excelData.data.length === 0) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Dados de Excel não fornecidos' })
+          };
+        }
+
+        // Extrair igrejas únicas do Excel e contar membros
+        const churchMemberCount = {};
+        excelData.data.forEach(row => {
+          const churchName = (row.igreja || '').trim().toLowerCase();
+          if (churchName) {
+            churchMemberCount[churchName] = (churchMemberCount[churchName] || 0) + 1;
+          }
+        });
+
+        const excelChurchNames = Object.keys(churchMemberCount);
+
+        // Buscar igrejas cadastradas no sistema
+        const registeredChurches = await sql`
+          SELECT id, name FROM churches
+        `;
+
+        // Função para calcular similaridade (Levenshtein simplificado)
+        const calculateSimilarity = (str1, str2) => {
+          const s1 = str1.toLowerCase();
+          const s2 = str2.toLowerCase();
+          if (s1 === s2) return 1;
+
+          const longer = s1.length > s2.length ? s1 : s2;
+          const shorter = s1.length > s2.length ? s2 : s1;
+
+          if (longer.length === 0) return 1;
+
+          // Similaridade baseada em substring comum
+          if (longer.includes(shorter) || shorter.includes(longer)) {
+            return shorter.length / longer.length;
+          }
+
+          // Similaridade simples baseada em caracteres comuns
+          let matches = 0;
+          const chars1 = s1.split('');
+          const chars2 = s2.split('');
+          chars1.forEach(c => {
+            const idx = chars2.indexOf(c);
+            if (idx !== -1) {
+              matches++;
+              chars2.splice(idx, 1);
+            }
+          });
+
+          return matches / Math.max(s1.length, s2.length);
+        };
+
+        // Validar cada igreja
+        const validations = excelChurchNames.map(excelChurch => {
+          const originalName = excelData.data.find(row =>
+            (row.igreja || '').trim().toLowerCase() === excelChurch
+          )?.igreja || excelChurch;
+
+          const memberCount = churchMemberCount[excelChurch];
+
+          // Buscar correspondência exata
+          const exactMatch = registeredChurches.find(c =>
+            c.name.toLowerCase() === excelChurch
+          );
+
+          if (exactMatch) {
+            return {
+              churchName: originalName,
+              status: 'exact_match',
+              matchedChurchId: exactMatch.id,
+              memberCount,
+              suggestions: []
+            };
+          }
+
+          // Buscar similares (> 60% similaridade)
+          const suggestions = registeredChurches
+            .map(c => ({
+              id: c.id,
+              name: c.name,
+              similarity: calculateSimilarity(excelChurch, c.name)
+            }))
+            .filter(s => s.similarity > 0.6)
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 3);
+
+          return {
+            churchName: originalName,
+            status: suggestions.length > 0 ? 'similar_found' : 'not_found',
+            matchedChurchId: null,
+            memberCount,
+            suggestions
+          };
+        });
+
+        console.log(`Validação de igrejas para convite ${token}: ${validations.length} igrejas`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ validations })
+        };
+      } catch (error) {
+        console.error('Erro ao validar igrejas:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao validar igrejas' })
+        };
+      }
+    }
+
     // POST /api/invites/:id/approve - Aprovar convite (Superadmin)
     if (path.match(/^\/api\/invites\/\d+\/approve$/) && method === 'POST') {
       try {
