@@ -79,9 +79,27 @@ export async function readExcelFile(
       }
     }
 
+    // Filtrar linhas inválidas (lixo de metadados, linhas com apenas texto descritivo)
+    const validRows = rows.filter(row => {
+      // Ignorar linhas onde todos os valores contêm quebras de linha (metadados de filtros)
+      const hasNewlines = Object.values(row).every(
+        val => val && typeof val === 'string' && val.includes('\n')
+      );
+      if (hasNewlines) return false;
+
+      // Verificar se tem pelo menos um campo principal com dados válidos
+      const mainFields = ['nome', 'Nome', 'name', 'N'];
+      const hasMainField = mainFields.some(field => {
+        const value = row[field];
+        return value && typeof value === 'string' && value.trim().length > 0;
+      });
+
+      return hasMainField;
+    });
+
     return {
       headers,
-      rows,
+      rows: validRows,
       sheetName: worksheet.name,
     };
   } catch (error) {

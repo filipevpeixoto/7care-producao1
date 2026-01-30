@@ -7,11 +7,13 @@ import { Express, Response } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { eq, and, desc } from 'drizzle-orm';
+import multer from 'multer';
 import { db } from '../neonConfig';
 import { pastorInvites, users, districts, churches } from '../schema';
 import { requireAuth } from '../middleware';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
+import { readExcelFile, cleanupTempFile } from '../utils/excelUtils';
 import {
   CreateInviteDTO,
   SubmitOnboardingDTO,
@@ -21,10 +23,11 @@ import {
   CreateInviteResponse,
   ValidateTokenResponse,
   ApproveInviteResponse,
-  ExcelUploadResponse,
   ChurchValidation,
 } from '../types/pastor-invite.types';
-import { extractChurchesFromExcel } from '../utils/church-validation';
+import { extractChurchesFromExcel, validateExcelChurches } from '../utils/church-validation';
+
+const upload = multer({ dest: 'uploads/' });
 
 export const inviteRoutes = (app: Express): void => {
   /**
@@ -186,10 +189,101 @@ export const inviteRoutes = (app: Express): void => {
    */
   app.post(
     '/api/invites/:token/upload-excel',
+    upload.single('file'),
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const { token } = req.params;
-        const { excelData }: { excelData: ExcelRow[] } = req.body;
+
+        // Validar arquivo
+        if (!req.file) {
+          res.status(400).json({ error: 'Nenhum arquivo enviado' });
+          return;
+        }
+
+        // Validar token
+        const invites = await db
+          .select()
+          .from(pastorInvites)
+          .where(eq(pastorInvites.token, token))
+          .limit(1);
+
+        const invite = invites[0];
+
+        if (!invite || invite.status !== 'pending') {
+          cleanupTempFile(req.file.path);
+          res.status(400).json({ error: 'Convite inválido' });
+          return;
+        }
+
+        // Validar extensão do arquivo
+        if (
+          !req.file.originalname.endsWith('.xlsx') &&
+          !req.file.originalname.endsWith('.xls') &&
+          !req.file.originalname.endsWith('.csv')
+        ) {
+          cleanupTempFile(req.file.path);
+          res.status(400).json({ error: 'Apenas arquivos Excel (.xlsx, .xls) ou CSV são aceitos' });
+          return;
+        }
+
+        // Processar arquivo Excel
+        const { rows: excelData } = await readExcelFile(req.file.path);
+
+        if (!excelData || excelData.length === 0) {
+          cleanupTempFile(req.file.path);
+          res.status(400).json({ error: 'Nenhum dado encontrado no arquivo' });
+          return;
+        }
+
+        // Converter dados do Excel para formato esperado
+        const formattedData: ExcelRow[] = excelData.map(row => ({
+          nome: String(row.nome || row.Nome || row.name || '').trim(),
+          igreja: String(row.igreja || row.Igreja || row.church || '').trim(),
+          telefone:
+            row.telefone || row.Telefone || row.phone
+              ? String(row.telefone || row.Telefone || row.phone).trim()
+              : undefined,
+          email: row.email || row.Email ? String(row.email || row.Email).trim() : undefined,
+          cargo:
+            row.cargo || row.Cargo || row.role
+              ? String(row.cargo || row.Cargo || row.role).trim()
+              : undefined,
+        }));
+
+        // Extrair igrejas e contar membros
+        const { churches: uniqueChurches } = extractChurchesFromExcel(formattedData);
+
+        const response = {
+          fileName: req.file.originalname,
+          totalRows: formattedData.length,
+          data: formattedData,
+          churches: uniqueChurches,
+        };
+
+        // Limpar arquivo temporário
+        cleanupTempFile(req.file.path);
+
+        res.json(response);
+      } catch (error) {
+        // Limpar arquivo em caso de erro
+        if ((req as any).file?.path) {
+          cleanupTempFile((req as any).file.path);
+        }
+        logger.error('Erro ao processar Excel:', error);
+        res.status(500).json({ error: 'Erro ao processar arquivo Excel' });
+      }
+    }
+  );
+
+  /**
+   * POST /api/invites/:token/validate-churches - Validar correspondência de igrejas
+   */
+  app.post(
+    '/api/invites/:token/validate-churches',
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const { token } = req.params;
+        const { excelData }: { excelData: { data: ExcelRow[] } } = req.body;
 
         // Validar token
         const invites = await db
@@ -205,23 +299,37 @@ export const inviteRoutes = (app: Express): void => {
           return;
         }
 
-        // Extrair igrejas e contar membros
-        const { churches: uniqueChurches } = extractChurchesFromExcel(excelData);
+        if (!excelData || !excelData.data || excelData.data.length === 0) {
+          res.status(400).json({ error: 'Dados de Excel não fornecidos' });
+          return;
+        }
 
-        // Preview: primeiras 10 linhas
-        const preview = excelData.slice(0, 10);
+        // Extrair igrejas únicas e contar membros
+        const { churches: excelChurchNames, memberCount } = extractChurchesFromExcel(
+          excelData.data
+        );
 
-        const response: ExcelUploadResponse = {
-          fileName: 'membros.xlsx',
-          totalRows: excelData.length,
-          preview,
-          churches: uniqueChurches,
-        };
+        // Buscar igrejas cadastradas no sistema
+        const registeredChurches = await db
+          .select({
+            id: churches.id,
+            name: churches.name,
+          })
+          .from(churches);
 
-        res.json(response);
+        // Validar cada igreja da Excel contra igrejas cadastradas
+        const validations = validateExcelChurches(
+          excelChurchNames,
+          registeredChurches,
+          memberCount
+        );
+
+        logger.info(`Validação de igrejas para convite ${token}: ${validations.length} igrejas`);
+
+        res.json({ validations });
       } catch (error) {
-        logger.error('Erro ao processar Excel:', error);
-        res.status(500).json({ error: 'Erro ao processar arquivo Excel' });
+        logger.error('Erro ao validar igrejas:', error);
+        res.status(500).json({ error: 'Erro ao validar igrejas' });
       }
     }
   );
