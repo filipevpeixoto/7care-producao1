@@ -133,15 +133,23 @@ export function useOnboardingWizard(token: string) {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const response = await fetch(`/api/invites/${token}/submit`, {
+        // Transformar dados do frontend para o formato da API
+        const apiPayload = {
+          name: state.data.personal?.name || '',
+          phone: state.data.personal?.phone || '',
+          password,
+          churches: state.data.churches || [],
+          district: state.data.district,
+          excelData: state.data.excelData,
+          churchValidation: state.data.churchValidation,
+        };
+
+        const response = await fetch(`/api/invites/onboarding/${token}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            ...state.data,
-            password,
-          }),
+          body: JSON.stringify(apiPayload),
         });
 
         if (!response.ok) {
