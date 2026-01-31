@@ -338,7 +338,7 @@ describe('MonitoringService', () => {
         },
       };
 
-      trace.endTime = Date.now() + 50;
+      trace.endTime = trace.startTime + 50;
       trace.duration = trace.endTime - trace.startTime;
 
       expect(trace.traceId).toBeDefined();
