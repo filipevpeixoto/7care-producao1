@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from 'express';
 import { logger } from '../../utils/logger';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { sendSuccess, sendCreated } from '../../utils/apiResponse';
 
 const electionLogger = logger;
 
@@ -27,16 +29,14 @@ const router = Router();
  *       200:
  *         description: Lista de candidatos
  */
-router.get('/:electionId', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/:electionId',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Listando candidatos', { electionId });
-    res.json({ candidates: [], electionId });
-  } catch (error) {
-    electionLogger.error('Erro ao listar candidatos', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { candidates: [], electionId });
+  })
+);
 
 /**
  * @swagger
@@ -45,16 +45,14 @@ router.get('/:electionId', async (req: Request, res: Response) => {
  *     summary: Adiciona candidato à eleição
  *     tags: [Election Candidates]
  */
-router.post('/:electionId', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/:electionId',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Adicionando candidato', { electionId, body: req.body });
-    res.status(201).json({ message: 'Candidato adicionado' });
-  } catch (error) {
-    electionLogger.error('Erro ao adicionar candidato', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendCreated(res, { message: 'Candidato adicionado' });
+  })
+);
 
 /**
  * @swagger
@@ -63,16 +61,14 @@ router.post('/:electionId', async (req: Request, res: Response) => {
  *     summary: Remove candidato da eleição
  *     tags: [Election Candidates]
  */
-router.delete('/:electionId/:candidateId', async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/:electionId/:candidateId',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId, candidateId } = req.params;
     electionLogger.info('Removendo candidato', { electionId, candidateId });
-    res.json({ message: 'Candidato removido' });
-  } catch (error) {
-    electionLogger.error('Erro ao remover candidato', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: 'Candidato removido' });
+  })
+);
 
 export { router as candidateRoutes };
 export default router;

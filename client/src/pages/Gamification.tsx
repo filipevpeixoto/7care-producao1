@@ -94,7 +94,7 @@ export default function Gamification() {
           {/* Meu Progresso */}
           <TabsContent value="my-progress" className="space-y-6">
             {/* Resumo Atual */}
-            <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+            <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 dark:from-purple-900/30 dark:to-blue-900/30 dark:border-purple-600/50">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Mountain className="h-5 w-5 text-purple-600" />
@@ -133,9 +133,9 @@ export default function Gamification() {
                 )}
 
                 {total >= 1000 && (
-                  <div className="flex items-center justify-center gap-2 mt-3 p-2 bg-yellow-50 rounded-lg">
-                    <Crown className="h-4 w-4 text-yellow-600" />
-                    <span className="text-xs font-medium text-yellow-700">
+                  <div className="flex items-center justify-center gap-2 mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                    <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                    <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
                       Status Máximo Alcançado!
                     </span>
                   </div>
@@ -158,16 +158,16 @@ export default function Gamification() {
         open={isIconModalOpen}
         onOpenChange={setIsIconModalOpen}
       >
-        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200">
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 dark:from-amber-900/30 dark:to-yellow-900/30 dark:border-amber-600/50">
           <DialogHeader className="pb-6">
-            <DialogTitle className="text-center text-3xl font-bold text-amber-800">
+            <DialogTitle className="text-center text-3xl font-bold text-amber-800 dark:text-amber-300">
               {getMountName(total)} - Detalhes da Conquista
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col lg:flex-row items-center lg:items-start space-y-8 lg:space-y-0 lg:space-x-12 p-8">
             {/* Ícone */}
             <div className="flex-shrink-0">
-              <div className="w-80 h-80 lg:w-96 lg:h-96 flex items-center justify-center bg-white rounded-2xl shadow-lg p-8">
+              <div className="w-80 h-80 lg:w-96 lg:h-96 flex items-center justify-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
                 <MountIcon iconType={getLevelIcon(total)} className="w-full h-full" />
               </div>
             </div>
@@ -178,33 +178,47 @@ export default function Gamification() {
                 <div className={`${getLevelColor(total)} text-4xl font-bold`}>
                   {getMountName(total)}
                 </div>
-                <div className="text-2xl text-amber-700 font-medium">{currentLevel.name}</div>
+                <div className="text-2xl text-amber-700 dark:text-amber-300 font-medium">
+                  {currentLevel.name}
+                </div>
               </div>
 
               {/* Descrição bíblica */}
-              <div className="bg-white/70 rounded-xl p-6 shadow-md">
-                <h3 className="text-xl font-bold text-amber-800 mb-3">Significado Bíblico</h3>
-                <p className="text-amber-900 leading-relaxed text-lg">{currentLevel.description}</p>
+              <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-6 shadow-md">
+                <h3 className="text-xl font-bold text-amber-800 dark:text-amber-300 mb-3">
+                  Significado Bíblico
+                </h3>
+                <p className="text-amber-900 dark:text-amber-200 leading-relaxed text-lg">
+                  {currentLevel.description}
+                </p>
               </div>
 
               {/* Estatísticas */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white/70 rounded-lg p-4 shadow-md">
-                  <div className="text-sm font-medium text-amber-700 mb-1">Pontos Atuais</div>
-                  <div className="text-2xl font-bold text-amber-800">{total}</div>
+                <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
+                  <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    Pontos Atuais
+                  </div>
+                  <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
+                    {total}
+                  </div>
                 </div>
 
-                <div className="bg-white/70 rounded-lg p-4 shadow-md">
-                  <div className="text-sm font-medium text-amber-700 mb-1">Próximo Nível</div>
-                  <div className="text-lg font-semibold text-amber-800">
+                <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
+                  <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    Próximo Nível
+                  </div>
+                  <div className="text-lg font-semibold text-amber-800 dark:text-amber-200">
                     {getNextLevel(total)?.name || 'Máximo Alcançado'}
                   </div>
                 </div>
 
                 {getNextLevel(total) && (
-                  <div className="bg-white/70 rounded-lg p-4 shadow-md">
-                    <div className="text-sm font-medium text-amber-700 mb-1">Pontos Restantes</div>
-                    <div className="text-2xl font-bold text-amber-800">
+                  <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
+                    <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+                      Pontos Restantes
+                    </div>
+                    <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
                       {getPointsToNextLevel(total)}
                     </div>
                   </div>
@@ -212,13 +226,17 @@ export default function Gamification() {
               </div>
 
               {/* Benefícios */}
-              <div className="bg-white/70 rounded-xl p-6 shadow-md">
-                <h3 className="text-xl font-bold text-amber-800 mb-4">Conquistas Desbloqueadas</h3>
+              <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-6 shadow-md">
+                <h3 className="text-xl font-bold text-amber-800 dark:text-amber-300 mb-4">
+                  Conquistas Desbloqueadas
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {currentLevel.benefits.map((benefit, index) => (
                     <div key={index} className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-amber-600 rounded-full flex-shrink-0"></div>
-                      <span className="text-amber-900 font-medium">{benefit}</span>
+                      <div className="w-2 h-2 bg-amber-600 dark:bg-amber-400 rounded-full flex-shrink-0"></div>
+                      <span className="text-amber-900 dark:text-amber-200 font-medium">
+                        {benefit}
+                      </span>
                     </div>
                   ))}
                 </div>

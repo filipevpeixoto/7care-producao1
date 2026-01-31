@@ -90,14 +90,20 @@ export default function PastorInvites() {
     },
     onSuccess: data => {
       queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
+
+      // Mensagem baseada no status do email
+      const emailMessage = data.emailSent
+        ? `📧 Email de convite enviado automaticamente para ${newEmail}!`
+        : `⚠️ Email não enviado (copie o link e envie manualmente para ${newEmail}).`;
+
       toast({
-        title: 'Convite criado',
-        description: `O link de convite foi gerado. Copie e envie para ${newEmail}.`,
+        title: data.emailSent ? '✅ Convite criado e enviado!' : 'Convite criado',
+        description: emailMessage,
+        duration: 5000,
       });
 
       // Copiar link para clipboard
-      const inviteLink = `${window.location.origin}/pastor-onboarding/${data.token}`;
-      navigator.clipboard.writeText(inviteLink);
+      navigator.clipboard.writeText(data.link);
 
       setIsCreateDialogOpen(false);
       setNewEmail('');
@@ -211,28 +217,40 @@ export default function PastorInvites() {
     switch (status) {
       case 'pending':
         return (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300"
+          >
             <Clock className="w-3 h-3 mr-1" />
             Pendente
           </Badge>
         );
       case 'submitted':
         return (
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <Badge
+            variant="secondary"
+            className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300"
+          >
             <Send className="w-3 h-3 mr-1" />
             Enviado
           </Badge>
         );
       case 'approved':
         return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
+          <Badge
+            variant="secondary"
+            className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
+          >
             <CheckCircle className="w-3 h-3 mr-1" />
             Aprovado
           </Badge>
         );
       case 'rejected':
         return (
-          <Badge variant="secondary" className="bg-red-100 text-red-800">
+          <Badge
+            variant="secondary"
+            className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
+          >
             <XCircle className="w-3 h-3 mr-1" />
             Rejeitado
           </Badge>

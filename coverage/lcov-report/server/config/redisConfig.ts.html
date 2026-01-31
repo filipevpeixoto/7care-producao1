@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/82</span>
+                <span class='fraction'>0/78</span>
             </div>
         
             
@@ -434,9 +434,7 @@
 <a name='L369'></a><a href='#L369'>369</a>
 <a name='L370'></a><a href='#L370'>370</a>
 <a name='L371'></a><a href='#L371'>371</a>
-<a name='L372'></a><a href='#L372'>372</a>
-<a name='L373'></a><a href='#L373'>373</a>
-<a name='L374'></a><a href='#L374'>374</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L372'></a><a href='#L372'>372</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -620,7 +618,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -759,22 +756,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -940,15 +936,15 @@ interface RedisClient {
   private <span class="fstat-no" title="function not covered" >async </span>initRedis(config: RedisConfig): Promise&lt;void&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
       // Tentar importar ioredis dinamicamente
-       
+&nbsp;
       const Redis = <span class="cstat-no" title="statement not covered" >require('ioredis');</span>
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      if (!Redis) {</span>
 <span class="cstat-no" title="statement not covered" >        console.warn('⚠️ Redis: ioredis não instalado, usando fallback em memória');</span>
 <span class="cstat-no" title="statement not covered" >        this.startCleanup();</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
       }
-      
+&nbsp;
       const redis = <span class="cstat-no" title="statement not covered" >new Redis({</span>
         host: config.host,
         port: config.port,
@@ -981,7 +977,7 @@ interface RedisClient {
       });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await redis.connect();</span>
-      
+&nbsp;
       // Adapter para interface comum
 <span class="cstat-no" title="statement not covered" >      this.redisClient = {</span>
         connect: <span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >redis.connect(),</span>
@@ -992,7 +988,6 @@ interface RedisClient {
         get: <span class="fstat-no" title="function not covered" >(k</span>ey: string) =&gt; <span class="cstat-no" title="statement not covered" >redis.get(key),</span>
         del: <span class="fstat-no" title="function not covered" >(k</span>ey: string) =&gt; <span class="cstat-no" title="statement not covered" >redis.del(key).then(<span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >undefined)</span>,</span>
       };
-      
     } catch (error) {
       const err = <span class="cstat-no" title="statement not covered" >error as Error;</span>
 <span class="cstat-no" title="statement not covered" >      console.warn('⚠️ Redis: Falha na conexão, usando fallback:', err.message);</span>
@@ -1019,12 +1014,12 @@ interface RedisClient {
 <span class="cstat-no" title="statement not covered" >      try {</span>
         const count = <span class="cstat-no" title="statement not covered" >await this.redisClient.incr(prefixedKey);</span>
         let ttl = <span class="cstat-no" title="statement not covered" >await this.redisClient.ttl(prefixedKey);</span>
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        if (ttl === -1) {</span>
 <span class="cstat-no" title="statement not covered" >          await this.redisClient.pexpire(prefixedKey, windowMs);</span>
 <span class="cstat-no" title="statement not covered" >          ttl = Math.ceil(windowMs / 1000);</span>
         }
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        return { count, ttl };</span>
       } catch (err) {
 <span class="cstat-no" title="statement not covered" >        console.warn('⚠️ Redis increment error, usando fallback:', (err as Error).message);</span>
@@ -1034,11 +1029,11 @@ interface RedisClient {
     // Fallback para memória
     const count = <span class="cstat-no" title="statement not covered" >await this.inMemory.incr(prefixedKey);</span>
     const ttl = <span class="cstat-no" title="statement not covered" >await this.inMemory.ttl(prefixedKey);</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    if (count === 1) {</span>
 <span class="cstat-no" title="statement not covered" >      await this.inMemory.expire(prefixedKey, windowMs);</span>
     }
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return { count, ttl: ttl &gt; 0 ? ttl : Math.ceil(windowMs / 1000) };</span>
   }
 &nbsp;
@@ -1086,7 +1081,7 @@ interface RedisClient {
 <span class="fstat-no" title="function not covered" >  isUsingRedis(</span>): boolean {
 <span class="cstat-no" title="statement not covered" >    return this.isConnected;</span>
   }
-  
+&nbsp;
 <span class="fstat-no" title="function not covered" >  getStoreSize(</span>): number {
 <span class="cstat-no" title="statement not covered" >    return this.inMemory.size();</span>
   }
@@ -1115,7 +1110,10 @@ let globalStore: RateLimitStore | null = <span class="cstat-no" title="statement
 export interface RateLimitOptions {
   windowMs: number;
   max: number;
-  keyGenerator?: (req: { ip?: string; headers: Record&lt;string, string | string[] | undefined&gt; }) =&gt; string;
+  keyGenerator?: (req: {
+    ip?: string;
+    headers: Record&lt;string, string | string[] | undefined&gt;;
+  }) =&gt; string;
   message?: string;
   statusCode?: number;
   skipFailedRequests?: boolean;
@@ -1136,23 +1134,19 @@ interface RateLimitResponse {
   const {
     windowMs,
     max,
-    keyGenerator = <span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >(r</span>eq) =&gt; <span class="cstat-no" title="statement not covered" >req.ip || 'unknown',</span></span>
+    keyGenerator = <span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >req </span>=&gt; <span class="cstat-no" title="statement not covered" >req.ip || 'unknown',</span></span>
     message = <span class="branch-0 cbranch-no" title="branch not covered" >'Too many requests, please try again later.',</span>
     statusCode = <span class="branch-0 cbranch-no" title="branch not covered" >429,</span>
   } = <span class="cstat-no" title="statement not covered" >options;</span>
 &nbsp;
   const store = <span class="cstat-no" title="statement not covered" >getRateLimitStore();</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >async </span>(</span>
-    req: RateLimitRequest,
-    res: RateLimitResponse,
-    next: () =&gt; void
-  ): Promise&lt;void&gt; =&gt; {
+<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >async </span>(req: RateLimitRequest, res: RateLimitResponse, next: () =&gt; void): Promise&lt;void&gt; =&gt; {</span>
     const key = <span class="cstat-no" title="statement not covered" >keyGenerator(req);</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const { count, ttl } = <span class="cstat-no" title="statement not covered" >await store.increment(key, windowMs);</span>
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      res.setHeader('X-RateLimit-Limit', max);</span>
 <span class="cstat-no" title="statement not covered" >      res.setHeader('X-RateLimit-Remaining', Math.max(0, max - count));</span>
 <span class="cstat-no" title="statement not covered" >      res.setHeader('X-RateLimit-Reset', ttl);</span>
@@ -1189,7 +1183,7 @@ interface RateLimitResponse {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

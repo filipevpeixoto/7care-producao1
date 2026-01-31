@@ -23,19 +23,22 @@
  * ```
  */
 
-import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
 import { NeonAdapter } from '../neonAdapter';
 import { ApiErrorResponse, ErrorCodes, UserRole } from '../types';
-import { JWT_SECRET, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN } from '../config/jwtConfig';
 import { logger } from '../utils/logger';
 
-const storage = new NeonAdapter();
+// Importar do módulo compartilhado
+import {
+  generateFingerprint as sharedGenerateFingerprint,
+  generateTokens as sharedGenerateTokens,
+  verifyAccessToken as sharedVerifyAccessToken,
+  verifyRefreshToken as sharedVerifyRefreshToken,
+  type JwtPayload,
+  type UserForToken,
+} from '../../shared/auth';
 
-// Configurações JWT - Centralizadas em config/jwtConfig.ts
-const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutos
-const REFRESH_TOKEN_EXPIRY = JWT_REFRESH_EXPIRES_IN || '7d'; // 7 dias
+const storage = new NeonAdapter();
 
 /** Nome do cookie para refresh token */
 const REFRESH_TOKEN_COOKIE = '7care_refresh_token';
@@ -49,32 +52,8 @@ const COOKIE_OPTIONS = {
   path: '/api/auth',
 };
 
-/**
- * Interface para payload do token JWT
- * @interface JwtPayload
- */
-export interface JwtPayload {
-  /** ID do usuário */
-  id: number;
-  /** Email do usuário */
-  email: string;
-  /** Role do usuário no sistema */
-  role: UserRole;
-  /** Nome do usuário */
-  name: string;
-  /** Nome da igreja (opcional) */
-  church?: string;
-  /** ID do distrito (opcional) */
-  districtId?: number;
-  /** Tipo do token (access ou refresh) */
-  type: 'access' | 'refresh';
-  /** Fingerprint do dispositivo (para validação adicional) */
-  fingerprint?: string;
-  /** Timestamp de criação (adicionado pelo JWT) */
-  iat?: number;
-  /** Timestamp de expiração (adicionado pelo JWT) */
-  exp?: number;
-}
+// Re-exportar tipo JwtPayload para compatibilidade
+export type { JwtPayload };
 
 /**
  * Interface para request com dados de autenticação
@@ -100,72 +79,28 @@ export interface AuthenticatedRequest extends Request {
 
 /**
  * Gera fingerprint do dispositivo baseado em headers da requisição
- * @param {Request} req - Requisição Express
- * @returns {string} Hash SHA-256 do fingerprint
- * @description Cria um identificador único do dispositivo combinando User-Agent,
- * Accept-Language e IP para detectar uso do token em dispositivo diferente.
+ * Wrapper para função do módulo compartilhado
  */
 export function generateFingerprint(req: Request): string {
-  const components = [
-    req.headers['user-agent'] || '',
-    req.headers['accept-language'] || '',
-    req.ip || req.connection?.remoteAddress || '',
-  ].join('|');
-
-  return crypto.createHash('sha256').update(components).digest('hex').substring(0, 16);
+  return sharedGenerateFingerprint({
+    headers: {
+      'user-agent': req.headers['user-agent'] as string | undefined,
+      'accept-language': req.headers['accept-language'] as string | undefined,
+    },
+    ip: req.ip,
+    connection: req.connection,
+  });
 }
 
 /**
  * Gera par de tokens (access + refresh)
- * @param {Object} user - Dados do usuário para incluir no token
- * @param {number} user.id - ID do usuário
- * @param {string} user.email - Email do usuário
- * @param {string} user.role - Role do usuário
- * @param {string} user.name - Nome do usuário
- * @param {string|null} [user.church] - Nome da igreja
- * @param {number|null} [user.districtId] - ID do distrito
- * @param {string} [fingerprint] - Fingerprint do dispositivo
- * @returns {{accessToken: string, refreshToken: string, expiresIn: number}} Tokens gerados
- * @throws {Error} Se JWT secrets não estiverem configurados
+ * Wrapper para função do módulo compartilhado
  */
 export function generateTokens(
-  user: {
-    id: number;
-    email: string;
-    role: string;
-    name: string;
-    church?: string | null;
-    districtId?: number | null;
-  },
+  user: UserForToken,
   fingerprint?: string
 ): { accessToken: string; refreshToken: string; expiresIn: number } {
-  if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
-    throw new Error('JWT secrets not configured');
-  }
-
-  const basePayload = {
-    id: user.id,
-    email: user.email,
-    role: user.role as UserRole,
-    name: user.name,
-    church: user.church || undefined,
-    districtId: user.districtId || undefined,
-    fingerprint,
-  };
-
-  const accessToken = jwt.sign({ ...basePayload, type: 'access' }, JWT_SECRET, {
-    expiresIn: ACCESS_TOKEN_EXPIRY,
-  });
-
-  const refreshToken = jwt.sign({ ...basePayload, type: 'refresh' }, JWT_REFRESH_SECRET, {
-    expiresIn: REFRESH_TOKEN_EXPIRY,
-  });
-
-  return {
-    accessToken,
-    refreshToken,
-    expiresIn: 15 * 60, // 15 minutos em segundos
-  };
+  return sharedGenerateTokens(user, fingerprint);
 }
 
 /**
@@ -198,56 +133,22 @@ export function getRefreshTokenFromCookie(req: Request): string | undefined {
 
 /**
  * Verifica e decodifica access token
- * @param {string} token - Token JWT a verificar
- * @param {string} [fingerprint] - Fingerprint para validação adicional (opcional)
- * @returns {JwtPayload | null} Payload decodificado ou null se inválido
+ * Wrapper para função do módulo compartilhado
  */
 export function verifyAccessToken(token: string, fingerprint?: string): JwtPayload | null {
-  if (!JWT_SECRET) return null;
+  const result = sharedVerifyAccessToken(token, fingerprint);
+  if (!result) return null;
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    if (decoded.type !== 'access') return null;
-
-    // Verificar fingerprint se fornecido no token
-    if (decoded.fingerprint && fingerprint && decoded.fingerprint !== fingerprint) {
-      logger.warn('Token fingerprint mismatch detected', {
-        userId: decoded.id,
-        expected: decoded.fingerprint,
-        received: fingerprint,
-      });
-      return null;
-    }
-
-    return decoded;
-  } catch {
-    return null;
-  }
+  // Log adicional para fingerprint mismatch já é feito no módulo compartilhado
+  return result;
 }
 
 /**
  * Verifica e decodifica refresh token
- * @param {string} token - Token JWT a verificar
- * @param {string} [fingerprint] - Fingerprint para validação adicional (opcional)
- * @returns {JwtPayload | null} Payload decodificado ou null se inválido
+ * Wrapper para função do módulo compartilhado
  */
 export function verifyRefreshToken(token: string, fingerprint?: string): JwtPayload | null {
-  if (!JWT_REFRESH_SECRET) return null;
-
-  try {
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as JwtPayload;
-    if (decoded.type !== 'refresh') return null;
-
-    // Verificar fingerprint se fornecido
-    if (decoded.fingerprint && fingerprint && decoded.fingerprint !== fingerprint) {
-      logger.warn('Refresh token fingerprint mismatch', { userId: decoded.id });
-      return null;
-    }
-
-    return decoded;
-  } catch {
-    return null;
-  }
+  return sharedVerifyRefreshToken(token, fingerprint);
 }
 
 /**

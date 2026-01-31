@@ -211,17 +211,26 @@ export function ExportMenu({ data }: ExportMenuProps) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="gap-2">
+          <Button
+            variant="outline"
+            className="gap-2 dark:bg-slate-800/50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50"
+          >
             <FileDown className="h-4 w-4" />
             Relatórios
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handleOpenModal('pdf')} className="cursor-pointer">
+        <DropdownMenuContent align="end" className="dark:bg-slate-800 dark:border-slate-700">
+          <DropdownMenuItem
+            onClick={() => handleOpenModal('pdf')}
+            className="cursor-pointer dark:hover:bg-slate-700 dark:focus:bg-slate-700"
+          >
             <FileText className="mr-2 h-4 w-4" />
             Exportar PDF
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleOpenModal('excel')} className="cursor-pointer">
+          <DropdownMenuItem
+            onClick={() => handleOpenModal('excel')}
+            className="cursor-pointer dark:hover:bg-slate-700 dark:focus:bg-slate-700"
+          >
             <FileSpreadsheet className="mr-2 h-4 w-4" />
             Exportar Excel
           </DropdownMenuItem>

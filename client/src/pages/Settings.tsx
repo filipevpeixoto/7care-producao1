@@ -57,6 +57,7 @@ import {
   Eye,
   EyeOff,
   Filter,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
@@ -64,6 +65,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Church, Event } from '@/types/domain';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { PointsConfiguration } from '@/components/settings/PointsConfiguration';
+import { DistrictSettings } from '@/components/settings/DistrictSettings';
 import { useLastImportDate } from '@/hooks/useLastImportDate';
 import { useSystemLogo } from '@/hooks/useSystemLogo';
 import { ImportExcelModal } from '@/components/calendar/ImportExcelModal';
@@ -301,6 +303,10 @@ export default function Settings() {
   const [defaultChurchId, setDefaultChurchId] = useState<number | null>(null);
   const [defaultChurchName, setDefaultChurchName] = useState<string>('');
 
+  // Estado do distrito do usuário para filtrar dados
+  const [userDistrictId, setUserDistrictId] = useState<number | null>(null);
+  const [userDistrictName, setUserDistrictName] = useState<string>('');
+
   // Push notifications management states
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notificationTitle, setNotificationTitle] = useState('');
@@ -339,10 +345,39 @@ export default function Settings() {
     actions: { offsetX: 0, offsetY: 0 },
   });
 
-  // Load churches from backend
+  // Load churches from backend (filtrado por distrito se aplicável)
   const loadChurches = async () => {
     try {
-      const response = await fetch('/api/churches', {
+      // Primeiro, verificar o distrito do usuário
+      if (!userDistrictId && user?.role !== 'superadmin') {
+        try {
+          const districtResponse = await fetch('/api/settings/my-district');
+          if (districtResponse.ok) {
+            const districtData = await districtResponse.json();
+            if (districtData.districtId) {
+              setUserDistrictId(districtData.districtId);
+              // Buscar nome do distrito
+              const districtInfoResponse = await fetch(`/api/districts/${districtData.districtId}`);
+              if (districtInfoResponse.ok) {
+                const districtInfo = await districtInfoResponse.json();
+                setUserDistrictName(districtInfo.name || `Distrito ${districtData.districtId}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error loading user district:', e);
+        }
+      }
+
+      // Carregar igrejas - superadmin vê todas, pastor vê só do distrito
+      const churchesUrl =
+        user?.role === 'superadmin'
+          ? '/api/churches'
+          : userDistrictId
+            ? `/api/churches?districtId=${userDistrictId}`
+            : '/api/churches';
+
+      const response = await fetch(churchesUrl, {
         headers: {
           'x-user-id': user?.id?.toString() || '',
         },
@@ -350,10 +385,20 @@ export default function Settings() {
       if (response.ok) {
         const rawChurches = await response.json();
         const churches = Array.isArray(rawChurches) ? rawChurches : rawChurches?.data || [];
-        const formattedChurches = churches.map((church: Church) => ({
+
+        // Filtrar por distrito no frontend se a API não fizer
+        const filteredChurches =
+          user?.role === 'superadmin'
+            ? churches
+            : userDistrictId
+              ? churches.filter((c: Church) => c.districtId === userDistrictId || !c.districtId)
+              : churches;
+
+        const formattedChurches = filteredChurches.map((church: Church) => ({
           id: church.id,
           name: church.name,
           address: church.address || 'Endereço não informado',
+          districtId: church.districtId,
           active: true, // Todas as igrejas são consideradas ativas por padrão
         }));
         setChurchesList(formattedChurches);
@@ -2031,6 +2076,11 @@ export default function Settings() {
               </TabsTrigger>
             )}
             {hasAdminAccess(user) && (
+              <TabsTrigger value="district-settings" className="text-xs">
+                Meu Distrito
+              </TabsTrigger>
+            )}
+            {hasAdminAccess(user) && (
               <TabsTrigger value="points-config" className="text-xs">
                 Base de Cálculo
               </TabsTrigger>
@@ -2071,6 +2121,11 @@ export default function Settings() {
             {hasAdminAccess(user) && (
               <TabsTrigger value="calendar" className="text-xs flex-shrink-0 px-2">
                 Calendário
+              </TabsTrigger>
+            )}
+            {hasAdminAccess(user) && (
+              <TabsTrigger value="district-settings" className="text-xs flex-shrink-0 px-2">
+                Meu Distrito
               </TabsTrigger>
             )}
             {hasAdminAccess(user) && (
@@ -2675,6 +2730,27 @@ export default function Settings() {
             </TabsContent>
           )}
 
+          {/* District Settings (Pastor only) */}
+          {hasAdminAccess(user) && (
+            <TabsContent value="district-settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Configurações do Distrito
+                  </CardTitle>
+                  <CardDescription>
+                    Configure as preferências específicas do seu distrito. Essas configurações
+                    afetam apenas os membros e igrejas do seu distrito.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DistrictSettings />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
           {/* Points Configuration (Admin only) */}
           {hasAdminAccess(user) && (
             <TabsContent value="points-config" className="space-y-4">
@@ -2691,9 +2767,16 @@ export default function Settings() {
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <Globe className="h-5 w-5" />
-                        Gestão de Igrejas
+                        Gestão de Igrejas{' '}
+                        {userDistrictId && user?.role !== 'superadmin'
+                          ? `- ${userDistrictName}`
+                          : ''}
                       </CardTitle>
-                      <CardDescription>Clique nos campos para editar diretamente</CardDescription>
+                      <CardDescription>
+                        {user?.role === 'superadmin'
+                          ? 'Gerencie todas as igrejas do sistema'
+                          : `Gerencie as igrejas do ${userDistrictName || 'seu distrito'}`}
+                      </CardDescription>
                     </div>
                     <Button
                       onClick={addNewChurch}
@@ -2706,6 +2789,18 @@ export default function Settings() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Indicador de Filtro por Distrito */}
+                  {userDistrictId && user?.role !== 'superadmin' && (
+                    <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-purple-600" />
+                        <p className="text-sm text-purple-800">
+                          Mostrando apenas igrejas do <strong>{userDistrictName}</strong>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Default Church Configuration */}
                   <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-3">
@@ -2894,12 +2989,31 @@ export default function Settings() {
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     Gerenciamento do Calendário
+                    {userDistrictId && user?.role !== 'superadmin' && (
+                      <Badge variant="outline" className="ml-2">
+                        {userDistrictName}
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription>
-                    Importar, exportar e gerenciar eventos da agenda
+                    {user?.role === 'superadmin'
+                      ? 'Importar, exportar e gerenciar eventos da agenda (Sistema completo)'
+                      : `Importar, exportar e gerenciar eventos da agenda do ${userDistrictName || 'seu distrito'}`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Indicador de Filtro por Distrito */}
+                  {userDistrictId && user?.role !== 'superadmin' && (
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-purple-600" />
+                        <p className="text-sm text-purple-800">
+                          Operações limitadas aos eventos do <strong>{userDistrictName}</strong>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Ações de Importação */}
                   <div className="space-y-4">
                     <div>
@@ -2955,19 +3069,22 @@ export default function Settings() {
                     <div>
                       <h3 className="text-lg font-semibold mb-3">Gerenciamento</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Button
-                          onClick={() => setShowPermissionsModal(true)}
-                          variant="outline"
-                          className="h-auto p-4 flex flex-col items-start gap-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Filter className="h-4 w-4" />
-                            <span className="font-medium">Permissões</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground text-left">
-                            Gerenciar permissões de visualização de eventos
-                          </span>
-                        </Button>
+                        {/* Permissões - Apenas superadmin pode modificar (configuração global) */}
+                        {user?.role === 'superadmin' && (
+                          <Button
+                            onClick={() => setShowPermissionsModal(true)}
+                            variant="outline"
+                            className="h-auto p-4 flex flex-col items-start gap-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Filter className="h-4 w-4" />
+                              <span className="font-medium">Permissões de Visualização</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground text-left">
+                              Configuração global de quem pode ver cada tipo de evento
+                            </span>
+                          </Button>
+                        )}
 
                         <Button
                           onClick={handleExportCalendar}
@@ -2979,31 +3096,35 @@ export default function Settings() {
                             <span className="font-medium">Exportar Agenda</span>
                           </div>
                           <span className="text-sm text-muted-foreground text-left">
-                            Baixar todos os eventos em formato Excel
+                            {user?.role === 'superadmin'
+                              ? 'Baixar todos os eventos em formato Excel'
+                              : `Baixar eventos do ${userDistrictName || 'seu distrito'}`}
                           </span>
                         </Button>
                       </div>
                     </div>
 
-                    {/* Ações de Limpeza */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Limpeza de Dados</h3>
-                      <div className="flex flex-col gap-3">
-                        <Button
-                          onClick={handleClearAllEvents}
-                          variant="destructive"
-                          className="h-auto p-4 flex flex-col items-start gap-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Trash2 className="h-4 w-4" />
-                            <span className="font-medium">Limpar Todos os Eventos</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground text-left">
-                            ⚠️ Remove permanentemente todos os eventos da agenda
-                          </span>
-                        </Button>
+                    {/* Ações de Limpeza - Apenas superadmin */}
+                    {user?.role === 'superadmin' && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Limpeza de Dados</h3>
+                        <div className="flex flex-col gap-3">
+                          <Button
+                            onClick={handleClearAllEvents}
+                            variant="destructive"
+                            className="h-auto p-4 flex flex-col items-start gap-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Trash2 className="h-4 w-4" />
+                              <span className="font-medium">Limpar Todos os Eventos</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground text-left">
+                              ⚠️ Remove permanentemente todos os eventos da agenda
+                            </span>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Informações */}
                     <Alert>
@@ -3028,10 +3149,31 @@ export default function Settings() {
                   <CardTitle className="flex items-center gap-2">
                     <Database className="h-5 w-5" />
                     Gestão de Dados
+                    {userDistrictId && user?.role !== 'superadmin' && (
+                      <Badge variant="outline" className="ml-2">
+                        {userDistrictName}
+                      </Badge>
+                    )}
                   </CardTitle>
-                  <CardDescription>Backup e restauração de dados</CardDescription>
+                  <CardDescription>
+                    {user?.role === 'superadmin'
+                      ? 'Backup e restauração de dados do sistema completo'
+                      : `Backup e restauração de dados do ${userDistrictName || 'seu distrito'}`}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Indicador de Filtro por Distrito */}
+                  {userDistrictId && user?.role !== 'superadmin' && (
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-purple-600" />
+                        <p className="text-sm text-purple-800">
+                          Operações limitadas aos dados do <strong>{userDistrictName}</strong>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Data da Última Importação */}
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-between">
@@ -3065,16 +3207,30 @@ export default function Settings() {
                       Importar Dados
                     </Button>
 
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      data-testid="button-delete-data"
-                      onClick={handleClearAllData}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Limpar Dados
-                    </Button>
+                    {/* Limpar dados - Apenas superadmin */}
+                    {user?.role === 'superadmin' && (
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        data-testid="button-delete-data"
+                        onClick={handleClearAllData}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Limpar Dados
+                      </Button>
+                    )}
                   </div>
+
+                  {/* Aviso para pastores */}
+                  {user?.role !== 'superadmin' && (
+                    <Alert>
+                      <Shield className="h-4 w-4" />
+                      <AlertDescription>
+                        Por segurança, a limpeza completa de dados só pode ser realizada pelo
+                        superadmin. Você pode exportar e importar dados do seu distrito.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

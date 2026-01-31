@@ -593,8 +593,8 @@ export default function Calendar() {
               size="sm"
               className={
                 showBirthdays
-                  ? 'h-8 bg-pink-100 border-pink-300 text-pink-800 hover:bg-pink-200'
-                  : 'h-8 bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100'
+                  ? 'h-8 bg-pink-100 border-pink-300 text-pink-800 hover:bg-pink-200 dark:bg-pink-900/50 dark:border-pink-600/50 dark:text-pink-300 dark:hover:bg-pink-900/70'
+                  : 'h-8 bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100 dark:bg-pink-900/30 dark:border-pink-600/50 dark:text-pink-300 dark:hover:bg-pink-900/50'
               }
               onClick={() => setShowBirthdays(!showBirthdays)}
             >
@@ -608,7 +608,7 @@ export default function Calendar() {
               size="sm"
               onClick={handleSync}
               disabled={isSyncing}
-              className="h-8 flex items-center gap-2 bg-blue-50 border-blue-200 hover:bg-blue-100"
+              className="h-8 flex items-center gap-2 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:border-blue-600/50 dark:hover:bg-blue-900/50"
             >
               <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Sincronizando...' : 'Sincronizar'}

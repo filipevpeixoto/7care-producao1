@@ -1,72 +1,90 @@
 import { NeonAdapter } from './neonAdapter';
 import * as bcrypt from 'bcryptjs';
 
+// Senha padrão do admin - usar variável de ambiente em produção
+const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'meu7care';
+
 export async function setupNeonData() {
   const storage = new NeonAdapter();
 
   console.log('🚀 Configurando dados iniciais no Neon Database...');
 
-  // Verificar se já existem usuários além do superadmin
   const existingUsers = await storage.getAllUsers();
-  const nonAdminUsers = existingUsers.filter(u => u.role !== 'superadmin');
-  if (nonAdminUsers.length > 0) {
+  const existingAdmin = existingUsers.find(u => u.email === 'admin@7care.com');
+  let admin = existingAdmin || null;
+  const hasNonSuperAdminUsers = existingUsers.some(
+    user => user.role !== 'superadmin' && user.email !== 'admin@7care.com'
+  );
+
+  if (existingAdmin && existingAdmin.role !== 'superadmin') {
+    await storage.updateUser(existingAdmin.id, {
+      role: 'superadmin',
+      status: 'active',
+      isApproved: true,
+    });
+    console.log('✅ Super admin promovido:', existingAdmin.email);
+  }
+
+  if (!existingAdmin) {
+    console.log('👑 Criando super admin...');
+    const adminPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
+    admin = await storage.createUser({
+      name: 'Super Administrador',
+      email: 'admin@7care.com',
+      password: adminPassword,
+      role: 'superadmin',
+      church: 'Armour',
+      churchCode: 'ARM001',
+      departments: 'Administração',
+      birthDate: '1990-01-01',
+      civilStatus: 'Solteiro',
+      occupation: 'Administrador',
+      education: 'Superior',
+      address: 'Rua Principal, 123',
+      baptismDate: '2000-01-01',
+      previousReligion: 'Nenhuma',
+      biblicalInstructor: 'Pastor João',
+      interestedSituation: 'Aprovado',
+      isDonor: true,
+      isTither: true,
+      isApproved: true,
+      points: 1000,
+      level: 'Ouro',
+      attendance: 100,
+      extraData: JSON.stringify({
+        engajamento: 'Alto',
+        classificacao: 'Frequente',
+        dizimista: 'Pontual',
+        ofertante: 'Recorrente',
+        tempoBatismo: 20,
+        cargos: ['Administrador'],
+        nomeUnidade: 'Armour',
+        temLicao: true,
+        totalPresenca: 100,
+        batizouAlguem: true,
+        discipuladoPosBatismo: 5,
+        cpfValido: true,
+        camposVaziosACMS: false,
+        escolaSabatina: {
+          comunhao: 10,
+          missao: 8,
+          estudoBiblico: 9,
+          batizouAlguem: true,
+          discipuladoPosBatismo: 5,
+        },
+      }),
+      observations: 'Super administrador do sistema',
+      firstAccess: false,
+      status: 'active',
+    });
+
+    console.log('✅ Super admin criado:', admin.name);
+  }
+
+  if (hasNonSuperAdminUsers) {
     console.log('✅ Dados já existem no Neon Database');
     return;
   }
-
-  console.log('👑 Criando super admin...');
-  const adminPassword = await bcrypt.hash('meu7care', 10);
-  const admin = await storage.createUser({
-    name: 'Super Administrador',
-    email: 'admin@7care.com',
-    password: adminPassword,
-    role: 'superadmin',
-    church: 'Armour',
-    churchCode: 'ARM001',
-    departments: 'Administração',
-    birthDate: '1990-01-01',
-    civilStatus: 'Solteiro',
-    occupation: 'Administrador',
-    education: 'Superior',
-    address: 'Rua Principal, 123',
-    baptismDate: '2000-01-01',
-    previousReligion: 'Nenhuma',
-    biblicalInstructor: 'Pastor João',
-    interestedSituation: 'Aprovado',
-    isDonor: true,
-    isTither: true,
-    isApproved: true,
-    points: 1000,
-    level: 'Ouro',
-    attendance: 100,
-    extraData: JSON.stringify({
-      engajamento: 'Alto',
-      classificacao: 'Frequente',
-      dizimista: 'Pontual',
-      ofertante: 'Recorrente',
-      tempoBatismo: 20,
-      cargos: ['Administrador'],
-      nomeUnidade: 'Armour',
-      temLicao: true,
-      totalPresenca: 100,
-      batizouAlguem: true,
-      discipuladoPosBatismo: 5,
-      cpfValido: true,
-      camposVaziosACMS: false,
-      escolaSabatina: {
-        comunhao: 10,
-        missao: 8,
-        estudoBiblico: 9,
-        batizouAlguem: true,
-        discipuladoPosBatismo: 5,
-      },
-    }),
-    observations: 'Super administrador do sistema',
-    firstAccess: false,
-    status: 'active',
-  });
-
-  console.log('✅ Super admin criado:', admin.name);
 
   // Criar usuários do Armour
   const armourUsers = [

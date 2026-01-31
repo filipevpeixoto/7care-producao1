@@ -5,6 +5,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { logger } from '../utils/logger';
 
 // Configurações
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -51,7 +52,7 @@ export class CacheService {
    */
   async initRedis(): Promise<boolean> {
     if (process.env.NODE_ENV === 'test') {
-      console.log('[Cache] Modo teste - usando cache em memória');
+      logger.info('[Cache] Modo teste - usando cache em memória');
       return false;
     }
 
@@ -59,17 +60,17 @@ export class CacheService {
       this.redisClient = createClient({ url: REDIS_URL });
 
       this.redisClient.on('error', err => {
-        console.error('[Redis] Erro de conexão:', err.message);
+        logger.error('[Redis] Erro de conexão:', err);
         this.isRedisConnected = false;
       });
 
       this.redisClient.on('connect', () => {
-        console.log('[Redis] Conectado com sucesso');
+        logger.info('[Redis] Conectado com sucesso');
         this.isRedisConnected = true;
       });
 
       this.redisClient.on('reconnecting', () => {
-        console.log('[Redis] Reconectando...');
+        logger.info('[Redis] Reconectando...');
       });
 
       await this.redisClient.connect();
@@ -127,7 +128,7 @@ export class CacheService {
         await this.redisClient.setEx(key, ttlSeconds, serialized);
         return true;
       } catch (error) {
-        console.error('[Cache] Erro ao definir no Redis:', error);
+        logger.error('[Cache] Erro ao definir no Redis:', error);
       }
     }
 
@@ -156,7 +157,7 @@ export class CacheService {
         }
         this.stats.misses++;
       } catch (error) {
-        console.error('[Cache] Erro ao obter do Redis:', error);
+        logger.error('[Cache] Erro ao obter do Redis:', error);
       }
     }
 
@@ -183,7 +184,7 @@ export class CacheService {
       try {
         await this.redisClient.del(key);
       } catch (error) {
-        console.error('[Cache] Erro ao remover do Redis:', error);
+        logger.error('[Cache] Erro ao remover do Redis:', error);
       }
     }
 
@@ -227,7 +228,7 @@ export async function cacheDelPattern(pattern: string): Promise<void> {
         await redisClient.del(keys);
       }
     } catch (error) {
-      console.error('[Cache] Erro ao deletar pattern do Redis:', error);
+      logger.error('[Cache] Erro ao deletar pattern do Redis:', error);
     }
   }
 }

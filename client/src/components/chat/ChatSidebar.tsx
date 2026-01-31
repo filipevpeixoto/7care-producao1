@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Plus, Users, MessageCircle, Pin, Archive } from 'lucide-react';
+import { Search, Plus, Users, MessageCircle, Pin, Archive, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ChatUser {
   id: number;
@@ -140,22 +141,63 @@ export const ChatSidebar = ({
   onSelectUser,
   onNewChat,
 }: ChatSidebarProps) => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [allUsers, setAllUsers] = useState<
     Array<{ id: number; name: string; email?: string; profilePhoto?: string }>
   >([]);
 
+  // Carregar conversas reais do backend
+  useEffect(() => {
+    const loadConversations = async () => {
+      if (!user?.id) return;
+
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/conversations/${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data);
+        } else {
+          console.error('Erro ao carregar conversas');
+          setConversations([]);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar conversas:', error);
+        setConversations([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (mode === 'conversations') {
+      loadConversations();
+      // Poll for new messages every 10 seconds
+      const interval = setInterval(loadConversations, 10000);
+      return () => clearInterval(interval);
+    }
+    return undefined;
+  }, [user?.id, mode]);
+
   useEffect(() => {
     if (mode === 'users') {
-      fetch('/api/users')
+      fetch('/api/users/chat-list')
         .then(r => r.json())
         .then((list: any[]) => setAllUsers(list))
-        .catch(() => setAllUsers([]));
+        .catch(() => {
+          // Fallback para API de usuários normal
+          fetch('/api/users')
+            .then(r => r.json())
+            .then((list: any[]) => setAllUsers(list))
+            .catch(() => setAllUsers([]));
+        });
     }
   }, [mode]);
 
-  const filteredConversations = mockConversations.filter(conversation => {
+  const filteredConversations = conversations.filter(conversation => {
     const matchesSearch =
       conversation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       conversation.lastMessage.content.toLowerCase().includes(searchTerm.toLowerCase());
@@ -283,6 +325,10 @@ export const ChatSidebar = ({
                     <p className="text-muted-foreground">Tente ajustar os termos de busca.</p>
                   </div>
                 )}
+              </div>
+            ) : isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
               <>

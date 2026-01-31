@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">6.59% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/91</span>
+                <span class='fraction'>6/91</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/346</span>
+                <span class='fraction'>0/94</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">6.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/90</span>
+                <span class='fraction'>6/90</span>
             </div>
         
             
@@ -469,14 +469,21 @@
 <a name='L404'></a><a href='#L404'>404</a>
 <a name='L405'></a><a href='#L405'>405</a>
 <a name='L406'></a><a href='#L406'>406</a>
-<a name='L407'></a><a href='#L407'>407</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L407'></a><a href='#L407'>407</a>
+<a name='L408'></a><a href='#L408'>408</a>
+<a name='L409'></a><a href='#L409'>409</a>
+<a name='L410'></a><a href='#L410'>410</a>
+<a name='L411'></a><a href='#L411'>411</a>
+<a name='L412'></a><a href='#L412'>412</a>
+<a name='L413'></a><a href='#L413'>413</a>
+<a name='L414'></a><a href='#L414'>414</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -531,7 +538,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -685,6 +692,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -692,7 +701,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -705,6 +717,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -873,16 +886,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * Audit Repository
  * Repositório para persistência de logs de auditoria no banco de dados
  */
 &nbsp;
-<span class="cstat-no" title="statement not covered" >import { sql as rawSql } from '../neonConfig';</span>
-<span class="cstat-no" title="statement not covered" >import { logger } from '../utils/logger';</span>
-<span class="cstat-no" title="statement not covered" >import { createPaginatedResult, PaginationOptions, PaginatedResult } from './BaseRepository';</span>
+import { sql as rawSql } from '../neonConfig';
+import { logger } from '../utils/logger';
+import { createPaginatedResult, PaginationOptions, PaginatedResult } from './BaseRepository';
 &nbsp;
 export type AuditAction =
   | 'CREATE'
@@ -937,7 +951,7 @@ export interface AuditQueryOptions extends PaginationOptions {
   endDate?: Date;
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class A</span>uditRepository {
+export class AuditRepository {
   /**
    * Inicializa a tabela de audit logs se não existir
    */
@@ -1097,26 +1111,32 @@ export interface AuditQueryOptions extends PaginationOptions {
   /**
    * Busca logs por usuário
    */
-<span class="fstat-no" title="function not covered" >  async </span>getAuditLogsByUser(userId: number, options?: PaginationOptions): Promise&lt;PaginatedResult&lt;AuditLog&gt;&gt; {
+<span class="fstat-no" title="function not covered" >  async </span>getAuditLogsByUser(
+    userId: number,
+    options?: PaginationOptions
+  ): Promise&lt;PaginatedResult&lt;AuditLog&gt;&gt; {
 <span class="cstat-no" title="statement not covered" >    return this.getAuditLogs({</span>
       page: options?.page ?? 1,
       limit: options?.limit ?? 50,
       sortBy: options?.sortBy,
       sortOrder: options?.sortOrder,
-      userId
+      userId,
     });
   }
 &nbsp;
   /**
    * Busca logs por ação
    */
-<span class="fstat-no" title="function not covered" >  async </span>getAuditLogsByAction(action: AuditAction, options?: PaginationOptions): Promise&lt;PaginatedResult&lt;AuditLog&gt;&gt; {
+<span class="fstat-no" title="function not covered" >  async </span>getAuditLogsByAction(
+    action: AuditAction,
+    options?: PaginationOptions
+  ): Promise&lt;PaginatedResult&lt;AuditLog&gt;&gt; {
 <span class="cstat-no" title="statement not covered" >    return this.getAuditLogs({</span>
       page: options?.page ?? 1,
       limit: options?.limit ?? 50,
       sortBy: options?.sortBy,
       sortOrder: options?.sortOrder,
-      action
+      action,
     });
   }
 &nbsp;
@@ -1272,15 +1292,16 @@ export interface AuditQueryOptions extends PaginationOptions {
       userAgent: record.user_agent as string | null,
       correlationId: record.correlation_id as string | null,
       metadata: parseJson(record.metadata) as Record&lt;string, unknown&gt; | null,
-      createdAt: record.created_at instanceof Date
-        ? record.created_at.toISOString()
-        : (record.created_at as string),
+      createdAt:
+        record.created_at instanceof Date
+          ? record.created_at.toISOString()
+          : (record.created_at as string),
     };
   }
 }
 &nbsp;
-export const <span class="cstat-no" title="statement not covered" >auditRepository = new AuditRepository();</span>
-<span class="cstat-no" title="statement not covered" >export default auditRepository;</span>
+export const auditRepository = new AuditRepository();
+export default auditRepository;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -1288,7 +1309,7 @@ export const <span class="cstat-no" title="statement not covered" >auditReposito
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

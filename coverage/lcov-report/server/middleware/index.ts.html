@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/200</span>
+                <span class='fraction'>0/201</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/74</span>
+                <span class='fraction'>0/70</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/181</span>
+                <span class='fraction'>0/182</span>
             </div>
         
             
@@ -501,16 +501,7 @@
 <a name='L436'></a><a href='#L436'>436</a>
 <a name='L437'></a><a href='#L437'>437</a>
 <a name='L438'></a><a href='#L438'>438</a>
-<a name='L439'></a><a href='#L439'>439</a>
-<a name='L440'></a><a href='#L440'>440</a>
-<a name='L441'></a><a href='#L441'>441</a>
-<a name='L442'></a><a href='#L442'>442</a>
-<a name='L443'></a><a href='#L443'>443</a>
-<a name='L444'></a><a href='#L444'>444</a>
-<a name='L445'></a><a href='#L445'>445</a>
-<a name='L446'></a><a href='#L446'>446</a>
-<a name='L447'></a><a href='#L447'>447</a>
-<a name='L448'></a><a href='#L448'>448</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L439'></a><a href='#L439'>439</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -519,13 +510,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -613,6 +600,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -804,10 +792,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -863,11 +847,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -965,14 +947,10 @@
 import { Response, NextFunction } from 'express';
 <span class="cstat-no" title="statement not covered" >import jwt from 'jsonwebtoken';</span>
 <span class="cstat-no" title="statement not covered" >import { NeonAdapter } from '../neonAdapter';</span>
-<span class="cstat-no" title="statement not covered" >import {</span>
-  AuthenticatedRequest,
-  ApiErrorResponse,
-  ErrorCodes,
-  UserRole
-} from '../types';
+<span class="cstat-no" title="statement not covered" >import { AuthenticatedRequest, ApiErrorResponse, ErrorCodes, UserRole } from '../types';</span>
 <span class="cstat-no" title="statement not covered" >import { hasAdminAccess, isSuperAdmin, isPastor } from '../utils/permissions';</span>
 <span class="cstat-no" title="statement not covered" >import { JWT_SECRET } from '../config/jwtConfig';</span>
+<span class="cstat-no" title="statement not covered" >import { logger } from '../utils/logger';</span>
 &nbsp;
 // Instância compartilhada do storage
 const storage = <span class="cstat-no" title="statement not covered" >new NeonAdapter();</span>
@@ -1031,7 +1009,7 @@ export const <span class="cstat-no" title="statement not covered" >extractUserId
 <span class="cstat-no" title="statement not covered" >    next();</span>
   } catch (error) {
     // Não bloquear em caso de erro, apenas continuar
-<span class="cstat-no" title="statement not covered" >    console.error('Error extracting user ID:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error extracting user ID:', error);</span>
 <span class="cstat-no" title="statement not covered" >    next();</span>
   }
 };
@@ -1061,8 +1039,9 @@ export const <span class="cstat-no" title="statement not covered" >checkReadOnly
 <span class="cstat-no" title="statement not covered" >        if (isReadOnly) {</span>
           const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
             success: false,
-            error: 'Usuário de teste possui acesso somente para leitura. Edições não são permitidas.',
-            code: ErrorCodes.READONLY_ACCESS
+            error:
+              'Usuário de teste possui acesso somente para leitura. Edições não são permitidas.',
+            code: ErrorCodes.READONLY_ACCESS,
           };
 <span class="cstat-no" title="statement not covered" >          res.status(403).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >          return;</span>
@@ -1073,7 +1052,7 @@ export const <span class="cstat-no" title="statement not covered" >checkReadOnly
 <span class="cstat-no" title="statement not covered" >    next();</span>
   } catch (error) {
     // Em caso de erro, permitir continuar (fail open para não bloquear)
-<span class="cstat-no" title="statement not covered" >    console.error('Error checking read-only access:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error checking read-only access:', error);</span>
 <span class="cstat-no" title="statement not covered" >    next();</span>
   }
 };
@@ -1092,7 +1071,7 @@ export const <span class="cstat-no" title="statement not covered" >requireAuth =
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Authentication required',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1104,7 +1083,7 @@ export const <span class="cstat-no" title="statement not covered" >requireAuth =
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'User not found',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1116,11 +1095,11 @@ export const <span class="cstat-no" title="statement not covered" >requireAuth =
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    next();</span>
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error in requireAuth middleware:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error in requireAuth middleware:', error);</span>
     const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
       success: false,
       error: 'Authentication error',
-      code: ErrorCodes.INTERNAL_ERROR
+      code: ErrorCodes.INTERNAL_ERROR,
     };
 <span class="cstat-no" title="statement not covered" >    res.status(500).json(errorResponse);</span>
   }
@@ -1142,7 +1121,7 @@ export const <span class="cstat-no" title="statement not covered" >requireAdminA
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Authentication required',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1154,7 +1133,7 @@ export const <span class="cstat-no" title="statement not covered" >requireAdminA
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'User not found',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1165,7 +1144,7 @@ export const <span class="cstat-no" title="statement not covered" >requireAdminA
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Admin access required',
-        code: ErrorCodes.FORBIDDEN
+        code: ErrorCodes.FORBIDDEN,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(403).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1177,11 +1156,11 @@ export const <span class="cstat-no" title="statement not covered" >requireAdminA
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    next();</span>
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error in requireAdminAccess middleware:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error in requireAdminAccess middleware:', error);</span>
     const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
       success: false,
       error: 'Authorization error',
-      code: ErrorCodes.INTERNAL_ERROR
+      code: ErrorCodes.INTERNAL_ERROR,
     };
 <span class="cstat-no" title="statement not covered" >    res.status(500).json(errorResponse);</span>
   }
@@ -1202,7 +1181,7 @@ export const <span class="cstat-no" title="statement not covered" >requireSuperA
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Authentication required',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1214,7 +1193,7 @@ export const <span class="cstat-no" title="statement not covered" >requireSuperA
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'User not found',
-        code: ErrorCodes.UNAUTHORIZED
+        code: ErrorCodes.UNAUTHORIZED,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1224,7 +1203,7 @@ export const <span class="cstat-no" title="statement not covered" >requireSuperA
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Superadmin access required',
-        code: ErrorCodes.FORBIDDEN
+        code: ErrorCodes.FORBIDDEN,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(403).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -1236,11 +1215,11 @@ export const <span class="cstat-no" title="statement not covered" >requireSuperA
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    next();</span>
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error in requireSuperAdmin middleware:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error in requireSuperAdmin middleware:', error);</span>
     const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
       success: false,
       error: 'Authorization error',
-      code: ErrorCodes.INTERNAL_ERROR
+      code: ErrorCodes.INTERNAL_ERROR,
     };
 <span class="cstat-no" title="statement not covered" >    res.status(500).json(errorResponse);</span>
   }
@@ -1250,18 +1229,14 @@ export const <span class="cstat-no" title="statement not covered" >requireSuperA
  * Requer um role específico
  */
 export const <span class="cstat-no" title="statement not covered" >requireRole = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>.</span>..allowedRoles: UserRole[]) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >async </span>(</span>
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise&lt;void&gt; =&gt; {
+<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >async </span>(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise&lt;void&gt; =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const userId = <span class="cstat-no" title="statement not covered" >resolveUserId(req);</span>
 <span class="cstat-no" title="statement not covered" >      if (userId === null) {</span>
         const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
           success: false,
           error: 'Authentication required',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
 <span class="cstat-no" title="statement not covered" >        res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
@@ -1273,7 +1248,7 @@ export const <span class="cstat-no" title="statement not covered" >requireRole =
         const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
           success: false,
           error: 'User not found',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
 <span class="cstat-no" title="statement not covered" >        res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
@@ -1283,7 +1258,7 @@ export const <span class="cstat-no" title="statement not covered" >requireRole =
         const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
           success: false,
           error: `Required role: ${allowedRoles.join(' or ')}`,
-          code: ErrorCodes.FORBIDDEN
+          code: ErrorCodes.FORBIDDEN,
         };
 <span class="cstat-no" title="statement not covered" >        res.status(403).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
@@ -1295,11 +1270,11 @@ export const <span class="cstat-no" title="statement not covered" >requireRole =
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      next();</span>
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error in requireRole middleware:', error);</span>
+<span class="cstat-no" title="statement not covered" >      logger.error('Error in requireRole middleware:', error);</span>
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Authorization error',
-        code: ErrorCodes.INTERNAL_ERROR
+        code: ErrorCodes.INTERNAL_ERROR,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(500).json(errorResponse);</span>
     }
@@ -1309,19 +1284,17 @@ export const <span class="cstat-no" title="statement not covered" >requireRole =
 /**
  * Verifica se o usuário pode acessar dados de um distrito específico
  */
-export const <span class="cstat-no" title="statement not covered" >requireDistrictAccess = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>g</span>etDistrictId: (req: AuthenticatedRequest) =&gt; number | null | undefined) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >async </span>(</span>
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise&lt;void&gt; =&gt; {
+export const <span class="cstat-no" title="statement not covered" >requireDistrictAccess = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span></span></span>
+  getDistrictId: (req: AuthenticatedRequest) =&gt; number | null | undefined
+) =&gt; {
+<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >async </span>(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise&lt;void&gt; =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const userId = <span class="cstat-no" title="statement not covered" >resolveUserId(req);</span>
 <span class="cstat-no" title="statement not covered" >      if (userId === null) {</span>
         const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
           success: false,
           error: 'Authentication required',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
 <span class="cstat-no" title="statement not covered" >        res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
@@ -1333,7 +1306,7 @@ export const <span class="cstat-no" title="statement not covered" >requireDistri
         const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
           success: false,
           error: 'User not found',
-          code: ErrorCodes.UNAUTHORIZED
+          code: ErrorCodes.UNAUTHORIZED,
         };
 <span class="cstat-no" title="statement not covered" >        res.status(401).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
@@ -1358,7 +1331,7 @@ export const <span class="cstat-no" title="statement not covered" >requireDistri
             const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
               success: false,
               error: 'Access denied to this district',
-              code: ErrorCodes.FORBIDDEN
+              code: ErrorCodes.FORBIDDEN,
             };
 <span class="cstat-no" title="statement not covered" >            res.status(403).json(errorResponse);</span>
 <span class="cstat-no" title="statement not covered" >            return;</span>
@@ -1373,14 +1346,14 @@ export const <span class="cstat-no" title="statement not covered" >requireDistri
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Admin access required for district resources',
-        code: ErrorCodes.FORBIDDEN
+        code: ErrorCodes.FORBIDDEN,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(403).json(errorResponse);</span>
     } catch (_error) {
       const errorResponse: ApiErrorResponse = <span class="cstat-no" title="statement not covered" >{</span>
         success: false,
         error: 'Authorization error',
-        code: ErrorCodes.INTERNAL_ERROR
+        code: ErrorCodes.INTERNAL_ERROR,
       };
 <span class="cstat-no" title="statement not covered" >      res.status(500).json(errorResponse);</span>
     }
@@ -1394,15 +1367,15 @@ export const <span class="cstat-no" title="statement not covered" >requireDistri
 <span class="cstat-no" title="statement not covered" >export { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >c</span>spMiddleware,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >s</span>ecurityHeadersMiddleware,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >f</span>ullSecurityMiddleware </span>} from './cspHeaders';</span>
 &nbsp;
 // Exportar rate limiters
-<span class="cstat-no" title="statement not covered" >export { </span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  authRateLimiter, </span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  apiRateLimiter, </span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  uploadRateLimiter, </span></span>
+<span class="cstat-no" title="statement not covered" >export {</span>
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  authRateLimiter,</span></span>
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  apiRateLimiter,</span></span>
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  uploadRateLimiter,</span></span>
 <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  sensitiveRateLimiter,</span></span>
 <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  searchRateLimiter,</span></span>
 <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  webhookRateLimiter,</span></span>
 <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  createUserBasedRateLimiter,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  rateLimiters </span></span>
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  rateLimiters,</span></span>
 } from './rateLimiters';
 &nbsp;</pre></td></tr></table></pre>
 
@@ -1411,7 +1384,7 @@ export const <span class="cstat-no" title="statement not covered" >requireDistri
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

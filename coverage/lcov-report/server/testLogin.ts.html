@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
@@ -118,7 +118,8 @@
 <a name='L53'></a><a href='#L53'>53</a>
 <a name='L54'></a><a href='#L54'>54</a>
 <a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -162,8 +163,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -183,23 +185,23 @@
 &nbsp;
 async function <span class="fstat-no" title="function not covered" >testLogin(</span>) {
   const storage = <span class="cstat-no" title="statement not covered" >new NeonAdapter();</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  console.log('🔐 Testando login do admin...\n');</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
     // Buscar usuário
     const user = <span class="cstat-no" title="statement not covered" >await storage.getUserByEmail('admin@7care.com');</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    if (!user) {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('❌ Usuário não encontrado!');</span>
 <span class="cstat-no" title="statement not covered" >      process.exit(1);</span>
     }
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    console.log(`✅ Usuário encontrado: ${user.name}`);</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`📧 Email: ${user.email}`);</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`👤 Role: ${user.role}`);</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`🔒 Senha hash: ${(user.password ?? '').substring(0, 20)}...`);</span>
-    
+&nbsp;
     // Testar senha
     const password = <span class="cstat-no" title="statement not covered" >'meu7care';</span>
     const userPassword = <span class="cstat-no" title="statement not covered" >user.password ?? '';</span>
@@ -208,7 +210,7 @@ async function <span class="fstat-no" title="function not covered" >testLogin(</
 <span class="cstat-no" title="statement not covered" >      process.exit(1);</span>
     }
     const isPasswordCorrect = <span class="cstat-no" title="statement not covered" >await bcrypt.compare(password, userPassword);</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    console.log(`\n🔑 Testando senha "${password}"...`);</span>
 <span class="cstat-no" title="statement not covered" >    if (isPasswordCorrect) {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('✅ Senha correta!');</span>
@@ -216,14 +218,15 @@ async function <span class="fstat-no" title="function not covered" >testLogin(</
 <span class="cstat-no" title="statement not covered" >      console.log('❌ Senha incorreta!');</span>
 <span class="cstat-no" title="statement not covered" >      console.log('\n🔧 Resetando senha para "meu7care"...');</span>
       const newPassword = <span class="cstat-no" title="statement not covered" >await bcrypt.hash('meu7care', 10);</span>
-<span class="cstat-no" title="statement not covered" >      await storage.updateUser(user.id, { password: newPassword } as Parameters&lt;typeof storage.updateUser&gt;[1]);</span>
+<span class="cstat-no" title="statement not covered" >      await storage.updateUser(user.id, { password: newPassword } as Parameters&lt;</span>
+        typeof storage.updateUser
+      &gt;[1]);
 <span class="cstat-no" title="statement not covered" >      console.log('✅ Senha resetada!');</span>
     }
-    
   } catch (error) {
 <span class="cstat-no" title="statement not covered" >    console.error('❌ Erro ao testar login:', error);</span>
   }
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  process.exit(0);</span>
 }
 &nbsp;
@@ -235,7 +238,7 @@ async function <span class="fstat-no" title="function not covered" >testLogin(</
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../prettify.js"></script>
         <script>

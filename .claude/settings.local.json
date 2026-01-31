@@ -19,7 +19,29 @@
       "Bash(npm test:*)",
       "Bash(find:*)",
       "Bash(cut:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm run build:server:*)",
+      "Bash(npm run:*)",
+      "Read(//Users/filipevpeixoto/Downloads/**)",
+      "Bash(chmod:*)",
+      "Bash(/private/tmp/claude/-Users-filipevpeixoto-Downloads-7care-producao-sem-offline-main/3e7cce9b-877e-4b96-bbb9-de1bccc58df1/scratchpad/test-pastor-onboarding.sh)",
+      "Bash(/private/tmp/claude/-Users-filipevpeixoto-Downloads-7care-producao-sem-offline-main/3e7cce9b-877e-4b96-bbb9-de1bccc58df1/scratchpad/test-real-flow.sh)",
+      "Bash(/private/tmp/claude/-Users-filipevpeixoto-Downloads-7care-producao-sem-offline-main/3e7cce9b-877e-4b96-bbb9-de1bccc58df1/scratchpad/test-flow-complete.sh)",
+      "Bash(npx playwright test:*)",
+      "Bash(tee:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(node /private/tmp/claude/-Users-filipevpeixoto-Downloads-7care-producao-sem-offline-main/3e7cce9b-877e-4b96-bbb9-de1bccc58df1/scratchpad/test-manual.js:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm install:*)",
+      "Bash(railway:*)",
+      "Bash(sh:*)",
+      "Bash(export PATH=\"$HOME/.fly/bin:$PATH\")",
+      "Bash(flyctl version:*)",
+      "Bash(flyctl auth:*)",
+      "Bash(flyctl deploy:*)",
+      "Bash(git push:*)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

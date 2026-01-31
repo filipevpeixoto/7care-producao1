@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from 'express';
 import { logger } from '../../utils/logger';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { sendSuccess } from '../../utils/apiResponse';
 
 const electionLogger = logger;
 
@@ -23,16 +25,14 @@ const router = Router();
  *       200:
  *         description: Lista de configurações
  */
-router.get('/', async (_req: Request, res: Response) => {
-  try {
+router.get(
+  '/',
+  asyncHandler(async (_req: Request, res: Response) => {
     electionLogger.info('Listando configurações de eleição');
     // Implementação delegada ao electionRoutes.ts existente
-    res.json({ message: 'Use /api/elections endpoint' });
-  } catch (error) {
-    electionLogger.error('Erro ao listar configurações', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: 'Use /api/elections endpoint' });
+  })
+);
 
 /**
  * @swagger
@@ -47,16 +47,14 @@ router.get('/', async (_req: Request, res: Response) => {
  *         schema:
  *           type: integer
  */
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     electionLogger.info('Obtendo configuração de eleição', { id });
-    res.json({ message: `Config ${id}` });
-  } catch (error) {
-    electionLogger.error('Erro ao obter configuração', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Config ${id}` });
+  })
+);
 
 export { router as configRoutes };
 export default router;

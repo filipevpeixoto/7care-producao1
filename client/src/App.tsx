@@ -55,6 +55,8 @@ const PastorInvites = lazy(() => import('./pages/PastorInvites'));
 const PastorFirstAccess = lazy(() => import('./pages/PastorFirstAccess'));
 const PastorOnboarding = lazy(() => import('./pages/PastorOnboarding'));
 const Reports = lazy(() => import('./pages/Reports'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Loading component for lazy loaded pages
@@ -214,6 +216,8 @@ const App = () => {
                       <Route path="/districts" element={<Districts />} />
                       <Route path="/pastors" element={<Pastors />} />
                       <Route path="/pastor-invites" element={<PastorInvites />} />
+                      <Route path="/termos" element={<Terms />} />
+                      <Route path="/privacidade" element={<Privacy />} />
                       {/* <Route path="/test-calendar" element={<TestCalendar />} /> */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

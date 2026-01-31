@@ -1003,8 +1003,14 @@ const Dashboard = () => {
 
   // Função para encontrar o próximo aniversário
   const getNextBirthday = (birthdays: { today?: BirthdayUser[]; all?: BirthdayUser[] }) => {
-    if (!birthdays || !birthdays.all || !Array.isArray(birthdays.all) || birthdays.all.length === 0)
+    if (
+      !birthdays ||
+      !birthdays.all ||
+      !Array.isArray(birthdays.all) ||
+      birthdays.all.length === 0
+    ) {
       return null;
+    }
 
     const today = new Date();
     const currentYear = today.getFullYear();

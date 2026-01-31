@@ -488,7 +488,7 @@ export default function Districts() {
               <Button
                 variant="outline"
                 onClick={() => setLinkChurchesDialogOpen(true)}
-                className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                className="text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600/50 dark:hover:bg-orange-900/30"
               >
                 <Link2 className="h-4 w-4 mr-2" />
                 Igrejas sem Distrito ({unassignedChurches.length})
@@ -555,7 +555,7 @@ export default function Districts() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewAsPastor(district)}
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/30"
                           title="Visualizar como pastor deste distrito"
                         >
                           <Eye className="h-4 w-4 mr-1" />
@@ -566,7 +566,7 @@ export default function Districts() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleOpenLinkChurches(district)}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/30"
                         title="Vincular igrejas a este distrito"
                       >
                         <Link2 className="h-4 w-4" />

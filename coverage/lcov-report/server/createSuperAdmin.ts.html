@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>0/28</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>0/28</span>
             </div>
         
             
@@ -149,7 +149,19 @@
 <a name='L84'></a><a href='#L84'>84</a>
 <a name='L85'></a><a href='#L85'>85</a>
 <a name='L86'></a><a href='#L86'>86</a>
-<a name='L87'></a><a href='#L87'>87</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -159,6 +171,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -237,17 +257,27 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * Script para criar super admin
+ *
+ * Uso: DEFAULT_ADMIN_PASSWORD=sua_senha npx tsx server/createSuperAdmin.ts
  */
 &nbsp;
 <span class="cstat-no" title="statement not covered" >import 'dotenv/config';</span>
 <span class="cstat-no" title="statement not covered" >import { NeonAdapter } from './neonAdapter';</span>
 <span class="cstat-no" title="statement not covered" >import * as bcrypt from 'bcryptjs';</span>
 &nbsp;
+// Senha padrão do admin - usar variável de ambiente em produção
+const DEFAULT_ADMIN_PASSWORD = <span class="cstat-no" title="statement not covered" >process.env.DEFAULT_ADMIN_PASSWORD || 'meu7care';</span>
+&nbsp;
 async function <span class="fstat-no" title="function not covered" >createSuperAdmin(</span>) {
   const storage = <span class="cstat-no" title="statement not covered" >new NeonAdapter();</span>
-  
+&nbsp;
+  // Aviso de segurança
+<span class="cstat-no" title="statement not covered" >  if (!process.env.DEFAULT_ADMIN_PASSWORD) {</span>
+<span class="cstat-no" title="statement not covered" >    console.warn('⚠️  AVISO: Usando senha padrão. Em produção, defina DEFAULT_ADMIN_PASSWORD.');</span>
+  }
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  console.log('👑 Criando super admin...\n');</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
     // Verificar se admin já existe
     const existingAdmin = <span class="cstat-no" title="statement not covered" >await storage.getUserByEmail('admin@7care.com');</span>
@@ -257,9 +287,9 @@ async function <span class="fstat-no" title="function not covered" >createSuperA
 <span class="cstat-no" title="statement not covered" >      console.log(`👤 Nome: ${existingAdmin.name}`);</span>
 <span class="cstat-no" title="statement not covered" >      process.exit(0);</span>
     }
-    
+&nbsp;
     // Criar novo super admin
-    const hashedPassword = <span class="cstat-no" title="statement not covered" >await bcrypt.hash('meu7care', 10);</span>
+    const hashedPassword = <span class="cstat-no" title="statement not covered" >await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);</span>
     
     const admin = <span class="cstat-no" title="statement not covered" >await storage.createUser({</span>
       name: 'Super Administrador',
@@ -308,7 +338,7 @@ async function <span class="fstat-no" title="function not covered" >createSuperA
 <span class="cstat-no" title="statement not covered" >    console.log(`\n📋 Dados do super admin:`);</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`   Nome: ${admin.name}`);</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`   Email: ${admin.email}`);</span>
-<span class="cstat-no" title="statement not covered" >    console.log(`   Senha: meu7care`);</span>
+<span class="cstat-no" title="statement not covered" >    console.log(`   Senha: ${process.env.DEFAULT_ADMIN_PASSWORD ? '(definida via env)' : 'meu7care (padrão)'}`);</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`   Role: ${admin.role}`);</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`   ID: ${admin.id}`);</span>
     
@@ -328,7 +358,7 @@ async function <span class="fstat-no" title="function not covered" >createSuperA
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../prettify.js"></script>
         <script>

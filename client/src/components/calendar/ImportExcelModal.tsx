@@ -159,8 +159,9 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         (headers as string[]).forEach((header, index) => {
           if (header && typeof header === 'string') {
             const lowerHeader = header.toLowerCase();
-            if (lowerHeader.includes('mês') || lowerHeader.includes('mes'))
+            if (lowerHeader.includes('mês') || lowerHeader.includes('mes')) {
               columnIndexes.mes = index;
+            }
             if (lowerHeader.includes('categoria')) columnIndexes.categoria = index;
             if (lowerHeader.includes('data')) columnIndexes.data = index;
             if (lowerHeader.includes('evento')) columnIndexes.evento = index;

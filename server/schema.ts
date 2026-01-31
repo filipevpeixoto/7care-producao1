@@ -82,6 +82,8 @@ export const users = pgTable(
     observations: text('observations'),
     firstAccess: boolean('first_access').default(true),
     status: text('status').default('pending'),
+    // Username normalizado para busca eficiente O(1) no login
+    usernameNormalized: text('username_normalized'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
   },
@@ -95,6 +97,8 @@ export const users = pgTable(
     statusIdx: index('users_status_idx').on(table.status),
     pointsIdx: index('users_points_idx').on(table.points),
     createdAtIdx: index('users_created_at_idx').on(table.createdAt),
+    // Índice único para busca por username normalizado
+    usernameNormalizedIdx: index('users_username_normalized_idx').on(table.usernameNormalized),
   })
 );
 
@@ -374,7 +378,7 @@ export const pointActivities = pgTable(
   })
 );
 
-// Tabela de configurações do sistema
+// Tabela de configurações do sistema (global)
 export const systemConfig = pgTable('system_config', {
   id: serial('id').primaryKey(),
   key: text('key').notNull().unique(),
@@ -384,7 +388,26 @@ export const systemConfig = pgTable('system_config', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-// Tabela de configurações do sistema (settings)
+// Tabela de configurações do sistema por distrito
+export const districtSettings = pgTable(
+  'district_settings',
+  {
+    id: serial('id').primaryKey(),
+    districtId: integer('district_id')
+      .references(() => districts.id)
+      .notNull(),
+    key: text('key').notNull(),
+    value: jsonb('value').notNull(),
+    description: text('description'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  table => ({
+    districtKeyIdx: index('district_settings_district_key_idx').on(table.districtId, table.key),
+  })
+);
+
+// Tabela de configurações do sistema (settings) - global
 export const systemSettings = pgTable('system_settings', {
   id: serial('id').primaryKey(),
   key: text('key').notNull().unique(),
@@ -393,6 +416,36 @@ export const systemSettings = pgTable('system_settings', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+// Tabela de configurações de pontos por distrito
+// Permite que cada distrito tenha sua própria escala de pontuação
+export const districtPointsConfig = pgTable(
+  'district_points_config',
+  {
+    id: serial('id').primaryKey(),
+    districtId: integer('district_id')
+      .references(() => districts.id)
+      .notNull(),
+    category: text('category').notNull(), // engajamento, classificacao, dizimista, etc.
+    key: text('key').notNull(), // baixo, medio, alto, etc.
+    value: integer('value').notNull().default(0),
+    description: text('description'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  table => ({
+    districtCategoryKeyIdx: index('district_points_district_category_key_idx').on(
+      table.districtId,
+      table.category,
+      table.key
+    ),
+    uniqueDistrictCategoryKey: index('district_points_unique_idx').on(
+      table.districtId,
+      table.category,
+      table.key
+    ),
+  })
+);
 
 // Tabela de participantes de eventos
 export const eventParticipants = pgTable(
@@ -604,4 +657,6 @@ export const schema = {
   conversationParticipants,
   eventFilterPermissions,
   pastorInvites,
+  districtPointsConfig,
+  districtSettings,
 };

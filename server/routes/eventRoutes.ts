@@ -5,7 +5,7 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
+import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createEventSchema } from '../schemas';
 import { logger } from '../utils/logger';
@@ -59,8 +59,9 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de eventos
    */
-  app.get('/api/events', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/events',
+    asyncHandler(async (req: Request, res: Response) => {
       const { church, startDate, endDate } = req.query;
       let events = await storage.getAllEvents();
 
@@ -78,11 +79,9 @@ export const eventRoutes = (app: Express): void => {
         events = events.filter((e: { date?: string }) => new Date(e.date || '') <= end);
       }
 
-      res.json(events);
-    } catch (error) {
-      handleError(res, error, 'Get events');
-    }
-  });
+      sendSuccess(res, events);
+    })
+  );
 
   /**
    * @swagger
@@ -128,8 +127,10 @@ export const eventRoutes = (app: Express): void => {
    *       400:
    *         description: Dados inválidos
    */
-  app.post('/api/events', validateBody(createEventSchema), async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/events',
+    validateBody(createEventSchema),
+    asyncHandler(async (req: Request, res: Response) => {
       const eventData = (req as ValidatedRequest<typeof createEventSchema._type>).validatedBody;
       logger.info(`Creating event: ${eventData.title}`);
 
@@ -148,11 +149,9 @@ export const eventRoutes = (app: Express): void => {
         organizerId: eventData.organizerId ?? organizerId,
         churchId,
       });
-      res.status(201).json(event);
-    } catch (error) {
-      handleError(res, error, 'Create event');
-    }
-  });
+      sendSuccess(res, event, 201);
+    })
+  );
 
   /**
    * @swagger
@@ -177,12 +176,13 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Eventos removidos
    */
-  app.delete('/api/events', async (req: Request, res: Response) => {
-    try {
+  app.delete(
+    '/api/events',
+    asyncHandler(async (req: Request, res: Response) => {
       const { ids } = req.body;
 
       if (!ids || !Array.isArray(ids)) {
-        res.status(400).json({ error: 'IDs dos eventos são obrigatórios' });
+        sendError(res, 'IDs dos eventos são obrigatórios', 400);
         return;
       }
 
@@ -190,11 +190,9 @@ export const eventRoutes = (app: Express): void => {
         await storage.deleteEvent(id);
       }
 
-      res.json({ success: true, message: `${ids.length} eventos removidos` });
-    } catch (error) {
-      handleError(res, error, 'Delete events');
-    }
-  });
+      sendSuccess(res, { message: `${ids.length} eventos removidos` });
+    })
+  );
 
   /**
    * @swagger
@@ -213,8 +211,9 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de tipos de eventos permitidos
    */
-  app.get('/api/event-types/:role', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/event-types/:role',
+    asyncHandler(async (req: Request, res: Response) => {
       const { role } = req.params;
 
       // Tipos de eventos base
@@ -230,7 +229,7 @@ export const eventRoutes = (app: Express): void => {
 
       // Admin e pastor têm acesso a todos os tipos
       if (role === 'superadmin' || role === 'pastor' || role === 'admin_readonly') {
-        res.json(eventTypes);
+        sendSuccess(res, eventTypes);
         return;
       }
 
@@ -239,11 +238,9 @@ export const eventRoutes = (app: Express): void => {
         ['culto', 'estudo_biblico', 'visita'].includes(t.id)
       );
 
-      res.json(limitedTypes);
-    } catch (error) {
-      handleError(res, error, 'Get event types');
-    }
-  });
+      sendSuccess(res, limitedTypes);
+    })
+  );
 
   /**
    * @swagger
@@ -255,14 +252,13 @@ export const eventRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de eventos do calendário
    */
-  app.get('/api/calendar/events', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/calendar/events',
+    asyncHandler(async (req: Request, res: Response) => {
       const events = await storage.getAllEvents();
-      res.json(events);
-    } catch (error) {
-      handleError(res, error, 'Get calendar events');
-    }
-  });
+      sendSuccess(res, events);
+    })
+  );
 
   /**
    * @swagger
@@ -282,8 +278,9 @@ export const eventRoutes = (app: Express): void => {
    *       201:
    *         description: Evento criado
    */
-  app.post('/api/calendar/events', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/calendar/events',
+    asyncHandler(async (req: Request, res: Response) => {
       const eventData = req.body;
       const organizerId = resolveOrganizerId(req);
       const churchInfo = await resolveChurchInfo();
@@ -300,9 +297,7 @@ export const eventRoutes = (app: Express): void => {
         organizerId: eventData?.organizerId ?? organizerId,
         churchId,
       });
-      res.status(201).json(event);
-    } catch (error) {
-      handleError(res, error, 'Create calendar event');
-    }
-  });
+      sendSuccess(res, event, 201);
+    })
+  );
 };

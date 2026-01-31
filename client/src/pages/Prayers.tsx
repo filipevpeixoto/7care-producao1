@@ -28,11 +28,31 @@ interface PrayerRequest {
 }
 
 const spiritualEmojis = {
-  1: { emoji: '🍃', label: 'Distante', color: 'bg-red-100 text-red-800' },
-  2: { emoji: '🔍', label: 'Buscando', color: 'bg-orange-100 text-orange-800' },
-  3: { emoji: '🌱', label: 'Enraizando', color: 'bg-yellow-100 text-yellow-800' },
-  4: { emoji: '🍃', label: 'Frutificando', color: 'bg-blue-100 text-blue-800' },
-  5: { emoji: '✨', label: 'Intimidade', color: 'bg-green-100 text-green-800' },
+  1: {
+    emoji: '🍃',
+    label: 'Distante',
+    color: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+  },
+  2: {
+    emoji: '🔍',
+    label: 'Buscando',
+    color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
+  },
+  3: {
+    emoji: '🌱',
+    label: 'Enraizando',
+    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+  },
+  4: {
+    emoji: '🍃',
+    label: 'Frutificando',
+    color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+  },
+  5: {
+    emoji: '✨',
+    label: 'Intimidade',
+    color: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+  },
 };
 
 const Prayers = () => {

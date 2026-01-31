@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/83</span>
+                <span class='fraction'>0/82</span>
             </div>
         
             
@@ -351,13 +351,7 @@
 <a name='L286'></a><a href='#L286'>286</a>
 <a name='L287'></a><a href='#L287'>287</a>
 <a name='L288'></a><a href='#L288'>288</a>
-<a name='L289'></a><a href='#L289'>289</a>
-<a name='L290'></a><a href='#L290'>290</a>
-<a name='L291'></a><a href='#L291'>291</a>
-<a name='L292'></a><a href='#L292'>292</a>
-<a name='L293'></a><a href='#L293'>293</a>
-<a name='L294'></a><a href='#L294'>294</a>
-<a name='L295'></a><a href='#L295'>295</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L289'></a><a href='#L289'>289</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -422,9 +416,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -529,9 +520,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -721,10 +709,7 @@ const DEFAULT_OPTIONS: Required&lt;QueueOptions&gt; = <span class="cstat-no" tit
   /**
    * Reprocessa um item da DLQ
    */
-<span class="fstat-no" title="function not covered" >  async </span>retry&lt;R&gt;(
-    id: string,
-    processor: (data: T) =&gt; Promise&lt;R&gt;
-  ): Promise&lt;R | null&gt; {
+<span class="fstat-no" title="function not covered" >  async </span>retry&lt;R&gt;(id: string, processor: (data: T) =&gt; Promise&lt;R&gt;): Promise&lt;R | null&gt; {
     const item = <span class="cstat-no" title="statement not covered" >this.items.get(id);</span>
 <span class="cstat-no" title="statement not covered" >    if (!item) {</span>
 <span class="cstat-no" title="statement not covered" >      logger.warn(`Item ${id} not found in DLQ`);</span>
@@ -822,10 +807,7 @@ const DEFAULT_OPTIONS: Required&lt;QueueOptions&gt; = <span class="cstat-no" tit
 <span class="cstat-no" title="statement not covered" >    item.lastAttemptAt = new Date();</span>
 &nbsp;
     const timeoutPromise = <span class="cstat-no" title="statement not covered" >new Promise&lt;never&gt;(<span class="fstat-no" title="function not covered" >(_</span>, reject) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      setTimeout(</span>
-<span class="fstat-no" title="function not covered" >        () =</span>&gt; <span class="cstat-no" title="statement not covered" >reject(new Error('Processing timeout')),</span>
-        this.options.processingTimeoutMs
-      );
+<span class="cstat-no" title="statement not covered" >      setTimeout(<span class="fstat-no" title="function not covered" >() =</span>&gt; <span class="cstat-no" title="statement not covered" >reject(new Error('Processing timeout')),</span> this.options.processingTimeoutMs);</span>
     });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await Promise.race([this.processor(item.data), timeoutPromise]);</span>
@@ -853,7 +835,7 @@ const DEFAULT_OPTIONS: Required&lt;QueueOptions&gt; = <span class="cstat-no" tit
    * Delay helper
    */
   private <span class="fstat-no" title="function not covered" >delay(</span>ms: number): Promise&lt;void&gt; {
-<span class="cstat-no" title="statement not covered" >    return new Promise(<span class="fstat-no" title="function not covered" >(r</span>esolve) =&gt; <span class="cstat-no" title="statement not covered" >setTimeout(resolve, ms))</span>;</span>
+<span class="cstat-no" title="statement not covered" >    return new Promise(<span class="fstat-no" title="function not covered" >resolve </span>=&gt; <span class="cstat-no" title="statement not covered" >setTimeout(resolve, ms))</span>;</span>
   }
 &nbsp;
   /**
@@ -952,7 +934,7 @@ export const <span class="cstat-no" title="statement not covered" >queueService 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

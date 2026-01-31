@@ -190,7 +190,7 @@ export const electionRoutes = (app: Express) => {
       }
       return next();
     } catch (error: unknown) {
-      console.error('Erro ao verificar acesso read-only:', error);
+      logger.error('Erro ao verificar acesso read-only:', error);
       return next();
     }
   };
@@ -274,7 +274,7 @@ export const electionRoutes = (app: Express) => {
 
       return res.status(200).json(result[0]);
     } catch (error: unknown) {
-      console.error('❌ Erro ao salvar configuração:', error);
+      logger.error('❌ Erro ao salvar configuração:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -368,7 +368,7 @@ export const electionRoutes = (app: Express) => {
         config: updatedConfig[0],
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao atualizar configuração:', error);
+      logger.error('❌ Erro ao atualizar configuração:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -432,7 +432,7 @@ export const electionRoutes = (app: Express) => {
 
       return res.json(configData);
     } catch (error: unknown) {
-      console.error('❌ Erro ao buscar configuração:', error);
+      logger.error('❌ Erro ao buscar configuração:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -506,7 +506,7 @@ export const electionRoutes = (app: Express) => {
         return res.json(configData);
       }
     } catch (error: unknown) {
-      console.error('❌ Erro ao buscar configuração:', error);
+      logger.error('❌ Erro ao buscar configuração:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -576,7 +576,7 @@ export const electionRoutes = (app: Express) => {
 
       return res.status(200).json(configs);
     } catch (error: unknown) {
-      console.error('❌ Erro ao buscar configurações:', error);
+      logger.error('❌ Erro ao buscar configurações:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -953,8 +953,8 @@ export const electionRoutes = (app: Express) => {
         message: 'Nomeação iniciada com sucesso',
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao iniciar eleição:', error);
-      console.error('❌ Stack trace:', getErrorStack(error));
+      logger.error('❌ Erro ao iniciar eleição:', error);
+      logger.error('❌ Stack trace:', getErrorStack(error));
       return res
         .status(500)
         .json({ error: 'Erro interno do servidor', details: getErrorMessage(error) });
@@ -981,7 +981,7 @@ export const electionRoutes = (app: Express) => {
 
         // Validação do configId
         if (isNaN(configId) || configId <= 0) {
-          console.error(`❌ [TOGGLE-STATUS] configId inválido:`, configId);
+          logger.error(`❌ [TOGGLE-STATUS] configId inválido:`, configId);
           return res.status(400).json({ error: 'ID da configuração inválido' });
         }
 
@@ -1021,7 +1021,7 @@ export const electionRoutes = (app: Express) => {
         );
 
         if (config.length === 0) {
-          console.error(`❌ [TOGGLE-STATUS] Config ${configId} não encontrada`);
+          logger.error(`❌ [TOGGLE-STATUS] Config ${configId} não encontrada`);
           return res.status(404).json({ error: 'Configuração não encontrada' });
         }
 
@@ -1150,7 +1150,7 @@ export const electionRoutes = (app: Express) => {
         });
       } catch (error: unknown) {
         const errorConfigId = req.params?.id;
-        console.error(`❌ [TOGGLE-STATUS] Erro completo ao processar config ${errorConfigId}:`, {
+        logger.error(`❌ [TOGGLE-STATUS] Erro completo ao processar config ${errorConfigId}:`, {
           error: getErrorMessage(error),
           stack: getErrorStack(error),
           name: error instanceof Error ? error.name : undefined,
@@ -1304,7 +1304,7 @@ export const electionRoutes = (app: Express) => {
 
       return res.status(200).json(response);
     } catch (error: unknown) {
-      console.error('❌ Erro ao buscar dashboard com configId:', error);
+      logger.error('❌ Erro ao buscar dashboard com configId:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -1386,7 +1386,7 @@ export const electionRoutes = (app: Express) => {
           electionId: election[0].id,
         });
       } catch (error: unknown) {
-        console.error('❌ Erro ao avançar fase:', error);
+        logger.error('❌ Erro ao avançar fase:', error);
         return res
           .status(500)
           .json({ error: 'Erro interno do servidor', details: getErrorMessage(error) });
@@ -1450,7 +1450,7 @@ export const electionRoutes = (app: Express) => {
           currentPhase: 'nomination',
         });
       } catch (error: unknown) {
-        console.error('❌ Erro ao avançar posição:', error);
+        logger.error('❌ Erro ao avançar posição:', error);
         return res
           .status(500)
           .json({ error: 'Erro interno do servidor', details: getErrorMessage(error) });
@@ -1571,7 +1571,7 @@ export const electionRoutes = (app: Express) => {
         winner: winnerInfo,
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao divulgar resultado:', error);
+      logger.error('❌ Erro ao divulgar resultado:', error);
       return res
         .status(500)
         .json({ error: 'Erro interno do servidor', details: getErrorMessage(error) });
@@ -1654,7 +1654,7 @@ export const electionRoutes = (app: Express) => {
         currentPhase: 'voting',
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao resetar votação:', error);
+      logger.error('❌ Erro ao resetar votação:', error);
       return res
         .status(500)
         .json({ error: 'Erro interno do servidor', details: getErrorMessage(error) });
@@ -1713,7 +1713,7 @@ export const electionRoutes = (app: Express) => {
         maxNominations,
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao atualizar configuração:', error);
+      logger.error('❌ Erro ao atualizar configuração:', error);
       return res
         .status(500)
         .json({ error: 'Erro interno do servidor', details: getErrorMessage(error) });
@@ -1772,7 +1772,7 @@ export const electionRoutes = (app: Express) => {
 
       return res.status(200).json({ message: 'Indicação registrada com sucesso' });
     } catch (error: unknown) {
-      console.error('❌ Erro ao registrar indicação:', error);
+      logger.error('❌ Erro ao registrar indicação:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -1829,7 +1829,7 @@ export const electionRoutes = (app: Express) => {
 
         return res.status(200).json({ message: 'Configuração excluída com sucesso' });
       } catch (error: unknown) {
-        console.error('❌ Erro ao excluir configuração:', error);
+        logger.error('❌ Erro ao excluir configuração:', error);
         return res.status(500).json({ error: 'Erro interno do servidor' });
       }
     }
@@ -1877,7 +1877,7 @@ export const electionRoutes = (app: Express) => {
         approved_count: approvedCount,
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao aprovar membros:', error);
+      logger.error('❌ Erro ao aprovar membros:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -1912,7 +1912,7 @@ export const electionRoutes = (app: Express) => {
         },
       });
     } catch (error: unknown) {
-      console.error('❌ Erro na limpeza:', error);
+      logger.error('❌ Erro na limpeza:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -1982,7 +1982,7 @@ export const electionRoutes = (app: Express) => {
         hasActiveElection: activeElections.length > 0,
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao buscar eleições ativas:', error);
+      logger.error('❌ Erro ao buscar eleições ativas:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -2308,7 +2308,7 @@ export const electionRoutes = (app: Express) => {
           try {
             removedCandidates = JSON.parse(config[0].removed_candidates || '[]');
           } catch (e) {
-            console.error('❌ [VOTING] Erro ao parsear removed_candidates:', e);
+            logger.error('❌ [VOTING] Erro ao parsear removed_candidates:', e);
             removedCandidates = [];
           }
         }
@@ -2404,7 +2404,7 @@ export const electionRoutes = (app: Express) => {
 
       return res.json(response);
     } catch (error: unknown) {
-      console.error('❌ Erro na interface de votação:', error);
+      logger.error('❌ Erro na interface de votação:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -2438,7 +2438,7 @@ export const electionRoutes = (app: Express) => {
 
       return res.json(votes);
     } catch (error: unknown) {
-      console.error('❌ Erro ao buscar log de votos:', error);
+      logger.error('❌ Erro ao buscar log de votos:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -2468,7 +2468,7 @@ export const electionRoutes = (app: Express) => {
         totalVotes: votes.length,
       });
     } catch (error: unknown) {
-      console.error('❌ Erro no debug:', error);
+      logger.error('❌ Erro no debug:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
@@ -2692,8 +2692,8 @@ export const electionRoutes = (app: Express) => {
       logger.info(' Retornando sucesso');
       return res.status(200).json({ message: 'Voto registrado com sucesso' });
     } catch (error: unknown) {
-      console.error('❌ Erro ao registrar voto:', error);
-      console.error('❌ Stack trace:', getErrorStack(error));
+      logger.error('❌ Erro ao registrar voto:', error);
+      logger.error('❌ Stack trace:', getErrorStack(error));
       return res.status(500).json({
         error: 'Erro interno do servidor',
         details: getErrorMessage(error),

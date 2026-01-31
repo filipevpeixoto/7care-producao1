@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from 'express';
 import { logger } from '../../utils/logger';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { sendSuccess } from '../../utils/apiResponse';
 
 const electionLogger = logger;
 
@@ -38,20 +40,18 @@ const router = Router();
  *       409:
  *         description: Usuário já votou
  */
-router.post('/cast', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/cast',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.body;
     electionLogger.info('Registrando voto', { electionId });
 
     // Auditoria do voto - usando auditService corretamente
     // O contexto precisa ser extraído da requisição autenticada
 
-    res.json({ message: 'Use /api/elections/:configId/vote endpoint' });
-  } catch (error) {
-    electionLogger.error('Erro ao registrar voto', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: 'Use /api/elections/:configId/vote endpoint' });
+  })
+);
 
 /**
  * @swagger
@@ -60,16 +60,14 @@ router.post('/cast', async (req: Request, res: Response) => {
  *     summary: Verifica status de votação do usuário
  *     tags: [Election Voting]
  */
-router.get('/status/:electionId', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/status/:electionId',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Verificando status de votação', { electionId });
-    res.json({ hasVoted: false, electionId });
-  } catch (error) {
-    electionLogger.error('Erro ao verificar status', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { hasVoted: false, electionId });
+  })
+);
 
 export { router as votingRoutes };
 export default router;

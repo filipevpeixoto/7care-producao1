@@ -202,10 +202,12 @@ export default function PastorFirstAccess() {
           if (!tipo) return 'member';
           const tipoStr = tipo.toString().toLowerCase();
           if (tipoStr.includes('admin') || tipoStr.includes('pastor')) return 'member'; // Pastores não podem ser criados via import
-          if (tipoStr.includes('missionary') || tipoStr.includes('missionário'))
+          if (tipoStr.includes('missionary') || tipoStr.includes('missionário')) {
             return 'missionary';
-          if (tipoStr.includes('interested') || tipoStr.includes('interessado'))
+          }
+          if (tipoStr.includes('interested') || tipoStr.includes('interessado')) {
             return 'interested';
+          }
           return 'member';
         };
 

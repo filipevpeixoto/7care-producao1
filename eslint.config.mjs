@@ -47,7 +47,7 @@ export default tseslint.config(
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': ['warn', {
         vars: 'all',
-        varsIgnorePattern: '^_|^handle|^set|^loading|^refresh|^clear|^toggle|^filtered|^is|^can|^get|^display|^result|^current|^show|^import|^subscriptions|^editing|^stats|^total|^source|^now|^extraData|^headers|^user$|^toast$|^lastUpdate$|^index$|^checked$|^mock|^action|^nav$|^prev|^request|^NEW_|^logout$|^electionId$',
+        varsIgnorePattern: '^_|^handle|^set|^loading|^refresh|^clear|^toggle|^filtered|^is|^can|^get|^display|^result|^current|^show|^import|^subscriptions|^editing|^stats|^total|^source|^now|^extraData|^headers|^user$|^toast$|^lastUpdate$|^index$|^checked$|^mock|^action|^nav$|^prev|^request|^NEW_|^logout$|^electionId$|^auditRepository$',
         args: 'after-used',
         argsIgnorePattern: '^_|^req$|^res$|^next$|^event$|^index$|^checked$|^err$|^electionId$',
         caughtErrorsIgnorePattern: '^_|^error$|^err$|^e$|^parseError$',

@@ -23,6 +23,7 @@ export interface ChurchData {
   name: string;
   address: string;
   isNew: boolean;
+  type: 'igreja' | 'grupo'; // (i) para igreja, (g) para grupo organizado
 }
 
 export interface ExcelRow {

@@ -6,7 +6,6 @@
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { sql } from '../neonConfig';
-import { handleError } from '../utils/errorHandler';
 import { checkReadOnlyAccess } from '../middleware';
 import { User } from '../../shared/schema';
 import {
@@ -18,11 +17,13 @@ import {
 } from '../utils/parsers';
 import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import * as bcrypt from 'bcryptjs';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
 import { createUserSchema } from '../schemas';
+import { idParamSchema } from '../utils/paramValidation';
 import { logger } from '../utils/logger';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
+import { asyncHandler, sendSuccess, sendNotFound, sendError } from '../utils';
 
 // Tipo para dados extras do usuário (para cálculo de pontos)
 interface UserExtraData {
@@ -260,150 +261,145 @@ export const userRoutes = (app: Express): void => {
   app.get(
     '/api/users',
     cacheMiddleware('users', CACHE_TTL.USERS),
-    async (req: Request, res: Response) => {
-      try {
-        logger.debug('🔍 [GET /api/users] Iniciando busca de usuários');
-        const { role, status, church } = req.query;
+    asyncHandler(async (req: Request, res: Response) => {
+      logger.debug('🔍 [GET /api/users] Iniciando busca de usuários');
+      const { role, status, church } = req.query;
 
-        // Paginação
-        const page = Math.max(1, parseInt(req.query.page as string) || 1);
-        const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50)); // Máximo 500
-        const offset = (page - 1) * limit;
+      // Paginação
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50)); // Máximo 500
+      const offset = (page - 1) * limit;
 
-        const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
 
-        logger.debug('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
+      logger.debug('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
 
-        // Buscar dados do usuário que está fazendo a requisição
-        let requestingUser = null;
-        if (requestingUserId) {
-          requestingUser = await storage.getUserById(requestingUserId);
-        }
-
-        let users = await storage.getAllUsers();
-        logger.debug(`✅ ${users.length} usuários encontrados no banco`);
-
-        if (role) {
-          users = users.filter(u => u.role === role);
-        }
-        if (status) {
-          users = users.filter(u => u.status === status);
-        }
-
-        // Filtrar por igreja se especificado ou se o usuário não for super admin
-        if (church) {
-          users = users.filter(u => u.church === church);
-        } else if (requestingUser && !isSuperAdmin(requestingUser)) {
-          // Se não for super admin, filtrar pela igreja do usuário
-          const userChurch = requestingUser.church;
-          if (userChurch) {
-            users = users.filter(u => u.church === userChurch);
-          }
-        }
-
-        const totalUsers = users.length;
-        const totalPages = Math.ceil(totalUsers / limit);
-
-        // Lógica especial para missionários
-        if (req.headers['x-user-role'] === 'missionary' || req.headers['x-user-id']) {
-          const missionaryId = parseInt((req.headers['x-user-id'] as string) || '0');
-          const missionary = users.find(u => u.id === missionaryId);
-
-          if (missionary && missionary.role === 'missionary') {
-            const churchInterested = users.filter(
-              u =>
-                u.role === 'interested' &&
-                u.church === missionary.church &&
-                u.churchCode === missionary.churchCode
-            );
-
-            const relationships = await storage.getRelationshipsByMissionary(missionaryId);
-            const linkedInterestedIds = relationships.map(r => r.interestedId);
-
-            const processedUsers = churchInterested.map(user => {
-              const isLinked = linkedInterestedIds.includes(user.id);
-
-              if (isLinked) {
-                return user;
-              } else {
-                return {
-                  ...user,
-                  id: user.id,
-                  name: user.name,
-                  role: user.role,
-                  status: user.status,
-                  church: user.church,
-                  churchCode: user.churchCode,
-                  email: user.email ? '***@***.***' : null,
-                  phone: user.phone ? '***-***-****' : null,
-                  address: user.address ? '*** *** ***' : null,
-                  birthDate: user.birthDate ? '**/**/****' : null,
-                  cpf: user.cpf ? '***.***.***-**' : null,
-                  occupation: user.occupation ? '***' : null,
-                  education: user.education ? '***' : null,
-                  previousReligion: user.previousReligion ? '***' : null,
-                  interestedSituation: user.interestedSituation ? '***' : null,
-                  points: 0,
-                  level: '***',
-                  attendance: 0,
-                  biblicalInstructor: null,
-                  isLinked: false,
-                  canRequestDiscipleship: true,
-                };
-              }
-            });
-
-            const otherUsers = users.filter(
-              u =>
-                u.role !== 'interested' ||
-                u.church !== missionary.church ||
-                u.churchCode !== missionary.churchCode
-            );
-
-            const finalUsers = [...processedUsers, ...otherUsers];
-
-            // Aplicar paginação
-            const paginatedUsers = finalUsers.slice(offset, offset + limit);
-
-            const safeUsers = paginatedUsers.map(({ password: _password, ...user }) => user);
-            res.json({
-              data: safeUsers,
-              pagination: {
-                page,
-                limit,
-                total: finalUsers.length,
-                totalPages: Math.ceil(finalUsers.length / limit),
-              },
-            });
-            return;
-          }
-        }
-
-        // Calcular pontuação apenas para os usuários da página atual (otimização)
-        const paginatedUsers = users.slice(offset, offset + limit);
-        const pointsMap = await storage.calculateUserPointsBatch(paginatedUsers);
-        const usersWithPoints = paginatedUsers.map(user => ({
-          ...user,
-          calculatedPoints: pointsMap.get(user.id) ?? 0,
-        }));
-
-        const safeUsers = usersWithPoints.map(({ password: _password, ...user }) => user);
-        logger.debug(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
-
-        res.json({
-          data: safeUsers,
-          pagination: {
-            page,
-            limit,
-            total: totalUsers,
-            totalPages,
-          },
-        });
-      } catch (error) {
-        logger.error('❌ Erro na rota GET /api/users:', error);
-        handleError(res, error, 'Get users');
+      // Buscar dados do usuário que está fazendo a requisição
+      let requestingUser = null;
+      if (requestingUserId) {
+        requestingUser = await storage.getUserById(requestingUserId);
       }
-    }
+
+      let users = await storage.getAllUsers();
+      logger.debug(`✅ ${users.length} usuários encontrados no banco`);
+
+      if (role) {
+        users = users.filter(u => u.role === role);
+      }
+      if (status) {
+        users = users.filter(u => u.status === status);
+      }
+
+      // Filtrar por igreja se especificado ou se o usuário não for super admin
+      if (church) {
+        users = users.filter(u => u.church === church);
+      } else if (requestingUser && !isSuperAdmin(requestingUser)) {
+        // Se não for super admin, filtrar pela igreja do usuário
+        const userChurch = requestingUser.church;
+        if (userChurch) {
+          users = users.filter(u => u.church === userChurch);
+        }
+      }
+
+      const totalUsers = users.length;
+      const totalPages = Math.ceil(totalUsers / limit);
+
+      // Lógica especial para missionários
+      if (req.headers['x-user-role'] === 'missionary' || req.headers['x-user-id']) {
+        const missionaryId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const missionary = users.find(u => u.id === missionaryId);
+
+        if (missionary && missionary.role === 'missionary') {
+          const churchInterested = users.filter(
+            u =>
+              u.role === 'interested' &&
+              u.church === missionary.church &&
+              u.churchCode === missionary.churchCode
+          );
+
+          const relationships = await storage.getRelationshipsByMissionary(missionaryId);
+          const linkedInterestedIds = relationships.map(r => r.interestedId);
+
+          const processedUsers = churchInterested.map(user => {
+            const isLinked = linkedInterestedIds.includes(user.id);
+
+            if (isLinked) {
+              return user;
+            } else {
+              return {
+                ...user,
+                id: user.id,
+                name: user.name,
+                role: user.role,
+                status: user.status,
+                church: user.church,
+                churchCode: user.churchCode,
+                email: user.email ? '***@***.***' : null,
+                phone: user.phone ? '***-***-****' : null,
+                address: user.address ? '*** *** ***' : null,
+                birthDate: user.birthDate ? '**/**/****' : null,
+                cpf: user.cpf ? '***.***.***-**' : null,
+                occupation: user.occupation ? '***' : null,
+                education: user.education ? '***' : null,
+                previousReligion: user.previousReligion ? '***' : null,
+                interestedSituation: user.interestedSituation ? '***' : null,
+                points: 0,
+                level: '***',
+                attendance: 0,
+                biblicalInstructor: null,
+                isLinked: false,
+                canRequestDiscipleship: true,
+              };
+            }
+          });
+
+          const otherUsers = users.filter(
+            u =>
+              u.role !== 'interested' ||
+              u.church !== missionary.church ||
+              u.churchCode !== missionary.churchCode
+          );
+
+          const finalUsers = [...processedUsers, ...otherUsers];
+
+          // Aplicar paginação
+          const paginatedUsers = finalUsers.slice(offset, offset + limit);
+
+          const safeUsers = paginatedUsers.map(({ password: _password, ...user }) => user);
+          res.json({
+            data: safeUsers,
+            pagination: {
+              page,
+              limit,
+              total: finalUsers.length,
+              totalPages: Math.ceil(finalUsers.length / limit),
+            },
+          });
+          return;
+        }
+      }
+
+      // Calcular pontuação apenas para os usuários da página atual (otimização)
+      const paginatedUsers = users.slice(offset, offset + limit);
+      const pointsMap = await storage.calculateUserPointsBatch(paginatedUsers);
+      const usersWithPoints = paginatedUsers.map(user => ({
+        ...user,
+        calculatedPoints: pointsMap.get(user.id) ?? 0,
+      }));
+
+      const safeUsers = usersWithPoints.map(({ password: _password, ...user }) => user);
+      logger.debug(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
+
+      res.json({
+        data: safeUsers,
+        pagination: {
+          page,
+          limit,
+          total: totalUsers,
+          totalPages,
+        },
+      });
+    })
   );
 
   /**
@@ -424,26 +420,21 @@ export const userRoutes = (app: Express): void => {
    *       404:
    *         description: Usuário não encontrado
    */
-  app.get('/api/users/:id(\\d+)', async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        res.status(400).json({ error: 'ID inválido' });
-        return;
-      }
+  app.get(
+    '/api/users/:id(\\d+)',
+    validateParams(idParamSchema),
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = Number(req.params.id);
       const user = await storage.getUserById(id);
 
       if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
+        return sendNotFound(res, 'Usuário');
       }
 
       const { password: _password, ...safeUser } = user;
       res.json(safeUser);
-    } catch (error) {
-      handleError(res, error, 'Get user');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -468,48 +459,44 @@ export const userRoutes = (app: Express): void => {
     checkReadOnlyAccess,
     invalidateCacheMiddleware('users'),
     validateBody(createUserSchema),
-    async (req: Request, res: Response) => {
-      try {
-        const userData = (req as ValidatedRequest<typeof createUserSchema._type>).validatedBody;
-        logger.info(`Creating new user: ${userData.email}`);
+    asyncHandler(async (req: Request, res: Response) => {
+      const userData = (req as ValidatedRequest<typeof createUserSchema._type>).validatedBody;
+      logger.info(`Criando novo usuário: ${userData.email}`);
 
-        const hashedPassword = userData.password
-          ? await bcrypt.hash(userData.password, 10)
-          : await bcrypt.hash('meu7care', 10);
+      const hashedPassword = userData.password
+        ? await bcrypt.hash(userData.password, 10)
+        : await bcrypt.hash('meu7care', 10);
 
-        let _processedChurch: string | null = null;
-        if (userData.church && userData.church.trim() !== '') {
-          try {
-            const church = await storage.getOrCreateChurch(userData.church.trim());
-            _processedChurch = church.name;
-          } catch (error) {
-            logger.error(`Erro ao processar igreja "${userData.church}":`, error);
-            _processedChurch = 'Igreja Principal';
-          }
+      let _processedChurch: string | null = null;
+      if (userData.church && userData.church.trim() !== '') {
+        try {
+          const church = await storage.getOrCreateChurch(userData.church.trim());
+          _processedChurch = church.name;
+        } catch (error) {
+          logger.error(`Erro ao processar igreja "${userData.church}":`, error);
+          _processedChurch = 'Igreja Principal';
         }
-
-        const processedUserData = {
-          ...userData,
-          password: hashedPassword,
-          firstAccess: true,
-          status: 'pending',
-          isApproved: userData.isApproved || false,
-          role: userData.role || 'interested',
-          points: 0,
-          level: 'Bronze',
-          attendance: 0,
-        };
-
-        const newUser = await storage.createUser({
-          ...processedUserData,
-          biblicalInstructor: processedUserData.biblicalInstructor ?? null,
-        } as Parameters<typeof storage.createUser>[0]);
-
-        res.status(201).json(newUser);
-      } catch (error) {
-        handleError(res, error, 'Create user');
       }
-    }
+
+      const processedUserData = {
+        ...userData,
+        password: hashedPassword,
+        firstAccess: true,
+        status: 'pending',
+        isApproved: userData.isApproved || false,
+        role: userData.role || 'interested',
+        points: 0,
+        level: 'Bronze',
+        attendance: 0,
+      };
+
+      const newUser = await storage.createUser({
+        ...processedUserData,
+        biblicalInstructor: processedUserData.biblicalInstructor ?? null,
+      } as Parameters<typeof storage.createUser>[0]);
+
+      res.status(201).json(newUser);
+    })
   );
 
   /**
@@ -540,37 +527,32 @@ export const userRoutes = (app: Express): void => {
     '/api/users/:id(\\d+)',
     checkReadOnlyAccess,
     invalidateCacheMiddleware('users'),
-    async (req: Request, res: Response) => {
-      try {
-        const id = parseInt(req.params.id);
-        const updateData = req.body;
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
 
-        if (updateData.biblicalInstructor !== undefined) {
-          if (updateData.biblicalInstructor) {
-            const existingRelationship = await storage.getRelationshipsByInterested(id);
-            if (!existingRelationship || existingRelationship.length === 0) {
-              await storage.createRelationship({
-                missionaryId: parseInt(updateData.biblicalInstructor),
-                interestedId: id,
-                status: 'active',
-                notes: 'Vinculado pelo admin',
-              });
-            }
+      if (updateData.biblicalInstructor !== undefined) {
+        if (updateData.biblicalInstructor) {
+          const existingRelationship = await storage.getRelationshipsByInterested(id);
+          if (!existingRelationship || existingRelationship.length === 0) {
+            await storage.createRelationship({
+              missionaryId: parseInt(updateData.biblicalInstructor),
+              interestedId: id,
+              status: 'active',
+              notes: 'Vinculado pelo admin',
+            });
           }
         }
-
-        const user = await storage.updateUser(id, updateData);
-        if (!user) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-
-        const { password: _password2, ...safeUser } = user;
-        res.json(safeUser);
-      } catch (error) {
-        handleError(res, error, 'Update user');
       }
-    }
+
+      const user = await storage.updateUser(id, updateData);
+      if (!user) {
+        return sendNotFound(res, 'Usuário');
+      }
+
+      const { password: _password2, ...safeUser } = user;
+      res.json(safeUser);
+    })
   );
 
   /**
@@ -595,42 +577,30 @@ export const userRoutes = (app: Express): void => {
     '/api/users/:id(\\d+)',
     checkReadOnlyAccess,
     invalidateCacheMiddleware('users'),
-    async (req: Request, res: Response) => {
-      try {
-        const id = parseInt(req.params.id);
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id);
 
-        const user = await storage.getUserById(id);
-        if (!user) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-
-        if (user.email === 'admin@7care.com') {
-          res.status(403).json({
-            error: 'Não é possível excluir o Super Administrador do sistema',
-          });
-          return;
-        }
-
-        if (hasAdminAccess(user)) {
-          res.status(403).json({
-            error: 'Não é possível excluir usuários administradores do sistema',
-          });
-          return;
-        }
-
-        const success = await storage.deleteUser(id);
-
-        if (!success) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-
-        res.json({ success: true });
-      } catch (error) {
-        handleError(res, error, 'Delete user');
+      const user = await storage.getUserById(id);
+      if (!user) {
+        return sendNotFound(res, 'Usuário');
       }
-    }
+
+      if (user.email === 'admin@7care.com') {
+        return sendError(res, 'Não é possível excluir o Super Administrador do sistema', 403);
+      }
+
+      if (hasAdminAccess(user)) {
+        return sendError(res, 'Não é possível excluir usuários administradores do sistema', 403);
+      }
+
+      const success = await storage.deleteUser(id);
+
+      if (!success) {
+        return sendNotFound(res, 'Usuário');
+      }
+
+      sendSuccess(res, { success: true });
+    })
   );
 
   /**
@@ -654,22 +624,17 @@ export const userRoutes = (app: Express): void => {
   app.post(
     '/api/users/:id(\\d+)/approve',
     checkReadOnlyAccess,
-    async (req: Request, res: Response) => {
-      try {
-        const id = parseInt(req.params.id);
-        const user = await storage.approveUser(id);
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id);
+      const user = await storage.approveUser(id);
 
-        if (!user) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-
-        const { password: _password3, ...safeUser } = user;
-        res.json(safeUser);
-      } catch (error) {
-        handleError(res, error, 'Approve user');
+      if (!user) {
+        return sendNotFound(res, 'Usuário');
       }
-    }
+
+      const { password: _password3, ...safeUser } = user;
+      res.json(safeUser);
+    })
   );
 
   /**
@@ -693,22 +658,17 @@ export const userRoutes = (app: Express): void => {
   app.post(
     '/api/users/:id(\\d+)/reject',
     checkReadOnlyAccess,
-    async (req: Request, res: Response) => {
-      try {
-        const id = parseInt(req.params.id);
-        const user = await storage.rejectUser(id);
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id);
+      const user = await storage.rejectUser(id);
 
-        if (!user) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-
-        const { password: _password4, ...safeUser } = user;
-        res.json(safeUser);
-      } catch (error) {
-        handleError(res, error, 'Reject user');
+      if (!user) {
+        return sendNotFound(res, 'Usuário');
       }
-    }
+
+      const { password: _password4, ...safeUser } = user;
+      res.json(safeUser);
+    })
   );
 
   /**
@@ -727,8 +687,9 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Pontos calculados
    */
-  app.get('/api/users/:id(\\d+)/calculate-points', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/users/:id(\\d+)/calculate-points',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.id);
 
       const result = await storage.calculateUserPoints(userId);
@@ -736,12 +697,10 @@ export const userRoutes = (app: Express): void => {
       if (result && result.success) {
         res.json(result);
       } else {
-        res.status(404).json(result || { error: 'Usuário não encontrado' });
+        sendNotFound(res, 'Usuário');
       }
-    } catch (error) {
-      handleError(res, error, 'Calculate user points');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -759,14 +718,14 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Detalhes dos pontos
    */
-  app.get('/api/users/:id(\\d+)/points-details', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/users/:id(\\d+)/points-details',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.id);
 
       const user = await storage.getUserById(userId);
       if (!user) {
-        res.status(404).json({ error: 'Usuário não encontrado' });
-        return;
+        return sendNotFound(res, 'Usuário');
       }
 
       const result = await storage.calculateUserPoints(userId);
@@ -796,10 +755,8 @@ export const userRoutes = (app: Express): void => {
           error: result?.error || 'Erro ao calcular pontos',
         });
       }
-    } catch (error) {
-      handleError(res, error, 'Get user points details');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -811,21 +768,18 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de aniversariantes
    */
-  app.get('/api/users/birthdays', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/users/birthdays',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = req.headers['x-user-id'] as string;
       const userRole = req.headers['x-user-role'] as string;
 
       let userChurch: string | null = null;
 
       if (!hasAdminAccess({ role: userRole as User['role'] }) && userId) {
-        try {
-          const currentUser = await storage.getUserById(parseInt(userId));
-          if (currentUser && currentUser.church) {
-            userChurch = currentUser.church;
-          }
-        } catch (error) {
-          logger.error('Erro ao buscar usuário para filtro de igreja:', error);
+        const currentUser = await storage.getUserById(parseInt(userId));
+        if (currentUser && currentUser.church) {
+          userChurch = currentUser.church;
         }
       }
 
@@ -890,10 +844,8 @@ export const userRoutes = (app: Express): void => {
         all: allBirthdays.map(formatBirthdayUser),
         filteredByChurch: userChurch || null,
       });
-    } catch (error) {
-      handleError(res, error, 'Get birthdays');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -907,18 +859,17 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de interessados
    */
-  app.get('/api/my-interested', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/my-interested',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       if (!userId) {
-        res.status(401).json({ error: 'Usuário não autenticado' });
-        return;
+        return sendError(res, 'Usuário não autenticado', 401);
       }
 
       const user = await storage.getUserById(userId);
       if (!user || (user.role !== 'missionary' && user.role !== 'member')) {
-        res.status(403).json({ error: 'Apenas missionários e membros podem acessar esta rota' });
-        return;
+        return sendError(res, 'Apenas missionários e membros podem acessar esta rota', 403);
       }
 
       const allUsers = await storage.getAllUsers();
@@ -969,10 +920,8 @@ export const userRoutes = (app: Express): void => {
 
       const safeUsers = processedUsers.map(({ password: _password5, ...user }) => user);
       res.json(safeUsers);
-    } catch (error) {
-      handleError(res, error, 'Get my interested');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -997,13 +946,13 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuários importados
    */
-  app.post('/api/users/bulk-import', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/users/bulk-import',
+    asyncHandler(async (req: Request, res: Response) => {
       const { users } = req.body;
 
       if (!Array.isArray(users) || users.length === 0) {
-        res.status(400).json({ error: 'Users array is required and must not be empty' });
-        return;
+        return sendError(res, 'Users array is required and must not be empty', 400);
       }
 
       // Obter configuração de pontos atual
@@ -1148,10 +1097,8 @@ export const userRoutes = (app: Express): void => {
         users: processedUsers,
         errors: errors.length > 0 ? errors : undefined,
       });
-    } catch (error) {
-      handleError(res, error, 'Bulk import');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -1174,13 +1121,13 @@ export const userRoutes = (app: Express): void => {
    *       200:
    *         description: Usuários atualizados
    */
-  app.post('/api/users/update-from-powerbi', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/users/update-from-powerbi',
+    asyncHandler(async (req: Request, res: Response) => {
       const { users: usersData } = req.body;
 
       if (!Array.isArray(usersData) || usersData.length === 0) {
-        res.status(400).json({ error: 'Users array is required and must not be empty' });
-        return;
+        return sendError(res, 'Users array is required and must not be empty', 400);
       }
 
       let updatedCount = 0;
@@ -1296,8 +1243,6 @@ export const userRoutes = (app: Express): void => {
         notFound: notFoundCount,
         errors: errors.length > 0 ? errors : undefined,
       });
-    } catch (error) {
-      handleError(res, error, 'Update from Power BI');
-    }
-  });
+    })
+  );
 };

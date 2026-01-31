@@ -31,6 +31,7 @@ export interface ChurchData {
   name: string;
   address: string;
   isNew: boolean; // true se criada pelo pastor
+  type: 'igreja' | 'grupo'; // (i) para igreja, (g) para grupo organizado
 }
 
 // Linha do Excel (Passo 4)

@@ -5,6 +5,7 @@
 
 import { Express, Request, Response } from 'express';
 import { logger } from '../utils/logger';
+import { asyncHandler, sendSuccess, sendError } from '../utils';
 
 interface WebVital {
   name: string;
@@ -51,8 +52,9 @@ export const analyticsRoutes = (app: Express): void => {
    *       200:
    *         description: Vitals registrados com sucesso
    */
-  app.post('/api/analytics/vitals', async (req: Request, res: Response): Promise<void> => {
-    try {
+  app.post(
+    '/api/analytics/vitals',
+    asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const body = req.body;
 
       // A API aceita dois formatos:
@@ -79,11 +81,7 @@ export const analyticsRoutes = (app: Express): void => {
         url = body.url;
         userAgent = body.userAgent;
       } else {
-        res.status(400).json({
-          success: false,
-          error: 'Payload inválido',
-        });
-        return;
+        return sendError(res, 'Payload inválido', 400);
       }
 
       // Em produção, você pode querer armazenar isso em um banco de dados
@@ -108,19 +106,9 @@ export const analyticsRoutes = (app: Express): void => {
         });
       }
 
-      res.json({
-        success: true,
-        message: 'Vitals registrados',
-        received: vitals.length,
-      });
-    } catch (error) {
-      logger.error('❌ Erro ao processar vitals:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao processar vitals',
-      });
-    }
-  });
+      sendSuccess(res, { received: vitals.length }, 200, 'Vitals registrados');
+    })
+  );
 
   /**
    * @swagger
@@ -145,8 +133,9 @@ export const analyticsRoutes = (app: Express): void => {
    *       200:
    *         description: Erro registrado
    */
-  app.post('/api/analytics/error', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/analytics/error',
+    asyncHandler(async (req: Request, res: Response) => {
       const { message, stack, componentStack, url } = req.body;
 
       logger.error('🔴 Erro capturado do frontend:', {
@@ -156,12 +145,9 @@ export const analyticsRoutes = (app: Express): void => {
         component: componentStack?.split('\n')[0],
       });
 
-      res.json({ success: true });
-    } catch (_error) {
-      // Não fazer nada se falhar - evitar loop infinito
-      res.status(200).json({ success: false });
-    }
-  });
+      sendSuccess(res, null, 200, 'Erro registrado');
+    })
+  );
 
   /**
    * @swagger
@@ -173,8 +159,9 @@ export const analyticsRoutes = (app: Express): void => {
    *       200:
    *         description: Métricas de performance
    */
-  app.get('/api/analytics/performance', async (_req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/analytics/performance',
+    asyncHandler(async (_req: Request, res: Response) => {
       const metrics = {
         uptime: process.uptime(),
         memory: {
@@ -189,10 +176,7 @@ export const analyticsRoutes = (app: Express): void => {
         environment: process.env.NODE_ENV,
       };
 
-      res.json(metrics);
-    } catch (error) {
-      logger.error('❌ Erro ao buscar métricas:', error);
-      res.status(500).json({ error: 'Erro ao buscar métricas' });
-    }
-  });
+      sendSuccess(res, metrics);
+    })
+  );
 };

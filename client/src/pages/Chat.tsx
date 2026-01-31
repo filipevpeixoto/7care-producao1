@@ -164,6 +164,7 @@ export default function Chat() {
             {selectedConversation ? (
               <ChatInterface
                 chatUser={getChatUser(selectedConversation)}
+                conversationId={selectedConversation.id}
                 isGroup={selectedConversation.type === 'group'}
                 groupName={
                   selectedConversation.type === 'group' ? selectedConversation.name : undefined

@@ -434,7 +434,7 @@ export default function PushNotifications() {
 
   return (
     <MobileLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 md:p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-purple-950/30 p-4 md:p-6">
         {/* Header com gradiente */}
         <div className="mb-6 relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 shadow-2xl">
           <div className="absolute inset-0 bg-black/10"></div>
@@ -454,50 +454,58 @@ export default function PushNotifications() {
 
         {/* Cards de estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-green-50 to-emerald-50">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Subscriptions Ativas</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    Subscriptions Ativas
+                  </p>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">
                     {subscriptionsList.length}
                   </p>
                 </div>
-                <div className="p-4 bg-green-100 rounded-xl">
-                  <Users className="h-8 w-8 text-green-600" />
+                <div className="p-4 bg-green-100 dark:bg-green-900/50 rounded-xl">
+                  <Users className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-50 to-cyan-50">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Usuários Cadastrados</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-1">{usersList.length}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    Usuários Cadastrados
+                  </p>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                    {usersList.length}
+                  </p>
                 </div>
-                <div className="p-4 bg-blue-100 rounded-xl">
-                  <TrendingUp className="h-8 w-8 text-blue-600" />
+                <div className="p-4 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                  <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-purple-50 to-pink-50">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Taxa de Cobertura</p>
-                  <p className="text-3xl font-bold text-purple-600 mt-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    Taxa de Cobertura
+                  </p>
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-1">
                     {usersList.length > 0
                       ? Math.round((subscriptionsList.length / usersList.length) * 100)
                       : 0}
                     %
                   </p>
                 </div>
-                <div className="p-4 bg-purple-100 rounded-xl">
-                  <Zap className="h-8 w-8 text-purple-600" />
+                <div className="p-4 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                  <Zap className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </CardContent>
@@ -544,12 +552,14 @@ export default function PushNotifications() {
                     const ua = subscription.user_agent || '';
 
                     // Detectar dispositivo
-                    if (ua.includes('iPhone') || ua.includes('iPad'))
+                    if (ua.includes('iPhone') || ua.includes('iPad')) {
                       return { icon: '📱', name: 'iOS' };
+                    }
                     if (ua.includes('Android')) return { icon: '📱', name: 'Android' };
                     if (ua.includes('Windows')) return { icon: '💻', name: 'Windows' };
-                    if (ua.includes('Macintosh') || ua.includes('Mac OS'))
+                    if (ua.includes('Macintosh') || ua.includes('Mac OS')) {
                       return { icon: '💻', name: 'macOS' };
+                    }
                     if (ua.includes('Linux')) return { icon: '💻', name: 'Linux' };
 
                     // Detectar navegador se não conseguir detectar dispositivo
@@ -577,7 +587,7 @@ export default function PushNotifications() {
                             <span className="text-sm font-semibold text-gray-900">
                               {subscription.user_name}
                             </span>
-                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full flex items-center gap-1">
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 text-xs font-medium rounded-full flex items-center gap-1">
                               <span>{device.icon}</span>
                               <span>{device.name}</span>
                             </span>

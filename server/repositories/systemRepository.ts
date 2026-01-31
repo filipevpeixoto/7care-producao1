@@ -20,7 +20,7 @@ export class SystemRepository {
         .from(schema.systemConfig)
         .where(eq(schema.systemConfig.key, key))
         .limit(1);
-      
+
       return config?.value ?? null;
     } catch (error) {
       logger.error(`Erro ao buscar config ${key}:`, error);
@@ -48,12 +48,10 @@ export class SystemRepository {
           })
           .where(eq(schema.systemConfig.key, key));
       } else {
-        await db
-          .insert(schema.systemConfig)
-          .values({
-            key,
-            value: value as Record<string, unknown>,
-          });
+        await db.insert(schema.systemConfig).values({
+          key,
+          value: value as Record<string, unknown>,
+        });
       }
     } catch (error) {
       logger.error(`Erro ao salvar config ${key}:`, error);
@@ -71,7 +69,7 @@ export class SystemRepository {
         .from(schema.systemSettings)
         .where(eq(schema.systemSettings.key, key))
         .limit(1);
-      
+
       return setting?.value ?? null;
     } catch (error) {
       logger.error(`Erro ao buscar setting ${key}:`, error);
@@ -99,12 +97,10 @@ export class SystemRepository {
           })
           .where(eq(schema.systemSettings.key, key));
       } else {
-        await db
-          .insert(schema.systemSettings)
-          .values({
-            key,
-            value: value as Record<string, unknown>,
-          });
+        await db.insert(schema.systemSettings).values({
+          key,
+          value: value as Record<string, unknown>,
+        });
       }
     } catch (error) {
       logger.error(`Erro ao salvar setting ${key}:`, error);
@@ -140,9 +136,7 @@ export class SystemRepository {
    */
   async clearLogo(): Promise<void> {
     try {
-      await db
-        .delete(schema.systemSettings)
-        .where(eq(schema.systemSettings.key, 'system_logo'));
+      await db.delete(schema.systemSettings).where(eq(schema.systemSettings.key, 'system_logo'));
     } catch (error) {
       logger.error('Erro ao limpar logo do sistema:', error);
       throw error;
@@ -154,11 +148,8 @@ export class SystemRepository {
    */
   async getEventPermissions(): Promise<EventPermissions | null> {
     try {
-      const [permissions] = await db
-        .select()
-        .from(schema.eventFilterPermissions)
-        .limit(1);
-      
+      const [permissions] = await db.select().from(schema.eventFilterPermissions).limit(1);
+
       if (permissions?.permissions) {
         return permissions.permissions as EventPermissions;
       }
@@ -174,10 +165,7 @@ export class SystemRepository {
    */
   async saveEventPermissions(permissions: EventPermissions): Promise<void> {
     try {
-      const existing = await db
-        .select()
-        .from(schema.eventFilterPermissions)
-        .limit(1);
+      const existing = await db.select().from(schema.eventFilterPermissions).limit(1);
 
       if (existing.length > 0) {
         await db
@@ -188,11 +176,9 @@ export class SystemRepository {
           })
           .where(eq(schema.eventFilterPermissions.id, existing[0].id));
       } else {
-        await db
-          .insert(schema.eventFilterPermissions)
-          .values({
-            permissions: permissions as unknown as Record<string, unknown>,
-          });
+        await db.insert(schema.eventFilterPermissions).values({
+          permissions: permissions as unknown as Record<string, unknown>,
+        });
       }
     } catch (error) {
       logger.error('Erro ao salvar permissões de eventos:', error);
@@ -206,7 +192,7 @@ export class SystemRepository {
   async clearAllData(): Promise<void> {
     try {
       logger.warn('Iniciando limpeza de todos os dados...');
-      
+
       // Ordem de deleção respeitando foreign keys
       await db.delete(schema.eventParticipants);
       await db.delete(schema.prayerIntercessors);
@@ -225,7 +211,8 @@ export class SystemRepository {
       await db.delete(schema.missionaryProfiles);
       await db.delete(schema.prayers);
       await db.delete(schema.pushSubscriptions);
-      
+      await db.delete(schema.pastorInvites);
+
       logger.info('Dados limpos com sucesso');
     } catch (error) {
       logger.error('Erro ao limpar dados:', error);

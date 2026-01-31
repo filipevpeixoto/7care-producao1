@@ -85,69 +85,70 @@ All colors MUST be HSL.
   .dark {
     /* 
      * Tema Dark Sofisticado - 7Care
-     * Paleta baseada em Slate com acentos azul-índigo
-     * Design moderno e elegante com boa legibilidade
+     * Paleta elegante inspirada na landing page com gradientes azul-índigo
+     * Design moderno com glassmorphism e boa legibilidade
      */
     
-    /* Backgrounds - Gradações de cinza-azulado escuro */
-    --background: 224 71% 4%;  /* Quase preto com tom azulado */
-    --foreground: 213 31% 91%; /* Branco suave */
+    /* Backgrounds - Gradiente elegante azul escuro */
+    --background: 222 47% 11%;  /* slate-900 base */
+    --foreground: 214 32% 91%; /* Branco azulado suave */
 
-    /* Cards e Popovers - Elevação sutil */
-    --card: 224 71% 6%;  /* Levemente mais claro que o background */
-    --card-foreground: 213 31% 91%;
+    /* Cards e Popovers - Glassmorphism elegante */
+    --card: 217 33% 15%;  /* Levemente mais claro, azulado */
+    --card-foreground: 214 32% 91%;
 
-    --popover: 224 71% 7%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 217 33% 14%;
+    --popover-foreground: 214 32% 91%;
 
-    /* Primary - Azul índigo vibrante mas não agressivo */
-    --primary: 217 91% 60%;  /* Azul índigo claro */
-    --primary-foreground: 224 71% 4%;
+    /* Primary - Azul vibrante elegante */
+    --primary: 217 91% 60%;  /* blue-500 */
+    --primary-foreground: 0 0% 100%;
     --primary-glow: 217 91% 70%;
 
-    /* Secondary - Tons complementares */
-    --secondary: 215 28% 17%;  /* Cinza azulado médio */
-    --secondary-foreground: 213 31% 91%;
+    /* Secondary - Cinza azulado para contraste */
+    --secondary: 215 25% 20%;
+    --secondary-foreground: 214 32% 91%;
 
     /* Muted - Para elementos discretos */
-    --muted: 215 28% 12%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
     /* Accent - Para destaques sutis */
-    --accent: 215 28% 14%;
-    --accent-foreground: 213 31% 91%;
+    --accent: 217 33% 18%;
+    --accent-foreground: 214 32% 91%;
 
     /* Destructive - Vermelho suave */
-    --destructive: 0 63% 45%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Bordas e Inputs */
-    --border: 215 28% 16%;
-    --input: 215 28% 14%;
+    /* Bordas e Inputs - Semi-transparentes */
+    --border: 215 28% 25%;
+    --input: 217 33% 17%;
     --ring: 217 91% 60%;
 
-    /* Chart colors - Paleta harmoniosa para gráficos */
+    /* Chart colors - Paleta harmoniosa */
     --chart-1: 217 91% 60%;  /* Azul principal */
     --chart-2: 160 60% 45%;  /* Verde teal */
     --chart-3: 280 65% 60%;  /* Roxo */
     --chart-4: 35 85% 55%;   /* Âmbar */
     --chart-5: 340 75% 55%;  /* Rosa */
 
-    /* Sidebar - Consistente com o tema */
-    --sidebar-background: 224 71% 5%;
-    --sidebar-foreground: 213 31% 91%;
+    /* Sidebar - Consistente com tema elegante */
+    --sidebar-background: 222 47% 10%;
+    --sidebar-foreground: 214 32% 91%;
     --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 224 71% 4%;
-    --sidebar-accent: 215 28% 14%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 215 28% 16%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 214 32% 91%;
+    --sidebar-border: 215 28% 22%;
     --sidebar-ring: 217 91% 60%;
 
-    /* Custom effects for dark mode */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 50%), hsl(217 91% 65%));
+    /* Custom effects for dark mode - Elegante */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 55%), hsl(263 70% 55%));
     --gradient-secondary: linear-gradient(135deg, hsl(215 28% 17%), hsl(215 28% 25%));
-    --shadow-divine: 0 10px 40px -10px hsl(217 91% 60% / 0.15);
-    --shadow-glow: 0 0 30px hsl(217 91% 60% / 0.1);
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 11%) 0%, hsl(217 33% 17%) 50%, hsl(222 47% 11%) 100%);
+    --shadow-divine: 0 10px 40px -10px hsl(217 91% 60% / 0.2);
+    --shadow-glow: 0 0 30px hsl(217 91% 60% / 0.15);
   }
 
   /* Fix for modal scroll issues */
@@ -235,20 +236,142 @@ All colors MUST be HSL.
     transition: var(--transition-divine);
   }
 
-  /* Dark mode card styling */
+  /* Dark mode card styling - Elegante glassmorphism */
   .dark .card-elevated {
-    background: linear-gradient(180deg, hsl(224 71% 8%) 0%, hsl(224 71% 6%) 100%);
-    border-color: hsl(215 28% 18%);
+    background: linear-gradient(180deg, hsl(217 33% 17%) 0%, hsl(217 33% 14%) 100%);
+    border-color: hsl(215 28% 25%);
   }
 
-  /* Dark mode glass effect */
+  /* Dark mode glass effect - Inspirado na landing page */
   .dark-glass {
-    @apply dark:bg-slate-900/80 dark:backdrop-blur-xl dark:border-slate-700/50;
+    @apply dark:bg-slate-800/50 dark:backdrop-blur-xl dark:border-slate-700/50;
   }
 
   /* Smooth dark mode transitions */
   .dark-transition {
     @apply transition-colors duration-300 ease-in-out;
+  }
+
+  /* ===================================
+     Dark Mode Elegante - Classes Globais
+     =================================== */
+
+  /* Cards com glassmorphism no dark mode */
+  .dark [data-slot="card"],
+  .dark .bg-card {
+    background: linear-gradient(180deg, 
+      hsl(217 33% 17% / 0.9) 0%, 
+      hsl(217 33% 14% / 0.9) 100%
+    );
+    backdrop-filter: blur(12px);
+    border-color: hsl(215 28% 28% / 0.5);
+  }
+
+  /* Botões elegantes no dark mode */
+  .dark .btn-primary,
+  .dark [data-slot="button"].bg-primary {
+    background: linear-gradient(135deg, hsl(217 91% 55%), hsl(263 70% 55%));
+    box-shadow: 0 4px 15px -3px hsl(217 91% 55% / 0.4);
+  }
+
+  .dark .btn-primary:hover,
+  .dark [data-slot="button"].bg-primary:hover {
+    box-shadow: 0 6px 20px -3px hsl(217 91% 55% / 0.5);
+    transform: translateY(-1px);
+  }
+
+  /* Inputs elegantes no dark mode */
+  .dark input:not([type="checkbox"]):not([type="radio"]),
+  .dark textarea,
+  .dark select,
+  .dark [data-slot="input"],
+  .dark [data-slot="textarea"] {
+    background: hsl(217 33% 15%);
+    border-color: hsl(215 28% 28%);
+    color: hsl(214 32% 91%);
+  }
+
+  .dark input:not([type="checkbox"]):not([type="radio"]):focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    border-color: hsl(217 91% 55%);
+    box-shadow: 0 0 0 3px hsl(217 91% 55% / 0.15);
+  }
+
+  /* Tables elegantes */
+  .dark table {
+    background: hsl(217 33% 14% / 0.8);
+  }
+
+  .dark thead {
+    background: hsl(217 33% 17%);
+  }
+
+  .dark tbody tr {
+    border-color: hsl(215 28% 22%);
+  }
+
+  .dark tbody tr:hover {
+    background: hsl(217 33% 18% / 0.7);
+  }
+
+  /* Dialogs/Modals elegantes */
+  .dark [data-radix-dialog-content],
+  .dark [role="dialog"] {
+    background: linear-gradient(180deg, 
+      hsl(217 33% 16%) 0%, 
+      hsl(217 33% 13%) 100%
+    );
+    border-color: hsl(215 28% 25%);
+    box-shadow: 0 25px 50px -12px hsl(222 47% 5% / 0.6);
+  }
+
+  /* Dropdown menus elegantes */
+  .dark [data-radix-menu-content],
+  .dark [role="menu"] {
+    background: hsl(217 33% 15%);
+    border-color: hsl(215 28% 25%);
+    box-shadow: 0 10px 40px -10px hsl(222 47% 5% / 0.5);
+  }
+
+  .dark [data-radix-menu-item]:hover,
+  .dark [role="menuitem"]:hover {
+    background: hsl(217 91% 55% / 0.1);
+  }
+
+  /* Tabs elegantes */
+  .dark [role="tablist"] {
+    background: hsl(217 33% 14%);
+    border-color: hsl(215 28% 22%);
+  }
+
+  .dark [role="tab"][data-state="active"] {
+    background: hsl(217 91% 55%);
+    color: white;
+  }
+
+  /* Badges elegantes */
+  .dark .badge,
+  .dark [data-slot="badge"] {
+    background: hsl(217 33% 20% / 0.8);
+    border-color: hsl(215 28% 28%);
+  }
+
+  /* Alerts elegantes */
+  .dark [role="alert"] {
+    background: hsl(217 33% 15% / 0.9);
+    border-color: hsl(215 28% 25%);
+  }
+
+  /* Progress bars */
+  .dark [role="progressbar"] {
+    background: hsl(217 33% 17%);
+  }
+
+  /* Avatars com borda sutil */
+  .dark [data-slot="avatar"],
+  .dark .avatar {
+    border: 2px solid hsl(215 28% 25%);
   }
 }
 
@@ -277,26 +400,36 @@ All colors MUST be HSL.
 }
 
 /* ===================================
-   Dark Mode Enhancements
+   Dark Mode Enhancements - Elegante
    =================================== */
 
-/* Improved dark mode scrollbar */
+/* Background gradient elegante para o body no dark mode */
+.dark body {
+  background: linear-gradient(180deg, 
+    hsl(222 47% 11%) 0%, 
+    hsl(217 33% 12%) 50%,
+    hsl(222 47% 11%) 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Improved dark mode scrollbar - Elegante */
 .dark ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: hsl(224 71% 6%);
+  background: hsl(217 33% 12%);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: hsl(215 28% 25%);
+  background: linear-gradient(180deg, hsl(217 91% 45%), hsl(263 70% 45%));
   border-radius: 4px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: hsl(215 28% 35%);
+  background: linear-gradient(180deg, hsl(217 91% 55%), hsl(263 70% 55%));
 }
 
 /* Dark mode focus rings */

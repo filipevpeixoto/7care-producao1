@@ -23,10 +23,10 @@ globalThis.import = {
 
 // Polyfill para TextEncoder/TextDecoder (necessário para crypto)
 if (typeof globalThis.TextEncoder === 'undefined') {
-  (globalThis as unknown as { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
+  (globalThis as any).TextEncoder = TextEncoder;
 }
 if (typeof globalThis.TextDecoder === 'undefined') {
-  (globalThis as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
+  (globalThis as any).TextDecoder = TextDecoder;
 }
 
 // Polyfill para structuredClone (necessário para fake-indexeddb)

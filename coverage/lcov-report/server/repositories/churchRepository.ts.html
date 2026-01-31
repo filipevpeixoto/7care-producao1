@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/36</span>
+                <span class='fraction'>0/28</span>
             </div>
         
             
@@ -291,7 +291,21 @@
 <a name='L226'></a><a href='#L226'>226</a>
 <a name='L227'></a><a href='#L227'>227</a>
 <a name='L228'></a><a href='#L228'>228</a>
-<a name='L229'></a><a href='#L229'>229</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -333,6 +347,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -362,6 +377,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -375,6 +394,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -406,11 +429,14 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -498,6 +524,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -524,7 +552,7 @@
  * Métodos relacionados a igrejas extraídos do NeonAdapter
  */
 &nbsp;
-<span class="cstat-no" title="statement not covered" >import { eq, desc as _desc, sql, and as _and, or as _or, like as _like, count } from 'drizzle-orm';</span>
+<span class="cstat-no" title="statement not covered" >import { eq, sql, count } from 'drizzle-orm';</span>
 <span class="cstat-no" title="statement not covered" >import { db } from '../neonConfig';</span>
 <span class="cstat-no" title="statement not covered" >import * as schema from '../schema';</span>
 import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
@@ -550,14 +578,15 @@ import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
    * Resolve código único de igreja
    */
   private <span class="fstat-no" title="function not covered" >async </span>resolveChurchCode(name: string, providedCode?: string | null): Promise&lt;string&gt; {
-    const initialCode = <span class="cstat-no" title="statement not covered" >(providedCode &amp;&amp; providedCode.trim() !== '' </span>
-      ? providedCode 
-      : this.generateChurchCode(name)).slice(0, 10);
+    const initialCode = <span class="cstat-no" title="statement not covered" >(</span>
+      providedCode &amp;&amp; providedCode.trim() !== '' ? providedCode : this.generateChurchCode(name)
+    ).slice(0, 10);
     let finalCode = <span class="cstat-no" title="statement not covered" >initialCode;</span>
     let counter = <span class="cstat-no" title="statement not covered" >1;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    while (true) {</span>
-      const existing = <span class="cstat-no" title="statement not covered" >await db.select()</span>
+      const existing = <span class="cstat-no" title="statement not covered" >await db</span>
+        .select()
         .from(schema.churches)
         .where(eq(schema.churches.code, finalCode))
         .limit(1);
@@ -589,7 +618,11 @@ import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
    */
 <span class="fstat-no" title="function not covered" >  async </span>getChurchById(id: number): Promise&lt;Church | null&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
-      const [church] = <span class="cstat-no" title="statement not covered" >await db.select().from(schema.churches).where(eq(schema.churches.id, id)).limit(1);</span>
+      const [church] = <span class="cstat-no" title="statement not covered" >await db</span>
+        .select()
+        .from(schema.churches)
+        .where(eq(schema.churches.id, id))
+        .limit(1);
 <span class="cstat-no" title="statement not covered" >      return church ? this.mapChurchRecord(church) : null;</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      logger.error('Erro ao buscar igreja por ID', error);</span>
@@ -602,7 +635,11 @@ import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
    */
 <span class="fstat-no" title="function not covered" >  async </span>getChurchByCode(code: string): Promise&lt;Church | null&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
-      const [church] = <span class="cstat-no" title="statement not covered" >await db.select().from(schema.churches).where(eq(schema.churches.code, code)).limit(1);</span>
+      const [church] = <span class="cstat-no" title="statement not covered" >await db</span>
+        .select()
+        .from(schema.churches)
+        .where(eq(schema.churches.code, code))
+        .limit(1);
 <span class="cstat-no" title="statement not covered" >      return church ? this.mapChurchRecord(church) : null;</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      logger.error('Erro ao buscar igreja por código', error);</span>
@@ -633,12 +670,15 @@ import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
 <span class="fstat-no" title="function not covered" >  async </span>createChurch(churchData: InsertChurch): Promise&lt;Church&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const code = <span class="cstat-no" title="statement not covered" >await this.resolveChurchCode(churchData.name, churchData.code);</span>
-      const [church] = <span class="cstat-no" title="statement not covered" >await db.insert(schema.churches).values({</span>
-        ...churchData,
-        code,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning();
+      const [church] = <span class="cstat-no" title="statement not covered" >await db</span>
+        .insert(schema.churches)
+        .values({
+          ...churchData,
+          code,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
 <span class="cstat-no" title="statement not covered" >      return this.mapChurchRecord(church);</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      logger.error('Erro ao criar igreja', error);</span>
@@ -657,7 +697,7 @@ import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
         .update(schema.churches)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         } as Record&lt;string, unknown&gt;)
         .where(eq(schema.churches.id, id))
         .returning();
@@ -717,7 +757,7 @@ import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
 <span class="fstat-no" title="function not covered" >  async </span>getOrCreateChurch(name: string, districtId?: number): Promise&lt;Church&gt; {
     const existing = <span class="cstat-no" title="statement not covered" >await this.getChurchByName(name);</span>
 <span class="cstat-no" title="statement not covered" >    if (existing) <span class="cstat-no" title="statement not covered" >return existing;</span></span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return this.createChurch({ name, districtId: districtId ?? null });</span>
   }
 &nbsp;
@@ -735,12 +775,14 @@ import type { Church, InsertChurch, UpdateChurch } from '../../shared/schema';
       pastor: record.pastor as string | null | undefined,
       districtId: record.districtId as number | null | undefined,
       isDefault: record.isDefault as boolean | undefined,
-      createdAt: record.createdAt instanceof Date 
-        ? record.createdAt.toISOString() 
-        : record.createdAt as string | undefined,
-      updatedAt: record.updatedAt instanceof Date 
-        ? record.updatedAt.toISOString() 
-        : record.updatedAt as string | undefined,
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : (record.createdAt as string | undefined),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : (record.updatedAt as string | undefined),
     };
   }
 }
@@ -754,7 +796,7 @@ export const <span class="cstat-no" title="statement not covered" >churchReposit
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "npx vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist-server/index.js --packages=external",
+    "build:server": "esbuild server/index.prod.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist-server/index.cjs",
     "start:server": "NODE_ENV=production node dist-server/index.js",
     "build:full": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
@@ -113,12 +113,14 @@
     "embla-carousel-react": "^8.6.0",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
     "helmet": "^8.1.0",
     "i18next": "^25.8.0",
     "i18next-browser-languagedetector": "^8.2.0",
     "i18next-http-backend": "^3.0.2",
+    "immer": "^11.1.3",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^4.0.0",
@@ -157,7 +159,8 @@
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
@@ -207,7 +210,6 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-unused-imports": "^4.3.0",
-    "express-rate-limit": "^8.2.1",
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.0.0",
     "husky": "^9.1.7",

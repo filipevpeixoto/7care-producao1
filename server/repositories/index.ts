@@ -15,6 +15,9 @@ import { systemRepository } from './systemRepository';
 import { districtRepository } from './districtRepository';
 import { electionRepository } from './electionRepository';
 import { auditRepository } from './auditRepository';
+import { notificationRepository } from './notificationRepository';
+import { pushSubscriptionRepository } from './pushSubscriptionRepository';
+import { achievementRepository } from './achievementRepository';
 
 export { UserRepository, userRepository } from './userRepository';
 export { ChurchRepository, churchRepository } from './churchRepository';
@@ -33,6 +36,12 @@ export { SystemRepository, systemRepository } from './systemRepository';
 export { DistrictRepository, districtRepository } from './districtRepository';
 export { ElectionRepository, electionRepository } from './electionRepository';
 export { AuditRepository, auditRepository } from './auditRepository';
+export { NotificationRepository, notificationRepository } from './notificationRepository';
+export {
+  PushSubscriptionRepository,
+  pushSubscriptionRepository,
+} from './pushSubscriptionRepository';
+export { AchievementRepository, achievementRepository } from './achievementRepository';
 export { createPaginatedResult, paginateArray } from './BaseRepository';
 export type { PaginationOptions, PaginatedResult } from './BaseRepository';
 
@@ -54,6 +63,9 @@ export const repositories = {
   districts: districtRepository,
   elections: electionRepository,
   audit: auditRepository,
+  notifications: notificationRepository,
+  pushSubscriptions: pushSubscriptionRepository,
+  achievements: achievementRepository,
 };
 
 export default repositories;

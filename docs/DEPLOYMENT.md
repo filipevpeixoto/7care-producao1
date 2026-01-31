@@ -5,29 +5,66 @@ Este guia detalha os passos necessários para fazer deploy do 7Care em ambiente 
 ## Índice
 
 1. [Pré-requisitos](#pré-requisitos)
-2. [Configuração do Ambiente](#configuração-do-ambiente)
-3. [Deploy no Netlify](#deploy-no-netlify)
-4. [Configuração do Banco de Dados](#configuração-do-banco-de-dados)
-5. [Variáveis de Ambiente](#variáveis-de-ambiente)
-6. [Monitoramento](#monitoramento)
-7. [Rollback e Recovery](#rollback-e-recovery)
-8. [Checklist de Segurança](#checklist-de-segurança)
+2. [Ambientes](#ambientes)
+3. [Configuração do Ambiente](#configuração-do-ambiente)
+4. [Deploy no Netlify](#deploy-no-netlify)
+5. [Configuração do Banco de Dados](#configuração-do-banco-de-dados)
+6. [Variáveis de Ambiente](#variáveis-de-ambiente)
+7. [Monitoramento](#monitoramento)
+8. [Rollback e Recovery](#rollback-e-recovery)
+9. [Checklist de Segurança](#checklist-de-segurança)
 
 ---
 
 ## Pré-requisitos
 
 ### Infraestrutura
+
 - Conta no [Netlify](https://netlify.com) para hosting
 - Conta no [Neon](https://neon.tech) para banco de dados PostgreSQL
 - Conta no [Sentry](https://sentry.io) para monitoramento de erros
 - Domínio personalizado (opcional)
 
 ### Ferramentas Locais
+
 - Node.js 20.x ou superior
 - npm 10.x ou superior
 - Git configurado
 - Netlify CLI (`npm install -g netlify-cli`)
+
+---
+
+## Ambientes
+
+O projeto utiliza três ambientes distintos:
+
+| Ambiente        | Branch      | URL                       | Propósito                 |
+| --------------- | ----------- | ------------------------- | ------------------------- |
+| **Development** | `feature/*` | Local                     | Desenvolvimento local     |
+| **Staging**     | `develop`   | staging-7care.netlify.app | Testes de integração e QA |
+| **Production**  | `main`      | meu7care.netlify.app      | Produção                  |
+
+### Fluxo de Deploy
+
+```
+feature/* → develop (Staging) → main (Production)
+     ↓           ↓                    ↓
+   Local    Auto Deploy          Auto Deploy
+             + E2E Tests       + Security Scan
+```
+
+### Staging
+
+- Deploy automático ao fazer push na branch `develop`
+- Ambiente para testes de QA e validação de features
+- Banco de dados separado (staging) no Neon
+- Ideal para testes de integração antes de produção
+
+### Production
+
+- Deploy automático ao fazer push na branch `main`
+- Requer que testes e security scan passem
+- Inclui smoke tests pós-deploy
 
 ---
 
@@ -118,6 +155,7 @@ netlify deploy --prod
 ### 4. Deploy Contínuo
 
 Configure no painel do Netlify:
+
 1. Vá em **Site settings** > **Build & deploy**
 2. Conecte seu repositório GitHub
 3. Configure:
@@ -219,6 +257,7 @@ APM_SAMPLE_RATE=0.1
 ### Sentry
 
 O projeto já está configurado com Sentry para:
+
 - Captura automática de erros
 - Performance monitoring
 - Breadcrumbs para debugging
@@ -235,6 +274,7 @@ Sentry.init({
 ### APM Service
 
 O serviço de APM customizado registra:
+
 - Métricas de performance
 - Contadores de requisições
 - Histogramas de latência
@@ -333,6 +373,7 @@ psql $DATABASE_URL < backup_file.sql
 ### Erro: "Function timeout"
 
 O limite de tempo para Netlify Functions é 10 segundos. Soluções:
+
 1. Otimize queries do banco
 2. Use background functions para tarefas longas
 3. Implemente paginação
@@ -376,6 +417,7 @@ netlify functions:invoke api --no-identity
 ## Suporte
 
 Para problemas ou dúvidas:
+
 1. Consulte a documentação em `/docs`
 2. Verifique issues no GitHub
 3. Contate a equipe de desenvolvimento

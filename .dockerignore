@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-server
+.git
+.gitignore
+*.md
+.env
+.env.*
+coverage
+test-results
+playwright-report
+.husky
+*.log

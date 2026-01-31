@@ -5,7 +5,7 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
+import { asyncHandler, sendSuccess, sendNotFound } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createMeetingSchema } from '../schemas';
@@ -35,8 +35,9 @@ export const meetingRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de reuniões
    */
-  app.get('/api/meetings', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/meetings',
+    asyncHandler(async (req: Request, res: Response) => {
       const { userId, status } = req.query;
       let meetings = await storage.getAllMeetings();
 
@@ -49,11 +50,9 @@ export const meetingRoutes = (app: Express): void => {
         meetings = meetings.filter(m => m.status === status);
       }
 
-      res.json(meetings);
-    } catch (error) {
-      handleError(res, error, 'Get meetings');
-    }
-  });
+      sendSuccess(res, meetings);
+    })
+  );
 
   /**
    * @swagger
@@ -106,21 +105,16 @@ export const meetingRoutes = (app: Express): void => {
   app.post(
     '/api/meetings',
     validateBody(createMeetingSchema),
-    async (req: Request, res: Response) => {
-      try {
-        const meetingData = (req as ValidatedRequest<typeof createMeetingSchema._type>)
-          .validatedBody;
-        logger.info(`Creating meeting: ${meetingData.title}`);
-        const meeting = await storage.createMeeting({
-          ...meetingData,
-          notes: meetingData.notes ?? '',
-          isUrgent: meetingData.isUrgent ?? false,
-        } as Parameters<typeof storage.createMeeting>[0]);
-        res.status(201).json(meeting);
-      } catch (error) {
-        handleError(res, error, 'Create meeting');
-      }
-    }
+    asyncHandler(async (req: Request, res: Response) => {
+      const meetingData = (req as ValidatedRequest<typeof createMeetingSchema._type>).validatedBody;
+      logger.info(`Creating meeting: ${meetingData.title}`);
+      const meeting = await storage.createMeeting({
+        ...meetingData,
+        notes: meetingData.notes ?? '',
+        isUrgent: meetingData.isUrgent ?? false,
+      } as Parameters<typeof storage.createMeeting>[0]);
+      sendSuccess(res, meeting, 201);
+    })
   );
 
   /**
@@ -149,23 +143,22 @@ export const meetingRoutes = (app: Express): void => {
    *       404:
    *         description: Reunião não encontrada
    */
-  app.put('/api/meetings/:id', async (req: Request, res: Response) => {
-    try {
+  app.put(
+    '/api/meetings/:id',
+    asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
       const meetingData = req.body;
 
       const meeting = await storage.updateMeeting(id, meetingData);
 
       if (!meeting) {
-        res.status(404).json({ error: 'Reunião não encontrada' });
+        sendNotFound(res, 'Reunião');
         return;
       }
 
-      res.json(meeting);
-    } catch (error) {
-      handleError(res, error, 'Update meeting');
-    }
-  });
+      sendSuccess(res, meeting);
+    })
+  );
 
   /**
    * @swagger
@@ -177,12 +170,11 @@ export const meetingRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de tipos de reunião
    */
-  app.get('/api/meeting-types', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/meeting-types',
+    asyncHandler(async (req: Request, res: Response) => {
       const meetingTypes = await storage.getMeetingTypes();
-      res.json(meetingTypes);
-    } catch (error) {
-      handleError(res, error, 'Get meeting types');
-    }
-  });
+      sendSuccess(res, meetingTypes);
+    })
+  );
 };

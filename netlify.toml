@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --legacy-peer-deps && npm run build && cp -r public/* dist/ 2>/dev/null || true"
+  command = "npm install --legacy-peer-deps && npm run build && cp -r client/public/* dist/ 2>/dev/null || true"
   publish = "dist"
 
 [build.environment]
@@ -12,6 +12,13 @@
   to = "/.netlify/functions/api"
   status = 200
 
+# Páginas estáticas específicas (antes do catch-all)
+[[redirects]]
+  from = "/convite-pastor.html"
+  to = "/convite-pastor.html"
+  status = 200
+
+# SPA catch-all (deve ser o último)
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -1,3 +1,30 @@
+/**
+ * Neon Database Adapter
+ * @module server/neonAdapter
+ * @description Implementação do adaptador de armazenamento para PostgreSQL Neon.
+ * Este é o principal ponto de acesso ao banco de dados, implementando a interface IStorage.
+ *
+ * Funcionalidades principais:
+ * - CRUD completo para todas as entidades (Users, Churches, Events, etc.)
+ * - Sistema de pontos e gamificação
+ * - Push notifications (Web Push API)
+ * - Relacionamentos e discipulado
+ * - Check-ins emocionais e espirituais
+ *
+ * @example
+ * ```typescript
+ * import { NeonAdapter } from './neonAdapter';
+ *
+ * const storage = new NeonAdapter();
+ *
+ * // Buscar usuário
+ * const user = await storage.getUserById(1);
+ *
+ * // Criar evento
+ * const event = await storage.createEvent({ title: 'Culto', ... });
+ * ```
+ */
+
 import { db, sql as neonSql } from './neonConfig';
 import { schema } from './schema';
 import { eq, and, desc, asc, ne, or, inArray, sql as drizzleSql } from 'drizzle-orm';
@@ -55,6 +82,11 @@ import {
   MeetingType,
 } from '../shared/schema';
 
+/**
+ * Implementação do adaptador de armazenamento para Neon PostgreSQL
+ * @class NeonAdapter
+ * @implements {IStorage}
+ */
 export class NeonAdapter implements IStorage {
   private getActivitiesFromConfig(raw: unknown): Activity[] {
     if (Array.isArray(raw)) {
@@ -457,6 +489,42 @@ export class NeonAdapter implements IStorage {
     }
   }
 
+  /**
+   * Busca usuário por username normalizado (O(1) com índice)
+   * Usado para login por username gerado do nome
+   */
+  async getUserByNormalizedUsername(username: string): Promise<User | null> {
+    try {
+      // Normalizar o input da mesma forma que foi salvo
+      const normalized = this.normalizeUsername(username);
+
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.usernameNormalized, normalized))
+        .limit(1);
+
+      const row = result[0] || null;
+      return row ? this.toUser(row) : null;
+    } catch (error) {
+      logger.error('Erro ao buscar usuário por username normalizado:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Normaliza um nome para formato de username
+   * Exemplo: "João da Silva" -> "joaodasilva"
+   */
+  private normalizeUsername(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
+      .trim();
+  }
+
   async createUser(userData: CreateUserInput): Promise<User> {
     try {
       // Hash da senha - garantir que sempre tenha uma senha
@@ -466,9 +534,13 @@ export class NeonAdapter implements IStorage {
         hashedPassword = await bcrypt.hash(password, 10);
       }
 
+      // Gerar username normalizado para busca eficiente no login
+      const usernameNormalized = this.normalizeUsername(userData.name);
+
       const newUser = {
         ...userData,
         password: hashedPassword,
+        usernameNormalized,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -493,6 +565,11 @@ export class NeonAdapter implements IStorage {
 
       // Converter level para string se for número
       const dbUpdates: Record<string, unknown> = { ...updates, updatedAt: new Date() };
+
+      // Atualizar username normalizado se o nome foi alterado
+      if (updates.name) {
+        dbUpdates.usernameNormalized = this.normalizeUsername(updates.name);
+      }
       if (typeof dbUpdates.level === 'number') {
         dbUpdates.level = String(dbUpdates.level);
       }
@@ -759,19 +836,24 @@ export class NeonAdapter implements IStorage {
       const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
 
       if (updatesExtras.title !== undefined) dbUpdates.title = updatesExtras.title;
-      if (updatesExtras.description !== undefined)
+      if (updatesExtras.description !== undefined) {
         dbUpdates.description = updatesExtras.description ?? null;
+      }
       if (updatesExtras.location !== undefined) dbUpdates.location = updatesExtras.location ?? null;
       if (updatesExtras.type !== undefined) dbUpdates.type = updatesExtras.type;
-      if (updatesExtras.isRecurring !== undefined)
+      if (updatesExtras.isRecurring !== undefined) {
         dbUpdates.isRecurring = updatesExtras.isRecurring;
-      if (updatesExtras.recurrencePattern !== undefined)
+      }
+      if (updatesExtras.recurrencePattern !== undefined) {
         dbUpdates.recurrencePattern = updatesExtras.recurrencePattern ?? null;
-      if (updatesExtras.maxParticipants !== undefined)
+      }
+      if (updatesExtras.maxParticipants !== undefined) {
         dbUpdates.capacity = updatesExtras.maxParticipants ?? null;
+      }
       if (updatesExtras.capacity !== undefined) dbUpdates.capacity = updatesExtras.capacity ?? null;
-      if (updatesExtras.organizerId !== undefined)
+      if (updatesExtras.organizerId !== undefined) {
         dbUpdates.createdBy = updatesExtras.organizerId ?? null;
+      }
       if (updatesExtras.color !== undefined) dbUpdates.color = updatesExtras.color ?? null;
       if (updatesExtras.churchId !== undefined) dbUpdates.churchId = updatesExtras.churchId ?? null;
       if (updatesExtras.date !== undefined) {
@@ -883,6 +965,52 @@ export class NeonAdapter implements IStorage {
     } catch (error) {
       logger.error('❌ Erro ao buscar configuração de pontos:', error);
       return this.getDefaultPointsConfiguration();
+    }
+  }
+
+  // Buscar configuração de pontos específica do distrito, com fallback para global
+  async getPointsConfigurationByDistrict(districtId: number | null): Promise<PointsConfiguration> {
+    try {
+      // Se não tem distrito, usar configuração global
+      if (!districtId) {
+        return this.getPointsConfiguration();
+      }
+
+      // Buscar configurações específicas do distrito
+      const districtConfigs = await db
+        .select()
+        .from(schema.districtPointsConfig)
+        .where(eq(schema.districtPointsConfig.districtId, districtId));
+
+      // Se não há configuração do distrito, usar global
+      if (districtConfigs.length === 0) {
+        logger.info(`Distrito ${districtId} não tem config própria, usando global`);
+        return this.getPointsConfiguration();
+      }
+
+      // Começar com configuração padrão e sobrescrever com valores do distrito
+      const resolved = this.getDefaultPointsConfiguration();
+      const setNested = (category: keyof PointsConfiguration, key: string, value: number) => {
+        const group = resolved[category];
+        if (group && typeof group === 'object') {
+          (group as Record<string, number>)[key] = value;
+        }
+      };
+
+      // Aplicar configurações do distrito
+      districtConfigs.forEach(item => {
+        if (item.category && item.key) {
+          const category = item.category as keyof PointsConfiguration;
+          setNested(category, item.key, item.value);
+        }
+      });
+
+      logger.info(`Usando configuração de pontos do distrito ${districtId}`);
+      return resolved;
+    } catch (error) {
+      logger.error(`❌ Erro ao buscar configuração de pontos do distrito ${districtId}:`, error);
+      // Fallback para configuração global
+      return this.getPointsConfiguration();
     }
   }
 
@@ -1297,8 +1425,24 @@ export class NeonAdapter implements IStorage {
         return { success: true, points: 0, breakdown: {}, message: 'Admin não possui pontos' };
       }
 
-      // Buscar configuração de pontos e garantir valores obrigatórios
-      const rawConfig = await this.getPointsConfiguration();
+      // Buscar district_id do usuário (direto do usuário ou via churchCode)
+      let userDistrictId: number | null = userData.districtId || null;
+
+      // Se não tem districtId direto, tentar buscar via churchCode
+      if (!userDistrictId && userData.churchCode) {
+        const churchResult = await db
+          .select({ districtId: schema.churches.districtId })
+          .from(schema.churches)
+          .where(eq(schema.churches.code, userData.churchCode))
+          .limit(1);
+
+        if (churchResult && churchResult.length > 0) {
+          userDistrictId = churchResult[0].districtId;
+        }
+      }
+
+      // Buscar configuração de pontos do distrito (com fallback para global)
+      const rawConfig = await this.getPointsConfigurationByDistrict(userDistrictId);
       const pointsConfig = getRequiredPointsConfig(rawConfig);
 
       // Parsear extraData se for string
@@ -1954,15 +2098,34 @@ export class NeonAdapter implements IStorage {
       logger.debug('Limpando configurações de pontos...');
       await db.delete(schema.pointConfigs);
 
+      logger.debug('Limpando convites de pastores...');
+      await db.delete(schema.pastorInvites);
+
       logger.debug('Limpando igrejas...');
       await db.delete(schema.churches);
 
-      // Deletar TODOS os usuários EXCETO os admins
-      logger.debug('Limpando usuários (mantendo admin)...');
-      await db.delete(schema.users).where(ne(schema.users.role, 'admin'));
+      // Limpar districtId dos superadmins antes de deletar distritos (evitar FK constraint)
+      logger.debug('Limpando districtId dos superadmins...');
+      await db
+        .update(schema.users)
+        .set({ districtId: null })
+        .where(eq(schema.users.role, 'superadmin'));
+
+      // Deletar TODOS os usuários EXCETO os superadmins
+      logger.debug('Limpando usuários (mantendo superadmin)...');
+      await db.delete(schema.users).where(ne(schema.users.role, 'superadmin'));
+
+      logger.debug('Limpando configurações de pontos por distrito...');
+      await db.delete(schema.districtPointsConfig);
+
+      logger.debug('Limpando configurações de distrito...');
+      await db.delete(schema.districtSettings);
+
+      logger.debug('Limpando distritos...');
+      await db.delete(schema.districts);
 
       logger.info(
-        'Todos os dados foram limpos com sucesso! Mantidos: usuários admin, configurações do sistema e permissões'
+        'Todos os dados foram limpos com sucesso! Mantidos: usuários superadmin, configurações do sistema e permissões'
       );
     } catch (error) {
       logger.error('Erro ao limpar dados', error);
@@ -2610,8 +2773,9 @@ export class NeonAdapter implements IStorage {
       const dbUpdates: Record<string, unknown> = {};
       if (updates.content !== undefined) dbUpdates.content = updates.content;
       if (updates.senderId !== undefined) dbUpdates.senderId = updates.senderId ?? null;
-      if (updates.conversationId !== undefined)
+      if (updates.conversationId !== undefined) {
         dbUpdates.conversationId = updates.conversationId ?? null;
+      }
       const [message] = await db
         .update(schema.messages)
         .set(dbUpdates)
@@ -2942,8 +3106,9 @@ export class NeonAdapter implements IStorage {
     try {
       const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
       if (updates.userId !== undefined) dbUpdates.userId = updates.userId ?? null;
-      if (updates.missionField !== undefined)
+      if (updates.missionField !== undefined) {
         dbUpdates.specialization = updates.missionField ?? null;
+      }
       if (updates.notes !== undefined) dbUpdates.experience = updates.notes ?? null;
       if (updates.isActive !== undefined) dbUpdates.isActive = updates.isActive ?? true;
       const [profile] = await db

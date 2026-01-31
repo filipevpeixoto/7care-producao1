@@ -5,10 +5,10 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createMessageSchema } from '../schemas';
+import { asyncHandler, sendError } from '../utils';
 
 export const messagingRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -29,15 +29,14 @@ export const messagingRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de conversas
    */
-  app.get("/api/conversations/:userId", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/conversations/:userId',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.userId);
       const conversations = await storage.getConversationsByUser(userId);
       res.json(conversations);
-    } catch (error) {
-      handleError(res, error, "Get conversations");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -65,20 +64,19 @@ export const messagingRoutes = (app: Express): void => {
    *       200:
    *         description: Conversa criada ou existente
    */
-  app.post("/api/conversations/direct", async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/conversations/direct',
+    asyncHandler(async (req: Request, res: Response) => {
       const { userId1, userId2 } = req.body;
 
       if (!userId1 || !userId2) {
-        res.status(400).json({ error: 'IDs dos usuários são obrigatórios' }); return;
+        return sendError(res, 'IDs dos usuários são obrigatórios', 400);
       }
 
       const conversation = await storage.getOrCreateDirectConversation(userId1, userId2);
       res.json(conversation);
-    } catch (error) {
-      handleError(res, error, "Create direct conversation");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -106,15 +104,14 @@ export const messagingRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de mensagens
    */
-  app.get("/api/conversations/:id/messages", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/conversations/:id/messages',
+    asyncHandler(async (req: Request, res: Response) => {
       const conversationId = parseInt(req.params.id);
       const messages = await storage.getMessagesByConversation(conversationId);
       res.json(messages);
-    } catch (error) {
-      handleError(res, error, "Get messages");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -149,17 +146,17 @@ export const messagingRoutes = (app: Express): void => {
    *       201:
    *         description: Mensagem enviada
    */
-  app.post("/api/messages", validateBody(createMessageSchema), async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/messages',
+    validateBody(createMessageSchema),
+    asyncHandler(async (req: Request, res: Response) => {
       const messageData = (req as ValidatedRequest<typeof createMessageSchema._type>).validatedBody;
       logger.info(`New message in conversation ${messageData.conversationId}`);
       const message = await storage.createMessage({
         ...messageData,
-        isRead: false
+        isRead: false,
       } as Parameters<typeof storage.createMessage>[0]);
       res.status(201).json(message);
-    } catch (error) {
-      handleError(res, error, "Create message");
-    }
-  });
+    })
+  );
 };

@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95% </span>
+                <span class="strong">95.12% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>38/40</span>
+                <span class='fraction'>39/41</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95% </span>
+                <span class="strong">95.12% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>38/40</span>
+                <span class='fraction'>39/41</span>
             </div>
         
             
@@ -188,7 +188,8 @@
 <a name='L123'></a><a href='#L123'>123</a>
 <a name='L124'></a><a href='#L124'>124</a>
 <a name='L125'></a><a href='#L125'>125</a>
-<a name='L126'></a><a href='#L126'>126</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -199,6 +200,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -316,7 +318,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * @fileoverview Cache Middleware para rotas frequentes
  * @module server/middleware/cache
- * 
+ *
  * Middleware que implementa cache para rotas GET frequentes,
  * reduzindo carga no banco de dados e melhorando tempo de resposta.
  */
@@ -324,6 +326,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { cacheGet, cacheSet, cacheDelPattern } from '../services/cacheService';
 import { CACHE_TTL as _CACHE_TTL } from '../constants';
+import { logger } from '../utils/logger';
 &nbsp;
 /**
  * Gera chave de cache baseada na rota e parâmetros
@@ -336,14 +339,14 @@ function generateCacheKey(req: Request, prefix: string): string {
 &nbsp;
 /**
  * Middleware factory para cache de rotas GET
- * 
+ *
  * @param prefix - Prefixo para a chave de cache
  * @param ttlSeconds - Tempo de vida do cache em segundos
  * @returns Middleware Express
- * 
+ *
  * @example
  * ```typescript
- * app.get('/api/dashboard/stats', 
+ * app.get('/api/dashboard/stats',
  *   cacheMiddleware('dashboard', _CACHE_TTL.DASHBOARD),
  *   async (req, res) =&gt; { ... }
  * );
@@ -361,7 +364,7 @@ export function cacheMiddleware(prefix: string, ttlSeconds: number) {
     try {
       // Tenta buscar do cache
       const cachedData = await cacheGet(cacheKey);
-      
+&nbsp;
       if (cachedData) {
         res.setHeader('X-Cache', 'HIT');
         res.setHeader('X-Cache-Key', cacheKey);
@@ -371,15 +374,15 @@ export function cacheMiddleware(prefix: string, ttlSeconds: number) {
 &nbsp;
       // Se não encontrou, intercepta a resposta para cachear
       const originalJson = res.json.bind(res);
-      
-      res.json = function(data: unknown): Response {
+&nbsp;
+      res.json = function (data: unknown): Response {
         // Só cacheia respostas de sucesso
         <span class="missing-if-branch" title="else path not taken" >E</span>if (res.statusCode &gt;= 200 &amp;&amp; res.statusCode &lt; 300) {
           cacheSet(cacheKey, data, ttlSeconds).catch(<span class="fstat-no" title="function not covered" >err </span>=&gt; {
-<span class="cstat-no" title="statement not covered" >            console.error('[Cache] Erro ao salvar cache:', err);</span>
+<span class="cstat-no" title="statement not covered" >            logger.error('[Cache] Erro ao salvar cache:', err);</span>
           });
         }
-        
+&nbsp;
         res.setHeader('X-Cache', 'MISS');
         return originalJson(data);
       };
@@ -387,7 +390,7 @@ export function cacheMiddleware(prefix: string, ttlSeconds: number) {
       next();
     } catch (error) {
       // Em caso de erro no cache, continua normalmente
-      console.error('[Cache] Erro no middleware:', error);
+      logger.error('[Cache] Erro no middleware:', error);
       next();
     }
   };
@@ -395,9 +398,9 @@ export function cacheMiddleware(prefix: string, ttlSeconds: number) {
 &nbsp;
 /**
  * Invalida cache por padrão de prefixo
- * 
+ *
  * @param pattern - Padrão de prefixo a invalidar
- * 
+ *
  * @example
  * ```typescript
  * // Após criar/atualizar usuário
@@ -408,13 +411,13 @@ export async function invalidateCache(pattern: string): Promise&lt;void&gt; {
   try {
     await cacheDelPattern(`${pattern}:*`);
   } catch (error) {
-    console.error('[Cache] Erro ao invalidar:', error);
+    logger.error('[Cache] Erro ao invalidar:', error);
   }
 }
 &nbsp;
 /**
  * Middleware para invalidar cache após mutations (POST, PUT, DELETE)
- * 
+ *
  * @param patterns - Padrões de cache a invalidar
  * @returns Middleware Express
  */
@@ -422,13 +425,13 @@ export function invalidateCacheMiddleware(...patterns: string[]) {
   return async (req: Request, res: Response, next: NextFunction): Promise&lt;void&gt; =&gt; {
     // Intercepta a resposta para invalidar após sucesso
     const originalSend = res.send.bind(res);
-    
-    res.send = function(data: unknown): Response {
+&nbsp;
+    res.send = function (data: unknown): Response {
       // Só invalida em respostas de sucesso de mutations
       if (res.statusCode &gt;= 200 &amp;&amp; res.statusCode &lt; 300 &amp;&amp; req.method !== 'GET') {
         patterns.forEach(pattern =&gt; {
           invalidateCache(pattern).catch(<span class="fstat-no" title="function not covered" >err </span>=&gt; {
-<span class="cstat-no" title="statement not covered" >            console.error('[Cache] Erro ao invalidar:', err);</span>
+<span class="cstat-no" title="statement not covered" >            logger.error('[Cache] Erro ao invalidar:', err);</span>
           });
         });
       }
@@ -445,7 +448,7 @@ export function invalidateCacheMiddleware(...patterns: string[]) {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -9,6 +9,7 @@ import { NeonAdapter } from '../neonAdapter';
 import { AuthenticatedRequest, ApiErrorResponse, ErrorCodes, UserRole } from '../types';
 import { hasAdminAccess, isSuperAdmin, isPastor } from '../utils/permissions';
 import { JWT_SECRET } from '../config/jwtConfig';
+import { logger } from '../utils/logger';
 
 // Instância compartilhada do storage
 const storage = new NeonAdapter();
@@ -67,7 +68,7 @@ export const extractUserId = async (
     next();
   } catch (error) {
     // Não bloquear em caso de erro, apenas continuar
-    console.error('Error extracting user ID:', error);
+    logger.error('Error extracting user ID:', error);
     next();
   }
 };
@@ -110,7 +111,7 @@ export const checkReadOnlyAccess = async (
     next();
   } catch (error) {
     // Em caso de erro, permitir continuar (fail open para não bloquear)
-    console.error('Error checking read-only access:', error);
+    logger.error('Error checking read-only access:', error);
     next();
   }
 };
@@ -153,7 +154,7 @@ export const requireAuth = async (
 
     next();
   } catch (error) {
-    console.error('Error in requireAuth middleware:', error);
+    logger.error('Error in requireAuth middleware:', error);
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: 'Authentication error',
@@ -214,7 +215,7 @@ export const requireAdminAccess = async (
 
     next();
   } catch (error) {
-    console.error('Error in requireAdminAccess middleware:', error);
+    logger.error('Error in requireAdminAccess middleware:', error);
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: 'Authorization error',
@@ -273,7 +274,7 @@ export const requireSuperAdmin = async (
 
     next();
   } catch (error) {
-    console.error('Error in requireSuperAdmin middleware:', error);
+    logger.error('Error in requireSuperAdmin middleware:', error);
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: 'Authorization error',
@@ -328,7 +329,7 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
 
       next();
     } catch (error) {
-      console.error('Error in requireRole middleware:', error);
+      logger.error('Error in requireRole middleware:', error);
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authorization error',

@@ -5,7 +5,6 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
 import { isSuperAdmin, isPastor } from '../utils/permissions';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createChurchSchema, updateChurchSchema } from '../schemas';
@@ -13,6 +12,7 @@ import { logger } from '../utils/logger';
 import { Church } from '../../shared/schema';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
+import { asyncHandler, sendNotFound, sendError } from '../utils';
 
 export const churchRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -38,35 +38,31 @@ export const churchRoutes = (app: Express): void => {
   app.get(
     '/api/churches',
     cacheMiddleware('churches', CACHE_TTL.CHURCHES),
-    async (req: Request, res: Response) => {
-      try {
-        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-        const user = userId ? await storage.getUserById(userId) : null;
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const user = userId ? await storage.getUserById(userId) : null;
 
-        let churches: Church[];
-        if (isSuperAdmin(user)) {
-          // Superadmin sempre vê todas as igrejas
-          churches = await storage.getAllChurches();
-        } else if (isPastor(user) && user?.districtId) {
-          // Pastor vê apenas igrejas do seu distrito
-          churches = await storage.getChurchesByDistrict(user.districtId);
+      let churches: Church[];
+      if (isSuperAdmin(user)) {
+        // Superadmin sempre vê todas as igrejas
+        churches = await storage.getAllChurches();
+      } else if (isPastor(user) && user?.districtId) {
+        // Pastor vê apenas igrejas do seu distrito
+        churches = await storage.getChurchesByDistrict(user.districtId);
+      } else {
+        // Outros usuários veem apenas sua igreja
+        const userChurch = user?.church;
+        if (userChurch) {
+          churches = await storage
+            .getAllChurches()
+            .then(chs => chs.filter(ch => ch.name === userChurch));
         } else {
-          // Outros usuários veem apenas sua igreja
-          const userChurch = user?.church;
-          if (userChurch) {
-            churches = await storage
-              .getAllChurches()
-              .then(chs => chs.filter(ch => ch.name === userChurch));
-          } else {
-            churches = [];
-          }
+          churches = [];
         }
-
-        res.json(churches);
-      } catch (error) {
-        handleError(res, error, 'Get churches');
       }
-    }
+
+      res.json(churches);
+    })
   );
 
   /**
@@ -100,18 +96,14 @@ export const churchRoutes = (app: Express): void => {
     '/api/churches',
     validateBody(createChurchSchema),
     invalidateCacheMiddleware('churches'),
-    async (req: Request, res: Response) => {
-      try {
-        const { name } = (req as ValidatedRequest<typeof createChurchSchema._type>).validatedBody;
-        logger.info(`Creating church: ${name}`);
+    asyncHandler(async (req: Request, res: Response) => {
+      const { name } = (req as ValidatedRequest<typeof createChurchSchema._type>).validatedBody;
+      logger.info(`Creating church: ${name}`);
 
-        const church = await storage.getOrCreateChurch(name.trim());
+      const church = await storage.getOrCreateChurch(name.trim());
 
-        res.json(church);
-      } catch (error) {
-        handleError(res, error, 'Create church');
-      }
-    }
+      res.json(church);
+    })
   );
 
   /**
@@ -148,39 +140,35 @@ export const churchRoutes = (app: Express): void => {
   app.patch(
     '/api/churches/:id',
     validateBody(updateChurchSchema),
-    async (req: Request, res: Response) => {
-      try {
-        const id = parseInt(req.params.id);
-        const updates = (req as ValidatedRequest<typeof updateChurchSchema._type>).validatedBody;
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id);
+      const updates = (req as ValidatedRequest<typeof updateChurchSchema._type>).validatedBody;
 
-        const oldChurch = await storage
-          .getAllChurches()
-          .then(churches => churches.find(c => c.id === id));
+      const oldChurch = await storage
+        .getAllChurches()
+        .then(churches => churches.find(c => c.id === id));
 
-        const updatedChurch = await storage.updateChurch(id, updates);
-        if (updatedChurch) {
-          if (updates.name && oldChurch && oldChurch.name !== updates.name) {
-            const allUsers = await storage.getAllUsers();
+      const updatedChurch = await storage.updateChurch(id, updates);
+      if (updatedChurch) {
+        if (updates.name && oldChurch && oldChurch.name !== updates.name) {
+          const allUsers = await storage.getAllUsers();
 
-            for (const user of allUsers) {
-              if (user.church === oldChurch.name) {
-                try {
-                  await storage.updateUser(user.id, { church: updates.name });
-                } catch (error) {
-                  logger.error(`Erro ao atualizar usuário ${user.name}:`, error);
-                }
+          for (const user of allUsers) {
+            if (user.church === oldChurch.name) {
+              try {
+                await storage.updateUser(user.id, { church: updates.name });
+              } catch (error) {
+                logger.error(`Erro ao atualizar usuário ${user.name}:`, error);
               }
             }
           }
-
-          res.json(updatedChurch);
-        } else {
-          res.status(404).json({ error: 'Igreja não encontrada' });
         }
-      } catch (error) {
-        handleError(res, error, 'Update church');
+
+        res.json(updatedChurch);
+      } else {
+        sendNotFound(res, 'Igreja');
       }
-    }
+    })
   );
 
   /**
@@ -203,26 +191,24 @@ export const churchRoutes = (app: Express): void => {
    *       404:
    *         description: Usuário não encontrado
    */
-  app.get('/api/user/church', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/user/church',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = req.query.userId;
 
       if (!userId) {
-        res.status(400).json({ error: 'User ID is required' });
-        return;
+        return sendError(res, 'User ID is required', 400);
       }
 
       const id = parseInt(userId as string);
       if (isNaN(id)) {
-        res.status(400).json({ error: 'Invalid user ID' });
-        return;
+        return sendError(res, 'Invalid user ID', 400);
       }
 
       const user = await storage.getUserById(id);
 
       if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
+        return sendNotFound(res, 'Usuário');
       }
 
       let churchName = user.church;
@@ -243,8 +229,6 @@ export const churchRoutes = (app: Express): void => {
         church: churchName || 'Igreja não disponível',
         userId: id,
       });
-    } catch (error) {
-      handleError(res, error, 'Get user church');
-    }
-  });
+    })
+  );
 };

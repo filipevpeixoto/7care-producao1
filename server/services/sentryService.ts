@@ -5,6 +5,7 @@
 
 import * as Sentry from '@sentry/node';
 import { Express, Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logger';
 
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -15,7 +16,7 @@ const isEnabled = !!SENTRY_DSN && isProduction;
  */
 export function initSentry(_app?: Express): void {
   if (!isEnabled) {
-    console.log('[Sentry] Desabilitado - configure SENTRY_DSN em produção');
+    logger.info('[Sentry] Desabilitado - configure SENTRY_DSN em produção');
     return;
   }
 
@@ -61,7 +62,7 @@ export function initSentry(_app?: Express): void {
     ],
   });
 
-  console.log('[Sentry] Inicializado com sucesso');
+  logger.info('[Sentry] Inicializado com sucesso');
 }
 
 /**
@@ -108,7 +109,7 @@ export function captureException(
   context?: Record<string, unknown>
 ): string | undefined {
   if (!isEnabled) {
-    console.error('[Error]', error.message, context);
+    logger.error('[Sentry] Error:', { message: error.message, context });
     return undefined;
   }
 
@@ -126,7 +127,7 @@ export function captureMessage(
   context?: Record<string, unknown>
 ): string | undefined {
   if (!isEnabled) {
-    console.log(`[${level}]`, message, context);
+    logger.info(`[${level}]`, message, context);
     return undefined;
   }
 

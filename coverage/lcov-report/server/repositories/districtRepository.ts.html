@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10.93% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/64</span>
+                <span class='fraction'>7/64</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/56</span>
+                <span class='fraction'>0/30</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10.93% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/64</span>
+                <span class='fraction'>7/64</span>
             </div>
         
             
@@ -355,16 +355,15 @@
 <a name='L290'></a><a href='#L290'>290</a>
 <a name='L291'></a><a href='#L291'>291</a>
 <a name='L292'></a><a href='#L292'>292</a>
-<a name='L293'></a><a href='#L293'>293</a>
-<a name='L294'></a><a href='#L294'>294</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L293'></a><a href='#L293'>293</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -399,16 +398,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -517,8 +513,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -611,6 +605,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -647,17 +643,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * District Repository
  * Métodos relacionados a distritos
  */
 &nbsp;
-<span class="cstat-no" title="statement not covered" >import { eq, sql, count, desc as _desc } from 'drizzle-orm';</span>
-<span class="cstat-no" title="statement not covered" >import { db } from '../neonConfig';</span>
-<span class="cstat-no" title="statement not covered" >import * as schema from '../schema';</span>
-<span class="cstat-no" title="statement not covered" >import { logger } from '../utils/logger';</span>
+import { eq, sql, count } from 'drizzle-orm';
+import { db } from '../neonConfig';
+import * as schema from '../schema';
+import { logger } from '../utils/logger';
 &nbsp;
 export interface District {
   id: number;
@@ -692,16 +690,13 @@ export interface DistrictStats {
   totalEvents: number;
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class D</span>istrictRepository {
+export class DistrictRepository {
   /**
    * Busca todos os distritos
    */
 <span class="fstat-no" title="function not covered" >  async </span>getAllDistricts(): Promise&lt;District[]&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
-      const districts = <span class="cstat-no" title="statement not covered" >await db</span>
-        .select()
-        .from(schema.districts)
-        .orderBy(schema.districts.name);
+      const districts = <span class="cstat-no" title="statement not covered" >await db.select().from(schema.districts).orderBy(schema.districts.name);</span>
 <span class="cstat-no" title="statement not covered" >      return districts.map(this.mapDistrictRecord);</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      logger.error('Erro ao buscar distritos', error);</span>
@@ -809,9 +804,7 @@ export interface DistrictStats {
    */
 <span class="fstat-no" title="function not covered" >  async </span>deleteDistrict(id: number): Promise&lt;boolean&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
-      const result = <span class="cstat-no" title="statement not covered" >await db</span>
-        .delete(schema.districts)
-        .where(eq(schema.districts.id, id));
+      const result = <span class="cstat-no" title="statement not covered" >await db.delete(schema.districts).where(eq(schema.districts.id, id));</span>
 <span class="cstat-no" title="statement not covered" >      return (result.rowCount ?? 0) &gt; 0;</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      logger.error('Erro ao deletar distrito', error);</span>
@@ -854,7 +847,7 @@ export interface DistrictStats {
         SELECT COUNT(*) as count FROM users
         WHERE district_id = ${districtId} AND role = 'pastor'
       `);
-      const pastorCount = <span class="cstat-no" title="statement not covered" >(pastorResult.rows[0] as { count: number })?.count || 0;</span>
+      const pastorCount = (<span class="cstat-no" title="statement not covered" >pastorResult.rows[0] as { count: number })?.count || 0;</span>
 &nbsp;
       // Conta eventos (através das igrejas do distrito)
       const eventResult = <span class="cstat-no" title="statement not covered" >await db.execute(sql`</span>
@@ -863,7 +856,7 @@ export interface DistrictStats {
         JOIN churches c ON e.church_id = c.id
         WHERE c.district_id = ${districtId}
       `);
-      const eventCount = <span class="cstat-no" title="statement not covered" >(eventResult.rows[0] as { count: number })?.count || 0;</span>
+      const eventCount = (<span class="cstat-no" title="statement not covered" >eventResult.rows[0] as { count: number })?.count || 0;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      return {</span>
         totalChurches: churchCount?.count || 0,
@@ -909,12 +902,14 @@ export interface DistrictStats {
       code: record.code as string,
       pastorId: record.pastorId as number | null,
       description: record.description as string | null,
-      createdAt: record.createdAt instanceof Date
-        ? record.createdAt.toISOString()
-        : (record.createdAt as string | null),
-      updatedAt: record.updatedAt instanceof Date
-        ? record.updatedAt.toISOString()
-        : (record.updatedAt as string | null),
+      createdAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : (record.createdAt as string | null),
+      updatedAt:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.toISOString()
+          : (record.updatedAt as string | null),
     };
   }
 &nbsp;
@@ -928,20 +923,22 @@ export interface DistrictStats {
       code: record.code as string,
       pastorId: record.pastor_id as number | null,
       description: record.description as string | null,
-      createdAt: record.created_at instanceof Date
-        ? record.created_at.toISOString()
-        : (record.created_at as string | null),
-      updatedAt: record.updated_at instanceof Date
-        ? record.updated_at.toISOString()
-        : (record.updated_at as string | null),
+      createdAt:
+        record.created_at instanceof Date
+          ? record.created_at.toISOString()
+          : (record.created_at as string | null),
+      updatedAt:
+        record.updated_at instanceof Date
+          ? record.updated_at.toISOString()
+          : (record.updated_at as string | null),
       pastorName: record.pastor_name as string | undefined,
       pastorEmail: record.pastor_email as string | undefined,
     };
   }
 }
 &nbsp;
-export const <span class="cstat-no" title="statement not covered" >districtRepository = new DistrictRepository();</span>
-<span class="cstat-no" title="statement not covered" >export default districtRepository;</span>
+export const districtRepository = new DistrictRepository();
+export default districtRepository;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -949,7 +946,7 @@ export const <span class="cstat-no" title="statement not covered" >districtRepos
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

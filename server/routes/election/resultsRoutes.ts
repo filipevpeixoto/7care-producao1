@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from 'express';
 import { logger } from '../../utils/logger';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { sendSuccess } from '../../utils/apiResponse';
 
 const electionLogger = logger;
 
@@ -27,16 +29,14 @@ const router = Router();
  *       200:
  *         description: Resultados da eleição
  */
-router.get('/:electionId', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/:electionId',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Obtendo resultados', { electionId });
-    res.json({ message: `Results for ${electionId}` });
-  } catch (error) {
-    electionLogger.error('Erro ao obter resultados', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Results for ${electionId}` });
+  })
+);
 
 /**
  * @swagger
@@ -45,21 +45,19 @@ router.get('/:electionId', async (req: Request, res: Response) => {
  *     summary: Obtém estatísticas detalhadas
  *     tags: [Election Results]
  */
-router.get('/:electionId/statistics', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/:electionId/statistics',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Obtendo estatísticas', { electionId });
-    res.json({
+    return sendSuccess(res, {
       electionId,
       totalVotes: 0,
       participation: '0%',
       byChurch: [],
     });
-  } catch (error) {
-    electionLogger.error('Erro ao obter estatísticas', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+  })
+);
 
 /**
  * @swagger
@@ -68,17 +66,15 @@ router.get('/:electionId/statistics', async (req: Request, res: Response) => {
  *     summary: Exporta resultados em CSV/PDF
  *     tags: [Election Results]
  */
-router.get('/:electionId/export', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/:electionId/export',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     const { format = 'csv' } = req.query;
     electionLogger.info('Exportando resultados', { electionId, format });
-    res.json({ message: `Export ${format} for ${electionId}` });
-  } catch (error) {
-    electionLogger.error('Erro ao exportar resultados', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Export ${format} for ${electionId}` });
+  })
+);
 
 export { router as resultsRoutes };
 export default router;

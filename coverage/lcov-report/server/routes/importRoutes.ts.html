@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/81</span>
+                <span class='fraction'>0/79</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/76</span>
+                <span class='fraction'>0/74</span>
             </div>
         
             
@@ -242,11 +242,14 @@
 <a name='L177'></a><a href='#L177'>177</a>
 <a name='L178'></a><a href='#L178'>178</a>
 <a name='L179'></a><a href='#L179'>179</a>
-<a name='L180'></a><a href='#L180'>180</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -258,8 +261,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -271,6 +276,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -319,6 +325,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -393,13 +401,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -410,14 +419,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -426,6 +430,7 @@
 <span class="cstat-no" title="statement not covered" >import multer from 'multer';</span>
 <span class="cstat-no" title="statement not covered" >import { readExcelFile, cleanupTempFile, ExcelRow as BaseExcelRow } from '../utils/excelUtils';</span>
 <span class="cstat-no" title="statement not covered" >import { logger } from '../utils/logger';</span>
+<span class="cstat-no" title="statement not covered" >import { asyncHandler, sendSuccess, sendError } from '../utils';</span>
 &nbsp;
 const upload = <span class="cstat-no" title="statement not covered" >multer({ dest: 'uploads/' });</span>
 &nbsp;
@@ -437,21 +442,24 @@ interface ExcelRow extends BaseExcelRow {
 &nbsp;
 export const <span class="cstat-no" title="statement not covered" >importRoutes = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>a</span>pp: Express): void =&gt; {</span>
   // Novo endpoint de importação simplificado
-<span class="cstat-no" title="statement not covered" >  app.post("/api/calendar/import-simple", upload.single('file'), <span class="fstat-no" title="function not covered" >async </span>(req: Request, res: Response) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      logger.info("Importação simplificada iniciada");</span>
+<span class="cstat-no" title="statement not covered" >  app.post(</span>
+    '/api/calendar/import-simple',
+    upload.single('file'),
+    asyncHandler(<span class="fstat-no" title="function not covered" >async </span>(req: Request, res: Response) =&gt; {
+<span class="cstat-no" title="statement not covered" >      logger.info('Importação simplificada iniciada');</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      if (!req.file) {</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(400).json({ error: "Nenhum arquivo enviado" });</span>
+<span class="cstat-no" title="statement not covered" >        return sendError(res, 'Nenhum arquivo enviado', 400);</span>
       }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      logger.info(`Arquivo recebido: ${req.file.originalname}`);</span>
-      
+&nbsp;
       // Verificar se é arquivo XLSX
 <span class="cstat-no" title="statement not covered" >      if (!req.file.originalname.endsWith('.xlsx')) {</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(400).json({ </span>
-          error: "Apenas arquivos .xlsx são aceitos. Por favor, converta seu arquivo para formato Excel (.xlsx)." 
-        });
+<span class="cstat-no" title="statement not covered" >        return sendError(res,</span>
+          'Apenas arquivos .xlsx são aceitos. Por favor, converta seu arquivo para formato Excel (.xlsx).',
+          400
+        );
       }
 &nbsp;
       // Processar arquivo Excel usando excelUtils
@@ -459,10 +467,10 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
 &nbsp;
       const { rows: data, sheetName } = <span class="cstat-no" title="statement not covered" >await readExcelFile(filePath);</span>
 <span class="cstat-no" title="statement not covered" >      logger.info(`Planilha lida: ${sheetName}, ${data.length} linhas`);</span>
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      if (!data || data.length === 0) {</span>
 <span class="cstat-no" title="statement not covered" >        cleanupTempFile(filePath);</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(400).json({ error: "Nenhum dado encontrado no arquivo" });</span>
+<span class="cstat-no" title="statement not covered" >        return sendError(res, 'Nenhum dado encontrado no arquivo', 400);</span>
       }
 &nbsp;
       let importedCount = <span class="cstat-no" title="statement not covered" >0;</span>
@@ -478,11 +486,11 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
         'asr-administrativo': 'asr-administrativo',
         'asr pastores': 'asr-pastores',
         'asr-pastores': 'asr-pastores',
-        'visitas': 'visitas',
-        'reunioes': 'reunioes',
-        'reuniões': 'reunioes',
-        'pregações': 'pregacoes',
-        'pregacoes': 'pregacoes'
+        visitas: 'visitas',
+        reunioes: 'reunioes',
+        reuniões: 'reunioes',
+        pregações: 'pregacoes',
+        pregacoes: 'pregacoes',
       };
 &nbsp;
       // Processar cada linha
@@ -497,22 +505,24 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
 &nbsp;
           const eventTitle = <span class="cstat-no" title="statement not covered" >String(event.Evento).trim();</span>
           const dateString = <span class="cstat-no" title="statement not covered" >String(event.Data).trim();</span>
-          const category = <span class="cstat-no" title="statement not covered" >event.Categoria ? String(event.Categoria).trim().toLowerCase() : 'reunioes';</span>
+          const category = <span class="cstat-no" title="statement not covered" >event.Categoria</span>
+            ? String(event.Categoria).trim().toLowerCase()
+            : 'reunioes';
           const mappedType = (<span class="cstat-no" title="statement not covered" >categoryMapping as Record&lt;string, string&gt;)[category] || 'reunioes';</span>
-          
+&nbsp;
           // Processar data
           let startDate = <span class="cstat-no" title="statement not covered" >'';</span>
           let endDate = <span class="cstat-no" title="statement not covered" >'';</span>
-          
+&nbsp;
 <span class="cstat-no" title="statement not covered" >          if (dateString.includes('-')) {</span>
             // Evento de múltiplos dias
             const [startPart, endPart] = <span class="cstat-no" title="statement not covered" >dateString.split('-');</span>
             const currentYear = <span class="cstat-no" title="statement not covered" >new Date().getFullYear();</span>
-            
+&nbsp;
             // Processar data de início
             const [startDay, startMonth] = <span class="cstat-no" title="statement not covered" >startPart.trim().split('/');</span>
 <span class="cstat-no" title="statement not covered" >            startDate = `${currentYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`;</span>
-            
+&nbsp;
             // Processar data de fim
             const [endDay, endMonth] = <span class="cstat-no" title="statement not covered" >endPart.trim().split('/');</span>
 <span class="cstat-no" title="statement not covered" >            endDate = `${currentYear}-${endMonth.padStart(2, '0')}-${endDay.padStart(2, '0')}`;</span>
@@ -535,8 +545,8 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
           let result: EventResult[] | EventResult;
 <span class="cstat-no" title="statement not covered" >          if (endDate) {</span>
             // Evento de múltiplos dias - criar múltiplos eventos para cada dia
-            const start = <span class="cstat-no" title="statement not covered" >new Date(startDate + 'T00:00:00Z');</span>
-            const end = <span class="cstat-no" title="statement not covered" >new Date(endDate + 'T23:59:59Z');</span>
+            const start = <span class="cstat-no" title="statement not covered" >new Date(`${startDate}T00:00:00Z`);</span>
+            const end = <span class="cstat-no" title="statement not covered" >new Date(`${endDate}T23:59:59Z`);</span>
             const days: EventResult[] = <span class="cstat-no" title="statement not covered" >[];</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >            for (let d = <span class="cstat-no" title="statement not covered" >new Date(start);</span> d &lt;= end; d.setDate(d.getDate() + 1)) {</span>
@@ -549,11 +559,11 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
               else <span class="cstat-no" title="statement not covered" >if (isEnd) <span class="cstat-no" title="statement not covered" >eventTitleForDay = `${eventTitle} (Fim)`;</span></span>
               else <span class="cstat-no" title="statement not covered" >eventTitleForDay = `${eventTitle} (Continua)`;</span>
 &nbsp;
-              const dayResult = <span class="cstat-no" title="statement not covered" >await sql`</span>
-                INSERT INTO events (title, description, date, location, type, capacity, is_recurring, recurrence_pattern, created_by, church_id, created_at, updated_at)
-                VALUES (${eventTitleForDay}, ${`Evento importado: ${eventTitle}`}, ${dayDate + 'T19:00:00Z'}, ${''}, ${mappedType}, ${0}, ${false}, ${null}, ${1}, ${24}, ${new Date().toISOString()}, ${new Date().toISOString()})
-                RETURNING id, title, date
-              ` as unknown as EventResult[];
+              const dayResult = (<span class="cstat-no" title="statement not covered" >await sql`</span>
+              INSERT INTO events (title, description, date, location, type, capacity, is_recurring, recurrence_pattern, created_by, church_id, created_at, updated_at)
+              VALUES (${eventTitleForDay}, ${`Evento importado: ${eventTitle}`}, ${`${dayDate}T19:00:00Z`}, ${''}, ${mappedType}, ${0}, ${false}, ${null}, ${1}, ${24}, ${new Date().toISOString()}, ${new Date().toISOString()})
+              RETURNING id, title, date
+            `) as unknown as EventResult[];
 &nbsp;
 <span class="cstat-no" title="statement not covered" >              days.push(dayResult[0]);</span>
             }
@@ -562,22 +572,23 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
 <span class="cstat-no" title="statement not covered" >            logger.info(`Evento de múltiplos dias criado: ${eventTitle} (${days.length} dias)`);</span>
           } else {
             // Evento de um dia
-            const singleResult = <span class="cstat-no" title="statement not covered" >await sql`</span>
-              INSERT INTO events (title, description, date, location, type, capacity, is_recurring, recurrence_pattern, created_by, church_id, created_at, updated_at)
-              VALUES (${eventTitle}, ${`Evento importado: ${eventTitle}`}, ${startDate + 'T19:00:00Z'}, ${''}, ${mappedType}, ${0}, ${false}, ${null}, ${1}, ${24}, ${new Date().toISOString()}, ${new Date().toISOString()})
-              RETURNING id, title, date
-            ` as unknown as EventResult[];
+            const singleResult = (<span class="cstat-no" title="statement not covered" >await sql`</span>
+            INSERT INTO events (title, description, date, location, type, capacity, is_recurring, recurrence_pattern, created_by, church_id, created_at, updated_at)
+            VALUES (${eventTitle}, ${`Evento importado: ${eventTitle}`}, ${`${startDate}T19:00:00Z`}, ${''}, ${mappedType}, ${0}, ${false}, ${null}, ${1}, ${24}, ${new Date().toISOString()}, ${new Date().toISOString()})
+            RETURNING id, title, date
+          `) as unknown as EventResult[];
 <span class="cstat-no" title="statement not covered" >            result = singleResult[0];</span>
           }
-          
+&nbsp;
 <span class="cstat-no" title="statement not covered" >          if (Array.isArray(result)) {</span>
-<span class="cstat-no" title="statement not covered" >            logger.info(`Evento de múltiplos dias inserido: ${eventTitle} (${result.length} dias)`);</span>
+<span class="cstat-no" title="statement not covered" >            logger.info(</span>
+              `Evento de múltiplos dias inserido: ${eventTitle} (${result.length} dias)`
+            );
 <span class="cstat-no" title="statement not covered" >            importedCount += result.length;</span>
           } else {
 <span class="cstat-no" title="statement not covered" >            logger.info(`Evento inserido: ${eventTitle} (ID: ${result.id})`);</span>
 <span class="cstat-no" title="statement not covered" >            importedCount++;</span>
           }
-&nbsp;
         } catch (error) {
           const errorMessage = <span class="cstat-no" title="statement not covered" >error instanceof Error ? error.message : 'Erro desconhecido';</span>
 <span class="cstat-no" title="statement not covered" >          logger.error(`Erro na linha ${i + 1}: ${errorMessage}`);</span>
@@ -588,17 +599,12 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
       // Limpar arquivo temporário
 <span class="cstat-no" title="statement not covered" >      cleanupTempFile(filePath);</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      return res.json({</span>
-        success: true,
+<span class="cstat-no" title="statement not covered" >      sendSuccess(res, {</span>
         imported: importedCount,
-        errors: errors
+        errors: errors,
       });
-&nbsp;
-    } catch (error) {
-<span class="cstat-no" title="statement not covered" >      logger.error("Erro na importação:", error);</span>
-<span class="cstat-no" title="statement not covered" >      return res.status(500).json({ error: "Erro interno do servidor" });</span>
-    }
-  });
+    })
+  );
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -607,7 +613,7 @@ export const <span class="cstat-no" title="statement not covered" >importRoutes 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

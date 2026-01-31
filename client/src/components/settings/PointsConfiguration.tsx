@@ -23,6 +23,8 @@ import {
   Calculator,
   Loader2,
   Zap,
+  Globe,
+  Building2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -167,124 +169,159 @@ export const PointsConfiguration = () => {
   const [isCalculatingPreset, setIsCalculatingPreset] = useState(false);
   const [currentAverage, setCurrentAverage] = useState<number | null>(null);
 
-  // Carregar configurações do backend
+  // Estado para controle de configuração por distrito
+  const [districtId, setDistrictId] = useState<number | null>(null);
+  const [isGlobalConfig, setIsGlobalConfig] = useState(true);
+  const [districtName, setDistrictName] = useState<string>('');
+
+  // Carregar configurações do backend (agora por distrito)
   useEffect(() => {
     const loadConfig = async () => {
       try {
         setIsInitialLoading(true);
-        const response = await fetch('/api/system/points-config');
-        if (response.ok) {
-          const backendConfig = await response.json();
 
-          // CORREÇÃO: Sempre mesclar com valores padrão para garantir que não há campos vazios
-          const configCompleta: PointsConfig = {
-            engajamento: {
-              baixo: backendConfig.engajamento?.baixo ?? 50,
-              medio: backendConfig.engajamento?.medio ?? 100,
-              alto: backendConfig.engajamento?.alto ?? 200,
-            },
-            classificacao: {
-              frequente: backendConfig.classificacao?.frequente ?? 100,
-              naoFrequente: backendConfig.classificacao?.naoFrequente ?? 50,
-            },
-            dizimista: {
-              naoDizimista: backendConfig.dizimista?.naoDizimista ?? 0,
-              pontual: backendConfig.dizimista?.pontual ?? 25,
-              sazonal: backendConfig.dizimista?.sazonal ?? 50,
-              recorrente: backendConfig.dizimista?.recorrente ?? 100,
-            },
-            ofertante: {
-              naoOfertante: backendConfig.ofertante?.naoOfertante ?? 0,
-              pontual: backendConfig.ofertante?.pontual ?? 15,
-              sazonal: backendConfig.ofertante?.sazonal ?? 30,
-              recorrente: backendConfig.ofertante?.recorrente ?? 60,
-            },
-            tempoBatismo: {
-              doisAnos:
-                backendConfig.tempoBatismo?.doisAnos ?? backendConfig.tempobatismo?.doisAnos ?? 25,
-              cincoAnos:
-                backendConfig.tempoBatismo?.cincoAnos ??
-                backendConfig.tempobatismo?.cincoAnos ??
-                50,
-              dezAnos:
-                backendConfig.tempoBatismo?.dezAnos ?? backendConfig.tempobatismo?.dezAnos ?? 100,
-              vinteAnos:
-                backendConfig.tempoBatismo?.vinteAnos ??
-                backendConfig.tempobatismo?.vinteAnos ??
-                150,
-              maisVinte:
-                backendConfig.tempoBatismo?.maisVinte ??
-                backendConfig.tempobatismo?.maisVinte ??
-                200,
-            },
-            cargos: {
-              umCargo: backendConfig.cargos?.umCargo ?? 50,
-              doisCargos: backendConfig.cargos?.doisCargos ?? 100,
-              tresOuMais: backendConfig.cargos?.tresOuMais ?? 150,
-            },
-            nomeUnidade: {
-              comUnidade:
-                backendConfig.nomeUnidade?.comUnidade ??
-                backendConfig.nomeunidade?.comUnidade ??
-                25,
-            },
-            temLicao: {
-              comLicao: backendConfig.temLicao?.comLicao ?? backendConfig.temlicao?.comLicao ?? 30,
-            },
-            pontuacaoDinamica: {
-              multiplicador: backendConfig.pontuacaoDinamica?.multiplicador ?? 5,
-            },
-            totalPresenca: {
-              zeroATres:
-                backendConfig.totalPresenca?.zeroATres ??
-                backendConfig.totalpresenca?.zeroATres ??
-                25,
-              quatroASete:
-                backendConfig.totalPresenca?.quatroASete ??
-                backendConfig.totalpresenca?.quatroASete ??
-                50,
-              oitoATreze:
-                backendConfig.totalPresenca?.oitoATreze ??
-                backendConfig.totalpresenca?.oitoATreze ??
-                100,
-            },
-            escolaSabatina: {
-              comunhao:
-                backendConfig.escolaSabatina?.comunhao ??
-                backendConfig.escolasabatina?.comunhao ??
-                10,
-              missao:
-                backendConfig.escolaSabatina?.missao ?? backendConfig.escolasabatina?.missao ?? 15,
-              estudoBiblico:
-                backendConfig.escolaSabatina?.estudoBiblico ??
-                backendConfig.escolasabatina?.estudoBiblico ??
-                20,
-              batizouAlguem:
-                backendConfig.escolaSabatina?.batizouAlguem ??
-                backendConfig.escolasabatina?.batizouAlguem ??
-                100,
-              discipuladoPosBatismo:
-                backendConfig.escolaSabatina?.discipuladoPosBatismo ??
-                backendConfig.escolasabatina?.discipuladoPosBatismo ??
-                25,
-            },
-            cpfValido: {
-              valido: backendConfig.cpfValido?.valido ?? backendConfig.cpfvalido?.valido ?? 25,
-            },
-            camposVaziosACMS: {
-              semCamposVazios:
-                backendConfig.camposVaziosACMS?.semCamposVazios ??
-                backendConfig.camposvaziosacms?.completos ??
-                50,
-            },
-          };
+        // Primeiro, tentar carregar configuração específica do distrito
+        const districtResponse = await fetch('/api/settings/my-district/points-config');
 
-          setConfig(configCompleta);
-          // Configuração carregada e mesclada com valores padrão
+        // Tipo para configuração do backend (pode ter camelCase ou lowercase)
+        type BackendConfig = Partial<PointsConfig> & {
+          tempobatismo?: Partial<PointsConfig['tempoBatismo']>;
+          nomeunidade?: Partial<PointsConfig['nomeUnidade']>;
+          temlicao?: Partial<PointsConfig['temLicao']>;
+          totalpresenca?: Partial<PointsConfig['totalPresenca']>;
+          escolasabatina?: Partial<PointsConfig['escolaSabatina']>;
+          cpfvalido?: Partial<PointsConfig['cpfValido']>;
+          camposvaziosacms?: { completos?: number };
+        };
+
+        let backendConfig: BackendConfig = {};
+
+        if (districtResponse.ok) {
+          const districtData = await districtResponse.json();
+
+          if (districtData.districtId) {
+            setDistrictId(districtData.districtId);
+            setIsGlobalConfig(districtData.isGlobal ?? true);
+
+            // Buscar nome do distrito
+            try {
+              const districtInfoResponse = await fetch(`/api/districts/${districtData.districtId}`);
+              if (districtInfoResponse.ok) {
+                const districtInfo = await districtInfoResponse.json();
+                setDistrictName(districtInfo.name || `Distrito ${districtData.districtId}`);
+              }
+            } catch {
+              setDistrictName(`Distrito ${districtData.districtId}`);
+            }
+          }
+
+          backendConfig = districtData.config || {};
         } else {
-          console.log('Usando configuração padrão');
-          setConfig(defaultConfig);
+          // Fallback para API global antiga
+          const response = await fetch('/api/system/points-config');
+          if (response.ok) {
+            backendConfig = await response.json();
+            setIsGlobalConfig(true);
+          }
         }
+
+        // CORREÇÃO: Sempre mesclar com valores padrão para garantir que não há campos vazios
+        const configCompleta: PointsConfig = {
+          engajamento: {
+            baixo: backendConfig.engajamento?.baixo ?? 50,
+            medio: backendConfig.engajamento?.medio ?? 100,
+            alto: backendConfig.engajamento?.alto ?? 200,
+          },
+          classificacao: {
+            frequente: backendConfig.classificacao?.frequente ?? 100,
+            naoFrequente: backendConfig.classificacao?.naoFrequente ?? 50,
+          },
+          dizimista: {
+            naoDizimista: backendConfig.dizimista?.naoDizimista ?? 0,
+            pontual: backendConfig.dizimista?.pontual ?? 25,
+            sazonal: backendConfig.dizimista?.sazonal ?? 50,
+            recorrente: backendConfig.dizimista?.recorrente ?? 100,
+          },
+          ofertante: {
+            naoOfertante: backendConfig.ofertante?.naoOfertante ?? 0,
+            pontual: backendConfig.ofertante?.pontual ?? 15,
+            sazonal: backendConfig.ofertante?.sazonal ?? 30,
+            recorrente: backendConfig.ofertante?.recorrente ?? 60,
+          },
+          tempoBatismo: {
+            doisAnos:
+              backendConfig.tempoBatismo?.doisAnos ?? backendConfig.tempobatismo?.doisAnos ?? 25,
+            cincoAnos:
+              backendConfig.tempoBatismo?.cincoAnos ?? backendConfig.tempobatismo?.cincoAnos ?? 50,
+            dezAnos:
+              backendConfig.tempoBatismo?.dezAnos ?? backendConfig.tempobatismo?.dezAnos ?? 100,
+            vinteAnos:
+              backendConfig.tempoBatismo?.vinteAnos ?? backendConfig.tempobatismo?.vinteAnos ?? 150,
+            maisVinte:
+              backendConfig.tempoBatismo?.maisVinte ?? backendConfig.tempobatismo?.maisVinte ?? 200,
+          },
+          cargos: {
+            umCargo: backendConfig.cargos?.umCargo ?? 50,
+            doisCargos: backendConfig.cargos?.doisCargos ?? 100,
+            tresOuMais: backendConfig.cargos?.tresOuMais ?? 150,
+          },
+          nomeUnidade: {
+            comUnidade:
+              backendConfig.nomeUnidade?.comUnidade ?? backendConfig.nomeunidade?.comUnidade ?? 25,
+          },
+          temLicao: {
+            comLicao: backendConfig.temLicao?.comLicao ?? backendConfig.temlicao?.comLicao ?? 30,
+          },
+          pontuacaoDinamica: {
+            multiplicador: backendConfig.pontuacaoDinamica?.multiplicador ?? 5,
+          },
+          totalPresenca: {
+            zeroATres:
+              backendConfig.totalPresenca?.zeroATres ??
+              backendConfig.totalpresenca?.zeroATres ??
+              25,
+            quatroASete:
+              backendConfig.totalPresenca?.quatroASete ??
+              backendConfig.totalpresenca?.quatroASete ??
+              50,
+            oitoATreze:
+              backendConfig.totalPresenca?.oitoATreze ??
+              backendConfig.totalpresenca?.oitoATreze ??
+              100,
+          },
+          escolaSabatina: {
+            comunhao:
+              backendConfig.escolaSabatina?.comunhao ??
+              backendConfig.escolasabatina?.comunhao ??
+              10,
+            missao:
+              backendConfig.escolaSabatina?.missao ?? backendConfig.escolasabatina?.missao ?? 15,
+            estudoBiblico:
+              backendConfig.escolaSabatina?.estudoBiblico ??
+              backendConfig.escolasabatina?.estudoBiblico ??
+              20,
+            batizouAlguem:
+              backendConfig.escolaSabatina?.batizouAlguem ??
+              backendConfig.escolasabatina?.batizouAlguem ??
+              100,
+            discipuladoPosBatismo:
+              backendConfig.escolaSabatina?.discipuladoPosBatismo ??
+              backendConfig.escolasabatina?.discipuladoPosBatismo ??
+              25,
+          },
+          cpfValido: {
+            valido: backendConfig.cpfValido?.valido ?? backendConfig.cpfvalido?.valido ?? 25,
+          },
+          camposVaziosACMS: {
+            semCamposVazios:
+              backendConfig.camposVaziosACMS?.semCamposVazios ??
+              backendConfig.camposvaziosacms?.completos ??
+              50,
+          },
+        };
+
+        setConfig(configCompleta);
+        // Configuração carregada e mesclada com valores padrão
       } catch (error) {
         console.error('Erro ao carregar configurações:', error);
         setConfig(defaultConfig);
@@ -498,10 +535,15 @@ export const PointsConfiguration = () => {
 
       console.log('💾 Salvando configuração completa:', configCompleta);
 
-      const response = await fetch('/api/system/points-config', {
+      // Usar API por distrito se disponível, senão usar API global
+      const saveUrl = districtId
+        ? '/api/settings/my-district/points-config'
+        : '/api/system/points-config';
+
+      const response = await fetch(saveUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(configCompleta),
+        body: JSON.stringify(districtId ? { config: configCompleta } : configCompleta),
       });
 
       if (!response.ok) {
@@ -509,6 +551,7 @@ export const PointsConfiguration = () => {
       }
 
       // Response parsed successfully
+      setIsGlobalConfig(false); // Agora tem config própria do distrito
 
       // ATUALIZAR estado local com a configuração completa que foi salva
       setConfig(configCompleta);
@@ -606,7 +649,12 @@ export const PointsConfiguration = () => {
   const handleReset = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/system/points-config/reset', {
+      // Usar API por distrito se disponível
+      const resetUrl = districtId
+        ? '/api/settings/my-district/points-config/reset'
+        : '/api/system/points-config/reset';
+
+      const response = await fetch(resetUrl, {
         method: 'POST',
       });
 
@@ -616,10 +664,17 @@ export const PointsConfiguration = () => {
 
       const result = await response.json();
 
+      // Se era config por distrito, agora volta a usar global
+      setIsGlobalConfig(true);
+
       // Recarregar configurações do backend e mesclar com padrões
-      const configResponse = await fetch('/api/system/points-config');
+      const configUrl = districtId
+        ? '/api/settings/my-district/points-config'
+        : '/api/system/points-config';
+      const configResponse = await fetch(configUrl);
       if (configResponse.ok) {
-        const backendConfig = await configResponse.json();
+        const responseData = await configResponse.json();
+        const backendConfig = districtId ? responseData.config || {} : responseData;
 
         // Mesclar com valores padrão (mesma lógica do loadConfig)
         const configCompleta: PointsConfig = {
@@ -849,15 +904,54 @@ export const PointsConfiguration = () => {
 
   return (
     <div className="space-y-6">
+      {/* Indicador de Distrito */}
+      {districtId && (
+        <div
+          className={`p-4 rounded-lg border ${isGlobalConfig ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {isGlobalConfig ? (
+                <>
+                  <Globe className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="font-medium text-blue-900">Usando configuração global</p>
+                    <p className="text-sm text-blue-700">
+                      {districtName} ainda não tem configuração própria. Salve para criar uma.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Building2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-900">Configuração do {districtName}</p>
+                    <p className="text-sm text-green-700">
+                      Este distrito tem sua própria escala de pontuação.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+            {!isGlobalConfig && (
+              <Badge variant="outline" className="bg-green-100 text-green-800">
+                Personalizado
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Trophy className="h-6 w-6 text-yellow-600" />
-            Base de Cálculo do Sistema
+            Base de Cálculo {districtId ? `- ${districtName}` : 'do Sistema'}
           </h2>
           <p className="text-muted-foreground">
             Configure os pontos para cada critério de avaliação dos usuários
+            {districtId && ' do seu distrito'}
           </p>
         </div>
 

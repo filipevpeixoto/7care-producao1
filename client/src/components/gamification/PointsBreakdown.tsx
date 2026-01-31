@@ -470,8 +470,9 @@ export const PointsBreakdown = ({
           if (userData.engajamento && typeof userData.engajamento === 'string') {
             const engajamento = userData.engajamento.toLowerCase();
             if (engajamento.includes('baixo')) return safeConfig.engajamento.baixo;
-            if (engajamento.includes('médio') || engajamento.includes('medio'))
+            if (engajamento.includes('médio') || engajamento.includes('medio')) {
               return safeConfig.engajamento.medio;
+            }
             if (engajamento.includes('alto')) return safeConfig.engajamento.alto;
           }
           return 0;
@@ -487,8 +488,9 @@ export const PointsBreakdown = ({
         case 'Dizimista':
           if (userData.dizimista && typeof userData.dizimista === 'string') {
             const dizimista = userData.dizimista.toLowerCase();
-            if (dizimista.includes('não dizimista') || dizimista.includes('nao dizimista'))
+            if (dizimista.includes('não dizimista') || dizimista.includes('nao dizimista')) {
               return safeConfig.dizimista.naoDizimista;
+            }
             if (dizimista.includes('pontual')) return safeConfig.dizimista.pontual;
             if (dizimista.includes('sazonal')) return safeConfig.dizimista.sazonal;
             if (dizimista.includes('recorrente')) return safeConfig.dizimista.recorrente;
@@ -498,8 +500,9 @@ export const PointsBreakdown = ({
         case 'Ofertante':
           if (userData.ofertante && typeof userData.ofertante === 'string') {
             const ofertante = userData.ofertante.toLowerCase();
-            if (ofertante.includes('não ofertante') || ofertante.includes('nao ofertante'))
+            if (ofertante.includes('não ofertante') || ofertante.includes('nao ofertante')) {
               return safeConfig.ofertante.naoOfertante;
+            }
             if (ofertante.includes('pontual')) return safeConfig.ofertante.pontual;
             if (ofertante.includes('sazonal')) return safeConfig.ofertante.sazonal;
             if (ofertante.includes('recorrente')) return safeConfig.ofertante.recorrente;
@@ -509,28 +512,37 @@ export const PointsBreakdown = ({
         case 'Tempo de Batismo':
           if (userData.tempoBatismo) {
             if (typeof userData.tempoBatismo === 'string' && userData.tempoBatismo.length > 0) {
-              if (userData.tempoBatismo.includes('2 a 4'))
+              if (userData.tempoBatismo.includes('2 a 4')) {
                 return pointsConfig.tempoBatismo?.doisAnos || 0;
-              if (userData.tempoBatismo.includes('5 a 9'))
+              }
+              if (userData.tempoBatismo.includes('5 a 9')) {
                 return pointsConfig.tempoBatismo?.cincoAnos || 0;
-              if (userData.tempoBatismo.includes('10 a 14'))
+              }
+              if (userData.tempoBatismo.includes('10 a 14')) {
                 return pointsConfig.tempoBatismo?.dezAnos || 0;
-              if (userData.tempoBatismo.includes('15 a 19'))
+              }
+              if (userData.tempoBatismo.includes('15 a 19')) {
                 return pointsConfig.tempoBatismo?.vinteAnos || 0;
+              }
               if (
                 userData.tempoBatismo.includes('20 a 29') ||
                 userData.tempoBatismo.includes('30+')
-              )
+              ) {
                 return pointsConfig.tempoBatismo?.maisVinte || 0;
+              }
             } else if (typeof userData.tempoBatismo === 'number') {
-              if (userData.tempoBatismo >= 2 && userData.tempoBatismo < 5)
+              if (userData.tempoBatismo >= 2 && userData.tempoBatismo < 5) {
                 return pointsConfig.tempoBatismo?.doisAnos || 0;
-              if (userData.tempoBatismo >= 5 && userData.tempoBatismo < 10)
+              }
+              if (userData.tempoBatismo >= 5 && userData.tempoBatismo < 10) {
                 return pointsConfig.tempoBatismo?.dezAnos || 0;
-              if (userData.tempoBatismo >= 10 && userData.tempoBatismo < 20)
+              }
+              if (userData.tempoBatismo >= 10 && userData.tempoBatismo < 20) {
                 return pointsConfig.tempoBatismo?.vinteAnos || 0;
-              if (userData.tempoBatismo >= 20 && userData.tempoBatismo < 30)
+              }
+              if (userData.tempoBatismo >= 20 && userData.tempoBatismo < 30) {
                 return pointsConfig.tempoBatismo?.vinteAnos || 0;
+              }
               if (userData.tempoBatismo >= 30) return pointsConfig.tempoBatismo?.maisVinte || 0;
             }
           }

@@ -1006,23 +1006,21 @@ export default function Users() {
 
         {/* Barra de progresso de recálculo de pontos */}
         {isRecalculating && (
-          <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg p-4 shadow-md animate-pulse">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-md animate-pulse">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  {recalculationMessage}
-                </p>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                <p className="text-sm font-medium text-blue-900">{recalculationMessage}</p>
               </div>
-              <p className="text-sm font-bold text-blue-900 dark:text-blue-100">
+              <p className="text-sm font-bold text-blue-900">
                 {Math.round(recalculationProgress)}%
               </p>
             </div>
 
             {/* Barra de progresso */}
-            <div className="w-full bg-blue-200 dark:bg-blue-900/50 rounded-full h-3 overflow-hidden shadow-inner">
+            <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden shadow-inner">
               <div
-                className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 h-full rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
                 style={{ width: `${recalculationProgress}%` }}
               >
                 {recalculationProgress > 10 && (
@@ -1033,14 +1031,14 @@ export default function Users() {
               </div>
             </div>
 
-            <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+            <p className="text-xs text-blue-700 mt-2">
               Aguarde enquanto os pontos são recalculados. A página será atualizada automaticamente.
             </p>
           </div>
         )}
 
         {/* Stats como Badges Filtros Elegantes - Ultra Minimalista Mobile */}
-        <div className="flex flex-wrap gap-1 sm:gap-4 mt-3 sm:mt-6 p-1.5 sm:p-4 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/50 dark:to-slate-800/50 rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+        <div className="flex flex-wrap gap-1 sm:gap-4 mt-3 sm:mt-6 p-1.5 sm:p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg sm:rounded-xl border border-slate-200/50 shadow-sm">
           <ResponsiveStatsBadges
             roleFilter={roleFilter}
             setRoleFilter={setRoleFilter}
@@ -1051,7 +1049,7 @@ export default function Users() {
 
         {/* Mountain Stats - Ultra Minimalista Mobile - COMENTADO PARA SIMPLIFICAR */}
         <div
-          className="space-y-3 sm:space-y-4 mt-4 sm:mt-6 p-2 sm:p-4 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/50 dark:to-slate-800/50 rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
+          className="space-y-3 sm:space-y-4 mt-4 sm:mt-6 p-2 sm:p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg sm:rounded-xl border border-slate-200/50 shadow-sm"
           style={{ display: 'none' }}
         >
           <div className="flex items-center gap-2">
@@ -1241,7 +1239,66 @@ export default function Users() {
             </Card>
           </div>
 
-          {/* Points Overview Stats - DESATIVADO TEMPORARIAMENTE */}
+          {/* Points Overview Stats */}
+          {false && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+              <Card className="group relative bg-gradient-to-r from-blue-50 to-blue-100 border-blue-300/50 hover:shadow-md transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardContent className="p-2 sm:p-3 text-center relative z-10">
+                  <div className="text-lg sm:text-xl font-bold text-blue-700 mb-1">
+                    {filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0).length}
+                  </div>
+                  <div className="text-xs sm:text-sm font-semibold text-blue-600 mb-1">
+                    Com Pontos
+                  </div>
+                  <div className="text-xs text-blue-500">
+                    {filteredAndSortedUsers.length > 0
+                      ? (
+                          (filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0)
+                            .length /
+                            filteredAndSortedUsers.length) *
+                          100
+                        ).toFixed(1)
+                      : '0'}
+                    %
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="group relative bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-300/50 hover:shadow-md transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardContent className="p-2 sm:p-3 text-center relative z-10">
+                  <div className="text-lg sm:text-xl font-bold text-emerald-700 mb-1">
+                    {filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0).length > 0
+                      ? Math.round(
+                          filteredAndSortedUsers.reduce(
+                            (sum: number, u: UserType) => sum + (u.points || 0),
+                            0
+                          ) /
+                            filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0)
+                              .length
+                        )
+                      : 0}
+                  </div>
+                  <div className="text-xs sm:text-sm font-semibold text-emerald-600 mb-1">
+                    Média
+                  </div>
+                  <div className="text-xs text-emerald-500">Por Usuário</div>
+                </CardContent>
+              </Card>
+              <Card className="group relative bg-gradient-to-r from-indigo-50 to-indigo-100 border-indigo-300/50 hover:shadow-md transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-400/10 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardContent className="p-2 sm:p-3 text-center relative z-10">
+                  <div className="text-lg sm:text-xl font-bold text-indigo-700 mb-1">
+                    {filteredAndSortedUsers.length > 0
+                      ? Math.max(...filteredAndSortedUsers.map((u: UserType) => u.points || 0))
+                      : 0}
+                  </div>
+                  <div className="text-xs sm:text-sm font-semibold text-indigo-600 mb-1">Maior</div>
+                  <div className="text-xs text-indigo-500">Recorde</div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
 
         {/* Situação dos Amigos - COMENTADO PARA SIMPLIFICAR */}
@@ -1870,7 +1927,7 @@ export default function Users() {
           user={selectedUser}
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          _onUpdate={handleUpdateUser}
+          onUpdate={handleUpdateUser}
         />
 
         {/* Schedule Visit Modal */}

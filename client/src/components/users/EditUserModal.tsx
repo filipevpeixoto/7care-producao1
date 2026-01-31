@@ -23,10 +23,15 @@ interface EditUserModalProps {
   user: any;
   isOpen: boolean;
   onClose: () => void;
-  _onUpdate: (userId: number, data: any) => void;
+  onUpdate?: (userId: number, data: any) => void;
 }
 
-export const EditUserModal = ({ user, isOpen, onClose, _onUpdate }: EditUserModalProps) => {
+export const EditUserModal = ({
+  user,
+  isOpen,
+  onClose,
+  onUpdate: _onUpdate,
+}: EditUserModalProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({

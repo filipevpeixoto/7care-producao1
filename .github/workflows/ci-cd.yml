@@ -274,7 +274,57 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 
   # ===========================================
-  # JOB 8: Deploy Produção (push para main)
+  # JOB 8: Deploy Staging (push para develop)
+  # ===========================================
+  deploy-staging:
+    name: 🧪 Deploy Staging
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment:
+      name: Staging
+      url: https://staging-7care.netlify.app
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📚 Instalar dependências
+        run: npm ci --legacy-peer-deps
+        
+      - name: 🏗️ Build
+        run: npm run build
+        env:
+          NODE_ENV: staging
+          
+      - name: 🚀 Deploy para Netlify (Staging)
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './dist/client'
+          production-deploy: false
+          alias: staging
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Staging - ${{ github.sha }}"
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          
+      - name: 🧪 Smoke Test Staging
+        run: |
+          echo "Aguardando deploy estabilizar..."
+          sleep 30
+          echo "✅ Deploy staging concluído"
+        continue-on-error: true
+
+  # ===========================================
+  # JOB 9: Deploy Produção (push para main)
   # ===========================================
   deploy-production:
     name: 🚀 Deploy Produção

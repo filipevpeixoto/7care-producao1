@@ -5,7 +5,7 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
+import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { logger } from '../utils/logger';
 
 // Variáveis de controle do cleanup automático
@@ -34,7 +34,7 @@ export const systemRoutes = (app: Express): void => {
           if (!hasActiveRelationship) {
             await storage.updateDiscipleshipRequest(request.id, {
               status: 'rejected',
-              notes: 'Limpeza automática - sem relacionamento ativo'
+              notes: 'Limpeza automática - sem relacionamento ativo',
             });
             cleanedCount++;
           }
@@ -99,8 +99,9 @@ export const systemRoutes = (app: Express): void => {
    *       200:
    *         description: Limpeza executada
    */
-  app.post("/api/system/clean-orphaned-approvals", async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/clean-orphaned-approvals',
+    asyncHandler(async (req: Request, res: Response) => {
       const allRequests = await storage.getAllDiscipleshipRequests();
       const approvedRequests = allRequests.filter(req => req.status === 'approved');
 
@@ -118,7 +119,7 @@ export const systemRoutes = (app: Express): void => {
           if (!hasActiveRelationship) {
             const updatedRequest = await storage.updateDiscipleshipRequest(request.id, {
               status: 'rejected',
-              notes: 'Solicitação rejeitada automaticamente - sem relacionamento ativo'
+              notes: 'Solicitação rejeitada automaticamente - sem relacionamento ativo',
             });
 
             if (updatedRequest) {
@@ -137,13 +138,10 @@ export const systemRoutes = (app: Express): void => {
         message: `Limpeza automática concluída`,
         cleanedCount,
         totalProcessed: approvedRequests.length,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
       });
-
-    } catch (error) {
-      handleError(res, error, "Clean orphaned approvals");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -167,8 +165,9 @@ export const systemRoutes = (app: Express): void => {
    *       200:
    *         description: Limpeza agendada
    */
-  app.post("/api/system/schedule-cleanup", async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/schedule-cleanup',
+    asyncHandler(async (req: Request, res: Response) => {
       const { scheduleType, interval } = req.body;
 
       res.json({
@@ -176,13 +175,10 @@ export const systemRoutes = (app: Express): void => {
         message: `Limpeza automática agendada para ${scheduleType}`,
         scheduleType,
         interval,
-        nextRun: new Date(Date.now() + (interval || 24 * 60 * 60 * 1000)).toISOString()
+        nextRun: new Date(Date.now() + (interval || 24 * 60 * 60 * 1000)).toISOString(),
       });
-
-    } catch (error) {
-      handleError(res, error, "Schedule cleanup");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -205,16 +201,13 @@ export const systemRoutes = (app: Express): void => {
    *       200:
    *         description: Limpeza iniciada
    */
-  app.post("/api/system/auto-cleanup/start", async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/auto-cleanup/start',
+    asyncHandler(async (req: Request, res: Response) => {
       const { intervalMinutes = 60 } = req.body;
 
       if (intervalMinutes < 15) {
-        res.status(400).json({
-          success: false,
-          error: "Intervalo mínimo é de 15 minutos"
-        });
-        return;
+        return sendError(res, 'Intervalo mínimo é de 15 minutos', 400);
       }
 
       startAutoCleanup(intervalMinutes);
@@ -223,13 +216,10 @@ export const systemRoutes = (app: Express): void => {
         success: true,
         message: `Limpeza automática iniciada a cada ${intervalMinutes} minutos`,
         intervalMinutes,
-        status: 'running'
+        status: 'running',
       });
-
-    } catch (error) {
-      handleError(res, error, "Start auto cleanup");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -243,20 +233,14 @@ export const systemRoutes = (app: Express): void => {
    *       200:
    *         description: Limpeza parada
    */
-  app.post("/api/system/auto-cleanup/stop", async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/auto-cleanup/stop',
+    asyncHandler(async (req: Request, res: Response) => {
       stopAutoCleanup();
 
-      res.json({
-        success: true,
-        message: "Limpeza automática parada",
-        status: 'stopped'
-      });
-
-    } catch (error) {
-      handleError(res, error, "Stop auto cleanup");
-    }
-  });
+      sendSuccess(res, { status: 'stopped', message: 'Limpeza automática parada' });
+    })
+  );
 
   /**
    * @swagger
@@ -268,19 +252,53 @@ export const systemRoutes = (app: Express): void => {
    *       200:
    *         description: Status atual
    */
-  app.get("/api/system/auto-cleanup/status", async (req: Request, res: Response) => {
-    try {
-      res.json({
-        success: true,
+  app.get(
+    '/api/system/auto-cleanup/status',
+    asyncHandler(async (req: Request, res: Response) => {
+      sendSuccess(res, {
         status: autoCleanupEnabled ? 'running' : 'stopped',
         interval: autoCleanupInterval ? 'configurado' : 'não configurado',
-        lastRun: new Date().toISOString()
+        lastRun: new Date().toISOString(),
       });
+    })
+  );
 
-    } catch (error) {
-      handleError(res, error, "Get auto cleanup status");
-    }
-  });
+  /**
+   * @swagger
+   * /api/system/clear-all:
+   *   post:
+   *     summary: Limpa todos os dados (apenas superadmin)
+   *     tags: [System]
+   *     security:
+   *       - userId: []
+   *     responses:
+   *       200:
+   *         description: Dados limpos (mantém superadmin, convites de pastores são removidos)
+   *       403:
+   *         description: Acesso negado - apenas superadmin
+   */
+  app.post(
+    '/api/system/clear-all',
+    asyncHandler(async (req: Request, res: Response) => {
+      // Verificar se o usuário é superadmin
+      const userId = req.headers['x-user-id'];
+      if (!userId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const user = await storage.getUserById(Number(userId));
+      if (!user || user.role !== 'superadmin') {
+        return sendError(res, 'Apenas superadmin pode executar esta operação', 403);
+      }
+
+      // Executar limpeza completa (mantém superadmin, remove convites de pastores)
+      await storage.clearAllData();
+
+      sendSuccess(res, {
+        message: 'Dados limpos com sucesso. Superadmin mantido, convites de pastores removidos.',
+      });
+    })
+  );
 
   // Inicializar limpeza automática quando o servidor iniciar
   logger.info('🚀 Inicializando sistema de limpeza automática...');
@@ -288,4 +306,4 @@ export const systemRoutes = (app: Express): void => {
 };
 
 // Exportar funções de controle para uso externo se necessário
-export { };
+export {};

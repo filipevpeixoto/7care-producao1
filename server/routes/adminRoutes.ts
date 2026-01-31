@@ -9,7 +9,8 @@ import { requireAuth, requireRole } from '../middleware';
 import { auditService } from '../services/auditService';
 import { monitoringService } from '../services/monitoringService';
 import { getRateLimitStats } from '../middleware/rateLimiter';
-import { logger } from '../utils/logger';
+import { asyncHandler } from '../utils/asyncHandler';
+import { sendSuccess } from '../utils/apiResponse';
 
 const router = Router();
 
@@ -64,8 +65,9 @@ router.use(requireRole('superadmin'));
  *       403:
  *         description: Sem permissão
  */
-router.get('/audit', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/audit',
+  asyncHandler(async (req: Request, res: Response) => {
     const { action, userId, startDate, endDate, page = 1, limit = 50 } = req.query;
 
     const result = await auditService.getLogs({
@@ -91,12 +93,9 @@ router.get('/audit', async (req: Request, res: Response) => {
       limit: parseInt(limit as string),
     });
 
-    res.json(result);
-  } catch (error) {
-    logger.error('Erro ao buscar logs de auditoria', error);
-    res.status(500).json({ error: 'Erro ao buscar logs de auditoria' });
-  }
-});
+    sendSuccess(res, result);
+  })
+);
 
 /**
  * @swagger
@@ -110,15 +109,13 @@ router.get('/audit', async (req: Request, res: Response) => {
  *       200:
  *         description: Estatísticas de auditoria
  */
-router.get('/audit/stats', async (_req: Request, res: Response) => {
-  try {
+router.get(
+  '/audit/stats',
+  asyncHandler(async (_req: Request, res: Response) => {
     const stats = await auditService.getStats();
-    res.json(stats);
-  } catch (error) {
-    logger.error('Erro ao buscar estatísticas de auditoria', error);
-    res.status(500).json({ error: 'Erro ao buscar estatísticas' });
-  }
-});
+    sendSuccess(res, stats);
+  })
+);
 
 /**
  * @swagger
@@ -132,15 +129,13 @@ router.get('/audit/stats', async (_req: Request, res: Response) => {
  *       200:
  *         description: Métricas do sistema
  */
-router.get('/metrics', async (_req: Request, res: Response) => {
-  try {
+router.get(
+  '/metrics',
+  asyncHandler(async (_req: Request, res: Response) => {
     const metrics = monitoringService.getMetrics();
-    res.json(metrics);
-  } catch (error) {
-    logger.error('Erro ao buscar métricas', error);
-    res.status(500).json({ error: 'Erro ao buscar métricas' });
-  }
-});
+    sendSuccess(res, metrics);
+  })
+);
 
 /**
  * @swagger
@@ -154,15 +149,13 @@ router.get('/metrics', async (_req: Request, res: Response) => {
  *       200:
  *         description: Estatísticas do rate limiter
  */
-router.get('/rate-limit/stats', async (_req: Request, res: Response) => {
-  try {
+router.get(
+  '/rate-limit/stats',
+  asyncHandler(async (_req: Request, res: Response) => {
     const stats = getRateLimitStats();
-    res.json(stats);
-  } catch (error) {
-    logger.error('Erro ao buscar estatísticas de rate limit', error);
-    res.status(500).json({ error: 'Erro ao buscar estatísticas' });
-  }
-});
+    sendSuccess(res, stats);
+  })
+);
 
 /**
  * @swagger
@@ -182,16 +175,14 @@ router.get('/rate-limit/stats', async (_req: Request, res: Response) => {
  *       200:
  *         description: Lista de erros recentes
  */
-router.get('/errors', async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/errors',
+  asyncHandler(async (req: Request, res: Response) => {
     const { limit = 50 } = req.query;
     const errors = monitoringService.getRecentErrors(parseInt(limit as string));
-    res.json(errors);
-  } catch (error) {
-    logger.error('Erro ao buscar erros recentes', error);
-    res.status(500).json({ error: 'Erro ao buscar erros' });
-  }
-});
+    sendSuccess(res, errors);
+  })
+);
 
 /**
  * @swagger
@@ -205,12 +196,13 @@ router.get('/errors', async (req: Request, res: Response) => {
  *       200:
  *         description: Informações do sistema
  */
-router.get('/system/info', async (_req: Request, res: Response) => {
-  try {
+router.get(
+  '/system/info',
+  asyncHandler(async (_req: Request, res: Response) => {
     const memoryUsage = process.memoryUsage();
     const uptime = process.uptime();
 
-    res.json({
+    sendSuccess(res, {
       nodeVersion: process.version,
       platform: process.platform,
       uptime: {
@@ -226,11 +218,8 @@ router.get('/system/info', async (_req: Request, res: Response) => {
       env: process.env.NODE_ENV,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    logger.error('Erro ao buscar informações do sistema', error);
-    res.status(500).json({ error: 'Erro ao buscar informações' });
-  }
-});
+  })
+);
 
 // Helpers
 function formatUptime(seconds: number): string {

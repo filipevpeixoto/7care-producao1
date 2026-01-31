@@ -7,13 +7,13 @@ import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
-import { handleError } from '../utils/errorHandler';
 import { isSuperAdmin } from '../utils/permissions';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { pointsConfigSchema } from '../schemas';
 import { User } from '../../shared/schema';
 import { PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
+import { asyncHandler, sendSuccess, sendError } from '../utils';
 
 // Tipo para dados extras do usuário
 interface UserExtraData {
@@ -225,8 +225,9 @@ export const pointsRoutes = (app: Express): void => {
     const values: number[] = [];
 
     if (config.basicPoints && config.basicPoints > 0) values.push(config.basicPoints);
-    if (config.attendancePoints && config.attendancePoints > 0)
+    if (config.attendancePoints && config.attendancePoints > 0) {
       values.push(config.attendancePoints);
+    }
     if (config.eventPoints && config.eventPoints > 0) values.push(config.eventPoints);
     if (config.donationPoints && config.donationPoints > 0) values.push(config.donationPoints);
 
@@ -270,11 +271,13 @@ export const pointsRoutes = (app: Express): void => {
     const newConfig = JSON.parse(JSON.stringify(config));
 
     if (newConfig.basicPoints) newConfig.basicPoints = Math.round(newConfig.basicPoints * factor);
-    if (newConfig.attendancePoints)
+    if (newConfig.attendancePoints) {
       newConfig.attendancePoints = Math.round(newConfig.attendancePoints * factor);
+    }
     if (newConfig.eventPoints) newConfig.eventPoints = Math.round(newConfig.eventPoints * factor);
-    if (newConfig.donationPoints)
+    if (newConfig.donationPoints) {
       newConfig.donationPoints = Math.round(newConfig.donationPoints * factor);
+    }
 
     const pointCategories: Array<keyof PointsConfig> = [
       'engajamento',
@@ -429,14 +432,13 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Configuração de pontos
    */
-  app.get('/api/system/points-config', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/system/points-config',
+    asyncHandler(async (req: Request, res: Response) => {
       const config = await storage.getPointsConfiguration();
       res.json(config);
-    } catch (error) {
-      handleError(res, error, 'Get points config');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -459,34 +461,27 @@ export const pointsRoutes = (app: Express): void => {
   app.post(
     '/api/system/points-config',
     validateBody(pointsConfigSchema),
-    async (req: Request, res: Response) => {
-      try {
-        const config = (req as ValidatedRequest<typeof pointsConfigSchema._type>).validatedBody;
+    asyncHandler(async (req: Request, res: Response) => {
+      const config = (req as ValidatedRequest<typeof pointsConfigSchema._type>).validatedBody;
 
-        await storage.savePointsConfiguration(
-          config as unknown as Parameters<typeof storage.savePointsConfiguration>[0]
-        );
+      await storage.savePointsConfiguration(
+        config as unknown as Parameters<typeof storage.savePointsConfiguration>[0]
+      );
 
-        const result = await storage.calculateAdvancedUserPoints();
+      const result = await storage.calculateAdvancedUserPoints();
 
-        if (result.success) {
-          res.json({
-            success: true,
-            message: `Configuração salva e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
-            updatedUsers: result.updatedUsers || 0,
-            errors: result.errors || 0,
-            details: result.message,
-          });
-        } else {
-          res.status(500).json({
-            error: 'Erro ao recalcular pontos automaticamente',
-            details: result.message,
-          });
-        }
-      } catch (error) {
-        handleError(res, error, 'Save points config');
+      if (result.success) {
+        res.json({
+          success: true,
+          message: `Configuração salva e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
+          updatedUsers: result.updatedUsers || 0,
+          errors: result.errors || 0,
+          details: result.message,
+        });
+      } else {
+        return sendError(res, 'Erro ao recalcular pontos automaticamente', 500);
       }
-    }
+    })
   );
 
   /**
@@ -501,8 +496,9 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Configuração resetada
    */
-  app.post('/api/system/points-config/reset', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/points-config/reset',
+    asyncHandler(async (req: Request, res: Response) => {
       await db.delete(schema.pointConfigs);
 
       const result = await storage.calculateAdvancedUserPoints();
@@ -516,15 +512,10 @@ export const pointsRoutes = (app: Express): void => {
           details: result.message,
         });
       } else {
-        res.status(500).json({
-          error: 'Erro ao recalcular pontos automaticamente após reset',
-          details: result.message,
-        });
+        return sendError(res, 'Erro ao recalcular pontos automaticamente após reset', 500);
       }
-    } catch (error) {
-      handleError(res, error, 'Reset points config');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -538,8 +529,9 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Pontos recalculados
    */
-  app.post('/api/users/recalculate-all-points', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/users/recalculate-all-points',
+    asyncHandler(async (req: Request, res: Response) => {
       const users = await storage.getAllUsers();
 
       let updatedCount = 0;
@@ -588,10 +580,8 @@ export const pointsRoutes = (app: Express): void => {
         errors: errorCount,
         results,
       });
-    } catch (error) {
-      handleError(res, error, 'Recalculate all points');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -603,8 +593,9 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Média dos parâmetros
    */
-  app.get('/api/system/parameter-average', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/system/parameter-average',
+    asyncHandler(async (req: Request, res: Response) => {
       const currentConfig = await storage.getPointsConfiguration();
       const currentAverage = calculateParameterAverage(currentConfig);
 
@@ -613,10 +604,8 @@ export const pointsRoutes = (app: Express): void => {
         currentAverage: currentAverage.toFixed(2),
         message: `Média atual dos parâmetros: ${currentAverage.toFixed(2)}`,
       });
-    } catch (error) {
-      handleError(res, error, 'Get parameter average');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -641,16 +630,13 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Configuração ajustada
    */
-  app.post('/api/system/district-average', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/district-average',
+    asyncHandler(async (req: Request, res: Response) => {
       const { targetAverage } = req.body;
 
       if (!targetAverage || typeof targetAverage !== 'number') {
-        res.status(400).json({
-          success: false,
-          error: 'Média desejada é obrigatória e deve ser um número',
-        });
-        return;
+        return sendError(res, 'Média desejada é obrigatória e deve ser um número', 400);
       }
 
       const currentConfig = await storage.getPointsConfiguration();
@@ -658,11 +644,7 @@ export const pointsRoutes = (app: Express): void => {
       const regularUsers = allUsers.filter(user => user.email !== 'admin@7care.com');
 
       if (regularUsers.length === 0) {
-        res.status(400).json({
-          success: false,
-          error: 'Não há usuários para calcular a média',
-        });
-        return;
+        return sendError(res, 'Não há usuários para calcular a média', 400);
       }
 
       let totalCurrentPoints = 0;
@@ -694,10 +676,8 @@ export const pointsRoutes = (app: Express): void => {
         message: `Configuração ajustada e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
         details: result.message,
       });
-    } catch (error) {
-      handleError(res, error, 'District average');
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -709,14 +689,13 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Permissões de eventos
    */
-  app.get('/api/system/event-permissions', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/system/event-permissions',
+    asyncHandler(async (req: Request, res: Response) => {
       const permissions = await storage.getEventPermissions();
-      res.json({ success: true, permissions });
-    } catch (error) {
-      handleError(res, error, 'Get event permissions');
-    }
-  });
+      sendSuccess(res, { permissions });
+    })
+  );
 
   /**
    * @swagger
@@ -739,26 +718,18 @@ export const pointsRoutes = (app: Express): void => {
    *       200:
    *         description: Permissões salvas
    */
-  app.post('/api/system/event-permissions', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/event-permissions',
+    asyncHandler(async (req: Request, res: Response) => {
       const { permissions } = req.body;
 
       if (!permissions || typeof permissions !== 'object') {
-        res.status(400).json({
-          success: false,
-          error: 'Permissões são obrigatórias e devem ser um objeto',
-        });
-        return;
+        return sendError(res, 'Permissões são obrigatórias e devem ser um objeto', 400);
       }
 
       await storage.saveEventPermissions(permissions);
 
-      res.json({
-        success: true,
-        message: 'Permissões de eventos salvas com sucesso',
-      });
-    } catch (error) {
-      handleError(res, error, 'Save event permissions');
-    }
-  });
+      sendSuccess(res, { message: 'Permissões de eventos salvas com sucesso' });
+    })
+  );
 };

@@ -339,7 +339,7 @@ export class AuditService {
   /**
    * Método base para registrar log
    */
-  private async log(data: CreateAuditLogDTO): Promise<AuditLog | null> {
+  async log(data: CreateAuditLogDTO): Promise<AuditLog | null> {
     if (!this.initialized) {
       await this.initialize();
     }

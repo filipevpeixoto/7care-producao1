@@ -3,14 +3,30 @@
  * @module server/__tests__/middleware/jwtAuth.test
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach, beforeAll, afterAll } from '@jest/globals';
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 
+// Set environment variables for tests BEFORE imports
+const originalEnv = process.env;
+
+beforeAll(() => {
+  process.env = {
+    ...originalEnv,
+    NODE_ENV: 'development',
+    JWT_SECRET: 'test-secret-key-for-testing-purposes-only-min32chars',
+    JWT_REFRESH_SECRET: 'test-refresh-secret-key-for-testing-min32chars',
+  };
+});
+
+afterAll(() => {
+  process.env = originalEnv;
+});
+
 // Mock do JWT config
 jest.mock('../../config/jwtConfig', () => ({
-  JWT_SECRET: 'test-secret-key-for-testing-purposes-only',
-  JWT_REFRESH_SECRET: 'test-refresh-secret-key-for-testing',
+  JWT_SECRET: 'test-secret-key-for-testing-purposes-only-min32chars',
+  JWT_REFRESH_SECRET: 'test-refresh-secret-key-for-testing-min32chars',
   JWT_EXPIRES_IN: '15m',
   JWT_REFRESH_EXPIRES_IN: '7d',
 }));

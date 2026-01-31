@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: number;
@@ -41,65 +42,65 @@ interface ChatUser {
 
 interface ChatInterfaceProps {
   chatUser?: ChatUser;
+  conversationId?: number;
   isGroup?: boolean;
   groupName?: string;
   groupMembers?: ChatUser[];
 }
 
-const mockMessages: Message[] = [
-  {
-    id: 1,
-    senderId: 2,
-    senderName: 'Maria Santos',
-    content: 'Oi João! Como está indo a preparação do culto de sábado?',
-    timestamp: '2025-01-26T14:30:00',
-    type: 'text',
-    status: 'read',
-  },
-  {
-    id: 2,
-    senderId: 1,
-    senderName: 'Pastor João Silva',
-    content:
-      'Olá Maria! Está indo bem. Já terminei o esboço da pregação. Você conseguiu organizar a Escola Sabatina?',
-    timestamp: '2025-01-26T14:32:00',
-    type: 'text',
-    status: 'read',
-  },
-  {
-    id: 3,
-    senderId: 2,
-    senderName: 'Maria Santos',
-    content:
-      'Sim! Já está tudo pronto. Os professores confirmaram presença e prepararam as lições. Quantas pessoas esperamos para este sábado?',
-    timestamp: '2025-01-26T14:35:00',
-    type: 'text',
-    status: 'read',
-  },
-  {
-    id: 4,
-    senderId: 1,
-    senderName: 'Pastor João Silva',
-    content:
-      'Esperamos cerca de 80-90 pessoas. Ana confirmou que vai trazer 3 interessados do estudo bíblico dela.',
-    timestamp: '2025-01-26T14:40:00',
-    type: 'text',
-    status: 'delivered',
-  },
-];
-
 export const ChatInterface = ({
   chatUser,
+  conversationId,
   isGroup = false,
   groupName,
   groupMembers,
 }: ChatInterfaceProps) => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Carregar mensagens reais do backend
+  const loadMessages = useCallback(async () => {
+    if (!conversationId) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/conversations/${conversationId}/messages`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data);
+
+        // Marcar mensagens como lidas
+        if (user?.id) {
+          fetch(`/api/conversations/${conversationId}/read`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id }),
+          }).catch(console.error);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [conversationId, user?.id]);
+
+  useEffect(() => {
+    if (conversationId) {
+      loadMessages();
+      // Poll for new messages every 5 seconds
+      const interval = setInterval(loadMessages, 5000);
+      return () => clearInterval(interval);
+    }
+    return undefined;
+  }, [conversationId, loadMessages]);
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
@@ -108,34 +109,66 @@ export const ChatInterface = ({
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !conversationId || !user?.id) return;
 
-    const message: Message = {
+    const tempMessage: Message = {
       id: Date.now(),
-      senderId: Number(user?.id) || 1,
-      senderName: user?.name || 'Você',
+      senderId: Number(user.id),
+      senderName: user.name || 'Você',
       content: newMessage,
       timestamp: new Date().toISOString(),
       type: 'text',
       status: 'sending',
     };
 
-    setMessages(prev => [...prev, message]);
+    setMessages(prev => [...prev, tempMessage]);
     setNewMessage('');
+    setIsSending(true);
 
-    // Simulate message status updates
-    setTimeout(() => {
-      setMessages(prev =>
-        prev.map(msg => (msg.id === message.id ? { ...msg, status: 'sent' } : msg))
-      );
-    }, 500);
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          senderId: user.id,
+          content: newMessage.trim(),
+        }),
+      });
 
-    setTimeout(() => {
-      setMessages(prev =>
-        prev.map(msg => (msg.id === message.id ? { ...msg, status: 'delivered' } : msg))
-      );
-    }, 1000);
+      if (response.ok) {
+        const sentMessage = await response.json();
+        setMessages(prev =>
+          prev.map(msg => (msg.id === tempMessage.id ? { ...sentMessage, status: 'sent' } : msg))
+        );
+
+        // Update status to delivered after a short delay
+        setTimeout(() => {
+          setMessages(prev =>
+            prev.map(msg => (msg.id === sentMessage.id ? { ...msg, status: 'delivered' } : msg))
+          );
+        }, 500);
+      } else {
+        // Remove the temp message on error
+        setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível enviar a mensagem',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível enviar a mensagem',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

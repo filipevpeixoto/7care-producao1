@@ -30,7 +30,7 @@ const THRESHOLDS = {
 function getRating(name: string, value: number): 'good' | 'needs-improvement' | 'poor' {
   const threshold = THRESHOLDS[name as keyof typeof THRESHOLDS];
   if (!threshold) return 'good';
-  
+
   if (value <= threshold.good) return 'good';
   if (value <= threshold.poor) return 'needs-improvement';
   return 'poor';
@@ -51,8 +51,11 @@ function handleMetric(metric: Metric): void {
 
   // Log em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
-    const color = webVital.rating === 'good' ? '🟢' : webVital.rating === 'needs-improvement' ? '🟡' : '🔴';
-    console.log(`${color} [Web Vital] ${webVital.name}: ${webVital.value.toFixed(2)} (${webVital.rating})`);
+    const color =
+      webVital.rating === 'good' ? '🟢' : webVital.rating === 'needs-improvement' ? '🟡' : '🔴';
+    console.log(
+      `${color} [Web Vital] ${webVital.name}: ${webVital.value.toFixed(2)} (${webVital.rating})`
+    );
   }
 
   // Enviar para analytics
@@ -65,10 +68,16 @@ function handleMetric(metric: Metric): void {
 function sendToAnalytics(metric: WebVitalMetric): void {
   // Não envia se não houver conexão
   if (!navigator.onLine) return;
-  
+
+  // Analytics desabilitado - endpoint não implementado no Netlify Functions
+  // Para habilitar, configure um serviço de analytics (Google Analytics, Sentry, etc.)
+  // e defina ANALYTICS_ENABLED como true
+  const ANALYTICS_ENABLED = false;
+  if (!ANALYTICS_ENABLED) return;
+
   // Enviar para endpoint de analytics (se configurado)
   const analyticsEndpoint = '/api/analytics/vitals';
-  
+
   // Usar sendBeacon para não bloquear
   if (navigator.sendBeacon) {
     const blob = new Blob([JSON.stringify(metric)], { type: 'application/json' });
@@ -86,9 +95,9 @@ function sendToAnalytics(metric: WebVitalMetric): void {
   }
 
   // Tipo para window extendido
-  const extWindow = window as unknown as { 
-    Sentry?: { addBreadcrumb: (b: object) => void }; 
-    gtag?: (cmd: string, action: string, params: object) => void 
+  const extWindow = window as unknown as {
+    Sentry?: { addBreadcrumb: (b: object) => void };
+    gtag?: (cmd: string, action: string, params: object) => void;
   };
 
   // Enviar para Sentry como breadcrumb (se disponível)
@@ -120,7 +129,7 @@ export function initWebVitals(): void {
   onLCP(handleMetric);
   onINP(handleMetric);
   onCLS(handleMetric);
-  
+
   // Métricas adicionais
   onFCP(handleMetric);
   onTTFB(handleMetric);
@@ -130,9 +139,9 @@ export function initWebVitals(): void {
  * Obtém resumo das métricas coletadas
  */
 export function getVitalsReport(): Promise<Record<string, WebVitalMetric>> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const metrics: Record<string, WebVitalMetric> = {};
-    
+
     const collectMetric = (metric: Metric) => {
       metrics[metric.name] = {
         name: metric.name,

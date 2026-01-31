@@ -5,11 +5,11 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createRelationshipSchema } from '../schemas';
 import { hasAdminAccess } from '../utils/permissions';
+import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 
 export const relationshipRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -24,8 +24,9 @@ export const relationshipRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de relacionamentos
    */
-  app.get('/api/relationships', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/relationships',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = req.headers['x-user-id'] as string;
       const userRole = req.headers['x-user-role'] as
         | 'superadmin'
@@ -94,11 +95,9 @@ export const relationshipRoutes = (app: Express): void => {
         );
       }
 
-      res.json(filteredRelationships);
-    } catch (error) {
-      handleError(res, error, 'Get relationships');
-    }
-  });
+      sendSuccess(res, filteredRelationships);
+    })
+  );
 
   /**
    * @swagger
@@ -136,52 +135,39 @@ export const relationshipRoutes = (app: Express): void => {
   app.post(
     '/api/relationships',
     validateBody(createRelationshipSchema),
-    async (req: Request, res: Response) => {
-      try {
-        const { interestedId, missionaryId, status, notes } = (
-          req as ValidatedRequest<typeof createRelationshipSchema._type>
-        ).validatedBody;
-        logger.info(
-          `Creating relationship: missionary ${missionaryId} -> interested ${interestedId}`
-        );
+    asyncHandler(async (req: Request, res: Response) => {
+      const { interestedId, missionaryId, status, notes } = (
+        req as ValidatedRequest<typeof createRelationshipSchema._type>
+      ).validatedBody;
+      logger.info(
+        `Creating relationship: missionary ${missionaryId} -> interested ${interestedId}`
+      );
 
-        // Validar que ambos pertencem à mesma igreja
-        const interested = await storage.getUserById(interestedId);
-        const missionary = await storage.getUserById(missionaryId);
+      // Validar que ambos pertencem à mesma igreja
+      const interested = await storage.getUserById(interestedId);
+      const missionary = await storage.getUserById(missionaryId);
 
-        if (!interested) {
-          res.status(404).json({ error: 'Interessado não encontrado' });
-          return;
-        }
-        if (!missionary) {
-          res.status(404).json({ error: 'Discipulador não encontrado' });
-          return;
-        }
-
-        // Verificar se pertencem à mesma igreja (apenas se ambos tiverem igreja definida)
-        if (interested.church && missionary.church && interested.church !== missionary.church) {
-          res.status(400).json({
-            error: 'Discipulado só pode acontecer entre membros da mesma igreja',
-            details: {
-              interessadoIgreja: interested.church,
-              discipuladorIgreja: missionary.church,
-            },
-          });
-          return;
-        }
-
-        const relationship = await storage.createRelationship({
-          interestedId,
-          missionaryId,
-          status: status || 'active',
-          notes: notes ?? undefined,
-        });
-
-        res.status(201).json(relationship);
-      } catch (error) {
-        handleError(res, error, 'Create relationship');
+      if (!interested) {
+        return sendNotFound(res, 'Interessado');
       }
-    }
+      if (!missionary) {
+        return sendNotFound(res, 'Discipulador');
+      }
+
+      // Verificar se pertencem à mesma igreja (apenas se ambos tiverem igreja definida)
+      if (interested.church && missionary.church && interested.church !== missionary.church) {
+        return sendError(res, 'Discipulado só pode acontecer entre membros da mesma igreja', 400);
+      }
+
+      const relationship = await storage.createRelationship({
+        interestedId,
+        missionaryId,
+        status: status || 'active',
+        notes: notes ?? undefined,
+      });
+
+      sendSuccess(res, relationship, 201, 'Relacionamento criado');
+    })
   );
 
   /**
@@ -204,22 +190,20 @@ export const relationshipRoutes = (app: Express): void => {
    *       404:
    *         description: Relacionamento não encontrado
    */
-  app.delete('/api/relationships/:id', async (req: Request, res: Response) => {
-    try {
+  app.delete(
+    '/api/relationships/:id',
+    asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
 
       const deleted = await storage.deleteRelationship(id);
 
       if (!deleted) {
-        res.status(404).json({ error: 'Relacionamento não encontrado' });
-        return;
+        return sendNotFound(res, 'Relacionamento');
       }
 
-      res.json({ success: true, message: 'Relacionamento removido' });
-    } catch (error) {
-      handleError(res, error, 'Delete relationship');
-    }
-  });
+      sendSuccess(res, null, 200, 'Relacionamento removido');
+    })
+  );
 
   /**
    * @swagger
@@ -237,15 +221,14 @@ export const relationshipRoutes = (app: Express): void => {
    *       200:
    *         description: Relacionamentos do interessado
    */
-  app.get('/api/relationships/interested/:interestedId', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/relationships/interested/:interestedId',
+    asyncHandler(async (req: Request, res: Response) => {
       const interestedId = parseInt(req.params.interestedId);
       const relationships = await storage.getRelationshipsByInterested(interestedId);
-      res.json(relationships);
-    } catch (error) {
-      handleError(res, error, 'Get relationships by interested');
-    }
-  });
+      sendSuccess(res, relationships);
+    })
+  );
 
   /**
    * @swagger
@@ -263,15 +246,14 @@ export const relationshipRoutes = (app: Express): void => {
    *       200:
    *         description: Relacionamentos do missionário
    */
-  app.get('/api/relationships/missionary/:missionaryId', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/relationships/missionary/:missionaryId',
+    asyncHandler(async (req: Request, res: Response) => {
       const missionaryId = parseInt(req.params.missionaryId);
       const relationships = await storage.getRelationshipsByMissionary(missionaryId);
-      res.json(relationships);
-    } catch (error) {
-      handleError(res, error, 'Get relationships by missionary');
-    }
-  });
+      sendSuccess(res, relationships);
+    })
+  );
 
   /**
    * @swagger
@@ -291,8 +273,9 @@ export const relationshipRoutes = (app: Express): void => {
    *       200:
    *         description: Relacionamento removido
    */
-  app.delete('/api/relationships/active/:interestedId', async (req: Request, res: Response) => {
-    try {
+  app.delete(
+    '/api/relationships/active/:interestedId',
+    asyncHandler(async (req: Request, res: Response) => {
       const interestedId = parseInt(req.params.interestedId);
 
       // Buscar relacionamentos ativos
@@ -302,14 +285,11 @@ export const relationshipRoutes = (app: Express): void => {
       );
 
       if (!activeRelationship) {
-        res.status(404).json({ error: 'Nenhum relacionamento ativo encontrado' });
-        return;
+        return sendNotFound(res, 'Relacionamento ativo');
       }
 
       await storage.deleteRelationship(activeRelationship.id);
-      res.json({ success: true, message: 'Relacionamento ativo removido' });
-    } catch (error) {
-      handleError(res, error, 'Delete active relationship');
-    }
-  });
+      sendSuccess(res, null, 200, 'Relacionamento ativo removido');
+    })
+  );
 };

@@ -336,17 +336,41 @@ export function UserCardResponsive({
   const getSpiritualLevel = (score: number) => {
     switch (score) {
       case 1:
-        return { emoji: '🍃', label: 'Distante', color: 'bg-red-100 text-red-700' };
+        return {
+          emoji: '🍃',
+          label: 'Distante',
+          color: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
+        };
       case 2:
-        return { emoji: '🔍', label: 'Buscando', color: 'bg-orange-100 text-orange-700' };
+        return {
+          emoji: '🔍',
+          label: 'Buscando',
+          color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
+        };
       case 3:
-        return { emoji: '🌱', label: 'Enraizando', color: 'bg-yellow-100 text-yellow-700' };
+        return {
+          emoji: '🌱',
+          label: 'Enraizando',
+          color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
+        };
       case 4:
-        return { emoji: '🌳', label: 'Frutificando', color: 'bg-blue-100 text-blue-700' };
+        return {
+          emoji: '🌳',
+          label: 'Frutificando',
+          color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+        };
       case 5:
-        return { emoji: '✨', label: 'Intimidade', color: 'bg-green-100 text-green-700' };
+        return {
+          emoji: '✨',
+          label: 'Intimidade',
+          color: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+        };
       default:
-        return { emoji: '❓', label: 'Sem check-in', color: 'bg-gray-100 text-gray-600' };
+        return {
+          emoji: '❓',
+          label: 'Sem check-in',
+          color: 'bg-gray-100 text-gray-600 dark:bg-slate-700/50 dark:text-slate-300',
+        };
     }
   };
 
@@ -499,7 +523,7 @@ export function UserCardResponsive({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 w-7 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-full border border-purple-200"
+                      className="h-7 w-7 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30 rounded-full border border-purple-200 dark:border-purple-700/50"
                       onClick={e => {
                         e.stopPropagation();
                         onScheduleVisit?.();
@@ -527,7 +551,7 @@ export function UserCardResponsive({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full border border-red-200"
+                      className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 rounded-full border border-red-200 dark:border-red-700/50"
                       onClick={e => {
                         e.stopPropagation();
                         onDelete?.();
@@ -546,7 +570,7 @@ export function UserCardResponsive({
                 {(localUser.role === 'superadmin' || localUser.role === 'pastor') && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-300"
+                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-600/50"
                   >
                     Admin
                   </Badge>
@@ -554,7 +578,7 @@ export function UserCardResponsive({
                 {localUser.role.includes('member') && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-100 text-green-700 border-green-300"
+                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-600/50"
                   >
                     Membro
                   </Badge>
@@ -562,7 +586,7 @@ export function UserCardResponsive({
                 {localUser.role.includes('missionary') && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 border-purple-300"
+                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-600/50"
                   >
                     Missionário
                   </Badge>
@@ -570,7 +594,7 @@ export function UserCardResponsive({
                 {localUser.role === 'interested' && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 border-orange-300"
+                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-600/50"
                   >
                     Amigo
                   </Badge>
@@ -581,10 +605,10 @@ export function UserCardResponsive({
                   variant="outline"
                   className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 ${
                     localUser.status === 'approved'
-                      ? 'bg-green-100 text-green-700 border-green-300'
+                      ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-600/50'
                       : localUser.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                        : 'bg-red-100 text-red-700 border-red-300'
+                        ? 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-600/50'
+                        : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-600/50'
                   }`}
                 >
                   {localUser.status === 'approved'
@@ -598,7 +622,7 @@ export function UserCardResponsive({
                 {localUser.role === 'interested' && hasPendingDiscipleRequest && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-300 cursor-pointer hover:bg-blue-200 transition-colors"
+                    className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-600/50 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
                     onClick={e => {
                       e.stopPropagation();
                       onDiscipleRequest?.();
@@ -746,7 +770,7 @@ export function UserCardResponsive({
 
               <Badge
                 variant="outline"
-                className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border-blue-300"
+                className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-600/50"
               >
                 {localUser.interestedSituation || 'Não definida'}
               </Badge>
@@ -755,7 +779,7 @@ export function UserCardResponsive({
 
           {/* Informações de Gamificação - Monte e Pontuação */}
           {true && (
-            <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100">
+            <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100 dark:border-slate-700">
               <div className="flex items-center gap-1">
                 <Star className="h-3 w-3 text-yellow-500" />
                 <span className="text-[10px] sm:text-xs font-medium">
@@ -777,7 +801,7 @@ export function UserCardResponsive({
 
           {/* Indicador de Estado Espiritual - Apenas para admins */}
           {hasAdminAccess(currentUser) && (
-            <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100">
+            <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100 dark:border-slate-700">
               <div className="flex items-center gap-1">
                 <Heart className="h-3 w-3 text-pink-500" />
                 <span className="text-[10px] sm:text-xs font-medium">Check-in Espiritual:</span>
@@ -827,7 +851,7 @@ export function UserCardResponsive({
               {getVisitCount() > 1 && (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] sm:text-xs px-1 py-0 bg-green-100 text-green-700"
+                  className="text-[10px] sm:text-xs px-1 py-0 bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                 >
                   {getVisitCount()} visitas
                 </Badge>

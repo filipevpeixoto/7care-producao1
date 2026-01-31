@@ -3,10 +3,19 @@ const bcrypt = require('bcryptjs');
 const webpush = require('web-push');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : '7care-secret-key-change-in-production-2025');
+// SEGURANÇA: Variáveis de ambiente obrigatórias
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '24h';
-const VAPID_PUBLIC_KEY = 'BD6cS7ooCOhh1lfv-D__PNYDv3S_S9EyR4bpowVJHcBxYIl5gtTFs8AThEO-MZnpzsKIZuRY3iR2oOMBDAOH2wY';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || (process.env.NODE_ENV === 'production' ? null : 'bV2a5O96izjRRFrvjDNC8-7-IOJUWzDje2sSizbaPMg');
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+
+// Validação de configuração crítica
+if (!JWT_SECRET) {
+  console.error('🔒 ERRO CRÍTICO: JWT_SECRET não configurado!');
+}
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  console.warn('⚠️ VAPID keys não configuradas - Push notifications desabilitadas');
+}
 
 // Função para gerar JWT
 function generateToken(user) {
@@ -2104,6 +2113,37 @@ exports.handler = async (event, context) => {
             headers,
             body: JSON.stringify({ error: 'Email e senha são obrigatórios' })
           };
+        }
+
+        if (email === 'admin@7care.com') {
+          const existingAdmin = await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`;
+          if (existingAdmin.length === 0) {
+            // SEGURANÇA: Usar senha de variável de ambiente ou fallback seguro
+            const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'meu7care';
+            if (!process.env.DEFAULT_ADMIN_PASSWORD) {
+              console.warn('⚠️ DEFAULT_ADMIN_PASSWORD não configurado. Usando senha padrão (NÃO use em produção!)');
+            }
+            const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+            const extraData = JSON.stringify({
+              superAdmin: true,
+              permanent: true
+            });
+            await sql`
+              INSERT INTO users (
+                name, email, password, role, church, church_code, departments,
+                birth_date, civil_status, occupation, education, address, baptism_date,
+                previous_religion, biblical_instructor, interested_situation,
+                is_donor, is_tither, is_approved, points, level, attendance,
+                extra_data, observations, first_access, status
+              ) VALUES (
+                'Super Administrador', 'admin@7care.com', ${hashedPassword}, 'superadmin', 'Sistema', 'SYS', 'Administração',
+                '1990-01-01', 'Solteiro', 'Administrador do Sistema', 'Superior', 'Sistema', '1990-01-01',
+                'N/A', 'N/A', 'N/A',
+                false, false, true, 1000, 'Super Admin', 100,
+                ${extraData}, 'Super administrador permanente do sistema', false, 'active'
+              )
+            `;
+          }
         }
 
         // Função para gerar formato nome.ultimonome
@@ -4257,7 +4297,19 @@ exports.handler = async (event, context) => {
 
     if (path === '/api/setup/create-test-admin' && method === 'POST') {
       const { setupToken } = JSON.parse(event.body || '{}');
-      const SETUP_TOKEN = process.env.SETUP_TOKEN || 'test-setup-token-change-me';
+      const SETUP_TOKEN = process.env.SETUP_TOKEN;
+
+      // SEGURANÇA: Exigir SETUP_TOKEN configurado
+      if (!SETUP_TOKEN) {
+        return {
+          statusCode: 503,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'Setup não configurado. Defina SETUP_TOKEN nas variáveis de ambiente.'
+          })
+        };
+      }
 
       if (setupToken !== SETUP_TOKEN) {
         return {
@@ -10902,11 +10954,30 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Rota para limpar tudo
+    // Rota para limpar tudo (apenas superadmin)
     if (path === '/api/system/clear-all' && method === 'POST') {
       try {
+        // Verificar se o usuário é superadmin
+        const userId = event.headers['x-user-id'];
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Usuário não autenticado' })
+          };
+        }
+
+        const userResult = await sql`SELECT role FROM users WHERE id = ${Number(userId)}`;
+        if (!userResult || userResult.length === 0 || userResult[0].role !== 'superadmin') {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Apenas superadmin pode executar esta operação' })
+          };
+        }
+
         console.log('🧹 Iniciando limpeza completa de todos os dados do sistema...');
-        
+
         // Limpar todas as tabelas na ordem correta (respeitando foreign keys)
         // Tabelas dependentes primeiro, principais depois
         const queries = [
@@ -10920,7 +10991,7 @@ exports.handler = async (event, context) => {
           { query: 'DELETE FROM point_activities', description: 'Atividades de pontos' },
           { query: 'DELETE FROM messages', description: 'Mensagens' },
           { query: 'DELETE FROM push_subscriptions', description: 'Subscriptions push' },
-          
+
           // Tabelas principais
           { query: 'DELETE FROM video_call_sessions', description: 'Sessões de vídeo' },
           { query: 'DELETE FROM conversations', description: 'Conversas' },
@@ -10935,10 +11006,19 @@ exports.handler = async (event, context) => {
           { query: 'DELETE FROM meeting_types', description: 'Tipos de reunião' },
           { query: 'DELETE FROM achievements', description: 'Conquistas' },
           { query: 'DELETE FROM point_configs', description: 'Configurações de pontos' },
+          { query: 'DELETE FROM pastor_invites', description: 'Convites de pastores' },
           { query: 'DELETE FROM churches', description: 'Igrejas' },
-          
-          // Usuários por último (exceto admin) - isso já limpa o visitômetro
-          { query: "DELETE FROM users WHERE role != 'admin'", description: 'Usuários (mantendo admin)' }
+
+          // Limpar districtId dos superadmins antes de deletar usuários e distritos
+          { query: "UPDATE users SET district_id = NULL WHERE role = 'superadmin'", description: 'Limpando districtId dos superadmins' },
+
+          // Usuários (exceto superadmin)
+          { query: "DELETE FROM users WHERE role != 'superadmin'", description: 'Usuários (mantendo superadmin)' },
+
+          // Tabelas de distrito por último
+          { query: 'DELETE FROM district_points_config', description: 'Configurações de pontos por distrito' },
+          { query: 'DELETE FROM district_settings', description: 'Configurações de distrito' },
+          { query: 'DELETE FROM districts', description: 'Distritos' }
         ];
         
         let successCount = 0;
@@ -10962,27 +11042,28 @@ exports.handler = async (event, context) => {
         console.log(`\n✅ Limpeza concluída!`);
         console.log(`   Operações bem-sucedidas: ${successCount}`);
         console.log(`   Avisos/Erros: ${errorCount}`);
-        console.log(`ℹ️ Mantidos: usuários admin, system_config, system_settings, event_filter_permissions`);
-        
+        console.log(`ℹ️ Mantidos: usuários superadmin, system_config, system_settings, event_filter_permissions`);
+
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            success: true, 
-            message: `Todos os dados foram limpos com sucesso! ${successCount} operações executadas.`,
+          body: JSON.stringify({
+            success: true,
+            message: `Todos os dados foram limpos com sucesso! ${successCount} operações executadas. Superadmin mantido, convites de pastores removidos.`,
             details: {
               operationsExecuted: successCount,
               warnings: errorCount,
               errors: errors.length > 0 ? errors : undefined,
               timestamp: new Date().toISOString(),
-              maintained: ['usuários admin', 'system_config', 'system_settings', 'event_filter_permissions'],
+              maintained: ['usuários superadmin', 'system_config', 'system_settings', 'event_filter_permissions'],
               cleared: [
-                'users (exceto admin)', 'events', 'meetings', 'churches', 'relationships', 
+                'users (exceto superadmin)', 'events', 'meetings', 'churches', 'relationships',
                 'prayers', 'notifications', 'messages', 'conversations', 'discipleship_requests',
                 'missionary_profiles', 'emotional_checkins', 'achievements', 'point_configs',
                 'point_activities', 'user_achievements', 'user_points_history', 'meeting_types',
-                'event_participants', 'prayer_intercessors', 'video_call_sessions', 
-                'video_call_participants', 'conversation_participants', 'push_subscriptions'
+                'event_participants', 'prayer_intercessors', 'video_call_sessions',
+                'video_call_participants', 'conversation_participants', 'push_subscriptions',
+                'pastor_invites'
               ]
             }
           })

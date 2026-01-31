@@ -5,10 +5,10 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createPrayerSchema } from '../schemas';
+import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 
 export const prayerRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -39,8 +39,9 @@ export const prayerRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de pedidos de oração
    */
-  app.get('/api/prayers', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/prayers',
+    asyncHandler(async (req: Request, res: Response) => {
       const { userId, isPublic, isAnswered } = req.query;
       let prayers = await storage.getAllPrayers();
 
@@ -59,11 +60,9 @@ export const prayerRoutes = (app: Express): void => {
         prayers = prayers.filter((p: { isAnswered?: boolean }) => p.isAnswered === answeredFilter);
       }
 
-      res.json(prayers);
-    } catch (error) {
-      handleError(res, error, "Get prayers");
-    }
-  });
+      sendSuccess(res, prayers);
+    })
+  );
 
   /**
    * @swagger
@@ -99,19 +98,19 @@ export const prayerRoutes = (app: Express): void => {
    *       201:
    *         description: Pedido criado
    */
-  app.post('/api/prayers', validateBody(createPrayerSchema), async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/prayers',
+    validateBody(createPrayerSchema),
+    asyncHandler(async (req: Request, res: Response) => {
       const prayerData = (req as ValidatedRequest<typeof createPrayerSchema._type>).validatedBody;
       logger.info(`Creating prayer request: ${prayerData.title}`);
       const prayer = await storage.createPrayer({
         ...prayerData,
-        description: prayerData.description ?? null
+        description: prayerData.description ?? null,
       });
-      res.status(201).json(prayer);
-    } catch (error) {
-      handleError(res, error, "Create prayer");
-    }
-  });
+      sendSuccess(res, prayer, 201, 'Pedido de oração criado');
+    })
+  );
 
   /**
    * @swagger
@@ -139,22 +138,21 @@ export const prayerRoutes = (app: Express): void => {
    *       200:
    *         description: Pedido atualizado
    */
-  app.post('/api/prayers/:id/answer', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/prayers/:id/answer',
+    asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
       const { testimony } = req.body;
 
       const prayer = await storage.markPrayerAsAnswered(id, testimony);
 
       if (!prayer) {
-        res.status(404).json({ error: 'Pedido de oração não encontrado' }); return;
+        return sendNotFound(res, 'Pedido de oração');
       }
 
-      res.json(prayer);
-    } catch (error) {
-      handleError(res, error, "Mark prayer as answered");
-    }
-  });
+      sendSuccess(res, prayer, 200, 'Oração marcada como respondida');
+    })
+  );
 
   /**
    * @swagger
@@ -174,30 +172,29 @@ export const prayerRoutes = (app: Express): void => {
    *       200:
    *         description: Pedido removido
    */
-  app.delete('/api/prayers/:id', async (req: Request, res: Response) => {
-    try {
+  app.delete(
+    '/api/prayers/:id',
+    asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
 
       // Verificar permissão (apenas o criador ou admin pode remover)
-      const userId = parseInt(req.headers['x-user-id'] as string || '0');
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const prayer = await storage.getPrayerById(id);
 
       if (!prayer) {
-        res.status(404).json({ error: 'Pedido de oração não encontrado' }); return;
+        return sendNotFound(res, 'Pedido de oração');
       }
 
       // Verificar se é o dono ou admin
       const user = userId ? await storage.getUserById(userId) : null;
       if (prayer.userId !== userId && user?.role !== 'superadmin' && user?.role !== 'pastor') {
-        res.status(403).json({ error: 'Sem permissão para remover este pedido' }); return;
+        return sendError(res, 'Sem permissão para remover este pedido', 403);
       }
 
       await storage.deletePrayer(id);
-      res.json({ success: true, message: 'Pedido removido' });
-    } catch (error) {
-      handleError(res, error, "Delete prayer");
-    }
-  });
+      sendSuccess(res, null, 200, 'Pedido removido');
+    })
+  );
 
   /**
    * @swagger
@@ -228,21 +225,20 @@ export const prayerRoutes = (app: Express): void => {
    *       201:
    *         description: Intercessor adicionado
    */
-  app.post('/api/prayers/:id/intercessor', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/prayers/:id/intercessor',
+    asyncHandler(async (req: Request, res: Response) => {
       const prayerId = parseInt(req.params.id);
       const { intercessorId } = req.body;
 
       if (!intercessorId) {
-        res.status(400).json({ error: 'ID do intercessor é obrigatório' }); return;
+        return sendError(res, 'ID do intercessor é obrigatório', 400);
       }
 
       const result = await storage.addIntercessor(prayerId, intercessorId);
-      res.status(201).json(result);
-    } catch (error) {
-      handleError(res, error, "Add intercessor");
-    }
-  });
+      sendSuccess(res, result, 201, 'Intercessor adicionado');
+    })
+  );
 
   /**
    * @swagger
@@ -267,17 +263,16 @@ export const prayerRoutes = (app: Express): void => {
    *       200:
    *         description: Intercessor removido
    */
-  app.delete('/api/prayers/:id/intercessor/:intercessorId', async (req: Request, res: Response) => {
-    try {
+  app.delete(
+    '/api/prayers/:id/intercessor/:intercessorId',
+    asyncHandler(async (req: Request, res: Response) => {
       const prayerId = parseInt(req.params.id);
       const intercessorId = parseInt(req.params.intercessorId);
 
       await storage.removeIntercessor(prayerId, intercessorId);
-      res.json({ success: true, message: 'Intercessor removido' });
-    } catch (error) {
-      handleError(res, error, "Remove intercessor");
-    }
-  });
+      sendSuccess(res, null, 200, 'Intercessor removido');
+    })
+  );
 
   /**
    * @swagger
@@ -295,15 +290,14 @@ export const prayerRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de intercessores
    */
-  app.get('/api/prayers/:id/intercessors', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/prayers/:id/intercessors',
+    asyncHandler(async (req: Request, res: Response) => {
       const prayerId = parseInt(req.params.id);
       const intercessors = await storage.getIntercessorsByPrayer(prayerId);
-      res.json(intercessors);
-    } catch (error) {
-      handleError(res, error, "Get intercessors");
-    }
-  });
+      sendSuccess(res, intercessors);
+    })
+  );
 
   /**
    * @swagger
@@ -321,13 +315,12 @@ export const prayerRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de pedidos
    */
-  app.get('/api/prayers/user/:userId/interceding', async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/prayers/user/:userId/interceding',
+    asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.userId);
       const prayers = await storage.getPrayersUserIsInterceding(userId);
-      res.json(prayers);
-    } catch (error) {
-      handleError(res, error, "Get prayers user is interceding");
-    }
-  });
+      sendSuccess(res, prayers);
+    })
+  );
 };

@@ -1,11 +1,11 @@
 /**
  * Step 5: Validação de Igrejas
  * UI para validar correspondências entre igrejas da planilha e igrejas existentes
+ * Design elegante e moderno
  */
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -20,6 +20,10 @@ import {
   Users,
   Building2,
   HelpCircle,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import {
   ChurchValidation,
@@ -151,26 +155,45 @@ export function Step5Validation({
   // Se não há dados de Excel, pular
   if (!excelData || excelData.data.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Validação de Igrejas</h2>
-          <p className="text-gray-600 mt-2">
+      <div className="p-8 md:p-10">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
+            <Sparkles className="w-4 h-4 text-blue-500" />
+            <span className="text-sm font-medium text-blue-700">Passo 5 de 6</span>
+          </div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Validação de Igrejas
+          </h2>
+          <p className="text-gray-500 mt-3 text-lg">
             Nenhuma planilha foi importada. Você pode continuar sem importar membros.
           </p>
         </div>
 
-        <Alert>
-          <HelpCircle className="h-4 w-4" />
-          <AlertDescription>
+        <Alert className="rounded-2xl border-blue-200 bg-blue-50">
+          <HelpCircle className="h-5 w-5 text-blue-500" />
+          <AlertDescription className="ml-2 text-blue-700">
             Como você não importou uma planilha, as igrejas cadastradas manualmente serão usadas.
           </AlertDescription>
         </Alert>
 
-        <div className="flex justify-between pt-4">
-          <Button variant="outline" onClick={onBack}>
+        <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            size="lg"
+            className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
             Voltar
           </Button>
-          <Button onClick={onNext}>Continuar</Button>
+          <Button
+            onClick={onNext}
+            size="lg"
+            className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+          >
+            Continuar
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
         </div>
       </div>
     );
@@ -178,25 +201,31 @@ export function Step5Validation({
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Validando Igrejas...</h2>
-          <p className="text-gray-600 mt-2">Estamos verificando as igrejas da sua planilha.</p>
+      <div className="p-8 md:p-10">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
+            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+            <span className="text-sm font-medium text-blue-700">Validando...</span>
+          </div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Validando Igrejas
+          </h2>
+          <p className="text-gray-500 mt-3 text-lg">
+            Estamos verificando as igrejas da sua planilha.
+          </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-2xl mx-auto">
           {[1, 2, 3].map(i => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="w-10 h-10 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-48 mb-2" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
+            <div key={i} className="border border-gray-200 rounded-2xl p-5">
+              <div className="flex items-center gap-4">
+                <Skeleton className="w-12 h-12 rounded-xl" />
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-48 mb-2 rounded-lg" />
+                  <Skeleton className="h-4 w-32 rounded-lg" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -204,47 +233,54 @@ export function Step5Validation({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Validação de Igrejas</h2>
-        <p className="text-gray-600 mt-2">
-          Verifique as correspondências encontradas e escolha como processar cada igreja.
+    <div className="p-8 md:p-10">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
+          <Sparkles className="w-4 h-4 text-blue-500" />
+          <span className="text-sm font-medium text-blue-700">Passo 5 de 6</span>
+        </div>
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          Validação de Igrejas
+        </h2>
+        <p className="text-gray-500 mt-3 text-lg">
+          Verifique as correspondências e escolha como processar cada igreja.
         </p>
       </div>
 
       {/* Resumo */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-4 text-center">
-            <CheckCircle2 className="w-6 h-6 text-green-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-green-900">{exactMatches}</p>
-            <p className="text-xs text-green-700">Correspondências exatas</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-yellow-50 border-yellow-200">
-          <CardContent className="p-4 text-center">
-            <AlertTriangle className="w-6 h-6 text-yellow-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-yellow-900">{similarFound}</p>
-            <p className="text-xs text-yellow-700">Similares encontradas</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="p-4 text-center">
-            <XCircle className="w-6 h-6 text-red-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-red-900">{notFound}</p>
-            <p className="text-xs text-red-700">Não encontradas</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 text-center">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <CheckCircle2 className="w-6 h-6 text-white" />
+          </div>
+          <p className="text-3xl font-bold text-green-900">{exactMatches}</p>
+          <p className="text-sm text-green-700 mt-1">Correspondências exatas</p>
+        </div>
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-5 text-center">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <AlertTriangle className="w-6 h-6 text-white" />
+          </div>
+          <p className="text-3xl font-bold text-yellow-900">{similarFound}</p>
+          <p className="text-sm text-yellow-700 mt-1">Similares encontradas</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-5 text-center">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <XCircle className="w-6 h-6 text-white" />
+          </div>
+          <p className="text-3xl font-bold text-red-900">{notFound}</p>
+          <p className="text-sm text-red-700 mt-1">Não encontradas</p>
+        </div>
       </div>
 
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mb-6 rounded-2xl">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Lista de Validações */}
-      <div className="space-y-3">
+      <div className="space-y-4 max-w-3xl mx-auto">
         {validations.map(validation => {
           const currentValidation = churchValidations.find(
             v => v.excelChurchName === validation.churchName
@@ -252,45 +288,63 @@ export function Step5Validation({
           const isExpanded = expandedChurch === validation.churchName;
 
           return (
-            <Card
+            <div
               key={validation.churchName}
-              className={`transition-all ${
+              className={`border-2 rounded-2xl transition-all overflow-hidden ${
                 validation.status === 'exact_match'
-                  ? 'border-green-200'
+                  ? 'border-green-200 bg-gradient-to-r from-green-50/50 to-white'
                   : validation.status === 'similar_found'
-                    ? 'border-yellow-200'
-                    : 'border-red-200'
+                    ? 'border-yellow-200 bg-gradient-to-r from-yellow-50/50 to-white'
+                    : 'border-red-200 bg-gradient-to-r from-red-50/50 to-white'
               }`}
             >
-              <CardHeader
-                className="p-4 cursor-pointer"
+              <div
+                className="p-5 cursor-pointer"
                 onClick={() => setExpandedChurch(isExpanded ? null : validation.churchName)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(validation.status)}
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+                        validation.status === 'exact_match'
+                          ? 'bg-green-100'
+                          : validation.status === 'similar_found'
+                            ? 'bg-yellow-100'
+                            : 'bg-red-100'
+                      }`}
+                    >
+                      {getStatusIcon(validation.status)}
+                    </div>
                     <div>
-                      <CardTitle className="text-base">{validation.churchName}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
-                        <Users className="w-3 h-3" />
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {validation.churchName}
+                      </h3>
+                      <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                        <Users className="w-4 h-4" />
                         {validation.memberCount} membros na planilha
-                      </CardDescription>
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {getStatusBadge(validation.status)}
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    )}
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        isExpanded ? 'bg-gray-100' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-gray-500" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </CardHeader>
+              </div>
 
               {isExpanded && (
-                <CardContent className="pt-0 pb-4 px-4">
-                  <div className="border-t pt-4">
+                <div className="px-5 pb-5">
+                  <div className="border-t border-gray-200 pt-5">
                     <RadioGroup
                       value={currentValidation?.action || 'create_new'}
                       onValueChange={value =>
@@ -304,17 +358,19 @@ export function Step5Validation({
                     >
                       {/* Opção: Usar correspondência exata */}
                       {validation.status === 'exact_match' && validation.matchedChurchId && (
-                        <div className="flex items-center space-x-3 p-3 rounded-lg bg-green-50">
+                        <div className="flex items-center space-x-3 p-4 rounded-xl bg-green-50 border border-green-200">
                           <RadioGroupItem value="use_match" id={`match-${validation.churchName}`} />
                           <Label
                             htmlFor={`match-${validation.churchName}`}
                             className="flex-1 cursor-pointer"
                           >
                             <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-green-600" />
-                              <span className="font-medium">Usar igreja existente</span>
+                              <Building2 className="w-5 h-5 text-green-600" />
+                              <span className="font-semibold text-green-800">
+                                Usar igreja existente
+                              </span>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-sm text-green-700 mt-1">
                               A igreja já existe no sistema e será vinculada automaticamente.
                             </p>
                           </Label>
@@ -324,13 +380,13 @@ export function Step5Validation({
                       {/* Opção: Usar sugestão similar */}
                       {validation.suggestions && validation.suggestions.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-sm font-medium text-gray-700">
+                          <p className="text-sm font-semibold text-gray-700 mb-2">
                             Igrejas similares encontradas:
                           </p>
                           {validation.suggestions.map(suggestion => (
                             <div
                               key={suggestion.id}
-                              className="flex items-center space-x-3 p-3 rounded-lg bg-yellow-50"
+                              className="flex items-center space-x-3 p-4 rounded-xl bg-yellow-50 border border-yellow-200"
                             >
                               <RadioGroupItem
                                 value="use_suggestion"
@@ -349,10 +405,12 @@ export function Step5Validation({
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <Building2 className="w-4 h-4 text-yellow-600" />
-                                    <span className="font-medium">{suggestion.name}</span>
+                                    <Building2 className="w-5 h-5 text-yellow-600" />
+                                    <span className="font-semibold text-yellow-800">
+                                      {suggestion.name}
+                                    </span>
                                   </div>
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge className="bg-yellow-200 text-yellow-800 border-0">
                                     {Math.round(suggestion.similarity * 100)}% similar
                                   </Badge>
                                 </div>
@@ -363,53 +421,66 @@ export function Step5Validation({
                       )}
 
                       {/* Opção: Criar nova igreja */}
-                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-blue-50">
+                      <div className="flex items-center space-x-3 p-4 rounded-xl bg-blue-50 border border-blue-200">
                         <RadioGroupItem value="create_new" id={`new-${validation.churchName}`} />
                         <Label
                           htmlFor={`new-${validation.churchName}`}
                           className="flex-1 cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-blue-600" />
-                            <span className="font-medium">Criar nova igreja</span>
+                            <Building2 className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-blue-800">Criar nova igreja</span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-sm text-blue-700 mt-1">
                             Criar "{validation.churchName}" como uma nova igreja no sistema.
                           </p>
                         </Label>
                       </div>
 
                       {/* Opção: Ignorar */}
-                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
+                      <div className="flex items-center space-x-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
                         <RadioGroupItem value="ignore" id={`ignore-${validation.churchName}`} />
                         <Label
                           htmlFor={`ignore-${validation.churchName}`}
                           className="flex-1 cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
-                            <XCircle className="w-4 h-4 text-gray-400" />
-                            <span className="font-medium text-gray-600">Ignorar</span>
+                            <XCircle className="w-5 h-5 text-gray-400" />
+                            <span className="font-semibold text-gray-600">Ignorar</span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-sm text-gray-500 mt-1">
                             Não importar membros desta igreja.
                           </p>
                         </Label>
                       </div>
                     </RadioGroup>
                   </div>
-                </CardContent>
+                </div>
               )}
-            </Card>
+            </div>
           );
         })}
       </div>
 
-      {/* Botões de Navegação */}
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onBack}>
+      {/* Actions */}
+      <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          size="lg"
+          className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Voltar
         </Button>
-        <Button onClick={onNext}>Continuar para Finalizar</Button>
+        <Button
+          onClick={onNext}
+          size="lg"
+          className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+        >
+          Continuar para Finalizar
+          <ArrowRight className="w-5 h-5 ml-2" />
+        </Button>
       </div>
     </div>
   );

@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">7.59% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/78</span>
+                <span class='fraction'>6/79</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/33</span>
+                <span class='fraction'>0/17</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">7.59% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/78</span>
+                <span class='fraction'>6/79</span>
             </div>
         
             
@@ -300,18 +300,19 @@
 <a name='L235'></a><a href='#L235'>235</a>
 <a name='L236'></a><a href='#L236'>236</a>
 <a name='L237'></a><a href='#L237'>237</a>
-<a name='L238'></a><a href='#L238'>238</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -527,6 +528,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -536,19 +538,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * System Repository
  * Métodos relacionados a configurações do sistema
  */
 &nbsp;
-<span class="cstat-no" title="statement not covered" >import { eq } from 'drizzle-orm';</span>
-<span class="cstat-no" title="statement not covered" >import { db } from '../neonConfig';</span>
-<span class="cstat-no" title="statement not covered" >import { schema } from '../schema';</span>
-<span class="cstat-no" title="statement not covered" >import { logger } from '../utils/logger';</span>
+import { eq } from 'drizzle-orm';
+import { db } from '../neonConfig';
+import { schema } from '../schema';
+import { logger } from '../utils/logger';
 import type { EventPermissions } from '../types/storage';
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class S</span>ystemRepository {
+export class SystemRepository {
   /**
    * Busca configuração do sistema
    */
@@ -764,7 +766,8 @@ import type { EventPermissions } from '../types/storage';
 <span class="cstat-no" title="statement not covered" >      await db.delete(schema.missionaryProfiles);</span>
 <span class="cstat-no" title="statement not covered" >      await db.delete(schema.prayers);</span>
 <span class="cstat-no" title="statement not covered" >      await db.delete(schema.pushSubscriptions);</span>
-      
+<span class="cstat-no" title="statement not covered" >      await db.delete(schema.pastorInvites);</span>
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      logger.info('Dados limpos com sucesso');</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      logger.error('Erro ao limpar dados:', error);</span>
@@ -773,7 +776,7 @@ import type { EventPermissions } from '../types/storage';
   }
 }
 &nbsp;
-export const <span class="cstat-no" title="statement not covered" >systemRepository = new SystemRepository();</span>
+export const systemRepository = new SystemRepository();
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -781,7 +784,7 @@ export const <span class="cstat-no" title="statement not covered" >systemReposit
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-29T01:52:33.970Z
+                at 2026-01-31T21:50:12.403Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

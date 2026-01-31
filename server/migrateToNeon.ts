@@ -410,16 +410,21 @@ export async function migrateToNeon() {
           is_donor, is_tither, is_approved, points, level, attendance,
           extra_data, observations, first_access, status
         ) VALUES (
-          'Super Administrador', 'admin@7care.com', '${hashedPassword}', 'admin', 'Sistema', 'SYS', 'Administração',
+          'Super Administrador', 'admin@7care.com', '${hashedPassword}', 'superadmin', 'Sistema', 'SYS', 'Administração',
           '1990-01-01', 'Solteiro', 'Administrador do Sistema', 'Superior', 'Sistema', '1990-01-01',
           'N/A', 'N/A', 'N/A',
           false, false, true, 1000, 'Super Admin', 100,
-          '${extraData}', 'Super administrador permanente do sistema', false, 'approved'
+          '${extraData}', 'Super administrador permanente do sistema', false, 'active'
         )
       `);
 
       console.log('✅ Super administrador criado!');
     } else {
+      await db.execute(`
+        UPDATE users
+        SET role = 'superadmin', status = 'active', is_approved = true
+        WHERE email = 'admin@7care.com'
+      `);
       console.log('✅ Super administrador já existe!');
     }
 

@@ -9,6 +9,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { cacheGet, cacheSet, cacheDelPattern } from '../services/cacheService';
 import { CACHE_TTL as _CACHE_TTL } from '../constants';
+import { logger } from '../utils/logger';
 
 /**
  * Gera chave de cache baseada na rota e parâmetros
@@ -61,7 +62,7 @@ export function cacheMiddleware(prefix: string, ttlSeconds: number) {
         // Só cacheia respostas de sucesso
         if (res.statusCode >= 200 && res.statusCode < 300) {
           cacheSet(cacheKey, data, ttlSeconds).catch(err => {
-            console.error('[Cache] Erro ao salvar cache:', err);
+            logger.error('[Cache] Erro ao salvar cache:', err);
           });
         }
 
@@ -72,7 +73,7 @@ export function cacheMiddleware(prefix: string, ttlSeconds: number) {
       next();
     } catch (error) {
       // Em caso de erro no cache, continua normalmente
-      console.error('[Cache] Erro no middleware:', error);
+      logger.error('[Cache] Erro no middleware:', error);
       next();
     }
   };
@@ -93,7 +94,7 @@ export async function invalidateCache(pattern: string): Promise<void> {
   try {
     await cacheDelPattern(`${pattern}:*`);
   } catch (error) {
-    console.error('[Cache] Erro ao invalidar:', error);
+    logger.error('[Cache] Erro ao invalidar:', error);
   }
 }
 
@@ -113,7 +114,7 @@ export function invalidateCacheMiddleware(...patterns: string[]) {
       if (res.statusCode >= 200 && res.statusCode < 300 && req.method !== 'GET') {
         patterns.forEach(pattern => {
           invalidateCache(pattern).catch(err => {
-            console.error('[Cache] Erro ao invalidar:', err);
+            logger.error('[Cache] Erro ao invalidar:', err);
           });
         });
       }

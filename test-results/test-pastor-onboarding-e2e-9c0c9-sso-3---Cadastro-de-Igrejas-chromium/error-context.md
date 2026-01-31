@@ -1,0 +1,89 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+    - link "Pular para o conteúdo principal" [ref=e3] [cursor=pointer]:
+        - /url: '#main-content'
+    - region "Notifications (F8)":
+        - list
+    - region "Notifications alt+T"
+    - main [ref=e4]:
+        - generic [ref=e5]:
+            - generic [ref=e8]:
+                - generic [ref=e9]:
+                    - img "7Care" [ref=e10]
+                    - generic [ref=e11]:
+                        - heading "Cadastro de Pastor" [level=1] [ref=e12]
+                        - paragraph [ref=e13]: Complete os passos para criar sua conta
+                - generic [ref=e14]:
+                    - img [ref=e15]
+                    - generic [ref=e17]: Convite Exclusivo
+            - generic [ref=e21]:
+                - generic [ref=e22]:
+                    - button [ref=e23] [cursor=pointer]:
+                        - img [ref=e24]
+                    - generic [ref=e28]: Dados Pessoais
+                    - generic [ref=e29]: '1'
+                - generic [ref=e31]:
+                    - button [disabled] [ref=e32]:
+                        - img [ref=e33]
+                    - generic [ref=e37]: Distrito
+                    - generic [ref=e38]: '2'
+                - generic [ref=e40]:
+                    - button [disabled] [ref=e41]:
+                        - img [ref=e42]
+                    - generic [ref=e46]: Igrejas
+                    - generic [ref=e47]: '3'
+                - generic [ref=e49]:
+                    - button [disabled] [ref=e50]:
+                        - img [ref=e51]
+                    - generic [ref=e54]: Membros
+                    - generic [ref=e55]: '4'
+                - generic [ref=e57]:
+                    - button [disabled] [ref=e58]:
+                        - img [ref=e59]
+                    - generic [ref=e62]: Validação
+                    - generic [ref=e63]: '5'
+                - generic [ref=e65]:
+                    - button [disabled] [ref=e66]:
+                        - img [ref=e67]
+                    - generic [ref=e70]: Senha
+                    - generic [ref=e71]: '6'
+            - generic [ref=e76]:
+                - generic [ref=e77]:
+                    - generic [ref=e78]:
+                        - img [ref=e79]
+                        - generic [ref=e81]: Passo 1 de 6
+                    - heading "Seus Dados Pessoais" [level=2] [ref=e82]
+                    - paragraph [ref=e83]: Vamos começar com suas informações básicas
+                - generic [ref=e85]:
+                    - img [ref=e87]
+                    - button [ref=e90] [cursor=pointer]:
+                        - img [ref=e91]
+                - generic [ref=e94]:
+                    - generic [ref=e95]:
+                        - generic [ref=e96]: Nome Completo *
+                        - generic [ref=e97]:
+                            - img [ref=e98]
+                            - textbox "Nome Completo *" [ref=e101]:
+                                - /placeholder: Digite seu nome completo
+                        - paragraph [ref=e102]: Nome é obrigatório
+                    - generic [ref=e104]:
+                        - text: Email
+                        - generic [ref=e105]:
+                            - img [ref=e106]
+                            - textbox "Email" [ref=e109]: pastor-e2e-teste@example.com
+                            - generic [ref=e110]: 🔒
+                        - paragraph [ref=e111]: Este é o email do convite e não pode ser alterado
+                    - generic [ref=e112]:
+                        - generic [ref=e113]: Telefone *
+                        - generic [ref=e114]:
+                            - img [ref=e115]
+                            - textbox "Telefone *" [ref=e117]:
+                                - /placeholder: (00) 00000-0000
+                        - paragraph [ref=e118]: Telefone é obrigatório
+                - button "Próximo Passo" [active] [ref=e121] [cursor=pointer]:
+                    - text: Próximo Passo
+                    - img
+            - paragraph [ref=e123]: © 2026 7Care. Todos os direitos reservados.
+```

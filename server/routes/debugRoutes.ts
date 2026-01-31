@@ -5,7 +5,7 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
+import { asyncHandler, sendSuccess } from '../utils';
 import { User } from '../../shared/schema';
 
 export const debugRoutes = (app: Express): void => {
@@ -26,24 +26,23 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de usuários visitados
    */
-  app.get("/api/debug/visited-users", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/debug/visited-users',
+    asyncHandler(async (req: Request, res: Response) => {
       const users = await storage.getAllUsers();
-      const visitedUsers = users.filter((u) => 'lastVisitDate' in u && u.lastVisitDate);
+      const visitedUsers = users.filter(u => 'lastVisitDate' in u && u.lastVisitDate);
 
       res.json({
         total: users.length,
         visited: visitedUsers.length,
-        users: visitedUsers.map((u) => ({
+        users: visitedUsers.map(u => ({
           id: u.id,
           name: u.name,
-          lastVisitDate: (u as User & { lastVisitDate?: string }).lastVisitDate
-        }))
+          lastVisitDate: (u as User & { lastVisitDate?: string }).lastVisitDate,
+        })),
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Get visited users");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -55,17 +54,16 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de eventos
    */
-  app.get("/api/debug/events", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/debug/events',
+    asyncHandler(async (req: Request, res: Response) => {
       const events = await storage.getAllEvents();
       res.json({
         total: events.length,
-        events
+        events,
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Get events");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -77,8 +75,9 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Evento criado
    */
-  app.get("/api/debug/create-simple-event", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/debug/create-simple-event',
+    asyncHandler(async (req: Request, res: Response) => {
       const event = await storage.createEvent({
         title: `Evento de Teste ${Date.now()}`,
         description: 'Evento criado para debug',
@@ -93,17 +92,12 @@ export const debugRoutes = (app: Express): void => {
         isPublic: true,
         organizerId: 1,
         church: '',
-        churchId: 1
+        churchId: 1,
       });
 
-      res.json({
-        success: true,
-        event
-      });
-    } catch (error) {
-      handleError(res, error, "Debug: Create simple event");
-    }
-  });
+      sendSuccess(res, { event, message: 'Evento criado' });
+    })
+  );
 
   /**
    * @swagger
@@ -115,17 +109,16 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de igrejas
    */
-  app.get("/api/debug/check-churches", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/debug/check-churches',
+    asyncHandler(async (req: Request, res: Response) => {
       const churches = await storage.getAllChurches();
       res.json({
         total: churches.length,
-        churches
+        churches,
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Check churches");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -137,8 +130,9 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Resumo de usuários
    */
-  app.get("/api/debug/check-users", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/debug/check-users',
+    asyncHandler(async (req: Request, res: Response) => {
       const users = await storage.getAllUsers();
       const roleCount: Record<string, number> = {};
 
@@ -149,12 +143,10 @@ export const debugRoutes = (app: Express): void => {
 
       res.json({
         total: users.length,
-        byRole: roleCount
+        byRole: roleCount,
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Check users");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -166,8 +158,9 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Eventos do banco
    */
-  app.get("/api/debug/check-events-db", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/debug/check-events-db',
+    asyncHandler(async (req: Request, res: Response) => {
       const events = await storage.getAllEvents();
       const typeCount: Record<string, number> = {};
 
@@ -178,12 +171,10 @@ export const debugRoutes = (app: Express): void => {
 
       res.json({
         total: events.length,
-        byType: typeCount
+        byType: typeCount,
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Check events DB");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -195,8 +186,9 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Resumo de notificações
    */
-  app.get("/api/debug/notifications", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/debug/notifications',
+    asyncHandler(async (req: Request, res: Response) => {
       const notifications = await storage.getAllNotifications();
 
       const unread = notifications.filter((n: { isRead?: boolean }) => !n.isRead);
@@ -210,12 +202,10 @@ export const debugRoutes = (app: Express): void => {
       res.json({
         total: notifications.length,
         unread: unread.length,
-        byType: typeCount
+        byType: typeCount,
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Get notifications");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -227,8 +217,9 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Duplicados removidos
    */
-  app.post("/api/debug/clean-duplicates", async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/debug/clean-duplicates',
+    asyncHandler(async (req: Request, res: Response) => {
       const events = await storage.getAllEvents();
       const seen = new Map<string, number>();
       const duplicateIds: number[] = [];
@@ -246,38 +237,9 @@ export const debugRoutes = (app: Express): void => {
         await storage.deleteEvent(id);
       }
 
-      res.json({
-        success: true,
-        removed: duplicateIds.length
-      });
-    } catch (error) {
-      handleError(res, error, "Debug: Clean duplicates");
-    }
-  });
-
-  /**
-   * @swagger
-   * /api/system/clear-all:
-   *   post:
-   *     summary: Limpa todos os dados (debug - PERIGOSO)
-   *     tags: [Debug, System]
-   *     responses:
-   *       200:
-   *         description: Dados limpos
-   */
-  app.post('/api/system/clear-all', async (req: Request, res: Response) => {
-    try {
-      // Este endpoint é muito perigoso, usar apenas em desenvolvimento
-      if (process.env.NODE_ENV === 'production') {
-        res.status(403).json({ error: 'Operação não permitida em produção' }); return;
-      }
-
-      // Implementação de limpeza seria aqui
-      res.json({ success: true, message: 'Funcionalidade desabilitada por segurança' });
-    } catch (error) {
-      handleError(res, error, "Debug: Clear all");
-    }
-  });
+      sendSuccess(res, { removed: duplicateIds.length, message: 'Duplicados removidos' });
+    })
+  );
 
   /**
    * @swagger
@@ -289,24 +251,25 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Perfis verificados
    */
-  app.post('/api/system/check-missionary-profiles', async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/system/check-missionary-profiles',
+    asyncHandler(async (req: Request, res: Response) => {
       const users = await storage.getAllUsers();
       const missionaries = users.filter((u: { role?: string }) => u.role === 'missionary');
 
       res.json({
         total: missionaries.length,
-        missionaries: missionaries.map((m: { id: number; name: string; status?: string; isApproved?: boolean }) => ({
-          id: m.id,
-          name: m.name,
-          status: m.status,
-          isApproved: m.isApproved
-        }))
+        missionaries: missionaries.map(
+          (m: { id: number; name: string; status?: string; isApproved?: boolean }) => ({
+            id: m.id,
+            name: m.name,
+            status: m.status,
+            isApproved: m.isApproved,
+          })
+        ),
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Check missionary profiles");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -318,8 +281,9 @@ export const debugRoutes = (app: Express): void => {
    *       200:
    *         description: Dados de teste
    */
-  app.get("/api/setup/test-data", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/setup/test-data',
+    asyncHandler(async (req: Request, res: Response) => {
       const users = await storage.getAllUsers();
       const churches = await storage.getAllChurches();
       const events = await storage.getAllEvents();
@@ -328,10 +292,8 @@ export const debugRoutes = (app: Express): void => {
         users: users.length,
         churches: churches.length,
         events: events.length,
-        hasData: users.length > 0 || churches.length > 0 || events.length > 0
+        hasData: users.length > 0 || churches.length > 0 || events.length > 0,
       });
-    } catch (error) {
-      handleError(res, error, "Debug: Get test data");
-    }
-  });
+    })
+  );
 };

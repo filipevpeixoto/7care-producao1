@@ -3,7 +3,7 @@ import express, { type Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
 import { registerRoutes } from './routes/index';
-import { setupVite, serveStatic, log } from './vite';
+import { serveStatic, log } from './static';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger/config';
 import { apiLimiter } from './middleware/rateLimiter';
@@ -178,6 +178,8 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   });
 
   if (app.get('env') === 'development') {
+    // Dynamic import para evitar carregar vite em produção
+    const { setupVite } = await import('./vite');
     await setupVite(app, server);
   } else {
     serveStatic(app);
@@ -187,7 +189,7 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   server.listen(
     {
       port,
-      host: 'localhost',
+      host: '0.0.0.0',
     },
     () => {
       console.log(`🚀 Church Plus Manager rodando em http://localhost:${port}`);

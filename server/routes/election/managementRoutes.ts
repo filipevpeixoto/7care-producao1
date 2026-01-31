@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from 'express';
 import { logger } from '../../utils/logger';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { sendSuccess } from '../../utils/apiResponse';
 
 const electionLogger = logger;
 
@@ -20,19 +22,17 @@ const router = Router();
  *     security:
  *       - bearerAuth: []
  */
-router.post('/:electionId/start', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/:electionId/start',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Iniciando eleição', { electionId });
 
     // Auditoria será feita na implementação real
 
-    res.json({ message: `Eleição ${electionId} iniciada` });
-  } catch (error) {
-    electionLogger.error('Erro ao iniciar eleição', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Eleição ${electionId} iniciada` });
+  })
+);
 
 /**
  * @swagger
@@ -41,19 +41,17 @@ router.post('/:electionId/start', async (req: Request, res: Response) => {
  *     summary: Encerra uma eleição
  *     tags: [Election Management]
  */
-router.post('/:electionId/end', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/:electionId/end',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Encerrando eleição', { electionId });
 
     // Auditoria será feita na implementação real
 
-    res.json({ message: `Eleição ${electionId} encerrada` });
-  } catch (error) {
-    electionLogger.error('Erro ao encerrar eleição', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Eleição ${electionId} encerrada` });
+  })
+);
 
 /**
  * @swagger
@@ -62,16 +60,14 @@ router.post('/:electionId/end', async (req: Request, res: Response) => {
  *     summary: Pausa uma eleição
  *     tags: [Election Management]
  */
-router.post('/:electionId/pause', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/:electionId/pause',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Pausando eleição', { electionId });
-    res.json({ message: `Eleição ${electionId} pausada` });
-  } catch (error) {
-    electionLogger.error('Erro ao pausar eleição', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Eleição ${electionId} pausada` });
+  })
+);
 
 /**
  * @swagger
@@ -80,16 +76,14 @@ router.post('/:electionId/pause', async (req: Request, res: Response) => {
  *     summary: Retoma uma eleição pausada
  *     tags: [Election Management]
  */
-router.post('/:electionId/resume', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/:electionId/resume',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.info('Retomando eleição', { electionId });
-    res.json({ message: `Eleição ${electionId} retomada` });
-  } catch (error) {
-    electionLogger.error('Erro ao retomar eleição', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Eleição ${electionId} retomada` });
+  })
+);
 
 /**
  * @swagger
@@ -98,19 +92,17 @@ router.post('/:electionId/resume', async (req: Request, res: Response) => {
  *     summary: Reseta votos de uma eleição (apenas admin)
  *     tags: [Election Management]
  */
-router.post('/:electionId/reset', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/:electionId/reset',
+  asyncHandler(async (req: Request, res: Response) => {
     const { electionId } = req.params;
     electionLogger.warn('Resetando eleição', { electionId });
 
     // Auditoria crítica será feita na implementação real
 
-    res.json({ message: `Eleição ${electionId} resetada` });
-  } catch (error) {
-    electionLogger.error('Erro ao resetar eleição', error);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
+    return sendSuccess(res, { message: `Eleição ${electionId} resetada` });
+  })
+);
 
 export { router as managementRoutes };
 export default router;

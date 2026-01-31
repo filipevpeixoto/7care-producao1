@@ -5,7 +5,7 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { handleError } from '../utils/errorHandler';
+import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { setDefaultChurchSchema } from '../schemas';
@@ -24,14 +24,13 @@ export const settingsRoutes = (app: Express): void => {
    *       200:
    *         description: Igreja padrão
    */
-  app.get("/api/settings/default-church", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/settings/default-church',
+    asyncHandler(async (req: Request, res: Response) => {
       const defaultChurch = await storage.getDefaultChurch();
       res.json({ defaultChurch });
-    } catch (error) {
-      handleError(res, error, "Get default church");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -54,21 +53,24 @@ export const settingsRoutes = (app: Express): void => {
    *       200:
    *         description: Igreja padrão definida
    */
-  app.post("/api/settings/default-church", validateBody(setDefaultChurchSchema), async (req: Request, res: Response) => {
-    try {
-      const { churchId } = (req as ValidatedRequest<typeof setDefaultChurchSchema._type>).validatedBody;
+  app.post(
+    '/api/settings/default-church',
+    validateBody(setDefaultChurchSchema),
+    asyncHandler(async (req: Request, res: Response) => {
+      const { churchId } = (req as ValidatedRequest<typeof setDefaultChurchSchema._type>)
+        .validatedBody;
 
       logger.info(`Setting default church: ${churchId}`);
-      const success = await storage.setDefaultChurch(churchId);
+      const success = await storage.setDefaultChurch(
+        typeof churchId === 'number' ? churchId : parseInt(String(churchId), 10)
+      );
       if (success) {
-        res.json({ success: true, message: "Default church updated successfully" });
+        sendSuccess(res, null, 200, 'Default church updated successfully');
       } else {
-        res.status(400).json({ error: "Failed to update default church" });
+        sendError(res, 'Failed to update default church', 400);
       }
-    } catch (error) {
-      handleError(res, error, "Set default church");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -92,26 +94,27 @@ export const settingsRoutes = (app: Express): void => {
    *       200:
    *         description: Logo enviado com sucesso
    */
-  app.post("/api/settings/logo", async (req: Request, res: Response) => {
-    try {
+  app.post(
+    '/api/settings/logo',
+    asyncHandler(async (req: Request, res: Response) => {
       const authHeader = req.headers.authorization;
 
       if (!authHeader) {
-        res.status(401).json({ success: false, message: "Unauthorized" }); return;
+        return sendError(res, 'Unauthorized', 401);
       }
 
       const upload = multer({
         dest: 'uploads/',
-        limits: { fileSize: 5 * 1024 * 1024 }
+        limits: { fileSize: 5 * 1024 * 1024 },
       }).single('logo');
 
       upload(req, res, async (err: unknown) => {
         if (err) {
-          logger.error("Multer error:", err);
-          const errorMessage = err instanceof Error ? err.message : "Error uploading logo";
+          logger.error('Multer error:', err);
+          const errorMessage = err instanceof Error ? err.message : 'Error uploading logo';
           res.status(400).json({
             success: false,
-            message: errorMessage
+            message: errorMessage,
           });
           return;
         }
@@ -120,7 +123,7 @@ export const settingsRoutes = (app: Express): void => {
         if (!file) {
           res.status(400).json({
             success: false,
-            message: "No logo file provided"
+            message: 'No logo file provided',
           });
           return;
         }
@@ -131,25 +134,23 @@ export const settingsRoutes = (app: Express): void => {
           await storage.saveSystemLogo(logoUrl);
           logger.info(`System logo saved: ${logoUrl}`);
         } catch (dbError) {
-          logger.error("Database error:", dbError);
+          logger.error('Database error:', dbError);
           res.status(500).json({
             success: false,
-            message: "Database error while saving logo"
+            message: 'Database error while saving logo',
           });
           return;
         }
 
         res.json({
           success: true,
-          message: "Logo uploaded and saved successfully",
+          message: 'Logo uploaded and saved successfully',
           logoUrl: logoUrl,
-          filename: file.filename
+          filename: file.filename,
         });
       });
-    } catch (error) {
-      handleError(res, error, "Logo upload");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -161,27 +162,26 @@ export const settingsRoutes = (app: Express): void => {
    *       200:
    *         description: URL do logo
    */
-  app.get("/api/settings/logo", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/settings/logo',
+    asyncHandler(async (req: Request, res: Response) => {
       const logoData = await storage.getSystemLogo();
 
       if (logoData) {
         res.json({
           success: true,
           logoUrl: logoData,
-          filename: logoData
+          filename: logoData,
         });
       } else {
         res.json({
           success: true,
           logoUrl: null,
-          filename: null
+          filename: null,
         });
       }
-    } catch (error) {
-      handleError(res, error, "Get logo");
-    }
-  });
+    })
+  );
 
   /**
    * @swagger
@@ -195,17 +195,13 @@ export const settingsRoutes = (app: Express): void => {
    *       200:
    *         description: Logo removido
    */
-  app.delete("/api/settings/logo", async (req: Request, res: Response) => {
-    try {
+  app.delete(
+    '/api/settings/logo',
+    asyncHandler(async (req: Request, res: Response) => {
       await storage.clearSystemLogo();
-      res.json({
-        success: true,
-        message: "Logo deleted successfully"
-      });
-    } catch (error) {
-      handleError(res, error, "Delete logo");
-    }
-  });
+      sendSuccess(res, null, 200, 'Logo deleted successfully');
+    })
+  );
 
   /**
    * @swagger
@@ -217,12 +213,11 @@ export const settingsRoutes = (app: Express): void => {
    *       200:
    *         description: Lista de tipos de reunião
    */
-  app.get("/api/meeting-types", async (req: Request, res: Response) => {
-    try {
+  app.get(
+    '/api/meeting-types',
+    asyncHandler(async (req: Request, res: Response) => {
       const meetingTypes = await storage.getMeetingTypes();
       res.json(meetingTypes);
-    } catch (error) {
-      handleError(res, error, "Get meeting types");
-    }
-  });
+    })
+  );
 };

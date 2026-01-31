@@ -1,16 +1,26 @@
 /**
  * Script para criar super admin
+ *
+ * Uso: DEFAULT_ADMIN_PASSWORD=sua_senha npx tsx server/createSuperAdmin.ts
  */
 
 import 'dotenv/config';
 import { NeonAdapter } from './neonAdapter';
 import * as bcrypt from 'bcryptjs';
 
+// Senha padrão do admin - usar variável de ambiente em produção
+const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'meu7care';
+
 async function createSuperAdmin() {
   const storage = new NeonAdapter();
-  
+
+  // Aviso de segurança
+  if (!process.env.DEFAULT_ADMIN_PASSWORD) {
+    console.warn('⚠️  AVISO: Usando senha padrão. Em produção, defina DEFAULT_ADMIN_PASSWORD.');
+  }
+
   console.log('👑 Criando super admin...\n');
-  
+
   try {
     // Verificar se admin já existe
     const existingAdmin = await storage.getUserByEmail('admin@7care.com');
@@ -20,10 +30,10 @@ async function createSuperAdmin() {
       console.log(`👤 Nome: ${existingAdmin.name}`);
       process.exit(0);
     }
-    
+
     // Criar novo super admin
-    const hashedPassword = await bcrypt.hash('meu7care', 10);
-    
+    const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
+
     const admin = await storage.createUser({
       name: 'Super Administrador',
       email: 'admin@7care.com',
@@ -60,26 +70,27 @@ async function createSuperAdmin() {
         batizouAlguem: true,
         discipuladoPosBatismo: 5,
         cpfValido: true,
-        camposVaziosACMS: false
+        camposVaziosACMS: false,
       }),
       observations: 'Super administrador do sistema',
       firstAccess: false,
-      status: 'active'
+      status: 'active',
     });
-    
+
     console.log('✅ Super admin criado com sucesso!');
     console.log(`\n📋 Dados do super admin:`);
     console.log(`   Nome: ${admin.name}`);
     console.log(`   Email: ${admin.email}`);
-    console.log(`   Senha: meu7care`);
+    console.log(
+      `   Senha: ${process.env.DEFAULT_ADMIN_PASSWORD ? '(definida via env)' : 'meu7care (padrão)'}`
+    );
     console.log(`   Role: ${admin.role}`);
     console.log(`   ID: ${admin.id}`);
-    
   } catch (error) {
     console.error('❌ Erro ao criar super admin:', error);
     process.exit(1);
   }
-  
+
   process.exit(0);
 }
 

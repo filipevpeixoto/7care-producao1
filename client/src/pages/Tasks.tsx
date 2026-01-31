@@ -85,17 +85,20 @@ interface SheetTask {
 
 const priorityConfig = {
   high: {
-    color: 'bg-red-50 text-red-700 border-red-200',
+    color:
+      'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-600/50',
     icon: <AlertCircle className="h-3 w-3" />,
     label: 'Alta',
   },
   medium: {
-    color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    color:
+      'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600/50',
     icon: <Clock className="h-3 w-3" />,
     label: 'Média',
   },
   low: {
-    color: 'bg-green-50 text-green-700 border-green-200',
+    color:
+      'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600/50',
     icon: <Circle className="h-3 w-3" />,
     label: 'Baixa',
   },
@@ -103,17 +106,20 @@ const priorityConfig = {
 
 const statusConfig = {
   pending: {
-    color: 'bg-gray-50 text-gray-700 border-gray-200',
+    color:
+      'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-600/50',
     icon: <Circle className="h-3 w-3" />,
     label: 'Pendente',
   },
   in_progress: {
-    color: 'bg-blue-50 text-blue-700 border-blue-200',
+    color:
+      'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600/50',
     icon: <Clock className="h-3 w-3" />,
     label: 'Em Progresso',
   },
   completed: {
-    color: 'bg-green-50 text-green-700 border-green-200',
+    color:
+      'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600/50',
     icon: <CheckCircle className="h-3 w-3" />,
     label: 'Concluída',
   },
