@@ -52,7 +52,7 @@ describe('Textarea', () => {
   it('applies default styles', () => {
     render(<Textarea placeholder="Styled" />);
     const textarea = screen.getByPlaceholderText('Styled');
-    expect(textarea).toHaveClass('rounded-md');
+    expect(textarea).toHaveClass('rounded-lg');
     expect(textarea).toHaveClass('border');
     expect(textarea).toHaveClass('min-h-[80px]');
   });

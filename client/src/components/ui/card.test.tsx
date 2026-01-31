@@ -12,7 +12,7 @@ describe('Card Components', () => {
     it('applies default classes', () => {
       render(<Card data-testid="card">Content</Card>);
       const card = screen.getByTestId('card');
-      expect(card).toHaveClass('rounded-lg');
+      expect(card).toHaveClass('rounded-xl');
       expect(card).toHaveClass('border');
       expect(card).toHaveClass('shadow-sm');
     });
