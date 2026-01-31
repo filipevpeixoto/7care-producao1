@@ -244,8 +244,13 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
             <a
               href="/termos"
               target="_blank"
+              rel="noopener noreferrer"
               className="text-blue-600 hover:underline font-medium"
-              onClick={e => e.stopPropagation()}
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                window.open('/termos', '_blank', 'noopener,noreferrer');
+              }}
             >
               Termos de Uso
             </a>{' '}
@@ -253,8 +258,13 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
             <a
               href="/privacidade"
               target="_blank"
+              rel="noopener noreferrer"
               className="text-blue-600 hover:underline font-medium"
-              onClick={e => e.stopPropagation()}
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                window.open('/privacidade', '_blank', 'noopener,noreferrer');
+              }}
             >
               Política de Privacidade
             </a>
