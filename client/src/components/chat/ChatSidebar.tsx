@@ -316,7 +316,6 @@ export const ChatSidebar = ({
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-medium truncate">{u.name}</h3>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{u.email}</p>
                     </div>
                   </div>
                 ))}
