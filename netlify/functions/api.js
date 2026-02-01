@@ -17269,84 +17269,155 @@ exports.handler = async (event, context) => {
 
         // 2. Criar igrejas (se houver)
         const churchIds = [];
+        const churchCodeMap = {}; // Mapeia nome da igreja para código
         if (onboardingData?.churches && onboardingData.churches.length > 0) {
           for (let i = 0; i < onboardingData.churches.length; i++) {
             const church = onboardingData.churches[i];
             // Verificar se igreja já existe
             const existingChurches = await sql`
-              SELECT id FROM churches WHERE name = ${church.name} AND district_id = ${districtId} LIMIT 1
+              SELECT id, code FROM churches WHERE name = ${church.name} AND district_id = ${districtId} LIMIT 1
             `;
             
             if (existingChurches.length > 0) {
               churchIds.push(existingChurches[0].id);
+              churchCodeMap[church.name?.toLowerCase()] = existingChurches[0].code;
               console.log(`⛪ Igreja já existe: ${church.name}`);
             } else {
-              // Gerar código único para a igreja (baseado no nome + timestamp)
-              const churchCode = church.code || `IGR-${Date.now()}-${i + 1}`;
+              // Gerar código único para a igreja (máximo 10 caracteres)
+              // Formato: primeiras 3 letras do nome + 4 dígitos aleatórios + índice
+              const namePrefix = (church.name || 'IGR').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X');
+              const randomPart = Math.floor(1000 + Math.random() * 9000); // 4 dígitos
+              let churchCode = church.code || `${namePrefix}${randomPart}${i}`;
               
-              const [newChurch] = await sql`
-                INSERT INTO churches (name, code, district_id, address, created_at)
-                VALUES (${church.name}, ${churchCode}, ${districtId}, ${church.address || null}, NOW())
-                RETURNING id
+              // Garantir que o código tem no máximo 10 caracteres
+              churchCode = churchCode.substring(0, 10);
+              
+              // Verificar se o código já existe e gerar novo se necessário
+              const existingCode = await sql`
+                SELECT id FROM churches WHERE code = ${churchCode} LIMIT 1
               `;
-              churchIds.push(newChurch.id);
-              console.log(`⛪ Igreja criada: ${church.name} (ID: ${newChurch.id}, Code: ${churchCode})`);
+              if (existingCode.length > 0) {
+                // Gerar código totalmente aleatório
+                churchCode = `C${Date.now().toString(36).substring(0, 9)}`.substring(0, 10);
+              }
+              
+              try {
+                const [newChurch] = await sql`
+                  INSERT INTO churches (name, code, district_id, address, created_at)
+                  VALUES (${church.name}, ${churchCode}, ${districtId}, ${church.address || null}, NOW())
+                  RETURNING id, code
+                `;
+                churchIds.push(newChurch.id);
+                churchCodeMap[church.name?.toLowerCase()] = newChurch.code;
+                console.log(`⛪ Igreja criada: ${church.name} (ID: ${newChurch.id}, Code: ${churchCode})`);
+              } catch (churchError) {
+                console.error(`❌ Erro ao criar igreja ${church.name}:`, churchError.message);
+                // Tentar buscar a igreja caso tenha sido criada por outra requisição
+                const retryChurch = await sql`
+                  SELECT id, code FROM churches WHERE name = ${church.name} LIMIT 1
+                `;
+                if (retryChurch.length > 0) {
+                  churchIds.push(retryChurch[0].id);
+                  churchCodeMap[church.name?.toLowerCase()] = retryChurch[0].code;
+                }
+              }
             }
           }
         }
 
         // 3. Importar membros da planilha (se houver excelData)
         let membersImported = 0;
+        let membersSkipped = 0;
         if (onboardingData?.excelData && onboardingData.excelData.length > 0) {
           console.log(`📊 Importando ${onboardingData.excelData.length} membros...`);
           
           for (const member of onboardingData.excelData) {
             try {
-              // Verificar se membro já existe pelo email
-              if (member.email) {
+              // Pular membros sem nome
+              if (!member.name || member.name.trim() === '') {
+                console.log(`⚠️ Membro sem nome - pulando`);
+                membersSkipped++;
+                continue;
+              }
+              
+              // Verificar se membro já existe pelo email (se tiver email)
+              if (member.email && member.email.trim() !== '') {
                 const existingMember = await sql`
-                  SELECT id FROM users WHERE email = ${member.email} LIMIT 1
+                  SELECT id FROM users WHERE email = ${member.email.trim().toLowerCase()} LIMIT 1
                 `;
                 if (existingMember.length > 0) {
                   console.log(`⚠️ Membro já existe: ${member.email}`);
+                  membersSkipped++;
                   continue;
                 }
               }
               
-              // Determinar a igreja do membro
-              let memberChurchId = churchIds[0] || null; // Default: primeira igreja
-              if (member.church && onboardingData.churches) {
-                const churchIndex = onboardingData.churches.findIndex(c => 
-                  c.name?.toLowerCase() === member.church?.toLowerCase()
-                );
-                if (churchIndex >= 0 && churchIds[churchIndex]) {
-                  memberChurchId = churchIds[churchIndex];
-                }
+              // Determinar a igreja do membro (código e nome)
+              let memberChurchCode = null;
+              let memberChurchName = member.church || null;
+              
+              if (member.church && churchCodeMap) {
+                memberChurchCode = churchCodeMap[member.church?.toLowerCase()] || null;
+              }
+              // Se não encontrou pelo nome, usa a primeira igreja
+              if (!memberChurchCode && churchIds.length > 0 && onboardingData.churches?.length > 0) {
+                memberChurchCode = churchCodeMap[onboardingData.churches[0]?.name?.toLowerCase()] || null;
+                memberChurchName = memberChurchName || onboardingData.churches[0]?.name || null;
+              }
+              
+              // Gerar email único se não tiver (formato: nome.timestamp@importado.local)
+              const memberEmail = member.email?.trim() 
+                ? member.email.trim().toLowerCase() 
+                : `${member.name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}@importado.local`;
+              
+              // Gerar senha padrão hasheada (será alterada no primeiro acesso)
+              const bcrypt = require('bcryptjs');
+              const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+              
+              // Processar datas com segurança
+              let birthDate = null;
+              let baptismDate = null;
+              
+              if (member.birthDate) {
+                try {
+                  const bd = new Date(member.birthDate);
+                  if (!isNaN(bd.getTime())) birthDate = bd;
+                } catch (e) { /* ignora data inválida */ }
+              }
+              
+              if (member.baptismDate) {
+                try {
+                  const baptd = new Date(member.baptismDate);
+                  if (!isNaN(baptd.getTime())) baptismDate = baptd;
+                } catch (e) { /* ignora data inválida */ }
               }
               
               // Criar membro
               await sql`
                 INSERT INTO users (
-                  name, email, role, church, phone, 
+                  name, email, password, role, church, church_code, phone, 
                   birth_date, civil_status, occupation, education, address,
-                  baptism_date, is_tither, is_donor, status, created_at,
+                  baptism_date, is_tither, is_donor, status, first_access, created_at,
                   district_id
                 )
                 VALUES (
-                  ${member.name || 'Sem nome'},
-                  ${member.email || null},
+                  ${member.name.trim()},
+                  ${memberEmail},
+                  ${defaultPassword},
                   'member',
-                  ${member.church || null},
+                  ${memberChurchName},
+                  ${memberChurchCode},
                   ${member.phone || null},
-                  ${member.birthDate ? new Date(member.birthDate) : null},
+                  ${birthDate},
                   ${member.civilStatus || null},
                   ${member.occupation || null},
                   ${member.education || null},
                   ${member.address || null},
-                  ${member.baptismDate ? new Date(member.baptismDate) : null},
-                  ${member.isTither || false},
-                  ${member.isDonor || false},
+                  ${baptismDate},
+                  ${member.isTither === true || member.isTither === 'true' || member.isTither === 'Sim'},
+                  ${member.isDonor === true || member.isDonor === 'true' || member.isDonor === 'Sim'},
                   'active',
+                  true,
                   NOW(),
                   ${districtId}
                 )
@@ -17354,9 +17425,10 @@ exports.handler = async (event, context) => {
               membersImported++;
             } catch (memberError) {
               console.error(`❌ Erro ao importar membro ${member.name}:`, memberError.message);
+              membersSkipped++;
             }
           }
-          console.log(`✅ ${membersImported} membros importados com sucesso`);
+          console.log(`✅ ${membersImported} membros importados, ${membersSkipped} pulados`);
         }
 
         // 4. Ativar o usuário pastor
