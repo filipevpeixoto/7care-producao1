@@ -271,7 +271,7 @@ export default function PastorInvites() {
   };
 
   const copyInviteLink = (token: string) => {
-    const inviteLink = `${window.location.origin}/pastor-onboarding/${token}`;
+    const inviteLink = `${window.location.origin}/convite-pastor.html?token=${token}`;
     navigator.clipboard.writeText(inviteLink);
     toast({
       title: 'Link copiado',

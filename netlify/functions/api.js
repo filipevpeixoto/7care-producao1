@@ -16563,7 +16563,8 @@ exports.handler = async (event, context) => {
         `;
 
         const APP_URL = process.env.APP_URL || 'https://7careapp-2026.netlify.app';
-        const link = `${APP_URL}/pastor-onboarding/${token}`;
+        const link = `${APP_URL}/convite-pastor.html?token=${token}`;
+        const directLink = `${APP_URL}/pastor-onboarding/${token}`;
 
         console.log(`Convite criado para ${email} por ${auth.user.email}`);
 
