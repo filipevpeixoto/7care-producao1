@@ -79,8 +79,8 @@ export default function Gamification() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Trophy className="h-8 w-8 text-yellow-600" />
-            <h1 className="text-2xl font-bold">Minha Pontuação</h1>
+            <Trophy className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Minha Pontuação</h1>
           </div>
           <p className="text-muted-foreground">Acompanhe seu progresso na jornada espiritual</p>
         </div>
