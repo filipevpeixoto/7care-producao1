@@ -626,6 +626,67 @@ export const pastorInvites = pgTable(
   })
 );
 
+// Tabela de recibos de despesas (notas fiscais)
+export const expenseReceipts = pgTable(
+  'expense_receipts',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .references(() => users.id)
+      .notNull(),
+    whatsappNumber: text('whatsapp_number'),
+    imageUrl: text('image_url').notNull(),
+
+    // OCR data
+    ocrProvider: text('ocr_provider').default('ocrspace'),
+    ocrRawData: jsonb('ocr_raw_data'),
+    ocrConfidence: integer('ocr_confidence'), // 0-100
+
+    // Extracted fields
+    merchantName: text('merchant_name'),
+    receiptDate: date('receipt_date'),
+    totalAmount: text('total_amount'),
+    currency: text('currency').default('BRL'),
+    category: text('category'), // 'transport', 'food', 'materials', 'other'
+    taxId: text('tax_id'), // CNPJ/CPF
+
+    // Workflow
+    status: text('status').default('pending'),
+    // 'pending' → 'processing' → 'submitted' | 'error'
+
+    // Dracma integration
+    dracmaSubmittedAt: timestamp('dracma_submitted_at'),
+    dracmaConfirmationId: text('dracma_confirmation_id'),
+    dracmaError: text('dracma_error'),
+    dracmaRetryCount: integer('dracma_retry_count').default(0),
+
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  table => ({
+    userIdx: index('expense_receipts_user_idx').on(table.userId),
+    statusIdx: index('expense_receipts_status_idx').on(table.status),
+    dateIdx: index('expense_receipts_date_idx').on(table.receiptDate),
+    whatsappIdx: index('expense_receipts_whatsapp_idx').on(table.whatsappNumber),
+    createdAtIdx: index('expense_receipts_created_at_idx').on(table.createdAt),
+  })
+);
+
+// Tabela de configuração para automação (API keys, credenciais)
+export const automationConfig = pgTable(
+  'automation_config',
+  {
+    id: serial('id').primaryKey(),
+    key: text('key').notNull().unique(),
+    value: text('value').notNull(),
+    encrypted: boolean('encrypted').default(false),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  table => ({
+    keyIdx: index('automation_config_key_idx').on(table.key),
+  })
+);
+
 // Exportar todas as tabelas
 export const schema = {
   districts,
@@ -659,4 +720,6 @@ export const schema = {
   pastorInvites,
   districtPointsConfig,
   districtSettings,
+  expenseReceipts,
+  automationConfig,
 };
