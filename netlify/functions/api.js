@@ -17270,7 +17270,8 @@ exports.handler = async (event, context) => {
         // 2. Criar igrejas (se houver)
         const churchIds = [];
         if (onboardingData?.churches && onboardingData.churches.length > 0) {
-          for (const church of onboardingData.churches) {
+          for (let i = 0; i < onboardingData.churches.length; i++) {
+            const church = onboardingData.churches[i];
             // Verificar se igreja já existe
             const existingChurches = await sql`
               SELECT id FROM churches WHERE name = ${church.name} AND district_id = ${districtId} LIMIT 1
@@ -17280,13 +17281,16 @@ exports.handler = async (event, context) => {
               churchIds.push(existingChurches[0].id);
               console.log(`⛪ Igreja já existe: ${church.name}`);
             } else {
+              // Gerar código único para a igreja (baseado no nome + timestamp)
+              const churchCode = church.code || `IGR-${Date.now()}-${i + 1}`;
+              
               const [newChurch] = await sql`
-                INSERT INTO churches (name, district_id, address, created_at)
-                VALUES (${church.name}, ${districtId}, ${church.address || null}, NOW())
+                INSERT INTO churches (name, code, district_id, address, created_at)
+                VALUES (${church.name}, ${churchCode}, ${districtId}, ${church.address || null}, NOW())
                 RETURNING id
               `;
               churchIds.push(newChurch.id);
-              console.log(`⛪ Igreja criada: ${church.name} (ID: ${newChurch.id})`);
+              console.log(`⛪ Igreja criada: ${church.name} (ID: ${newChurch.id}, Code: ${churchCode})`);
             }
           }
         }
