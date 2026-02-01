@@ -2985,23 +2985,15 @@ exports.handler = async (event, context) => {
       console.log('🔍 Get users for chat list');
       
       try {
-        const requestingUserId = event.headers['x-user-id'] ? parseInt(event.headers['x-user-id']) : 0;
-        let requestingUser = null;
+        // Buscar todos usuários aprovados
+        const users = await sql`
+          SELECT id, name, email, profile_photo 
+          FROM users 
+          WHERE status = 'approved'
+          LIMIT 500
+        `;
         
-        if (requestingUserId) {
-          const userResult = await sql`SELECT role, district_id FROM users WHERE id = ${requestingUserId} LIMIT 1`;
-          if (userResult.length > 0) {
-            requestingUser = userResult[0];
-          }
-        }
-        
-        let users;
-        // Se for pastor, filtrar por distrito
-        if (requestingUser?.role === 'pastor' && requestingUser?.district_id) {
-          users = await sql`SELECT id, name, email, profile_photo FROM users WHERE status = 'approved' AND district_id = ${requestingUser.district_id}`;
-        } else {
-          users = await sql`SELECT id, name, email, profile_photo FROM users WHERE status = 'approved'`;
-        }
+        console.log('✅ Found', users.length, 'users for chat');
         
         const chatList = users.map(u => ({
           id: u.id,
@@ -3016,11 +3008,11 @@ exports.handler = async (event, context) => {
           body: JSON.stringify(chatList)
         };
       } catch (error) {
-        console.error('❌ Get chat list error:', error);
+        console.error('❌ Get chat list error:', error.message || error);
         return {
           statusCode: 500,
           headers,
-          body: JSON.stringify({ error: 'Erro ao buscar lista de usuários para chat' })
+          body: JSON.stringify({ error: 'Erro ao buscar lista de usuários para chat', details: error.message })
         };
       }
     }
