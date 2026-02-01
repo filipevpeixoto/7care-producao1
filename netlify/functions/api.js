@@ -17326,139 +17326,371 @@ exports.handler = async (event, context) => {
         }
 
         // 3. Importar membros da planilha (se houver excelData)
+        // Alinhado com a importação do Gestão de Dados
         let membersImported = 0;
         let membersSkipped = 0;
+        let membersUpdated = 0;
         if (onboardingData?.excelData?.data && onboardingData.excelData.data.length > 0) {
           const membersToImport = onboardingData.excelData.data;
           console.log(`📊 Importando ${membersToImport.length} membros...`);
           
-          for (const member of membersToImport) {
+          // Funções auxiliares (alinhadas com Gestão de Dados)
+          const parseDate = (dateValue) => {
+            if (!dateValue) return null;
             try {
-              // Pular membros sem nome
-              const memberName = member.nome || member.name;
-              if (!memberName || memberName.trim() === '') {
-                console.log(`⚠️ Membro sem nome - pulando`);
-                membersSkipped++;
-                continue;
+              const dateStr = String(dateValue).trim().replace(/['"]/g, '');
+              
+              // Números do Excel (serial dates)
+              if (typeof dateValue === 'number') {
+                const excelEpoch = new Date(1900, 0, 1);
+                const daysSinceEpoch = dateValue - 2;
+                const date = new Date(excelEpoch.getTime() + daysSinceEpoch * 24 * 60 * 60 * 1000);
+                if (!isNaN(date.getTime()) && date.getFullYear() > 1900) return date;
               }
               
-              // Verificar se membro já existe pelo email (se tiver email)
-              const memberEmailRaw = member.email;
-              if (memberEmailRaw && memberEmailRaw.trim() !== '') {
-                const existingMember = await sql`
-                  SELECT id FROM users WHERE email = ${memberEmailRaw.trim().toLowerCase()} LIMIT 1
-                `;
-                if (existingMember.length > 0) {
-                  console.log(`⚠️ Membro já existe: ${memberEmailRaw}`);
+              // Formato DD/MM/YYYY
+              if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                  const [day, month, year] = parts;
+                  let parsedYear = parseInt(year);
+                  if (parsedYear < 100) parsedYear += parsedYear < 50 ? 2000 : 1900;
+                  const date = new Date(parsedYear, parseInt(month) - 1, parseInt(day));
+                  if (!isNaN(date.getTime())) return date;
+                }
+              }
+              
+              // Formato DD-MM-YYYY
+              if (dateStr.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
+                const parts = dateStr.split('-');
+                const [day, month, year] = parts;
+                const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                if (!isNaN(date.getTime())) return date;
+              }
+              
+              // Formato YYYY-MM-DD (ISO)
+              if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+                const date = new Date(dateStr);
+                if (!isNaN(date.getTime())) return date;
+              }
+              
+              // Tentativa genérica
+              const date = new Date(dateValue);
+              if (!isNaN(date.getTime()) && date.getFullYear() > 1900) return date;
+              
+              return null;
+            } catch (e) {
+              return null;
+            }
+          };
+          
+          const parseBool = (val) => {
+            if (val === undefined || val === null) return false;
+            if (typeof val === 'boolean') return val;
+            if (typeof val === 'number') return val > 0;
+            const str = String(val).toLowerCase().trim();
+            return str === 'true' || str === 'sim' || str === 's' || str === '1' || str === 'yes' || str === 'x';
+          };
+          
+          const parseNumber = (val) => {
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') {
+              const num = parseFloat(val.replace(',', '.'));
+              return isNaN(num) ? 0 : num;
+            }
+            return 0;
+          };
+          
+          const formatPhoneNumber = (phone) => {
+            if (!phone) return null;
+            const digits = String(phone).replace(/\D/g, '');
+            if (digits.length < 8) return null;
+            return digits;
+          };
+          
+          const getRole = (tipo) => {
+            if (!tipo) return 'member';
+            const t = String(tipo).toLowerCase().trim();
+            if (t.includes('pastor') || t.includes('lider') || t.includes('líder')) return 'pastor';
+            if (t.includes('admin') || t.includes('sec')) return 'secretary';
+            return 'member';
+          };
+          
+          const parseDizimistaField = (val) => {
+            if (!val) return { isDonor: false, dizimistaType: null };
+            const str = String(val).toLowerCase().trim();
+            if (str === 'sim' || str === 'true' || str === '1' || str === 'x' || str === 'yes') {
+              return { isDonor: true, dizimistaType: 'regular' };
+            }
+            if (str.includes('fiel')) return { isDonor: true, dizimistaType: 'fiel' };
+            if (str.includes('irregular')) return { isDonor: true, dizimistaType: 'irregular' };
+            if (str.includes('ocasional')) return { isDonor: true, dizimistaType: 'ocasional' };
+            if (str !== 'não' && str !== 'nao' && str !== 'false' && str !== '0' && str !== '') {
+              return { isDonor: true, dizimistaType: str };
+            }
+            return { isDonor: false, dizimistaType: null };
+          };
+          
+          const parseOfertanteField = (val) => {
+            if (!val) return { isOffering: false, ofertanteType: null };
+            const str = String(val).toLowerCase().trim();
+            if (str === 'sim' || str === 'true' || str === '1' || str === 'x' || str === 'yes') {
+              return { isOffering: true, ofertanteType: 'regular' };
+            }
+            if (str.includes('fiel')) return { isOffering: true, ofertanteType: 'fiel' };
+            if (str.includes('irregular')) return { isOffering: true, ofertanteType: 'irregular' };
+            if (str.includes('ocasional')) return { isOffering: true, ofertanteType: 'ocasional' };
+            if (str !== 'não' && str !== 'nao' && str !== 'false' && str !== '0' && str !== '') {
+              return { isOffering: true, ofertanteType: str };
+            }
+            return { isOffering: false, ofertanteType: null };
+          };
+          
+          // Processar em lotes
+          const batchSize = 50;
+          for (let i = 0; i < membersToImport.length; i += batchSize) {
+            const batch = membersToImport.slice(i, i + batchSize);
+            
+            for (const member of batch) {
+              try {
+                // Pular membros sem nome
+                const memberName = member.nome || member.name;
+                if (!memberName || memberName.trim() === '') {
                   membersSkipped++;
                   continue;
                 }
-              }
-              
-              // Determinar a igreja do membro (código e nome)
-              const memberChurchRaw = member.igreja || member.church;
-              let memberChurchCode = null;
-              let memberChurchName = memberChurchRaw || null;
-              
-              if (memberChurchRaw && churchCodeMap) {
-                memberChurchCode = churchCodeMap[memberChurchRaw?.toLowerCase()] || null;
-              }
-              // Se não encontrou pelo nome, usa a primeira igreja
-              if (!memberChurchCode && churchIds.length > 0 && onboardingData.churches?.length > 0) {
-                memberChurchCode = churchCodeMap[onboardingData.churches[0]?.name?.toLowerCase()] || null;
-                memberChurchName = memberChurchName || onboardingData.churches[0]?.name || null;
-              }
-              
-              // Gerar email único se não tiver (formato: nome.timestamp@importado.local)
-              const memberEmail = memberEmailRaw?.trim() 
-                ? memberEmailRaw.trim().toLowerCase() 
-                : `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2, 4)}@importado.local`;
-              
-              // Gerar senha padrão hasheada (será alterada no primeiro acesso)
-              const bcrypt = require('bcryptjs');
-              const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
-              
-              // Função auxiliar para parsear datas
-              const parseDate = (dateStr) => {
-                if (!dateStr) return null;
-                try {
-                  // Tentar diferentes formatos
-                  const str = String(dateStr).trim();
-                  
-                  // Formato DD/MM/YYYY ou DD-MM-YYYY
-                  const brMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-                  if (brMatch) {
-                    const [, day, month, year] = brMatch;
-                    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                    if (!isNaN(d.getTime())) return d;
+                
+                // Preparar email
+                const memberEmailRaw = member.email;
+                let memberEmail = memberEmailRaw?.trim()?.toLowerCase();
+                
+                // Verificar se já existe
+                let existingMemberId = null;
+                if (memberEmail && memberEmail.includes('@')) {
+                  const existing = await sql`
+                    SELECT id FROM users WHERE email = ${memberEmail} LIMIT 1
+                  `;
+                  if (existing.length > 0) {
+                    existingMemberId = existing[0].id;
                   }
-                  
-                  // Formato YYYY-MM-DD (ISO)
-                  const isoMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-                  if (isoMatch) {
-                    const d = new Date(str);
-                    if (!isNaN(d.getTime())) return d;
-                  }
-                  
-                  // Tentar parse direto
-                  const d = new Date(dateStr);
-                  if (!isNaN(d.getTime())) return d;
-                  
-                  return null;
-                } catch (e) {
-                  return null;
                 }
-              };
-              
-              // Função para parsear booleano
-              const parseBool = (val) => {
-                if (val === undefined || val === null) return false;
-                const str = String(val).toLowerCase().trim();
-                return str === 'true' || str === 'sim' || str === 's' || str === '1' || str === 'yes' || str === 'x';
-              };
-              
-              // Processar datas
-              const birthDate = parseDate(member.dataNascimento || member.birthDate);
-              const baptismDate = parseDate(member.dataBatismo || member.baptismDate);
-              
-              // Criar membro com todos os campos
-              await sql`
-                INSERT INTO users (
-                  name, email, password, role, church, church_code, phone, 
-                  birth_date, civil_status, occupation, education, address,
-                  baptism_date, is_tither, is_donor, status, first_access, created_at,
-                  district_id, observations
-                )
-                VALUES (
-                  ${memberName.trim()},
-                  ${memberEmail},
-                  ${defaultPassword},
-                  'member',
-                  ${memberChurchName},
-                  ${memberChurchCode},
-                  ${member.telefone || member.phone || null},
-                  ${birthDate},
-                  ${member.estadoCivil || member.civilStatus || null},
-                  ${member.profissao || member.occupation || null},
-                  ${member.escolaridade || member.education || null},
-                  ${member.endereco || member.address || null},
-                  ${baptismDate},
-                  ${parseBool(member.dizimista || member.isTither)},
-                  ${parseBool(member.ofertante || member.isDonor)},
-                  'active',
-                  true,
-                  NOW(),
-                  ${districtId},
-                  ${member.observacoes || member.observations || null}
-                )
-              `;
-              membersImported++;
-            } catch (memberError) {
-              console.error(`❌ Erro ao importar membro ${member.nome || member.name}:`, memberError.message);
-              membersSkipped++;
+                
+                // Gerar email se não tiver
+                if (!memberEmail || !memberEmail.includes('@')) {
+                  memberEmail = `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2, 4)}@importado.local`;
+                }
+                
+                // Determinar igreja
+                const memberChurchRaw = member.igreja || member.church;
+                let memberChurchCode = null;
+                let memberChurchName = memberChurchRaw || null;
+                
+                if (memberChurchRaw && churchCodeMap) {
+                  memberChurchCode = churchCodeMap[memberChurchRaw?.toLowerCase()] || null;
+                }
+                if (!memberChurchCode && churchIds.length > 0 && onboardingData.churches?.length > 0) {
+                  memberChurchCode = churchCodeMap[onboardingData.churches[0]?.name?.toLowerCase()] || null;
+                  memberChurchName = memberChurchName || onboardingData.churches[0]?.name || null;
+                }
+                
+                // Processar todos os campos (igual Gestão de Dados)
+                const phone = formatPhoneNumber(member.telefone || member.celular || member.phone);
+                const birthDate = parseDate(member.dataNascimento || member.nascimento || member.birthDate);
+                const baptismDate = parseDate(member.dataBatismo || member.batismo || member.baptismDate);
+                const role = getRole(member.tipo || member.cargo);
+                
+                // Dízimo e oferta
+                const dizimistaResult = parseDizimistaField(member.dizimista);
+                const ofertanteResult = parseOfertanteField(member.ofertante);
+                
+                // Tempo de batismo em anos
+                let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos);
+                if (tempoBatismoAnos === 0 && baptismDate) {
+                  const hoje = new Date();
+                  const diffAnos = Math.floor((hoje.getTime() - baptismDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+                  tempoBatismoAnos = diffAnos > 0 ? diffAnos : 0;
+                }
+                
+                // Preparar extraData com todos os campos adicionais
+                const extraData = JSON.stringify({
+                  sexo: member.sexo || null,
+                  idade: parseNumber(member.idade),
+                  codigo: member.codigo || null,
+                  bairro: member.bairro || null,
+                  cidadeEstado: member.cidadeEstado || null,
+                  cidadeNascimento: member.cidadeNascimento || null,
+                  estadoNascimento: member.estadoNascimento || null,
+                  cpf: member.cpf || null,
+                  
+                  // Dízimos detalhados
+                  dizimos12m: member.dizimos12m || null,
+                  ultimoDizimo: member.ultimoDizimo || null,
+                  valorDizimo: member.valorDizimo || null,
+                  numeroMesesSemDizimar: parseNumber(member.numeroMesesSemDizimar),
+                  dizimistaAntesUltimoDizimo: member.dizimistaAntesUltimoDizimo || null,
+                  dizimistaType: dizimistaResult.dizimistaType,
+                  
+                  // Ofertas detalhadas
+                  ofertas12m: member.ofertas12m || null,
+                  ultimaOferta: member.ultimaOferta || null,
+                  valorOferta: member.valorOferta || null,
+                  numeroMesesSemOfertar: parseNumber(member.numeroMesesSemOfertar),
+                  ofertanteAntesUltimaOferta: member.ofertanteAntesUltimaOferta || null,
+                  ofertanteType: ofertanteResult.ofertanteType,
+                  
+                  // Movimentos
+                  ultimoMovimento: member.ultimoMovimento || null,
+                  dataUltimoMovimento: member.dataUltimoMovimento || null,
+                  tipoEntrada: member.tipoEntrada || null,
+                  
+                  // Batismo detalhado
+                  tempoBatismo: member.tempoBatismo || null,
+                  localidadeBatismo: member.localidadeBatismo || null,
+                  batizadoPor: member.batizadoPor || null,
+                  idadeBatismo: member.idadeBatismo || null,
+                  
+                  // Conversão
+                  comoConheceu: member.comoConheceu || null,
+                  fatorDecisivo: member.fatorDecisivo || null,
+                  comoEstudou: member.comoEstudou || null,
+                  instrutorBiblico2: member.instrutorBiblico2 || null,
+                  
+                  // Cargos
+                  temCargo: member.temCargo || null,
+                  teen: member.teen || null,
+                  
+                  // Família
+                  nomeMae: member.nomeMae || null,
+                  nomePai: member.nomePai || null,
+                  dataCasamento: member.dataCasamento || null,
+                  
+                  // Presença detalhada
+                  presencaCartao: parseNumber(member.presencaCartao),
+                  presencaQuizLocal: parseNumber(member.presencaQuizLocal),
+                  presencaQuizOutra: parseNumber(member.presencaQuizOutra),
+                  presencaQuizOnline: parseNumber(member.presencaQuizOnline),
+                  teveParticipacao: member.teveParticipacao || null,
+                  
+                  // Colaboração
+                  campoColaborador: member.campoColaborador || null,
+                  areaColaborador: member.areaColaborador || null,
+                  estabelecimentoColaborador: member.estabelecimentoColaborador || null,
+                  funcaoColaborador: member.funcaoColaborador || null,
+                  
+                  // Educação
+                  alunoEducacao: member.alunoEducacao || null,
+                  parentesco: member.parentesco || null,
+                  
+                  // Validação
+                  nomeCamposVazios: member.nomeCamposVazios || null,
+                  
+                  importedAt: new Date().toISOString(),
+                  importSource: 'pastor-onboarding'
+                });
+                
+                if (existingMemberId) {
+                  // Atualizar membro existente
+                  await sql`
+                    UPDATE users SET
+                      name = COALESCE(${memberName.trim()}, name),
+                      phone = COALESCE(${phone}, phone),
+                      church = COALESCE(${memberChurchName}, church),
+                      church_code = COALESCE(${memberChurchCode}, church_code),
+                      birth_date = COALESCE(${birthDate}, birth_date),
+                      civil_status = COALESCE(${member.estadoCivil || null}, civil_status),
+                      occupation = COALESCE(${member.profissao || null}, occupation),
+                      education = COALESCE(${member.escolaridade || null}, education),
+                      address = COALESCE(${member.endereco || null}, address),
+                      baptism_date = COALESCE(${baptismDate}, baptism_date),
+                      is_tither = ${dizimistaResult.isDonor},
+                      is_donor = ${ofertanteResult.isOffering},
+                      district_id = COALESCE(${districtId}, district_id),
+                      engajamento = COALESCE(${member.engajamento || null}, engajamento),
+                      classificacao = COALESCE(${member.classificacao || null}, classificacao),
+                      tempo_batismo_anos = COALESCE(${tempoBatismoAnos > 0 ? tempoBatismoAnos : null}, tempo_batismo_anos),
+                      departamentos_cargos = COALESCE(${member.departamentosCargos || null}, departamentos_cargos),
+                      nome_unidade = COALESCE(${member.nomeUnidade || null}, nome_unidade),
+                      tem_licao = COALESCE(${parseBool(member.temLicao)}, tem_licao),
+                      total_presenca = COALESCE(${parseNumber(member.totalPresenca) || null}, total_presenca),
+                      comunhao = COALESCE(${parseNumber(member.comunhao) || null}, comunhao),
+                      missao = COALESCE(${parseNumber(member.missao) || null}, missao),
+                      estudo_biblico = COALESCE(${parseNumber(member.estudoBiblico) || null}, estudo_biblico),
+                      batizou_alguem = COALESCE(${parseBool(member.batizouAlguem)}, batizou_alguem),
+                      disc_pos_batismal = COALESCE(${parseNumber(member.discPosBatismal) || null}, disc_pos_batismal),
+                      matriculado_es = COALESCE(${parseBool(member.matriculadoES)}, matriculado_es),
+                      previous_religion = COALESCE(${member.religiaoAnterior || null}, previous_religion),
+                      biblical_instructor = COALESCE(${member.instrutorBiblico || null}, biblical_instructor),
+                      observations = COALESCE(${member.observacoes || null}, observations),
+                      extra_data = ${extraData},
+                      updated_at = NOW()
+                    WHERE id = ${existingMemberId}
+                  `;
+                  membersUpdated++;
+                } else {
+                  // Gerar senha padrão hasheada
+                  const bcrypt = require('bcryptjs');
+                  const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+                  
+                  // Criar novo membro com todos os campos
+                  await sql`
+                    INSERT INTO users (
+                      name, email, password, role, church, church_code, phone,
+                      birth_date, civil_status, occupation, education, address,
+                      baptism_date, is_tither, is_donor, status, first_access, created_at,
+                      district_id, engajamento, classificacao, tempo_batismo_anos,
+                      departamentos_cargos, nome_unidade, tem_licao, total_presenca,
+                      comunhao, missao, estudo_biblico, batizou_alguem, disc_pos_batismal,
+                      matriculado_es, previous_religion, biblical_instructor, observations,
+                      extra_data
+                    )
+                    VALUES (
+                      ${memberName.trim()},
+                      ${memberEmail},
+                      ${defaultPassword},
+                      ${role},
+                      ${memberChurchName},
+                      ${memberChurchCode},
+                      ${phone},
+                      ${birthDate},
+                      ${member.estadoCivil || null},
+                      ${member.profissao || null},
+                      ${member.escolaridade || null},
+                      ${member.endereco || null},
+                      ${baptismDate},
+                      ${dizimistaResult.isDonor},
+                      ${ofertanteResult.isOffering},
+                      'active',
+                      true,
+                      NOW(),
+                      ${districtId},
+                      ${member.engajamento || null},
+                      ${member.classificacao || null},
+                      ${tempoBatismoAnos > 0 ? tempoBatismoAnos : null},
+                      ${member.departamentosCargos || null},
+                      ${member.nomeUnidade || null},
+                      ${parseBool(member.temLicao)},
+                      ${parseNumber(member.totalPresenca) || null},
+                      ${parseNumber(member.comunhao) || null},
+                      ${parseNumber(member.missao) || null},
+                      ${parseNumber(member.estudoBiblico) || null},
+                      ${parseBool(member.batizouAlguem)},
+                      ${parseNumber(member.discPosBatismal) || null},
+                      ${parseBool(member.matriculadoES)},
+                      ${member.religiaoAnterior || null},
+                      ${member.instrutorBiblico || null},
+                      ${member.observacoes || null},
+                      ${extraData}
+                    )
+                  `;
+                  membersImported++;
+                }
+              } catch (memberError) {
+                console.error(`❌ Erro ao importar membro ${member.nome || member.name}:`, memberError.message);
+                membersSkipped++;
+              }
             }
           }
-          console.log(`✅ ${membersImported} membros importados, ${membersSkipped} pulados`);
+          console.log(`✅ ${membersImported} membros importados, ${membersUpdated} atualizados, ${membersSkipped} pulados`);
         }
 
         // 4. Ativar o usuário pastor (mantém first_access = true para que veja o tutorial)
@@ -17478,7 +17710,7 @@ exports.handler = async (event, context) => {
         console.log(`✅ Convite ${inviteId} aprovado por ${auth.user.email}`);
         console.log(`   - Distrito: ${districtId || 'Nenhum'}`);
         console.log(`   - Igrejas: ${churchIds.length}`);
-        console.log(`   - Membros importados: ${membersImported}`);
+        console.log(`   - Membros importados: ${membersImported}, atualizados: ${membersUpdated}`);
 
         return {
           statusCode: 200,
@@ -17489,7 +17721,8 @@ exports.handler = async (event, context) => {
             details: {
               districtId,
               churchesCreated: churchIds.length,
-              membersImported
+              membersImported,
+              membersUpdated: membersUpdated || 0
             }
           })
         };

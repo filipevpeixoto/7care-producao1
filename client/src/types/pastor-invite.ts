@@ -1,5 +1,6 @@
 /**
  * Tipos para o sistema de convite de pastores (Frontend)
+ * Alinhado com os campos do Gestão de Dados para importação completa
  */
 
 export type InviteStatus = 'pending' | 'submitted' | 'approved' | 'rejected';
@@ -26,26 +27,133 @@ export interface ChurchData {
   type: 'igreja' | 'grupo'; // (i) para igreja, (g) para grupo organizado
 }
 
+/**
+ * Interface completa para linha de dados do Excel
+ * Inclui todos os campos reconhecidos pelo Gestão de Dados
+ */
 export interface ExcelRow {
+  // Campos obrigatórios
   nome: string;
   igreja: string;
+
+  // Campos básicos
   telefone?: string;
   email?: string;
   cargo?: string;
-  // Dados pessoais adicionais
+  codigo?: string;
+  tipo?: string;
+
+  // Dados pessoais
   dataNascimento?: string;
   estadoCivil?: string;
   profissao?: string;
   escolaridade?: string;
   endereco?: string;
+  sexo?: string;
+  cpf?: string;
+  idade?: number;
+  bairro?: string;
+  cidadeEstado?: string;
+  cidadeNascimento?: string;
+  estadoNascimento?: string;
+
   // Dados religiosos
   dataBatismo?: string;
   dizimista?: string;
   ofertante?: string;
-  // Outros
-  sexo?: string;
-  cpf?: string;
+  religiaoAnterior?: string;
+  instrutorBiblico?: string;
+
+  // Engajamento e Classificação
+  engajamento?: string;
+  classificacao?: string;
+
+  // Campos de pontuação
+  tempoBatismoAnos?: number;
+  departamentosCargos?: string;
+  nomeUnidade?: string;
+  temLicao?: boolean;
+  totalPresenca?: number;
+  comunhao?: number;
+  missao?: number;
+  estudoBiblico?: number;
+  batizouAlguem?: boolean;
+  discPosBatismal?: number;
+  cpfValido?: boolean;
+  camposVazios?: boolean;
+
+  // Escola Sabatina
+  matriculadoES?: boolean;
+  periodoES?: string;
+
+  // Dízimos (12 meses)
+  dizimos12m?: string;
+  ultimoDizimo?: string;
+  valorDizimo?: string;
+  numeroMesesSemDizimar?: number;
+  dizimistaAntesUltimoDizimo?: string;
+  dizimistaType?: string;
+
+  // Ofertas (12 meses)
+  ofertas12m?: string;
+  ultimaOferta?: string;
+  valorOferta?: string;
+  numeroMesesSemOfertar?: number;
+  ofertanteAntesUltimaOferta?: string;
+  ofertanteType?: string;
+
+  // Movimentos
+  ultimoMovimento?: string;
+  dataUltimoMovimento?: string;
+  tipoEntrada?: string;
+
+  // Batismo detalhado
+  tempoBatismo?: string;
+  localidadeBatismo?: string;
+  batizadoPor?: string;
+  idadeBatismo?: string;
+
+  // Conversão
+  comoConheceu?: string;
+  fatorDecisivo?: string;
+  comoEstudou?: string;
+  instrutorBiblico2?: string;
+
+  // Cargos
+  temCargo?: string;
+  teen?: string;
+
+  // Família
+  nomeMae?: string;
+  nomePai?: string;
+  dataCasamento?: string;
+
+  // Presença detalhada
+  presencaCartao?: number;
+  presencaQuizLocal?: number;
+  presencaQuizOutra?: number;
+  presencaQuizOnline?: number;
+  teveParticipacao?: string;
+
+  // Colaboração
+  campoColaborador?: string;
+  areaColaborador?: string;
+  estabelecimentoColaborador?: string;
+  funcaoColaborador?: string;
+
+  // Educação
+  alunoEducacao?: string;
+  parentesco?: string;
+
+  // Validação
+  nomeCamposVazios?: string;
+
+  // Observações
   observacoes?: string;
+
+  // Flag de validação interna
+  valid?: boolean;
+  validationError?: string;
 }
 
 export interface ExcelData {
