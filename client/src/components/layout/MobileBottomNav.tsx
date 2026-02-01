@@ -10,6 +10,7 @@ import {
   LucideIcon,
   Mail,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
@@ -246,7 +247,9 @@ export const MobileBottomNav = memo(() => {
     );
   }
 
-  return (
+  // Usar portal para renderizar fora do fluxo do documento
+  // Isso garante que o menu fique realmente fixo na viewport
+  return createPortal(
     <div
       className="fixed bottom-0 left-0 right-0 p-4 pointer-events-none transition-transform duration-300 ease-in-out"
       style={{
@@ -402,6 +405,7 @@ export const MobileBottomNav = memo(() => {
           })}
         </div>
       </nav>
-    </div>
+    </div>,
+    document.body
   );
 });

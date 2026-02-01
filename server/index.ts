@@ -12,6 +12,7 @@ import { securityHeadersMiddleware } from './middleware/securityHeaders';
 import { healthCheckRouter } from './middleware/healthCheck';
 import { monitoringService } from './services/monitoringService';
 import { prometheusService } from './services/prometheusService';
+import { processDracmaSubmissions } from './jobs/dracmaSubmissionJob';
 
 const app = express();
 
@@ -202,6 +203,21 @@ app.get('/api/health', async (_req: Request, res: Response) => {
         }
       }
       console.log(`✅ Servidor iniciado com sucesso!`);
+
+      // Iniciar background job de submissão ao Dracma (a cada 5 minutos)
+      console.log('🔄 Iniciando job de submissão ao Dracma...');
+      setInterval(
+        async () => {
+          try {
+            await processDracmaSubmissions();
+          } catch (error) {
+            console.error('❌ Erro no job de submissão ao Dracma:', error);
+          }
+        },
+        5 * 60 * 1000
+      ); // 5 minutos
+
+      console.log('✅ Job de submissão ao Dracma agendado (a cada 5 minutos)');
     }
   );
 })();
