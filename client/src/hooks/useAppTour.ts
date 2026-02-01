@@ -1,319 +1,339 @@
 import { useCallback, useState } from 'react';
 import { driver, DriveStep } from 'driver.js';
 import 'driver.js/dist/driver.css';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from './useAuth';
-import { hasAdminAccess, isSuperAdmin, isPastor } from '@/lib/permissions';
-
-// Passos do tour para pastores
-const getPastorTourSteps = (): DriveStep[] => [
-  {
-    element: '#tour-logo',
-    popover: {
-      title: '🏠 Logo do Sistema',
-      description: 'Clique aqui a qualquer momento para voltar ao Dashboard (página inicial).',
-      side: 'bottom',
-      align: 'start',
-    },
-  },
-  {
-    element: '#tour-welcome',
-    popover: {
-      title: '👋 Boas-vindas',
-      description: 'Aqui você vê a saudação personalizada e o nome de quem está logado.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-chat-button',
-    popover: {
-      title: '💬 Chat',
-      description:
-        'Acesse o chat para conversar com membros da sua igreja. Você pode enviar mensagens, tirar dúvidas e acompanhar os interessados.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-notifications-button',
-    popover: {
-      title: '🔔 Notificações',
-      description:
-        'Veja todas as notificações do sistema: novos cadastros pendentes, mensagens, eventos e mais.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-theme-button',
-    popover: {
-      title: '🌙 Tema Claro/Escuro',
-      description: 'Alterne entre o tema claro e escuro conforme sua preferência.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-profile-menu',
-    popover: {
-      title: '👤 Menu do Perfil',
-      description:
-        'Acesse configurações, edite seu cadastro ou faça logout do sistema clicando aqui.',
-      side: 'bottom',
-      align: 'end',
-    },
-  },
-  {
-    element: '#tour-nav-dashboard',
-    popover: {
-      title: '📊 Dashboard',
-      description:
-        'Página inicial com resumo de estatísticas: membros ativos, interessados, eventos próximos e muito mais.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-calendar',
-    popover: {
-      title: '📅 Agenda',
-      description:
-        'Visualize e gerencie todos os eventos da igreja: cultos, estudos bíblicos, reuniões e visitas.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-users',
-    popover: {
-      title: '👥 Usuários',
-      description:
-        'Gerencie todos os membros da sua igreja. Aprove novos cadastros, edite perfis e acompanhe a situação de cada membro.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-gamification',
-    popover: {
-      title: '🏆 7Mount - Gamificação',
-      description:
-        'Sistema de pontos e conquistas para motivar o engajamento dos membros. Veja rankings e recompensas.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-menu',
-    popover: {
-      title: '⚙️ Menu',
-      description:
-        'Acesse todas as funcionalidades: Relatórios, Orações, Nomeações/Eleições, Configurações e muito mais.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-];
-
-// Passos do tour para superadmin
-const getSuperAdminTourSteps = (): DriveStep[] => [
-  {
-    element: '#tour-logo',
-    popover: {
-      title: '🏠 Logo do Sistema',
-      description: 'Clique aqui a qualquer momento para voltar ao Dashboard (página inicial).',
-      side: 'bottom',
-      align: 'start',
-    },
-  },
-  {
-    element: '#tour-welcome',
-    popover: {
-      title: '👋 Boas-vindas',
-      description: 'Aqui você vê a saudação personalizada e o nome de quem está logado.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-chat-button',
-    popover: {
-      title: '💬 Chat',
-      description: 'Acesse o chat para conversar com pastores e administradores do sistema.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-notifications-button',
-    popover: {
-      title: '🔔 Notificações',
-      description: 'Veja todas as notificações: novos distritos, pastores pendentes e alertas.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-profile-menu',
-    popover: {
-      title: '👤 Menu do Perfil',
-      description: 'Acesse configurações ou faça logout.',
-      side: 'bottom',
-      align: 'end',
-    },
-  },
-  {
-    element: '#tour-nav-dashboard',
-    popover: {
-      title: '📊 Dashboard',
-      description:
-        'Visão geral do sistema: total de distritos, igrejas, membros e estatísticas gerais.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-calendar',
-    popover: {
-      title: '📅 Agenda',
-      description: 'Visualize eventos de todos os distritos e igrejas.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-users',
-    popover: {
-      title: '👥 Usuários',
-      description: 'Gerencie todos os usuários do sistema, incluindo pastores e administradores.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-admin',
-    popover: {
-      title: '🏛️ Administração',
-      description:
-        'Gerencie Distritos, Pastores e Convites. Aqui você configura toda a estrutura organizacional.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-menu',
-    popover: {
-      title: '⚙️ Menu',
-      description: 'Acesse configurações avançadas, relatórios globais e mais funcionalidades.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-];
-
-// Passos do tour para membros/missionários
-const getMemberTourSteps = (): DriveStep[] => [
-  {
-    element: '#tour-logo',
-    popover: {
-      title: '🏠 Logo do Sistema',
-      description: 'Clique aqui para voltar ao Dashboard.',
-      side: 'bottom',
-      align: 'start',
-    },
-  },
-  {
-    element: '#tour-chat-button',
-    popover: {
-      title: '💬 Chat',
-      description: 'Converse com outros membros e líderes da igreja.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-notifications-button',
-    popover: {
-      title: '🔔 Notificações',
-      description: 'Veja avisos de eventos, mensagens e lembretes.',
-      side: 'bottom',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-dashboard',
-    popover: {
-      title: '📊 Início',
-      description: 'Veja seu progresso, pontos conquistados e próximos eventos.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-calendar',
-    popover: {
-      title: '📅 Agenda',
-      description: 'Veja todos os eventos da igreja e confirme sua presença.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-gamification',
-    popover: {
-      title: '🏆 7Mount',
-      description: 'Acompanhe seus pontos, conquistas e veja o ranking dos membros.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-  {
-    element: '#tour-nav-menu',
-    popover: {
-      title: '⚙️ Menu',
-      description: 'Acesse orações, seu perfil e outras funcionalidades.',
-      side: 'top',
-      align: 'center',
-    },
-  },
-];
+import { isSuperAdmin } from '@/lib/permissions';
 
 export const useAppTour = () => {
-  const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
 
-  const getTourSteps = useCallback(() => {
+  // Steps do header (comuns a todas as páginas)
+  const getHeaderSteps = useCallback(
+    (): DriveStep[] => [
+      {
+        element: '#tour-logo',
+        popover: {
+          title: '🏠 Logo do Sistema',
+          description: 'Clique aqui para voltar ao Dashboard (página inicial).',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+      {
+        element: '#tour-help-button',
+        popover: {
+          title: '❓ Botão de Ajuda',
+          description:
+            'Este botão mostra o tour da página atual. Clique sempre que precisar de ajuda!',
+          side: 'bottom',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-chat-button',
+        popover: {
+          title: '💬 Chat',
+          description: 'Acesse o chat para conversar com membros da sua igreja.',
+          side: 'bottom',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-notifications-button',
+        popover: {
+          title: '🔔 Notificações',
+          description: 'Veja notificações: novos cadastros, mensagens, eventos e mais.',
+          side: 'bottom',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-theme-button',
+        popover: {
+          title: '🌙 Tema Claro/Escuro',
+          description: 'Alterne entre o tema claro e escuro.',
+          side: 'bottom',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-profile-menu',
+        popover: {
+          title: '👤 Menu do Perfil',
+          description: 'Acesse configurações, edite seu cadastro ou faça logout.',
+          side: 'bottom',
+          align: 'end',
+        },
+      },
+    ],
+    []
+  );
+
+  // Steps de navegação (comuns a todas as páginas)
+  const getNavSteps = useCallback((): DriveStep[] => {
+    const steps: DriveStep[] = [
+      {
+        element: '#tour-nav-dashboard',
+        popover: {
+          title: '📊 Dashboard',
+          description: 'Página inicial com resumo de estatísticas.',
+          side: 'top',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-nav-calendar',
+        popover: {
+          title: '📅 Agenda',
+          description: 'Visualize e gerencie todos os eventos da igreja.',
+          side: 'top',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-nav-users',
+        popover: {
+          title: '👥 Usuários',
+          description: 'Gerencie todos os membros. Aprove cadastros e edite perfis.',
+          side: 'top',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-nav-gamification',
+        popover: {
+          title: '🏆 7Mount',
+          description: 'Sistema de pontos e conquistas para engajamento.',
+          side: 'top',
+          align: 'center',
+        },
+      },
+      {
+        element: '#tour-nav-menu',
+        popover: {
+          title: '⚙️ Menu',
+          description: 'Acesse todas as funcionalidades: Relatórios, Orações, Configurações.',
+          side: 'top',
+          align: 'center',
+        },
+      },
+    ];
+
+    // Adicionar step de admin para superadmin
     if (isSuperAdmin(user)) {
-      return getSuperAdminTourSteps();
+      steps.splice(4, 0, {
+        element: '#tour-nav-admin',
+        popover: {
+          title: '🏛️ Administração',
+          description: 'Gerencie Distritos, Pastores e Convites.',
+          side: 'top',
+          align: 'center',
+        },
+      });
     }
-    if (isPastor(user) || hasAdminAccess(user)) {
-      return getPastorTourSteps();
-    }
-    return getMemberTourSteps();
+
+    return steps;
   }, [user]);
 
-  const startTour = useCallback(() => {
-    // Garantir que estamos no dashboard antes de iniciar
-    if (window.location.pathname !== '/dashboard') {
-      navigate('/dashboard');
-      // Aguardar navegação
-      setTimeout(() => {
-        initTour();
-      }, 500);
-    } else {
-      initTour();
-    }
-  }, [navigate]);
+  // Steps específicos de cada página
+  const getPageSpecificSteps = useCallback((): DriveStep[] => {
+    const path = location.pathname.replace(/\/+$/, '') || '/dashboard';
 
-  const initTour = useCallback(() => {
+    const pageSteps: Record<string, DriveStep[]> = {
+      '/dashboard': [
+        {
+          popover: {
+            title: '📊 Dashboard - Visão Geral',
+            description:
+              'Esta é sua página inicial! Veja um resumo da sua igreja: membros, eventos, estatísticas.',
+          },
+        },
+      ],
+      '/users': [
+        {
+          popover: {
+            title: '👥 Página de Usuários',
+            description:
+              'Gerencie todos os membros da sua igreja. Aprove novos cadastros, edite informações e acompanhe cada pessoa.',
+          },
+        },
+        {
+          element: '[data-tour="users-search"]',
+          popover: {
+            title: '🔍 Buscar Usuários',
+            description: 'Use a busca para encontrar membros pelo nome, email ou função.',
+            side: 'bottom',
+            align: 'start',
+          },
+        },
+        {
+          element: '[data-tour="users-filters"]',
+          popover: {
+            title: '🎯 Filtros',
+            description: 'Filtre usuários por status ou função.',
+            side: 'bottom',
+            align: 'center',
+          },
+        },
+      ],
+      '/calendar': [
+        {
+          popover: {
+            title: '📅 Agenda da Igreja',
+            description:
+              'Visualize e gerencie todos os eventos: cultos, estudos bíblicos, visitas e reuniões.',
+          },
+        },
+        {
+          element: '[data-tour="calendar-add"]',
+          popover: {
+            title: '➕ Novo Evento',
+            description: 'Clique aqui para criar um novo evento.',
+            side: 'bottom',
+            align: 'center',
+          },
+        },
+      ],
+      '/gamification': [
+        {
+          popover: {
+            title: '🏆 7Mount - Gamificação',
+            description:
+              'Sistema de pontos que incentiva a participação. Cada atividade gera pontos e conquistas!',
+          },
+        },
+        {
+          element: '[data-tour="gamification-ranking"]',
+          popover: {
+            title: '🥇 Ranking',
+            description: 'Veja os membros mais engajados da igreja.',
+            side: 'bottom',
+            align: 'center',
+          },
+        },
+      ],
+      '/chat': [
+        {
+          popover: {
+            title: '💬 Chat',
+            description:
+              'Converse com membros da sua igreja, tire dúvidas e acompanhe os interessados.',
+          },
+        },
+        {
+          element: '[data-tour="chat-contacts"]',
+          popover: {
+            title: '👥 Contatos',
+            description: 'Lista de contatos. Clique em um para abrir o chat.',
+            side: 'right',
+            align: 'start',
+          },
+        },
+      ],
+      '/tasks': [
+        {
+          popover: {
+            title: '✅ Tarefas',
+            description: 'Gerencie suas tarefas e atividades pendentes.',
+          },
+        },
+      ],
+      '/settings': [
+        {
+          popover: {
+            title: '⚙️ Configurações',
+            description: 'Configure o sistema: pontuações, notificações e preferências.',
+          },
+        },
+      ],
+      '/reports': [
+        {
+          popover: {
+            title: '📈 Relatórios',
+            description: 'Visualize relatórios: frequência, crescimento e engajamento.',
+          },
+        },
+      ],
+      '/prayers': [
+        {
+          popover: {
+            title: '🙏 Pedidos de Oração',
+            description: 'Veja e gerencie os pedidos de oração da comunidade.',
+          },
+        },
+      ],
+      '/discipleship': [
+        {
+          popover: {
+            title: '📖 Discipulado',
+            description: 'Gerencie os relacionamentos de discipulado.',
+          },
+        },
+      ],
+      '/election': [
+        {
+          popover: {
+            title: '🗳️ Eleições e Nomeações',
+            description: 'Configure e gerencie eleições para cargos na igreja.',
+          },
+        },
+      ],
+      '/visits': [
+        {
+          popover: {
+            title: '🏠 Visitação',
+            description: 'Organize visitas aos membros e interessados.',
+          },
+        },
+      ],
+      '/my-interested': [
+        {
+          popover: {
+            title: '👥 Meus Interessados',
+            description: 'Veja e gerencie os interessados sob sua responsabilidade.',
+          },
+        },
+      ],
+    };
+
+    // Buscar steps da página exata ou por prefixo
+    if (pageSteps[path]) {
+      return pageSteps[path];
+    }
+
+    for (const [route, steps] of Object.entries(pageSteps)) {
+      if (path.startsWith(route)) {
+        return steps;
+      }
+    }
+
+    // Tour genérico para páginas sem tour específico
+    return [
+      {
+        popover: {
+          title: '📱 Navegando no App',
+          description:
+            'Use o menu inferior para navegar. Clique no ? para obter ajuda sobre qualquer página.',
+        },
+      },
+    ];
+  }, [location.pathname]);
+
+  const startTour = useCallback(() => {
     setIsRunning(true);
 
-    const steps = getTourSteps();
+    // Montar tour: Header + Página Específica + Navegação
+    const headerSteps = getHeaderSteps();
+    const pageSteps = getPageSpecificSteps();
+    const navSteps = getNavSteps();
+
+    const allSteps = [...headerSteps, ...pageSteps, ...navSteps];
 
     // Filtrar apenas steps com elementos que existem
-    const validSteps = steps.filter(step => {
+    const validSteps = allSteps.filter(step => {
       if (!step.element) return true;
       const el = document.querySelector(step.element);
       return el !== null;
@@ -336,8 +356,6 @@ export const useAppTour = () => {
       popoverClass: 'driverjs-theme',
       onDestroyStarted: () => {
         setIsRunning(false);
-        // Marcar tour como completado
-        localStorage.setItem('tutorial_completed', 'true');
         driverObj.destroy();
       },
       onDestroyed: () => {
@@ -346,7 +364,7 @@ export const useAppTour = () => {
     });
 
     driverObj.drive();
-  }, [getTourSteps]);
+  }, [getHeaderSteps, getPageSpecificSteps, getNavSteps]);
 
   const skipTour = useCallback(() => {
     localStorage.setItem('tutorial_skipped', 'true');
