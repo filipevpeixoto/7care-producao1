@@ -2486,14 +2486,14 @@ export default function Settings() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-lg border">
-                      <p className="text-sm text-gray-600 mb-4">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                         Arraste e solte os elementos para ajustar suas posições no header móvel
                       </p>
 
                       {/* Preview do Mobile Header */}
-                      <div className="bg-white rounded-lg border p-4 mb-4">
-                        <div className="text-xs text-gray-500 mb-2 text-center">
+                      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700 p-4 mb-4">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">
                           Preview do Header
                         </div>
                         <div className="bg-gradient-to-r from-white via-blue-50/30 to-purple-50/30 rounded-lg p-3 border">

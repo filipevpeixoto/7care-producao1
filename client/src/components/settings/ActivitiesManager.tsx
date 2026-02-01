@@ -119,7 +119,9 @@ export function ActivitiesManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Atividades do Carrossel</h2>
-          <p className="text-gray-600">Gerencie as atividades exibidas no banner do dashboard</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Gerencie as atividades exibidas no banner do dashboard
+          </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

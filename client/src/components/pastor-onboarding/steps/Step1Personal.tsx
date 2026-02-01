@@ -99,7 +99,10 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
       <div className="space-y-6 max-w-lg mx-auto">
         {/* Name */}
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="name"
+            className="text-base font-semibold text-gray-700 dark:text-gray-300"
+          >
             Nome Completo <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
@@ -123,7 +126,10 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
 
         {/* Email (readonly) */}
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="email"
+            className="text-base font-semibold text-gray-700 dark:text-gray-300"
+          >
             Email
           </Label>
           <div className="relative">
@@ -133,7 +139,7 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
               type="email"
               value={formData.email}
               readOnly
-              className="pl-12 pr-12 h-14 text-lg rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed text-gray-600"
+              className="pl-12 pr-12 h-14 text-lg rounded-xl bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400"
             />
             <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg">
               🔒
@@ -144,7 +150,10 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
 
         {/* Phone */}
         <div className="space-y-2">
-          <Label htmlFor="phone" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="phone"
+            className="text-base font-semibold text-gray-700 dark:text-gray-300"
+          >
             Telefone <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
@@ -154,7 +163,7 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
               type="tel"
               value={formData.phone}
               onChange={e => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
-              className="pl-12 h-14 text-lg rounded-xl border-gray-200 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 transition-all"
+              className="pl-12 h-14 text-lg rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-blue-500 transition-all"
               placeholder="(00) 00000-0000"
             />
           </div>

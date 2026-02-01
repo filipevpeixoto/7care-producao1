@@ -20,18 +20,18 @@ export const MountainIconsPreview = () => {
         <div className="grid grid-cols-3 md:grid-cols-9 gap-3">
           {GAMIFICATION_LEVELS.map((level, index) => (
             <div key={level.id} className="relative group">
-              <Card className="h-32 md:h-40 transition-all duration-300 border-2 border-gray-200 bg-white hover:shadow-lg hover:scale-105">
+              <Card className="h-32 md:h-40 transition-all duration-300 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg hover:scale-105">
                 <CardContent className="p-3 h-full flex flex-col items-center justify-center">
                   {/* Ícone do Monte */}
                   <div className="text-2xl md:text-4xl mb-2">
                     <MountIcon
                       iconType={level.icon}
-                      className="h-8 w-8 md:h-12 md:w-12 text-gray-700"
+                      className="h-8 w-8 md:h-12 md:w-12 text-gray-700 dark:text-gray-300"
                     />
                   </div>
 
                   {/* Nome do Monte */}
-                  <div className="text-center font-bold text-xs md:text-sm mb-1 text-gray-700">
+                  <div className="text-center font-bold text-xs md:text-sm mb-1 text-gray-700 dark:text-gray-300">
                     {level.mount}
                   </div>
 
@@ -70,7 +70,9 @@ export const MountainIconsPreview = () => {
         <div className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-blue-50 rounded-lg border border-orange-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-medium text-sm text-gray-700 mb-2">Progressão Visual:</h4>
+              <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
+                Progressão Visual:
+              </h4>
               <ul className="space-y-1 text-xs text-gray-600">
                 <li className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-gray-400 rounded" />
@@ -87,7 +89,9 @@ export const MountainIconsPreview = () => {
               </ul>
             </div>
             <div>
-              <h4 className="font-medium text-sm text-gray-700 mb-2">Características:</h4>
+              <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
+                Características:
+              </h4>
               <ul className="space-y-1 text-xs text-gray-600">
                 <li>• 9 níveis de progressão</li>
                 <li>• Ícones responsivos e elegantes</li>

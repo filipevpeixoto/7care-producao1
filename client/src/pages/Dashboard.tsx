@@ -704,7 +704,7 @@ const Dashboard = () => {
           </div>
           {/* Título com tooltip elegante em CSS puro */}
           <div className="relative group">
-            <div className="text-sm font-semibold text-gray-800 truncate cursor-help">
+            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate cursor-help">
               {eventTitle}
             </div>
             {/* Tooltip elegante - aparece ao hover se o texto estiver truncado */}
@@ -725,7 +725,7 @@ const Dashboard = () => {
         </div>
         <div className="text-right">
           <div className="text-[11px] text-gray-500">Data</div>
-          <div className="text-sm font-semibold text-gray-800">{dateText}</div>
+          <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{dateText}</div>
         </div>
       </div>
     );
@@ -750,13 +750,13 @@ const Dashboard = () => {
             <div className="text-[11px] uppercase tracking-wide text-pink-700/70">
               Aniversariante do dia
             </div>
-            <div className="text-sm font-semibold text-gray-800 truncate">
+            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
               {birthdays.today[0].name}
             </div>
           </div>
           <div className="text-right">
             <div className="text-[11px] text-gray-500">Hoje</div>
-            <div className="text-sm font-semibold text-gray-800">🎉</div>
+            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">🎉</div>
           </div>
         </div>
       );
@@ -773,13 +773,13 @@ const Dashboard = () => {
               <div className="text-[11px] uppercase tracking-wide text-pink-700/70">
                 Próximo aniversário
               </div>
-              <div className="text-sm font-semibold text-gray-800 truncate">
+              <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
                 {nextBirthday.name}
               </div>
             </div>
             <div className="text-right">
               <div className="text-[11px] text-gray-500">Data</div>
-              <div className="text-sm font-semibold text-gray-800">
+              <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                 {formatBirthdayDate(nextBirthday.nextBirthday)}
               </div>
             </div>
@@ -1428,7 +1428,9 @@ const Dashboard = () => {
           >
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-semibold text-gray-700">Amigos</CardTitle>
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Amigos
+              </CardTitle>
               <div className="p-2 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg">
                 <Heart className="h-4 w-4" />
               </div>
@@ -1518,7 +1520,9 @@ const Dashboard = () => {
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-semibold text-gray-700">Eventos do Mês</CardTitle>
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Eventos do Mês
+              </CardTitle>
               <div className="p-2 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
                 <Clock className="h-4 w-4" />
               </div>
@@ -1897,7 +1901,7 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-amber-600 bg-clip-text text-transparent">
             Carregando...
           </h2>
-          <p className="text-gray-600">Verificando autenticação</p>
+          <p className="text-gray-600 dark:text-gray-400">Verificando autenticação</p>
         </div>
       </div>
     );

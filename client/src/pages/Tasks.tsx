@@ -744,9 +744,9 @@ export default function Tasks() {
 
     return (
       <Card
-        className={`group relative overflow-hidden bg-white border-0 shadow-sm hover:shadow-md transition-shadow duration-200 mb-4 ${isNotSynced ? 'border-l-4 border-l-yellow-400' : ''} ${isSelected ? 'ring-2 ring-blue-500 shadow-xl' : ''}`}
+        className={`group relative overflow-hidden bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow duration-200 mb-4 ${isNotSynced ? 'border-l-4 border-l-yellow-400' : ''} ${isSelected ? 'ring-2 ring-blue-500 shadow-xl' : ''}`}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-50/50 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-50/50 to-white dark:from-gray-700/50 dark:to-gray-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
         <CardContent className="p-6 relative z-10">
           <div className="flex items-start justify-between gap-4">
@@ -774,7 +774,9 @@ export default function Tasks() {
               </div>
 
               {task.description && (
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{task.description}</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-2">
+                  {task.description}
+                </p>
               )}
 
               <div className="flex flex-wrap gap-2 mb-3">
@@ -1157,7 +1159,7 @@ export default function Tasks() {
 
           {/* Lista de Tarefas */}
           <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 bg-white border shadow-sm">
+            <TabsList className="grid w-full grid-cols-3 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-sm">
               <TabsTrigger
                 value="pending"
                 className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"

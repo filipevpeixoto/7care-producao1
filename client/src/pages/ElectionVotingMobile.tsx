@@ -730,8 +730,8 @@ export default function ElectionVotingMobile() {
                 {electionData.currentPositionName}
               </CardTitle>
               {electionData.currentPositionDescription && (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                     {electionData.currentPositionDescription}
                   </p>
                 </div>
@@ -903,7 +903,7 @@ export default function ElectionVotingMobile() {
                                     className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${
                                       cardActive
                                         ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-200'
-                                        : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700'
+                                        : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-700 dark:text-gray-300'
                                     }`}
                                   >
                                     {cardActive ? (
@@ -916,7 +916,7 @@ export default function ElectionVotingMobile() {
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0 text-center">
-                                  <p className="font-bold text-base sm:text-lg text-gray-900 break-words tracking-tight leading-tight bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                                  <p className="font-bold text-base sm:text-lg text-gray-900 dark:text-gray-100 break-words tracking-tight leading-tight">
                                     {candidate.name}
                                   </p>
                                 </div>

@@ -225,7 +225,9 @@ export default function NotificationsHistory() {
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     Notificações
                   </h1>
-                  <p className="text-sm text-gray-600">Histórico de notificações recebidas</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Histórico de notificações recebidas
+                  </p>
                 </div>
               </div>
               {notifications.length > 0 && (
@@ -243,11 +245,15 @@ export default function NotificationsHistory() {
 
           {/* Lista de Notificações */}
           {notifications.length === 0 ? (
-            <Card className="border-2 border-dashed border-gray-300">
+            <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Bell className="h-16 w-16 text-gray-400 mb-4" />
-                <p className="text-lg font-medium text-gray-600 mb-1">Nenhuma notificação</p>
-                <p className="text-sm text-gray-500">Você não recebeu notificações ainda</p>
+                <Bell className="h-16 w-16 text-gray-400 dark:text-gray-500 mb-4" />
+                <p className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  Nenhuma notificação
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Você não recebeu notificações ainda
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -286,7 +292,7 @@ export default function NotificationsHistory() {
                           </div>
                         </div>
 
-                        <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 whitespace-pre-wrap">
                           {notification.message}
                         </p>
 

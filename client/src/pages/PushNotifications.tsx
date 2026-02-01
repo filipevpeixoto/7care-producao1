@@ -578,7 +578,7 @@ export default function PushNotifications() {
                   return (
                     <div
                       key={subscription.id}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border hover:bg-gray-50 transition-colors"
+                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <div className="flex items-center gap-3 flex-1">
                         <div className="h-10 w-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">

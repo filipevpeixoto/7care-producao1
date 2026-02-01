@@ -132,12 +132,12 @@ export const Header = () => {
 
       {/* Área Expansível - SEMPRE VISÍVEL PARA TESTE */}
       <div className="px-4 pb-4">
-        <div className="bg-gradient-to-r from-blue-50 to-amber-50 rounded-lg p-4 border border-blue-100 shadow-sm">
+        <div className="bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-900/30 dark:to-amber-900/30 rounded-lg p-4 border border-blue-100 dark:border-blue-800 shadow-sm">
           <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-gray-800">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
               {greeting}, {user?.name}! (Estado: {isExpanded ? 'EXPANDIDO' : 'CONTRAÍDO'})
             </h3>
-            <p className="text-gray-600">Bem-vindo ao painel de controle</p>
+            <p className="text-gray-600 dark:text-gray-400">Bem-vindo ao painel de controle</p>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               Sistema online • Dados em tempo real
@@ -152,7 +152,7 @@ export const Header = () => {
           variant="ghost"
           size="sm"
           onClick={toggleExpansion}
-          className="h-8 px-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-all duration-200 border border-gray-200 hover:border-gray-300"
+          className="h-8 px-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
         >
           {isExpanded ? (
             <>

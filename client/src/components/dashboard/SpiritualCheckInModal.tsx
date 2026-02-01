@@ -52,7 +52,7 @@ const spiritualLevels: SpiritualLevel[] = [
     color: 'from-gray-400 to-gray-500',
     bgColor: 'bg-gray-50',
     borderColor: 'border-gray-300',
-    textColor: 'text-gray-700',
+    textColor: 'text-gray-700 dark:text-gray-300',
   },
   {
     score: 2,
@@ -223,7 +223,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
           {/* Spiritual Score Selection */}
           <div className="space-y-4">
             <div className="text-center">
-              <Label className="text-lg font-semibold text-gray-800 flex items-center justify-center gap-2">
+              <Label className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center justify-center gap-2">
                 <Star className="h-5 w-5 text-yellow-500" />
                 Selecione sua situação espiritual
               </Label>
@@ -318,7 +318,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
 
             {/* Explanation Panel */}
             {expandedLevel && (
-              <div className="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-lg">
+              <div className="mt-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{spiritualLevels[expandedLevel - 1].emoji}</div>
@@ -335,7 +335,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                   </div>
                   <button
                     onClick={() => setExpandedLevel(null)}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                   >
                     <X className="h-5 w-5 text-gray-500" />
                   </button>
@@ -344,11 +344,11 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                 <div
                   className={`${spiritualLevels[expandedLevel - 1].bgColor} rounded-lg p-4 border ${spiritualLevels[expandedLevel - 1].borderColor}`}
                 >
-                  <p className="text-sm text-gray-700 leading-relaxed mb-3">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
                     {spiritualLevels[expandedLevel - 1].description}
                   </p>
-                  <div className="bg-white rounded-md p-3 border-l-4 border-blue-400">
-                    <p className="text-sm text-gray-600 italic mb-1">
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border-l-4 border-blue-400">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 italic mb-1">
                       "{spiritualLevels[expandedLevel - 1].verse}"
                     </p>
                     <p className="text-sm font-semibold text-blue-600">
@@ -366,7 +366,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
               <div className="space-y-3">
                 <Label
                   htmlFor="prayerRequest"
-                  className="flex items-center gap-2 text-base font-semibold text-gray-800"
+                  className="flex items-center gap-2 text-base font-semibold text-gray-800 dark:text-gray-200"
                 >
                   <MessageCircle className="h-5 w-5 text-blue-500" />
                   Pedido de Oração
@@ -398,7 +398,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
           <Card className="border-gray-200">
             <CardContent className="p-4">
               <div className="space-y-3">
-                <Label className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                <Label className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                   <Lock className="h-5 w-5 text-gray-600" />
                   Configurações de Privacidade
                 </Label>
@@ -419,7 +419,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                     <div className="flex-1">
                       <Label
                         htmlFor="isPrivate"
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
                       >
                         <Lock className="h-4 w-4 text-red-500" />
                         Apenas o pastor verá meus motivos de oração
@@ -452,7 +452,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                     <div className="flex-1">
                       <Label
                         htmlFor="allowChurchMembers"
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
                       >
                         <Users className="h-4 w-4 text-green-500" />
                         Permitir que membros da igreja vejam meu pedido

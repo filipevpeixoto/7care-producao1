@@ -238,7 +238,7 @@ export const MountainJourney = ({
           <div className="flex flex-col items-center space-y-6 p-6">
             {/* Ícone */}
             <div className="flex-shrink-0">
-              <div className="w-56 h-56 flex items-center justify-center bg-white rounded-2xl shadow-lg p-6">
+              <div className="w-56 h-56 flex items-center justify-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                 <MountIcon iconType={selectedLevel?.icon || ''} className="w-full h-full" />
               </div>
             </div>

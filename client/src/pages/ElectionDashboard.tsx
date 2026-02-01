@@ -226,7 +226,10 @@ export default function ElectionDashboard() {
       );
     } else {
       return (
-        <Badge variant="outline" className="border-gray-300 text-gray-600">
+        <Badge
+          variant="outline"
+          className="border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+        >
           <Clock className="w-3 h-3 mr-1" />
           {config.status}
         </Badge>

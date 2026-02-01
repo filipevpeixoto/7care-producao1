@@ -516,8 +516,10 @@ const Prayers = () => {
 
                   {/* Prayer Request */}
                   {prayer.prayerRequest && (
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-sm text-gray-700">{prayer.prayerRequest}</p>
+                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {prayer.prayerRequest}
+                      </p>
                     </div>
                   )}
 
@@ -561,7 +563,9 @@ const Prayers = () => {
                   {!prayer.isAnswered && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Quem está orando:</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Quem está orando:
+                        </span>
                         {loadingIntercessors[prayer.id] && (
                           <span className="text-xs text-gray-500">Carregando...</span>
                         )}

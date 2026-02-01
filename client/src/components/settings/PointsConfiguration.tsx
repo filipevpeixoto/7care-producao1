@@ -1182,7 +1182,7 @@ export const PointsConfiguration = () => {
       </div>
 
       {/* Summary */}
-      <Card className="bg-gradient-to-br from-purple-50 to-blue-50">
+      <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-yellow-600" />
@@ -1191,20 +1191,22 @@ export const PointsConfiguration = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{getTotalMaxPoints()}</div>
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {getTotalMaxPoints()}
+              </div>
               <div className="text-sm text-muted-foreground">Pontos Máximos Possíveis</div>
             </div>
 
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {getConfigSummary().categoriesCount}
               </div>
               <div className="text-sm text-muted-foreground">Categorias Configuradas</div>
             </div>
 
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {getConfigSummary().criteriaCount}
               </div>
               <div className="text-sm text-muted-foreground">Critérios de Pontuação</div>

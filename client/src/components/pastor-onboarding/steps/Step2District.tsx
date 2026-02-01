@@ -70,7 +70,10 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
       <div className="space-y-6 max-w-lg mx-auto">
         {/* District name */}
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="name"
+            className="text-base font-semibold text-gray-700 dark:text-gray-300"
+          >
             Nome do Distrito <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
@@ -80,7 +83,7 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
               type="text"
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="pl-12 h-14 text-lg rounded-xl border-gray-200 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 transition-all"
+              className="pl-12 h-14 text-lg rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-blue-500 transition-all"
               placeholder="Ex: Distrito Central de São Paulo"
             />
           </div>
@@ -94,7 +97,10 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="description"
+            className="text-base font-semibold text-gray-700 dark:text-gray-300"
+          >
             Descrição <span className="text-gray-400 font-normal">(opcional)</span>
           </Label>
           <div className="relative">
@@ -103,7 +109,7 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
               id="description"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="pl-12 min-h-[120px] text-base rounded-xl border-gray-200 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 transition-all resize-none"
+              className="pl-12 min-h-[120px] text-base rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-blue-500 transition-all resize-none"
               placeholder="Informações adicionais sobre o distrito..."
             />
           </div>

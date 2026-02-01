@@ -1422,8 +1422,8 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
           <p className="text-muted-foreground">Apenas administradores podem configurar eleições.</p>
-          <div className="mt-4 p-4 bg-gray-100 rounded-lg text-left">
-            <p className="text-sm text-gray-600">
+          <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-left">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               <strong>Usuário atual:</strong>
               <br />
               Nome: {user?.name || 'N/A'}
@@ -2475,7 +2475,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                   ) : (
                                     <div className="space-y-1">
                                       {positionDescriptions[position] ? (
-                                        <div className="text-xs text-gray-700 bg-white/50 rounded p-2 border max-h-20 overflow-y-auto">
+                                        <div className="text-xs text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded p-2 border max-h-20 overflow-y-auto">
                                           {positionDescriptions[position]}
                                         </div>
                                       ) : (
@@ -2640,12 +2640,14 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                 {loadingCandidates ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    <span className="ml-3 text-lg text-gray-600">Carregando candidatos...</span>
+                    <span className="ml-3 text-lg text-gray-600 dark:text-gray-300">
+                      Carregando candidatos...
+                    </span>
                   </div>
                 ) : eligibleCandidates.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                       Nenhum candidato elegível
                     </h3>
                     <p className="text-gray-500 mb-4">

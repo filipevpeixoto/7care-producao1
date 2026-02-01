@@ -138,7 +138,9 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
             <Database className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <p className="font-semibold text-gray-900">Irei importar a base de dados do PowerBI</p>
+            <p className="font-semibold text-gray-900 dark:text-gray-100">
+              Irei importar a base de dados do PowerBI
+            </p>
             <p className="text-sm text-gray-500">As igrejas serão cadastradas automaticamente</p>
           </div>
         </div>
@@ -154,7 +156,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                 className="border border-gray-200 rounded-2xl p-5 bg-gradient-to-r from-gray-50 to-white relative shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
                       <Church className="w-4 h-4 text-blue-600" />
                     </div>
@@ -181,7 +183,9 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                 <div className="space-y-4">
                   {/* Seletor de Tipo */}
                   <div>
-                    <Label className="text-sm font-semibold mb-2 block text-gray-700">Tipo</Label>
+                    <Label className="text-sm font-semibold mb-2 block text-gray-700 dark:text-gray-300">
+                      Tipo
+                    </Label>
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -217,7 +221,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                   <div>
                     <Label
                       htmlFor={`name-${index}`}
-                      className="text-sm font-semibold text-gray-700"
+                      className="text-sm font-semibold text-gray-700 dark:text-gray-300"
                     >
                       Nome <span className="text-red-500">*</span>
                     </Label>
@@ -237,7 +241,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                   <div>
                     <Label
                       htmlFor={`address-${index}`}
-                      className="text-sm font-semibold text-gray-700"
+                      className="text-sm font-semibold text-gray-700 dark:text-gray-300"
                     >
                       Endereço
                     </Label>

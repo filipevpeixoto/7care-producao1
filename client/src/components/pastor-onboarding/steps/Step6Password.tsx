@@ -98,7 +98,10 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
       <div className="space-y-6 max-w-lg mx-auto">
         {/* Password */}
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="password"
+            className="text-base font-semibold text-gray-700 dark:text-gray-300"
+          >
             Senha <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
@@ -129,7 +132,9 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
 
         {/* Password validations */}
         <div className="space-y-3 bg-gradient-to-r from-gray-50 to-white p-5 rounded-2xl border border-gray-100">
-          <p className="text-sm font-semibold text-gray-700 mb-3">Sua senha deve conter:</p>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            Sua senha deve conter:
+          </p>
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <div
@@ -190,7 +195,10 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
 
         {/* Confirm Password */}
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="confirmPassword"
+            className="text-base font-semibold text-gray-700 dark:text-gray-300"
+          >
             Confirmar Senha <span className="text-red-500">*</span>
           </Label>
           <div className="relative">

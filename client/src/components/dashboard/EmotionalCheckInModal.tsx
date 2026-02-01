@@ -218,7 +218,9 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
                         <div className="flex items-start gap-2">
                           <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-sm text-gray-800 italic">"{level.verse}"</p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200 italic">
+                              "{level.verse}"
+                            </p>
                             <p className="text-xs text-blue-600 font-medium mt-1">
                               {level.reference}
                             </p>
@@ -231,8 +233,12 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
                         <div className="flex items-start gap-2">
                           <Search className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-xs text-gray-700 font-medium mb-1">Marca:</p>
-                            <p className="text-sm text-gray-800">{level.description}</p>
+                            <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mb-1">
+                              Marca:
+                            </p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
+                              {level.description}
+                            </p>
                           </div>
                         </div>
                       </div>

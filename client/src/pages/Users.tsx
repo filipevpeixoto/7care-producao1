@@ -1077,7 +1077,7 @@ export default function Users() {
               className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
                 mountainFilter === 'vale'
                   ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/25 border-0'
-                  : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-300/50 hover:from-gray-100 hover:to-gray-200 hover:border-gray-400'
+                  : 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-700 dark:text-gray-300 border-gray-300/50 dark:border-gray-600 hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700 dark:hover:to-gray-800 hover:border-gray-400'
               }`}
               onClick={() => handleMountainClick(mountainFilter === 'vale' ? 'all' : 'vale')}
               title="Clique para filtrar usuários deste monte"
