@@ -316,7 +316,7 @@ export function Step5Validation({
                       {getStatusIcon(validation.status)}
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">
                         {validation.churchName}
                       </h3>
                       <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
@@ -380,7 +380,7 @@ export function Step5Validation({
                       {/* Opção: Usar sugestão similar */}
                       {validation.suggestions && validation.suggestions.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          <p className="text-sm font-semibold text-gray-700 mb-2">
                             Igrejas similares encontradas:
                           </p>
                           {validation.suggestions.map(suggestion => (

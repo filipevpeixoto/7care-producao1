@@ -565,7 +565,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       {importStep !== 'upload' && (
         <div className="mb-8 space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Progresso da Importação</span>
+            <span className="text-gray-600">Progresso da Importação</span>
             <span className="font-medium">{importProgress}%</span>
           </div>
           <Progress value={importProgress} className="w-full h-2" />
@@ -607,7 +607,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 <FileSpreadsheet className="w-10 h-10 text-blue-500" />
               </div>
 
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">
                 Arraste sua planilha aqui
               </h3>
               <p className="text-gray-400 text-sm mb-6">ou</p>
@@ -640,9 +640,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                     <CheckCircle className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {fileName}
-                    </h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{fileName}</h3>
                     <p className="text-sm text-gray-500">
                       {previewData.length} membros • {uniqueChurches.size} igrejas •{' '}
                       {detectedColumns.length} colunas detectadas
@@ -697,23 +695,12 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                     </TableHeader>
                     <TableBody>
                       {previewData.slice(0, 5).map((row, index) => (
-                        <TableRow
-                          key={index}
-                          className="hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
-                        >
+                        <TableRow key={index} className="hover:bg-blue-50/50">
                           <TableCell className="text-gray-400 font-medium">{index + 1}</TableCell>
-                          <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                            {row.nome}
-                          </TableCell>
-                          <TableCell className="text-gray-600 dark:text-gray-400">
-                            {row.igreja || '-'}
-                          </TableCell>
-                          <TableCell className="text-gray-600 dark:text-gray-400">
-                            {row.telefone || '-'}
-                          </TableCell>
-                          <TableCell className="text-gray-600 dark:text-gray-400">
-                            {row.email || '-'}
-                          </TableCell>
+                          <TableCell className="font-medium text-gray-900">{row.nome}</TableCell>
+                          <TableCell className="text-gray-600">{row.igreja || '-'}</TableCell>
+                          <TableCell className="text-gray-600">{row.telefone || '-'}</TableCell>
+                          <TableCell className="text-gray-600">{row.email || '-'}</TableCell>
                           <TableCell>
                             <Badge variant={row.valid !== false ? 'secondary' : 'destructive'}>
                               {row.valid !== false ? 'Válido' : 'Erro'}
