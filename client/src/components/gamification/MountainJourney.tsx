@@ -119,10 +119,12 @@ export const MountainJourney = ({
   };
 
   return (
-    <Card className={`bg-gradient-to-br from-slate-50 to-blue-50 border-slate-200 ${className}`}>
+    <Card
+      className={`bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900/50 border-slate-200 dark:border-slate-700 ${className}`}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
-          <Mountain className="h-6 w-6 text-blue-600" />
+          <Mountain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           Jornada dos Montes Espirituais
         </CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -150,12 +152,12 @@ export const MountainJourney = ({
                 <Card
                   className={`h-32 md:h-40 transition-all duration-300 border-2 ${
                     isCurrentLevel
-                      ? 'ring-4 ring-orange-400 border-orange-300 bg-gradient-to-b from-orange-50 to-orange-100 shadow-lg'
+                      ? 'ring-4 ring-orange-400 dark:ring-orange-500 border-orange-300 dark:border-orange-600 bg-gradient-to-b from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800/50 shadow-lg'
                       : isCompleted
-                        ? 'border-green-300 bg-gradient-to-b from-green-50 to-green-100 shadow-md'
+                        ? 'border-green-300 dark:border-green-600 bg-gradient-to-b from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800/50 shadow-md'
                         : isNext
-                          ? 'border-blue-300 bg-gradient-to-b from-blue-50 to-blue-100 shadow-sm'
-                          : 'border-gray-200 bg-gradient-to-b from-gray-50 to-gray-100'
+                          ? 'border-blue-300 dark:border-blue-600 bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 shadow-sm'
+                          : 'border-gray-200 dark:border-gray-600 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700'
                   } hover:shadow-lg hover:scale-105`}
                 >
                   <CardContent className="p-2 md:p-3 h-full flex flex-col items-center justify-center">
@@ -169,10 +171,10 @@ export const MountainJourney = ({
                         iconType={level.icon}
                         className={`h-8 w-8 md:h-12 md:w-12 ${
                           isCurrentLevel
-                            ? 'text-orange-600'
+                            ? 'text-orange-600 dark:text-orange-400'
                             : isCompleted
-                              ? 'text-green-600'
-                              : 'text-gray-600'
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-gray-600 dark:text-gray-400'
                         }`}
                       />
                     </div>
@@ -181,10 +183,10 @@ export const MountainJourney = ({
                     <div
                       className={`text-center font-bold text-xs md:text-sm mb-1 transition-colors duration-300 ${
                         isCurrentLevel
-                          ? 'text-orange-700'
+                          ? 'text-orange-700 dark:text-orange-300'
                           : isCompleted
-                            ? 'text-green-700'
-                            : 'text-gray-600'
+                            ? 'text-green-700 dark:text-green-300'
+                            : 'text-gray-600 dark:text-gray-300'
                       }`}
                     >
                       {level.mount}
@@ -229,9 +231,9 @@ export const MountainJourney = ({
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
       >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/40 border-amber-200 dark:border-amber-700">
           <DialogHeader className="pb-6">
-            <DialogTitle className="text-center text-3xl font-bold text-amber-800">
+            <DialogTitle className="text-center text-3xl font-bold text-amber-800 dark:text-amber-200">
               {selectedLevel?.mount} - Detalhes da Conquista
             </DialogTitle>
           </DialogHeader>
@@ -249,29 +251,37 @@ export const MountainJourney = ({
                 <div className={`text-3xl font-bold ${selectedLevel?.color || 'text-gray-600'}`}>
                   {selectedLevel?.mount}
                 </div>
-                <div className="text-xl text-amber-700 font-medium">{selectedLevel?.name}</div>
+                <div className="text-xl text-amber-700 dark:text-amber-300 font-medium">
+                  {selectedLevel?.name}
+                </div>
               </div>
 
               {/* Descrição bíblica */}
-              <div className="bg-white/70 rounded-xl p-5 shadow-md">
-                <h3 className="text-xl font-bold text-amber-800 mb-3">Significado Bíblico</h3>
-                <p className="text-amber-900 leading-relaxed text-base">
+              <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-5 shadow-md">
+                <h3 className="text-xl font-bold text-amber-800 dark:text-amber-200 mb-3">
+                  Significado Bíblico
+                </h3>
+                <p className="text-amber-900 dark:text-amber-100 leading-relaxed text-base">
                   {selectedLevel?.description}
                 </p>
               </div>
 
               {/* Estatísticas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-white/70 rounded-lg p-4 shadow-md">
-                  <div className="text-sm font-medium text-amber-700 mb-1">Pontos Necessários</div>
-                  <div className="text-2xl font-bold text-amber-800">
+                <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
+                  <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    Pontos Necessários
+                  </div>
+                  <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
                     {selectedLevel?.minPoints ?? 0} - {selectedLevel?.maxPoints || '∞'} pts
                   </div>
                 </div>
 
-                <div className="bg-white/70 rounded-lg p-4 shadow-md">
-                  <div className="text-sm font-medium text-amber-700 mb-1">Status Atual</div>
-                  <div className="text-base font-semibold text-amber-800">
+                <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
+                  <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    Status Atual
+                  </div>
+                  <div className="text-base font-semibold text-amber-800 dark:text-amber-200">
                     {actualPoints >= (selectedLevel?.minPoints ?? 0) &&
                     (!selectedLevel?.maxPoints || actualPoints <= selectedLevel.maxPoints)
                       ? 'Conquistado'
@@ -283,15 +293,17 @@ export const MountainJourney = ({
               </div>
 
               {/* Situações espirituais alcançadas */}
-              <div className="bg-white/70 rounded-xl p-5 shadow-md">
-                <h3 className="text-xl font-bold text-amber-800 mb-3">
+              <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-5 shadow-md">
+                <h3 className="text-xl font-bold text-amber-800 dark:text-amber-200 mb-3">
                   Situações espirituais alcançadas
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {getSpiritualMilestones(selectedLevel).map((item, index) => (
                     <div key={index} className="flex items-start space-x-2">
-                      <div className="w-2 h-2 mt-2 bg-amber-600 rounded-full flex-shrink-0"></div>
-                      <span className="text-amber-900 text-sm leading-relaxed">{item}</span>
+                      <div className="w-2 h-2 mt-2 bg-amber-600 dark:bg-amber-400 rounded-full flex-shrink-0"></div>
+                      <span className="text-amber-900 dark:text-amber-100 text-sm leading-relaxed">
+                        {item}
+                      </span>
                     </div>
                   ))}
                 </div>

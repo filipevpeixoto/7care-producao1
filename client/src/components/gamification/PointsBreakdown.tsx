@@ -677,88 +677,88 @@ export const PointsBreakdown = ({
       name: 'Engajamento',
       points: calculateCategoryPoints('Engajamento'),
       icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/30',
       description: 'Nível de participação e envolvimento',
     },
     {
       name: 'Classificação',
       points: calculateCategoryPoints('Classificação'),
       icon: Users,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-900/30',
       description: 'Status de frequência na igreja',
     },
     {
       name: 'Fidelidade Regular com Dízimo',
       points: calculateCategoryPoints('Dizimista'),
       icon: Gift,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/30',
       description: 'Fidelidade regular com dízimo',
     },
     {
       name: 'Fidelidade Regular com Ofertas',
       points: calculateCategoryPoints('Ofertante'),
       icon: Heart,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
+      color: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-50 dark:bg-red-900/30',
       description: 'Contribuição com ofertas',
     },
     {
       name: 'Tempo de Batismo',
       points: calculateCategoryPoints('Tempo de Batismo'),
       icon: Calendar,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/30',
       description: 'Anos desde o batismo',
     },
     {
       name: 'Cargos',
       points: calculateCategoryPoints('Cargos'),
       icon: Award,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-900/30',
       description: 'Funções na igreja',
     },
     {
       name: 'Nome da Unidade',
       points: calculateCategoryPoints('Nome da Unidade'),
       icon: CheckCircle,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
       description: 'Unidade cadastrada',
     },
     {
       name: 'Tem Lição',
       points: calculateCategoryPoints('Tem Lição'),
       icon: Book,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-50',
+      color: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-50 dark:bg-amber-900/30',
       description: 'Participação em estudos',
     },
     {
       name: 'Total de Presença',
       points: calculateCategoryPoints('Total de Presença'),
       icon: Calendar,
-      color: 'text-violet-600',
-      bgColor: 'bg-violet-50',
+      color: 'text-violet-600 dark:text-violet-400',
+      bgColor: 'bg-violet-50 dark:bg-violet-900/30',
       description: 'Frequência nos cultos',
     },
     {
       name: 'CPF Válido',
       points: calculateCategoryPoints('CPF Válido'),
       icon: CheckCircle,
-      color: 'text-sky-600',
-      bgColor: 'bg-sky-50',
+      color: 'text-sky-600 dark:text-sky-400',
+      bgColor: 'bg-sky-50 dark:bg-sky-900/30',
       description: 'Documentação em dia',
     },
     {
       name: 'Campos Vazios ACMS',
       points: calculateCategoryPoints('Campos Vazios ACMS'),
       icon: Mountain,
-      color: 'text-stone-600',
-      bgColor: 'bg-stone-50',
+      color: 'text-stone-600 dark:text-stone-400',
+      bgColor: 'bg-stone-50 dark:bg-stone-900/30',
       description: 'Perfil completo no sistema',
     },
   ];
@@ -809,40 +809,40 @@ export const PointsBreakdown = ({
       name: 'Comunhão (ES)',
       points: calculateEscolaSabatinaPoints('comunhao'),
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/30',
       description: 'Participação em comunhão',
     },
     {
       name: 'Missão (ES)',
       points: calculateEscolaSabatinaPoints('missao'),
       icon: Target,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-900/30',
       description: 'Atividades missionárias',
     },
     {
       name: 'Estudo Bíblico (ES)',
       points: calculateEscolaSabatinaPoints('estudoBiblico'),
       icon: Book,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/30',
       description: 'Estudos bíblicos realizados',
     },
     {
       name: 'Batizou Alguém (ES)',
       points: calculateEscolaSabatinaPoints('batizouAlguem'),
       icon: Crown,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
+      color: 'text-yellow-600 dark:text-yellow-400',
+      bgColor: 'bg-yellow-50 dark:bg-yellow-900/30',
       description: 'Liderança em batismos',
     },
     {
       name: 'Discipulado Pós-Batismo (ES)',
       points: calculateEscolaSabatinaPoints('discipuladoPosBatismo'),
       icon: Star,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/30',
       description: 'Acompanhamento pós-batismo',
     },
   ];
@@ -920,13 +920,15 @@ export const PointsBreakdown = ({
       <CardContent className="space-y-6">
         {/* Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg">
-            <div className="text-3xl font-bold text-purple-600">{actualPoints}</div>
+          <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/40 dark:to-blue-900/40 rounded-lg">
+            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+              {actualPoints}
+            </div>
             <div className="text-sm text-muted-foreground">Pontos Reais do Usuário</div>
           </div>
 
-          <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">
+          <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/40 rounded-lg">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
               <div className="flex items-center gap-2">
                 <MountIcon iconType={getLevelIcon(actualPoints)} className="h-5 w-5" />
                 <div className="text-sm font-medium">{getMountName(actualPoints)}</div>
@@ -935,8 +937,8 @@ export const PointsBreakdown = ({
             <div className="text-xs text-muted-foreground">{currentLevel.name}</div>
           </div>
 
-          <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg">
-            <div className="text-2xl font-bold text-orange-600">
+          <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/40 dark:to-yellow-900/40 rounded-lg">
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
               {Math.round((actualPoints / 1000) * 100)}%
             </div>
             <div className="text-sm text-muted-foreground">Completude</div>
@@ -960,7 +962,7 @@ export const PointsBreakdown = ({
                   return (
                     <div
                       key={category.name}
-                      className={`p-3 rounded-lg border ${category.bgColor} hover:shadow-md transition-shadow group min-w-0 ${isMax ? 'ring-2 ring-green-200 border-green-300' : ''}`}
+                      className={`p-3 rounded-lg border ${category.bgColor} hover:shadow-md transition-shadow group min-w-0 ${isMax ? 'ring-2 ring-green-200 dark:ring-green-700 border-green-300 dark:border-green-600' : ''}`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 min-w-0">
@@ -974,7 +976,7 @@ export const PointsBreakdown = ({
                           {isMax && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] bg-green-50 text-green-700 border-green-200"
+                              className="text-[10px] bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700"
                             >
                               Máximo
                             </Badge>
@@ -982,7 +984,7 @@ export const PointsBreakdown = ({
                           {hasTips && (
                             <Badge
                               variant="outline"
-                              className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200"
+                              className="text-xs bg-yellow-50 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700"
                             >
                               <Lightbulb className="h-3 w-3 mr-1" />
                               Dicas
@@ -996,10 +998,10 @@ export const PointsBreakdown = ({
 
                       {/* Dicas personalizadas */}
                       {hasTips && (
-                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
                           <div className="flex items-center gap-2 mb-2">
-                            <ArrowUp className="h-3 w-3 text-yellow-600 flex-shrink-0" />
-                            <span className="text-xs font-medium text-yellow-800">
+                            <ArrowUp className="h-3 w-3 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                            <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
                               Como ganhar mais pontos:
                             </span>
                           </div>
@@ -1007,7 +1009,7 @@ export const PointsBreakdown = ({
                             {tips.map((tip, index) => (
                               <p
                                 key={index}
-                                className="text-xs text-yellow-700 leading-relaxed line-clamp-2"
+                                className="text-xs text-yellow-700 dark:text-yellow-300 leading-relaxed line-clamp-2"
                               >
                                 {tip}
                               </p>
@@ -1047,7 +1049,7 @@ export const PointsBreakdown = ({
                           {hasTips && (
                             <Badge
                               variant="outline"
-                              className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200"
+                              className="text-xs bg-yellow-50 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700"
                             >
                               <Lightbulb className="h-3 w-3 mr-1" />
                               Dicas
@@ -1061,10 +1063,10 @@ export const PointsBreakdown = ({
 
                       {/* Dicas personalizadas */}
                       {hasTips && (
-                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
                           <div className="flex items-center gap-2 mb-2">
-                            <ArrowUp className="h-3 w-3 text-yellow-600 flex-shrink-0" />
-                            <span className="text-xs font-medium text-yellow-800">
+                            <ArrowUp className="h-3 w-3 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                            <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
                               Como ganhar mais pontos:
                             </span>
                           </div>
@@ -1072,7 +1074,7 @@ export const PointsBreakdown = ({
                             {tips.map((tip, index) => (
                               <p
                                 key={index}
-                                className="text-xs text-yellow-700 leading-relaxed line-clamp-2"
+                                className="text-xs text-yellow-700 dark:text-yellow-300 leading-relaxed line-clamp-2"
                               >
                                 {tip}
                               </p>
