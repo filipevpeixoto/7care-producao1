@@ -42,7 +42,7 @@ exports.handler = async (event) => {
 
     // Get all active users for chat (status can be 'active' or 'approved')
     const users = await sql`
-      SELECT id, name, email, extra_data 
+      SELECT id, name, email, church, extra_data 
       FROM users 
       WHERE status IN ('approved', 'active')
       LIMIT 500
@@ -60,6 +60,7 @@ exports.handler = async (event) => {
         id: u.id,
         name: u.name,
         email: u.email,
+        church: u.church || null,
         profilePhoto
       };
     });

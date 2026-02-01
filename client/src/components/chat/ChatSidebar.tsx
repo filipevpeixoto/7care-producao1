@@ -314,9 +314,12 @@ export const ChatSidebar = ({
                       <AvatarFallback>{u.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between">
                         <h3 className="font-medium truncate">{u.name}</h3>
                       </div>
+                      {u.church && (
+                        <p className="text-sm text-muted-foreground truncate">{u.church}</p>
+                      )}
                     </div>
                   </div>
                 ))}
