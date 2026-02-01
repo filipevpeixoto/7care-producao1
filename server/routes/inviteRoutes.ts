@@ -288,11 +288,11 @@ export const inviteRoutes = (app: Express): void => {
   );
 
   /**
+   * POST /api/invites/onboarding/:token - Alias para submit (usado pelo frontend)
    * POST /api/invites/:token/submit - Submeter onboarding completo
    */
-  app.post(
-    '/api/invites/:token/submit',
-    asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const submitOnboardingHandler = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { token } = req.params;
       const data: SubmitOnboardingDTO = req.body;
 
@@ -330,8 +330,9 @@ export const inviteRoutes = (app: Express): void => {
         churches: data.churches,
         excelData: data.excelData,
         churchValidation: data.churchValidation,
+        dracmaConfig: data.dracmaConfig, // NOVO: Configuração do Dracma
         passwordHash,
-        completedSteps: [1, 2, 3, 4, 5, 6],
+        completedSteps: [1, 2, 3, 4, 5, 6, 7],
         lastStepAt: new Date().toISOString(),
       };
 
@@ -352,8 +353,12 @@ export const inviteRoutes = (app: Express): void => {
         success: true,
         message: 'Cadastro enviado para aprovação. Você receberá um email em breve.',
       });
-    })
+    }
   );
+
+  // Registrar ambos os endpoints (alias)
+  app.post('/api/invites/onboarding/:token', submitOnboardingHandler);
+  app.post('/api/invites/:token/submit', submitOnboardingHandler);
 
   /**
    * GET /api/invites - Listar convites (Superadmin)
@@ -531,6 +536,37 @@ export const inviteRoutes = (app: Express): void => {
             firstAccess: true,
           });
         }
+      }
+
+      // 5.1. Salvar credenciais do Dracma (se configurado)
+      if (data.dracmaConfig?.enableAutomation) {
+        const dracma = data.dracmaConfig;
+
+        // Gerar n8n API key
+        const n8nApiKey = crypto.randomBytes(32).toString('hex');
+
+        logger.info(`Configurando credenciais Dracma para pastor ${user.id}`);
+
+        // Usar raw SQL para UPSERT (INSERT ... ON CONFLICT)
+        const { sql } = await import('../neonConfig');
+
+        await sql`
+          INSERT INTO automation_config (key, value, user_id, district_id, encrypted, updated_at)
+          VALUES
+            ('n8n_api_key', ${n8nApiKey}, ${user.id}, ${district.id}, false, NOW()),
+            ('dracma_username', ${dracma.dracmaUsername || ''}, ${user.id}, ${district.id}, false, NOW()),
+            ('dracma_password', ${dracma.dracmaPassword || ''}, ${user.id}, ${district.id}, true, NOW()),
+            ('ocr_space_api_key', ${dracma.ocrApiKey || ''}, ${user.id}, ${district.id}, false, NOW())
+          ON CONFLICT (key, user_id)
+          DO UPDATE SET
+            value = EXCLUDED.value,
+            district_id = EXCLUDED.district_id,
+            updated_at = NOW()
+        `;
+
+        logger.info(
+          `✅ Credenciais Dracma configuradas para pastor ${user.id} (distrito ${district.id})`
+        );
       }
 
       // 6. Atualizar convite

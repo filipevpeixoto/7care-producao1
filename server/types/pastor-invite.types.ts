@@ -61,6 +61,14 @@ export interface ChurchValidation {
   memberCount: number;
 }
 
+// Configuração do Dracma (Passo 6)
+export interface DracmaConfigData {
+  enableAutomation: boolean;
+  dracmaUsername?: string;
+  dracmaPassword?: string;
+  ocrApiKey?: string;
+}
+
 // Sugestão de igreja similar
 export interface SimilarChurch {
   id: number;
@@ -86,6 +94,7 @@ export interface OnboardingData {
   churches: ChurchData[];
   excelData?: ExcelData;
   churchValidation?: ChurchValidation[];
+  dracmaConfig?: DracmaConfigData; // NOVO: Configuração do Dracma
   passwordHash?: string;
   completedSteps: number[];
   lastStepAt: string;
@@ -123,6 +132,7 @@ export interface SubmitOnboardingDTO {
   churches: ChurchData[];
   excelData?: ExcelData;
   churchValidation?: ChurchValidation[];
+  dracmaConfig?: DracmaConfigData; // NOVO: Configuração do Dracma
   password: string;
 }
 

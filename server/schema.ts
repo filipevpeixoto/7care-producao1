@@ -677,13 +677,17 @@ export const automationConfig = pgTable(
   'automation_config',
   {
     id: serial('id').primaryKey(),
-    key: text('key').notNull().unique(),
+    key: text('key').notNull(),
     value: text('value').notNull(),
+    userId: integer('user_id').references(() => users.id), // Multi-pastor support
+    districtId: integer('district_id').references(() => districts.id), // Multi-pastor support
     encrypted: boolean('encrypted').default(false),
     updatedAt: timestamp('updated_at').defaultNow(),
   },
   table => ({
     keyIdx: index('automation_config_key_idx').on(table.key),
+    userKeyIdx: index('automation_config_user_key_idx').on(table.userId, table.key), // Compound index
+    districtIdx: index('automation_config_district_idx').on(table.districtId),
   })
 );
 

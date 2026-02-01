@@ -90,7 +90,7 @@ export function useOnboardingWizard(token: string) {
   // Ir para próximo passo
   const nextStep = useCallback(() => {
     setState(prev => {
-      const newStep = Math.min(prev.currentStep + 1, 6);
+      const newStep = Math.min(prev.currentStep + 1, 7);
 
       // Salvar no localStorage
       setTimeout(() => {
@@ -123,7 +123,7 @@ export function useOnboardingWizard(token: string) {
   const goToStep = useCallback((step: number) => {
     setState(prev => ({
       ...prev,
-      currentStep: Math.max(1, Math.min(step, 6)),
+      currentStep: Math.max(1, Math.min(step, 7)),
     }));
   }, []);
 
@@ -142,6 +142,7 @@ export function useOnboardingWizard(token: string) {
           district: state.data.district,
           excelData: state.data.excelData,
           churchValidation: state.data.churchValidation,
+          dracmaConfig: state.data.dracmaConfig, // Adicionar configuração do Dracma
         };
 
         const response = await fetch(`/api/invites/onboarding/${token}`, {

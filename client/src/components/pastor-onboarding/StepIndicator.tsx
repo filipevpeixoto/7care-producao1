@@ -4,7 +4,16 @@
  */
 
 import React from 'react';
-import { Check, User, Building2, Church, FileSpreadsheet, CheckCircle, Lock } from 'lucide-react';
+import {
+  Check,
+  User,
+  Building2,
+  Church,
+  FileSpreadsheet,
+  CheckCircle,
+  Receipt,
+  Lock,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StepIndicatorProps {
@@ -19,7 +28,8 @@ const steps = [
   { number: 3, label: 'Igrejas', icon: Church },
   { number: 4, label: 'Membros', icon: FileSpreadsheet },
   { number: 5, label: 'Validação', icon: CheckCircle },
-  { number: 6, label: 'Senha', icon: Lock },
+  { number: 6, label: 'Dracma', icon: Receipt },
+  { number: 7, label: 'Senha', icon: Lock },
 ];
 
 export function StepIndicator({ currentStep, completedSteps, onStepClick }: StepIndicatorProps) {

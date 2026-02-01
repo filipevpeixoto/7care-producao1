@@ -188,12 +188,20 @@ export interface ValidationResult {
   selectedSuggestionId?: number;
 }
 
+export interface DracmaConfigData {
+  enableAutomation: boolean;
+  dracmaUsername?: string;
+  dracmaPassword?: string;
+  ocrApiKey?: string;
+}
+
 export interface OnboardingData {
   personal?: PersonalData;
   district?: DistrictData;
   churches?: ChurchData[];
   excelData?: ExcelData;
   churchValidation?: ChurchValidation[];
+  dracmaConfig?: DracmaConfigData;
   completedSteps: number[];
   lastStepAt: string;
 }

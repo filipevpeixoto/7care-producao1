@@ -23,13 +23,15 @@ import { Step2District } from '@/components/pastor-onboarding/steps/Step2Distric
 import { Step3Churches } from '@/components/pastor-onboarding/steps/Step3Churches';
 import { Step4ExcelImport } from '@/components/pastor-onboarding/steps/Step4ExcelImport';
 import { Step5Validation } from '@/components/pastor-onboarding/steps/Step5Validation';
-import { Step6Password } from '@/components/pastor-onboarding/steps/Step6Password';
+import { Step6DracmaConfig } from '@/components/pastor-onboarding/steps/Step6DracmaConfig';
+import { Step7Password } from '@/components/pastor-onboarding/steps/Step7Password';
 import {
   PersonalData,
   DistrictData,
   ChurchData,
   ExcelData,
   ChurchValidation,
+  DracmaConfigData,
 } from '@/types/pastor-invite';
 
 export default function PastorOnboarding() {
@@ -112,6 +114,11 @@ export default function PastorOnboarding() {
   };
 
   const handleStep5Next = () => {
+    nextStep();
+  };
+
+  const handleStep6Next = (dracmaConfig: DracmaConfigData) => {
+    updateStepData(6, { dracmaConfig });
     nextStep();
   };
 
@@ -332,7 +339,15 @@ export default function PastorOnboarding() {
               )}
 
               {currentStep === 6 && (
-                <Step6Password
+                <Step6DracmaConfig
+                  data={data.dracmaConfig}
+                  onNext={handleStep6Next}
+                  onBack={prevStep}
+                />
+              )}
+
+              {currentStep === 7 && (
+                <Step7Password
                   onSubmit={handleFinalSubmit}
                   onBack={prevStep}
                   isLoading={isLoading}
