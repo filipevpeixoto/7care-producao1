@@ -11,15 +11,14 @@ import {
   Check,
   X,
   ArrowLeft,
-  Sparkles,
   Loader2,
   CheckCircle2,
+  Sparkles,
   Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 
 interface Step6PasswordProps {
   onSubmit: (password: string) => Promise<void>;
@@ -231,26 +230,24 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
           className={`flex items-start gap-4 p-5 border-2 rounded-2xl transition-all cursor-pointer ${
             acceptedTerms ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
           }`}
-          onClick={() => setAcceptedTerms(!acceptedTerms)}
+          onClick={() => setAcceptedTerms(prev => !prev)}
         >
-          <Checkbox
+          <input
+            type="checkbox"
             id="terms"
             checked={acceptedTerms}
-            onCheckedChange={checked => setAcceptedTerms(checked as boolean)}
-            className="mt-1"
+            onChange={e => setAcceptedTerms(e.target.checked)}
+            onClick={e => e.stopPropagation()}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <Label htmlFor="terms" className="text-sm cursor-pointer leading-relaxed">
+          <label htmlFor="terms" className="text-sm cursor-pointer leading-relaxed">
             Li e aceito os{' '}
             <a
               href="/termos"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline font-medium"
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-                window.open('/termos', '_blank', 'noopener,noreferrer');
-              }}
+              onClick={e => e.stopPropagation()}
             >
               Termos de Uso
             </a>{' '}
@@ -260,15 +257,11 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline font-medium"
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-                window.open('/privacidade', '_blank', 'noopener,noreferrer');
-              }}
+              onClick={e => e.stopPropagation()}
             >
               Política de Privacidade
             </a>
-          </Label>
+          </label>
         </div>
         {errors.terms && (
           <p className="text-sm text-red-500 flex items-center gap-1">

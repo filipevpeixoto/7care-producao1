@@ -323,7 +323,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{spiritualLevels[expandedLevel - 1].emoji}</div>
                     <div>
-                      <h4 className="font-bold text-base text-gray-900">
+                      <h4 className="font-bold text-base text-gray-900 dark:text-gray-100">
                         Nível {expandedLevel} – {spiritualLevels[expandedLevel - 1].label}
                       </h4>
                       <div className="flex space-x-1">

@@ -207,7 +207,7 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
                       <div className="flex items-center gap-3 pb-2 border-b border-gray-200">
                         <div className="text-3xl">{level.emoji}</div>
                         <div>
-                          <h4 className="font-semibold text-lg text-gray-900">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
                             Nível {level.score} – {level.label}
                           </h4>
                         </div>

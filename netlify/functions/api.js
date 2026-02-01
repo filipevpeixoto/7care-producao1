@@ -2611,6 +2611,136 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // ============================================
+    // DASHBOARD UNIFICADO - Carrega tudo de uma vez
+    // ============================================
+    if (path === '/api/dashboard/unified' && method === 'GET') {
+      try {
+        console.log('🚀 [DASHBOARD UNIFIED] Iniciando carregamento unificado...');
+        const startTime = Date.now();
+        
+        const userId = event.headers['x-user-id'];
+        const userRole = event.headers['x-user-role'] || 'member';
+        
+        // Executar todas as queries em PARALELO para máxima performance
+        const [
+          // Stats básicos
+          usersResult,
+          eventsResult,
+          interestedResult,
+          membersResult,
+          adminsResult,
+          missionariesResult,
+          // Distritos e Pastores (só para superadmin)
+          districtsResult,
+          pastorsResult,
+          // Aniversariantes
+          birthdaysTodayResult,
+          birthdaysThisWeekResult,
+          // Eventos
+          eventsListResult,
+          // Relacionamentos
+          relationshipsResult,
+        ] = await Promise.all([
+          // Stats básicos
+          sql`SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com'`,
+          sql`SELECT COUNT(*) as count FROM events`,
+          sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com'`,
+          sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com'`,
+          sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com'`,
+          sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND email != 'admin@7care.com'`,
+          // Distritos e Pastores
+          sql`SELECT id, name FROM districts`,
+          sql`SELECT id, name FROM users WHERE role = 'pastor' AND email != 'admin@7care.com'`,
+          // Aniversariantes hoje
+          sql`SELECT id, name, birth_date, church FROM users 
+              WHERE birth_date IS NOT NULL 
+              AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+              AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
+              AND email != 'admin@7care.com'
+              LIMIT 10`,
+          // Aniversariantes esta semana
+          sql`SELECT id, name, birth_date, church FROM users 
+              WHERE birth_date IS NOT NULL 
+              AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+              AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW()) + 7
+              AND email != 'admin@7care.com'
+              LIMIT 20`,
+          // Próximos eventos (apenas os próximos 5)
+          sql`SELECT id, title, date, end_date, location, visibility 
+              FROM events 
+              WHERE date >= CURRENT_DATE 
+              ORDER BY date ASC 
+              LIMIT 5`,
+          // Relacionamentos ativos
+          sql`SELECT interested_id FROM relationships WHERE status = 'active'`,
+        ]);
+
+        // Calcular eventos deste mês
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        const eventsThisMonth = eventsListResult.filter(e => {
+          const eventDate = new Date(e.date);
+          return eventDate >= monthStart && eventDate <= monthEnd;
+        }).length;
+
+        // Calcular interessados únicos sendo discipulados
+        const uniqueInterested = new Set(
+          relationshipsResult.map(rel => rel.interested_id).filter(id => id != null)
+        );
+        const interestedBeingDiscipled = uniqueInterested.size;
+
+        const endTime = Date.now();
+        console.log(`✅ [DASHBOARD UNIFIED] Carregado em ${endTime - startTime}ms`);
+
+        const result = {
+          // Stats
+          stats: {
+            totalUsers: parseInt(usersResult[0].count),
+            totalEvents: parseInt(eventsResult[0].count),
+            totalInterested: parseInt(interestedResult[0].count),
+            totalMembers: parseInt(membersResult[0].count),
+            totalAdmins: parseInt(adminsResult[0].count),
+            totalMissionaries: parseInt(missionariesResult[0].count),
+            interestedBeingDiscipled,
+            approvedUsers: parseInt(membersResult[0].count) + parseInt(missionariesResult[0].count) + parseInt(adminsResult[0].count),
+            eventsThisMonth,
+          },
+          // Distritos e Pastores (para superadmin)
+          districts: districtsResult,
+          districtsCount: districtsResult.length,
+          pastors: pastorsResult,
+          pastorsCount: pastorsResult.length,
+          // Aniversariantes
+          birthdays: {
+            today: birthdaysTodayResult,
+            thisWeek: birthdaysThisWeekResult,
+            todayCount: birthdaysTodayResult.length,
+            thisWeekCount: birthdaysThisWeekResult.length,
+          },
+          // Próximos eventos
+          upcomingEvents: eventsListResult,
+          // Metadata
+          loadTimeMs: endTime - startTime,
+        };
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(result)
+        };
+      } catch (error) {
+        console.error('❌ [DASHBOARD UNIFIED] Erro:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao carregar dashboard', details: error.message })
+        };
+      }
+    }
+
     // Rota para visitas - VERSÃO COM TABELA DE VISITAS
     if (path === '/api/dashboard/visits' && method === 'GET') {
       try {
@@ -16437,13 +16567,105 @@ exports.handler = async (event, context) => {
 
         console.log(`Convite criado para ${email} por ${auth.user.email}`);
 
+        // Tentar enviar email via Brevo
+        let emailSent = false;
+        const BREVO_API_KEY = process.env.BREVO_API_KEY;
+        
+        if (BREVO_API_KEY) {
+          try {
+            const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+              method: 'POST',
+              headers: {
+                'accept': 'application/json',
+                'api-key': BREVO_API_KEY,
+                'content-type': 'application/json'
+              },
+              body: JSON.stringify({
+                sender: {
+                  name: '7Care App',
+                  email: process.env.BREVO_SENDER_EMAIL || 'noreply@7care.app'
+                },
+                to: [{ email: email }],
+                subject: '🎉 Convite para se cadastrar no 7Care App',
+                htmlContent: `
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  </head>
+                  <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+                      <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); border-radius: 16px 16px 0 0; padding: 40px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 28px;">7Care App</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Gestão de Cuidado Pastoral</p>
+                      </div>
+                      
+                      <div style="background: white; padding: 40px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                        <h2 style="color: #1e3a5f; margin: 0 0 20px 0; font-size: 24px;">Você foi convidado! 🎉</h2>
+                        
+                        <p style="color: #4a5568; line-height: 1.6; margin: 0 0 20px 0;">
+                          Você recebeu um convite para se cadastrar como pastor no <strong>7Care App</strong>, 
+                          a plataforma de gestão de cuidado pastoral.
+                        </p>
+                        
+                        <p style="color: #4a5568; line-height: 1.6; margin: 0 0 30px 0;">
+                          Clique no botão abaixo para completar seu cadastro:
+                        </p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                          <a href="${link}" 
+                             style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+                                    color: white; text-decoration: none; padding: 16px 40px; border-radius: 50px; 
+                                    font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(59,130,246,0.4);">
+                            Completar Cadastro
+                          </a>
+                        </div>
+                        
+                        <p style="color: #718096; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
+                          <strong>⚠️ Este convite expira em ${expiresInDays} dias.</strong>
+                        </p>
+                        
+                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+                        
+                        <p style="color: #a0aec0; font-size: 12px; margin: 0;">
+                          Se o botão não funcionar, copie e cole este link no seu navegador:<br>
+                          <a href="${link}" style="color: #3b82f6; word-break: break-all;">${link}</a>
+                        </p>
+                      </div>
+                      
+                      <p style="text-align: center; color: #a0aec0; font-size: 12px; margin-top: 20px;">
+                        © 2026 7Care App. Todos os direitos reservados.
+                      </p>
+                    </div>
+                  </body>
+                  </html>
+                `
+              })
+            });
+            
+            if (emailResponse.ok) {
+              emailSent = true;
+              console.log(`Email de convite enviado para ${email}`);
+            } else {
+              const emailError = await emailResponse.text();
+              console.error(`Erro ao enviar email via Brevo: ${emailError}`);
+            }
+          } catch (emailError) {
+            console.error('Erro ao enviar email:', emailError);
+          }
+        } else {
+          console.log('BREVO_API_KEY não configurada - email não enviado');
+        }
+
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             token: invite.token,
             link,
-            expiresAt: invite.expires_at
+            expiresAt: invite.expires_at,
+            emailSent
           })
         };
       } catch (error) {
@@ -16502,6 +16724,102 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // DELETE /api/invites/:id - Deletar convite individual (Superadmin)
+    if (path.match(/^\/api\/invites\/\d+$/) && method === 'DELETE') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        if (!isSuperAdmin(auth.user)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado. Apenas superadmin pode deletar convites.' })
+          };
+        }
+
+        const inviteId = parseInt(path.split('/').pop());
+        
+        const result = await sql`DELETE FROM pastor_invites WHERE id = ${inviteId} RETURNING id`;
+        
+        if (result.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Convite não encontrado' })
+          };
+        }
+
+        console.log(`Convite ${inviteId} deletado`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            success: true, 
+            message: 'Convite deletado com sucesso'
+          })
+        };
+      } catch (error) {
+        console.error('Erro ao deletar convite:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao deletar convite' })
+        };
+      }
+    }
+
+    // DELETE /api/invites/all - Deletar todos os convites (Superadmin)
+    if (path === '/api/invites/all' && method === 'DELETE') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        if (!isSuperAdmin(auth.user)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado. Apenas superadmin pode deletar convites.' })
+          };
+        }
+
+        // Deletar todos os convites
+        const result = await sql`DELETE FROM pastor_invites RETURNING id`;
+        
+        console.log(`Deletados ${result.length} convites`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            success: true, 
+            message: `${result.length} convites deletados com sucesso`,
+            deletedCount: result.length
+          })
+        };
+      } catch (error) {
+        console.error('Erro ao deletar convites:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao deletar convites' })
+        };
+      }
+    }
+
     // GET /api/invites/validate/:token - Validar token de convite (Público)
     if (path.match(/^\/api\/invites\/validate\/[a-f0-9]+$/) && method === 'GET') {
       try {
@@ -16527,7 +16845,7 @@ exports.handler = async (event, context) => {
           return {
             statusCode: 400,
             headers,
-            body: JSON.stringify({ valid: false, error: `Convite já foi ${invite.status === 'completed' ? 'utilizado' : 'processado'}` })
+            body: JSON.stringify({ valid: false, error: `Convite já foi ${invite.status === 'approved' ? 'aprovado' : invite.status === 'rejected' ? 'rejeitado' : 'processado'}` })
           };
         }
 
@@ -16563,7 +16881,7 @@ exports.handler = async (event, context) => {
       try {
         const token = path.split('/').pop();
         const parsedBody = JSON.parse(body || '{}');
-        const { name, password, phone, churches = [] } = parsedBody;
+        const { name, password, phone, churches = [], district, excelData, churchValidation } = parsedBody;
 
         // Validar campos obrigatórios
         if (!name || !password) {
@@ -16630,17 +16948,19 @@ exports.handler = async (event, context) => {
           RETURNING id, name, email, role
         `;
 
-        // Salvar dados de onboarding no convite
+        // Salvar dados de onboarding no convite (todos os dados para processar na aprovação)
         const onboardingData = {
-          name,
-          phone,
+          personal: { name, phone },
           churches,
+          district,
+          excelData,
+          churchValidation,
           submittedAt: new Date().toISOString()
         };
 
         await sql`
           UPDATE pastor_invites 
-          SET status = 'pending_approval', 
+          SET status = 'submitted', 
               onboarding_data = ${JSON.stringify(onboardingData)},
               user_id = ${newUser.id}
           WHERE id = ${invite.id}
@@ -16850,7 +17170,7 @@ exports.handler = async (event, context) => {
 
         const invite = invites[0];
 
-        if (invite.status !== 'pending_approval') {
+        if (invite.status !== 'submitted') {
           return {
             statusCode: 400,
             headers,
@@ -16858,31 +17178,225 @@ exports.handler = async (event, context) => {
           };
         }
 
-        // Atualizar status para completed
+        // Verificar se o convite tem user_id (pastor deve ter completado o onboarding)
+        if (!invite.user_id) {
+          console.error(`❌ Convite ${inviteId} não tem user_id associado`);
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+              error: 'Convite incompleto: pastor não finalizou o cadastro. O pastor precisa completar o formulário de onboarding primeiro.' 
+            })
+          };
+        }
+
+        // Verificar se o usuário existe
+        const userExists = await sql`
+          SELECT id, email, status FROM users WHERE id = ${invite.user_id} LIMIT 1
+        `;
+        if (userExists.length === 0) {
+          console.error(`❌ Usuário ${invite.user_id} não encontrado para o convite ${inviteId}`);
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+              error: 'Usuário do convite não encontrado no sistema. Pode ter sido deletado.' 
+            })
+          };
+        }
+
+        console.log(`✅ Usuário encontrado: ${userExists[0].email} (status: ${userExists[0].status})`);
+
+        // Parsear dados de onboarding
+        let onboardingData;
+        try {
+          onboardingData = typeof invite.onboarding_data === 'string' 
+            ? JSON.parse(invite.onboarding_data) 
+            : invite.onboarding_data;
+        } catch (parseError) {
+          console.error(`❌ Erro ao parsear onboarding_data do convite ${inviteId}:`, parseError);
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+              error: 'Dados de onboarding inválidos ou corrompidos.' 
+            })
+          };
+        }
+
+        if (!onboardingData) {
+          console.error(`❌ Convite ${inviteId} não tem dados de onboarding`);
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+              error: 'Dados de onboarding não encontrados no convite.' 
+            })
+          };
+        }
+
+        console.log('📋 Dados de onboarding:', JSON.stringify(onboardingData, null, 2));
+
+        // 1. Criar distrito (se houver dados)
+        let districtId = null;
+        if (onboardingData?.district?.name) {
+          const districtData = onboardingData.district;
+          
+          // Verificar se distrito já existe
+          const existingDistricts = await sql`
+            SELECT id FROM districts WHERE name = ${districtData.name} LIMIT 1
+          `;
+          
+          if (existingDistricts.length > 0) {
+            districtId = existingDistricts[0].id;
+            console.log(`📍 Distrito já existe: ${districtData.name} (ID: ${districtId})`);
+          } else {
+            const [newDistrict] = await sql`
+              INSERT INTO districts (name, region, created_at)
+              VALUES (${districtData.name}, ${districtData.region || null}, NOW())
+              RETURNING id
+            `;
+            districtId = newDistrict.id;
+            console.log(`📍 Distrito criado: ${districtData.name} (ID: ${districtId})`);
+          }
+          
+          // Vincular pastor ao distrito
+          await sql`
+            UPDATE users SET district_id = ${districtId} WHERE id = ${invite.user_id}
+          `;
+          console.log(`👤 Pastor vinculado ao distrito ${districtId}`);
+        }
+
+        // 2. Criar igrejas (se houver)
+        const churchIds = [];
+        if (onboardingData?.churches && onboardingData.churches.length > 0) {
+          for (const church of onboardingData.churches) {
+            // Verificar se igreja já existe
+            const existingChurches = await sql`
+              SELECT id FROM churches WHERE name = ${church.name} AND district_id = ${districtId} LIMIT 1
+            `;
+            
+            if (existingChurches.length > 0) {
+              churchIds.push(existingChurches[0].id);
+              console.log(`⛪ Igreja já existe: ${church.name}`);
+            } else {
+              const [newChurch] = await sql`
+                INSERT INTO churches (name, district_id, address, created_at)
+                VALUES (${church.name}, ${districtId}, ${church.address || null}, NOW())
+                RETURNING id
+              `;
+              churchIds.push(newChurch.id);
+              console.log(`⛪ Igreja criada: ${church.name} (ID: ${newChurch.id})`);
+            }
+          }
+        }
+
+        // 3. Importar membros da planilha (se houver excelData)
+        let membersImported = 0;
+        if (onboardingData?.excelData && onboardingData.excelData.length > 0) {
+          console.log(`📊 Importando ${onboardingData.excelData.length} membros...`);
+          
+          for (const member of onboardingData.excelData) {
+            try {
+              // Verificar se membro já existe pelo email
+              if (member.email) {
+                const existingMember = await sql`
+                  SELECT id FROM users WHERE email = ${member.email} LIMIT 1
+                `;
+                if (existingMember.length > 0) {
+                  console.log(`⚠️ Membro já existe: ${member.email}`);
+                  continue;
+                }
+              }
+              
+              // Determinar a igreja do membro
+              let memberChurchId = churchIds[0] || null; // Default: primeira igreja
+              if (member.church && onboardingData.churches) {
+                const churchIndex = onboardingData.churches.findIndex(c => 
+                  c.name?.toLowerCase() === member.church?.toLowerCase()
+                );
+                if (churchIndex >= 0 && churchIds[churchIndex]) {
+                  memberChurchId = churchIds[churchIndex];
+                }
+              }
+              
+              // Criar membro
+              await sql`
+                INSERT INTO users (
+                  name, email, role, church, phone, 
+                  birth_date, civil_status, occupation, education, address,
+                  baptism_date, is_tither, is_donor, status, created_at,
+                  district_id
+                )
+                VALUES (
+                  ${member.name || 'Sem nome'},
+                  ${member.email || null},
+                  'member',
+                  ${member.church || null},
+                  ${member.phone || null},
+                  ${member.birthDate ? new Date(member.birthDate) : null},
+                  ${member.civilStatus || null},
+                  ${member.occupation || null},
+                  ${member.education || null},
+                  ${member.address || null},
+                  ${member.baptismDate ? new Date(member.baptismDate) : null},
+                  ${member.isTither || false},
+                  ${member.isDonor || false},
+                  'active',
+                  NOW(),
+                  ${districtId}
+                )
+              `;
+              membersImported++;
+            } catch (memberError) {
+              console.error(`❌ Erro ao importar membro ${member.name}:`, memberError.message);
+            }
+          }
+          console.log(`✅ ${membersImported} membros importados com sucesso`);
+        }
+
+        // 4. Ativar o usuário pastor
+        await sql`
+          UPDATE users SET status = 'active', first_access = false WHERE id = ${invite.user_id}
+        `;
+
+        // 5. Atualizar status do convite para approved
         await sql`
           UPDATE pastor_invites 
-          SET status = 'completed',
+          SET status = 'approved',
               approved_by = ${auth.user.id},
               approved_at = NOW()
           WHERE id = ${inviteId}
         `;
 
-        console.log(`Convite ${inviteId} aprovado por ${auth.user.email}`);
+        console.log(`✅ Convite ${inviteId} aprovado por ${auth.user.email}`);
+        console.log(`   - Distrito: ${districtId || 'Nenhum'}`);
+        console.log(`   - Igrejas: ${churchIds.length}`);
+        console.log(`   - Membros importados: ${membersImported}`);
 
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             success: true,
-            message: 'Convite aprovado com sucesso!'
+            message: 'Convite aprovado com sucesso!',
+            details: {
+              districtId,
+              churchesCreated: churchIds.length,
+              membersImported
+            }
           })
         };
       } catch (error) {
         console.error('Erro ao aprovar convite:', error);
+        console.error('Stack trace:', error.stack);
         return {
           statusCode: 500,
           headers,
-          body: JSON.stringify({ error: 'Erro ao aprovar convite' })
+          body: JSON.stringify({ 
+            error: 'Erro ao aprovar convite',
+            details: error.message || 'Erro desconhecido'
+          })
         };
       }
     }

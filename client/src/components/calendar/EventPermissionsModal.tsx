@@ -220,9 +220,11 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
         {/* Grid de Permissões */}
         <div className="space-y-4">
           {/* Cabeçalho da Tabela */}
-          <div className="grid grid-cols-12 gap-2 p-2 bg-gray-50 rounded-lg border">
+          <div className="grid grid-cols-12 gap-2 p-2 bg-gray-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
             <div className="col-span-4">
-              <Label className="text-sm font-semibold text-gray-700">Tipos de Eventos</Label>
+              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                Tipos de Eventos
+              </Label>
             </div>
             {USER_PROFILES.map(profile => (
               <div key={profile.id} className="col-span-2 text-center">
@@ -230,7 +232,9 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
                   <div className={`p-1.5 rounded-full ${profile.color} text-white`}>
                     <profile.icon className="h-3 w-3" />
                   </div>
-                  <Label className="text-xs font-medium text-gray-700">{profile.label}</Label>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                    {profile.label}
+                  </Label>
                 </div>
               </div>
             ))}
@@ -240,11 +244,13 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
           {EVENT_TYPES.map(eventType => (
             <div
               key={eventType.id}
-              className="grid grid-cols-12 gap-2 p-2 rounded-lg border hover:bg-gray-50 transition-colors"
+              className="grid grid-cols-12 gap-2 p-2 rounded-lg border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
             >
               <div className="col-span-4 flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${eventType.color}`} />
-                <Label className="text-sm font-medium text-gray-800">{eventType.label}</Label>
+                <Label className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                  {eventType.label}
+                </Label>
               </div>
 
               {USER_PROFILES.map(profile => {
@@ -257,7 +263,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
                       {isVisible ? (
                         <Eye className="h-4 w-4 text-green-600" />
                       ) : (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
+                        <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
 
                       <Switch
@@ -274,12 +280,14 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
           ))}
 
           {/* Linha de Aniversariantes do Mês */}
-          <div className="grid grid-cols-12 gap-2 p-2 rounded-lg border hover:bg-gray-50 transition-colors bg-pink-50">
+          <div className="grid grid-cols-12 gap-2 p-2 rounded-lg border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors bg-pink-50 dark:bg-pink-950/30">
             <div className="col-span-4 flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-pink-500" />
               <div className="flex items-center gap-2">
-                <Cake className="h-4 w-4 text-pink-600" />
-                <Label className="text-sm font-medium text-gray-800">Aniversariantes do Mês</Label>
+                <Cake className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                <Label className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                  Aniversariantes do Mês
+                </Label>
               </div>
             </div>
 
@@ -293,7 +301,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
                     {isVisible ? (
                       <Eye className="h-4 w-4 text-green-600" />
                     ) : (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                     )}
 
                     <Switch
@@ -337,7 +345,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
         </div>
 
         {/* Resumo das Configurações */}
-        <Card className="bg-gray-50">
+        <Card className="bg-gray-50 dark:bg-slate-800">
           <CardHeader>
             <CardTitle className="text-base">Resumo das Configurações</CardTitle>
           </CardHeader>
@@ -351,8 +359,12 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
                 return (
                   <div key={profile.id} className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{visibleCount}</div>
-                    <div className="text-xs text-gray-600">de {totalCount} tipos</div>
-                    <div className="text-xs font-medium text-gray-800">{profile.label}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      de {totalCount} tipos
+                    </div>
+                    <div className="text-xs font-medium text-gray-800 dark:text-gray-100">
+                      {profile.label}
+                    </div>
                   </div>
                 );
               })}

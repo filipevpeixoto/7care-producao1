@@ -306,7 +306,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
               <div
                 key={day}
-                className="p-3 text-center font-medium text-gray-500 border-r last:border-r-0"
+                className="p-3 text-center font-medium text-gray-500 dark:text-gray-400 border-r last:border-r-0 dark:border-slate-700"
               >
                 {day}
               </div>
@@ -323,14 +323,16 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
               return (
                 <div
                   key={index}
-                  className={`min-h-[120px] p-2 border-r border-b last:border-r-0 ${
-                    isCurrentMonthDay ? 'bg-white' : 'bg-gray-50'
-                  } ${isTodayDay ? 'bg-blue-50' : ''}`}
+                  className={`min-h-[120px] p-2 border-r border-b last:border-r-0 dark:border-slate-700 ${
+                    isCurrentMonthDay
+                      ? 'bg-white dark:bg-slate-900'
+                      : 'bg-gray-50 dark:bg-slate-800'
+                  } ${isTodayDay ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}
                   onClick={() => setSelectedDate((day as Date).toISOString().split('T')[0])}
                 >
                   <div
                     className={`text-sm font-medium mb-1 ${
-                      isCurrentMonthDay ? 'text-gray-900' : 'text-gray-400'
+                      isCurrentMonthDay ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400'
                     } ${isTodayDay ? 'text-blue-600' : ''}`}
                   >
                     {(day as Date).getDate()}
@@ -368,7 +370,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                             {isMultiDay && isEnd && ' (Fim)'}
                           </div>
                           {event.location && (
-                            <div className="flex items-center text-xs text-gray-600">
+                            <div className="flex items-center text-xs text-gray-600 dark:text-gray-300">
                               <MapPin className="h-3 w-3 mr-1" />
                               {event.location}
                             </div>
@@ -377,7 +379,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
                       );
                     })}
                     {dayEvents.length > 3 && (
-                      <div className="text-xs text-gray-500 text-center">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
                         +{dayEvents.length - 3} mais
                       </div>
                     )}
@@ -400,22 +402,24 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
           </CardHeader>
           <CardContent>
             {getEventsForDate(new Date(selectedDate)).length === 0 ? (
-              <p className="text-gray-500">Nenhum evento para este dia.</p>
+              <p className="text-gray-500 dark:text-gray-400">Nenhum evento para este dia.</p>
             ) : (
               <div className="space-y-3">
                 {getEventsForDate(new Date(selectedDate)).map(event => (
                   <div
                     key={event.id}
-                    className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                    className="p-3 border dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800"
                     onClick={() => onEventClick?.(event)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-medium">{event.title}</h3>
                         {event.description && (
-                          <p className="text-sm text-gray-600 mt-1">{event.description}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                            {event.description}
+                          </p>
                         )}
-                        <div className="flex items-center text-sm text-gray-500 mt-2 space-x-4">
+                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-2 space-x-4">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-1" />
                             {new Date(event.date).toLocaleTimeString('pt-BR', {
@@ -442,16 +446,18 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
       )}
 
       {/* Debug Info */}
-      <Card className="bg-gray-50">
+      <Card className="bg-gray-50 dark:bg-slate-800">
         <CardHeader>
           <CardTitle className="text-sm">Debug - Eventos Carregados</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-600">Total de eventos: {events.length}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Total de eventos: {events.length}
+          </p>
           {events.length > 0 && (
             <div className="mt-2 space-y-1">
               {events.map(event => (
-                <div key={event.id} className="text-xs text-gray-500">
+                <div key={event.id} className="text-xs text-gray-500 dark:text-gray-400">
                   {event.title} - {event.date}
                 </div>
               ))}

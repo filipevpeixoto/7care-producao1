@@ -1038,7 +1038,7 @@ export default function Users() {
         )}
 
         {/* Stats como Badges Filtros Elegantes - Ultra Minimalista Mobile */}
-        <div className="flex flex-wrap gap-1 sm:gap-4 mt-3 sm:mt-6 p-1.5 sm:p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg sm:rounded-xl border border-slate-200/50 shadow-sm">
+        <div className="flex flex-wrap gap-1 sm:gap-4 mt-3 sm:mt-6 p-1.5 sm:p-4 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-slate-800 rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
           <ResponsiveStatsBadges
             roleFilter={roleFilter}
             setRoleFilter={setRoleFilter}

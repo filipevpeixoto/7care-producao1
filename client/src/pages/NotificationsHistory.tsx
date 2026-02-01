@@ -222,7 +222,9 @@ export default function NotificationsHistory() {
                   <Bell className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Notificações</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    Notificações
+                  </h1>
                   <p className="text-sm text-gray-600">Histórico de notificações recebidas</p>
                 </div>
               </div>
@@ -275,7 +277,7 @@ export default function NotificationsHistory() {
                       {/* Conteúdo */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-gray-900 leading-tight">
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                             {notification.title}
                           </h3>
                           <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">

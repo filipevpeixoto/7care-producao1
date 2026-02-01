@@ -22,7 +22,9 @@ export default function Privacy() {
             <div className="p-2 bg-purple-100 rounded-lg">
               <Shield className="w-6 h-6 text-purple-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Política de Privacidade</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Política de Privacidade
+            </h1>
           </div>
         </div>
 
@@ -31,7 +33,7 @@ export default function Privacy() {
           <div className="prose prose-purple max-w-none">
             <p className="text-sm text-gray-500 mb-6">Última atualização: Janeiro de 2026</p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               1. Informações que Coletamos
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -44,7 +46,7 @@ export default function Privacy() {
               <li>Informações de comunicação e interação no aplicativo</li>
             </ul>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               2. Como Usamos suas Informações
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -58,7 +60,7 @@ export default function Privacy() {
               <li>Garantir a segurança e prevenir fraudes</li>
             </ul>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               3. Compartilhamento de Informações
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -70,7 +72,7 @@ export default function Privacy() {
               <li>Autoridades legais quando exigido por lei</li>
             </ul>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               4. Proteção de Dados (LGPD)
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -86,7 +88,7 @@ export default function Privacy() {
               <li>Revogar o consentimento a qualquer momento</li>
             </ul>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               5. Segurança dos Dados
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -95,14 +97,16 @@ export default function Privacy() {
               entanto, nenhum método de transmissão pela internet é 100% seguro.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6. Retenção de Dados</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
+              6. Retenção de Dados
+            </h2>
             <p className="text-gray-600 leading-relaxed">
               Mantemos suas informações pelo tempo necessário para fornecer nossos serviços e
               cumprir obrigações legais. Você pode solicitar a exclusão de seus dados a qualquer
               momento, sujeito a requisitos legais de retenção.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               7. Cookies e Tecnologias Similares
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -111,14 +115,16 @@ export default function Privacy() {
               preferências de cookies nas configurações do navegador.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">8. Menores de Idade</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
+              8. Menores de Idade
+            </h2>
             <p className="text-gray-600 leading-relaxed">
               O 7Care não é destinado a menores de 13 anos. Não coletamos intencionalmente
               informações de crianças. Se você é pai ou responsável e acredita que seu filho nos
               forneceu dados, entre em contato conosco.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               9. Alterações nesta Política
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -127,7 +133,9 @@ export default function Privacy() {
               regularmente.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">10. Contato</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
+              10. Contato
+            </h2>
             <p className="text-gray-600 leading-relaxed">
               Para exercer seus direitos ou esclarecer dúvidas sobre esta política, entre em contato
               através do suporte disponível no aplicativo ou pelo email de contato da sua igreja.

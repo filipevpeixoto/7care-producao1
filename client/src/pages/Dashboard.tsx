@@ -41,7 +41,31 @@ const Dashboard = () => {
   const { toast: _toast } = useToast();
   const [showCheckIn, setShowCheckIn] = useState(false);
 
-  // BUSCAR dados de usuários da mesma query da página Users
+  // ============================================
+  // QUERY UNIFICADA - Carrega tudo de uma vez (mais rápido para superadmin)
+  // ============================================
+  const { data: unifiedData, isLoading: unifiedLoading } = useQuery({
+    queryKey: ['/api/dashboard/unified', user?.id],
+    queryFn: async () => {
+      console.log('🚀 Dashboard: Carregando dados unificados...');
+      const response = await fetch('/api/dashboard/unified', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch unified dashboard');
+      const data = await response.json();
+      console.log(`✅ Dashboard: Dados unificados carregados em ${data.loadTimeMs}ms`);
+      return data;
+    },
+    enabled: !!user?.id && isSuperAdmin(user),
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchInterval: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
+  });
+
+  // BUSCAR dados de usuários da mesma query da página Users (fallback para não-superadmin)
   const { data: usersDataRaw } = useQuery({
     queryKey: ['/api/users'],
     queryFn: async () => {
@@ -167,12 +191,20 @@ const Dashboard = () => {
     staleTime: 2 * 60 * 1000, // 2 minutos - dados não mudam tão frequentemente
     refetchInterval: 5 * 60 * 1000, // 5 minutos - menos frequente
     refetchOnWindowFocus: false, // Não refetch a cada foco
+    // Desabilitar para superadmin (usa dados unificados)
+    enabled: !isSuperAdmin(user),
   });
 
   // Fetch real dashboard statistics from API with optimized caching
+  // Para superadmin, usa dados unificados
   const { data: dashboardStatsRaw, isLoading } = useQuery({
     queryKey: ['/api/dashboard/stats', user?.id],
     queryFn: async () => {
+      // Se temos dados unificados, usar eles
+      if (unifiedData?.stats) {
+        console.log('🔍 Dashboard: Usando stats do cache unificado');
+        return unifiedData.stats;
+      }
       const response = await fetch('/api/dashboard/stats', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
@@ -188,11 +220,34 @@ const Dashboard = () => {
     refetchOnMount: true, // Atualizar quando o componente é montado
     refetchOnReconnect: true, // Atualizar quando reconecta
     enabled: !!user?.id, // Só executar se tiver usuário
+    // Usar dados unificados como initialData para superadmin
+    initialData: unifiedData?.stats,
   });
 
   // USAR dados reais das páginas correspondentes
+  // Para superadmin, priorizar dados unificados (mais rápidos)
   const dashboardStats = useMemo(() => {
     console.log('🔍 Dashboard: Calculando stats...');
+
+    // Se temos dados unificados (superadmin), usar eles primeiro
+    if (unifiedData?.stats) {
+      console.log('✅ Dashboard: Usando stats unificados (superadmin)');
+      return {
+        totalUsers: unifiedData.stats.totalUsers || 0,
+        totalMembers: unifiedData.stats.totalMembers || 0,
+        totalMissionaries: unifiedData.stats.totalMissionaries || 0,
+        totalInterested: unifiedData.stats.totalInterested || 0,
+        approvedUsers: unifiedData.stats.approvedUsers || 0,
+        totalTasks: 0,
+        pendingTasks: 0,
+        completedTasks: 0,
+        totalPrayers: 0,
+        totalVisits: 0,
+        totalActivities: 0,
+        totalPoints: 0,
+        interestedBeingDiscipled: unifiedData.stats.interestedBeingDiscipled || 0,
+      };
+    }
 
     // usersData já é garantido ser array (normalizado acima)
     const tasksArray = Array.isArray(tasksData) ? tasksData : [];
@@ -257,6 +312,7 @@ const Dashboard = () => {
       totalVisits: dashboardStatsRaw?.totalVisits || 0,
       totalActivities: dashboardStatsRaw?.totalActivities || 0,
       totalPoints: dashboardStatsRaw?.totalPoints || 0,
+      interestedBeingDiscipled: dashboardStatsRaw?.interestedBeingDiscipled || 0,
     };
 
     console.log('📊 Dashboard: Stats calculados:', stats);
@@ -268,7 +324,7 @@ const Dashboard = () => {
     console.log('🎯 Tarefas concluídas:', stats.completedTasks);
 
     return stats;
-  }, [dashboardStatsRaw, tasksData, usersData]);
+  }, [dashboardStatsRaw, tasksData, usersData, unifiedData]);
 
   // Fetch birthday data with shorter cache for real-time updates
   const { data: birthdayData, isLoading: birthdayLoading } = useQuery({
@@ -379,10 +435,18 @@ const Dashboard = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Fetch districts count for superadmin
+  // Fetch districts count for superadmin (usa dados unificados se disponível)
   const { data: districtsCount } = useQuery({
     queryKey: ['/api/districts', 'count', user?.id],
     queryFn: async () => {
+      // Se temos dados unificados, usar eles
+      if (unifiedData?.districtsCount !== undefined) {
+        console.log(
+          '🔍 Dashboard: Usando districtsCount do cache unificado:',
+          unifiedData.districtsCount
+        );
+        return unifiedData.districtsCount;
+      }
       const response = await fetch('/api/districts', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
@@ -400,12 +464,22 @@ const Dashboard = () => {
     enabled: isSuperAdmin(user) && !!user?.id,
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 5 * 60 * 1000, // 5 minutes
+    // Usar initialData dos dados unificados para carregamento instantâneo
+    initialData: unifiedData?.districtsCount,
   });
 
-  // Fetch pastors count for superadmin
+  // Fetch pastors count for superadmin (usa dados unificados se disponível)
   const { data: pastorsCount } = useQuery({
     queryKey: ['/api/pastors', 'count', user?.id],
     queryFn: async () => {
+      // Se temos dados unificados, usar eles
+      if (unifiedData?.pastorsCount !== undefined) {
+        console.log(
+          '🔍 Dashboard: Usando pastorsCount do cache unificado:',
+          unifiedData.pastorsCount
+        );
+        return unifiedData.pastorsCount;
+      }
       const response = await fetch('/api/pastors', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
@@ -423,6 +497,8 @@ const Dashboard = () => {
     enabled: isSuperAdmin(user) && !!user?.id,
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 5 * 60 * 1000, // 5 minutes
+    // Usar initialData dos dados unificados para carregamento instantâneo
+    initialData: unifiedData?.pastorsCount,
   });
 
   // Contagem de eventos deste mês visíveis ao usuário logado
@@ -1045,6 +1121,9 @@ const Dashboard = () => {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     return `${day}/${month}`;
   };
+
+  // Loading state otimizado para superadmin (usa dados unificados)
+  const isUnifiedLoading = isSuperAdmin(user) && unifiedLoading;
 
   const renderAdminDashboard = () => (
     <div className="space-y-4 lg:space-y-8">

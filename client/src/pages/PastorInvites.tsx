@@ -22,6 +22,7 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,8 @@ export default function PastorInvites() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [selectedInvite, setSelectedInvite] = useState<PastorInvite | null>(null);
 
   // Form data
@@ -125,7 +128,11 @@ export default function PastorInvites() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao aprovar convite');
+        // Include details if available
+        const errorMessage = error.details
+          ? `${error.error}: ${error.details}`
+          : error.error || 'Erro ao aprovar convite';
+        throw new Error(errorMessage);
       }
       return response.json();
     },
@@ -177,6 +184,65 @@ export default function PastorInvites() {
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível rejeitar o convite.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Deletar convite individual
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetchWithAuth(`/api/invites/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao deletar convite');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
+      toast({
+        title: 'Convite excluído',
+        description: 'O convite foi excluído com sucesso.',
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedInvite(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível excluir o convite.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Deletar todos os convites
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetchWithAuth('/api/invites/all', {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao deletar convites');
+      }
+      return response.json();
+    },
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
+      toast({
+        title: 'Convites excluídos',
+        description: `${data.deletedCount} convites foram excluídos com sucesso.`,
+      });
+      setIsDeleteAllDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível excluir os convites.',
         variant: 'destructive',
       });
     },
@@ -310,10 +376,22 @@ export default function PastorInvites() {
             <h1 className="text-2xl font-bold">Convites de Pastores</h1>
             <p className="text-muted-foreground text-sm">Gerencie convites e aprove cadastros</p>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Convite
-          </Button>
+          <div className="flex gap-2">
+            {invites.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteAllDialogOpen(true)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Limpar Todos
+              </Button>
+            )}
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Convite
+            </Button>
+          </div>
         </div>
 
         {/* Resumo em Cards */}
@@ -436,13 +514,26 @@ export default function PastorInvites() {
 
                     <div className="flex gap-2">
                       {invite.status === 'pending' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyInviteLink(invite.token)}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyInviteLink(invite.token)}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              setSelectedInvite(invite);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
 
                       {invite.status === 'submitted' && (
@@ -475,13 +566,41 @@ export default function PastorInvites() {
                           >
                             <X className="w-4 h-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              setSelectedInvite(invite);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </>
                       )}
 
                       {(invite.status === 'approved' || invite.status === 'rejected') && (
-                        <Button variant="ghost" size="sm" onClick={() => handleViewDetails(invite)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewDetails(invite)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              setSelectedInvite(invite);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -740,6 +859,87 @@ export default function PastorInvites() {
                 <X className="w-4 h-4 mr-2" />
               )}
               Confirmar Rejeição
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Confirmar Exclusão Individual */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Convite</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir este convite? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedInvite && (
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="font-medium">{selectedInvite.email}</p>
+              <p className="text-sm text-muted-foreground">
+                Status: {selectedInvite.status} • Criado em {formatDate(selectedInvite.createdAt)}
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => selectedInvite && deleteMutation.mutate(selectedInvite.id)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Excluir Convite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Confirmar Exclusão de Todos */}
+      <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Limpar Todos os Convites</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir TODOS os {invites.length} convites? Esta ação não pode
+              ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertCircle className="w-5 h-5" />
+              <p className="font-medium">Atenção!</p>
+            </div>
+            <p className="text-sm text-red-600 mt-1">
+              Serão excluídos: {pendingCount} pendentes, {submittedCount} enviados, {approvedCount}{' '}
+              aprovados e {rejectedCount} rejeitados.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteAllDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteAllMutation.mutate()}
+              disabled={deleteAllMutation.isPending}
+            >
+              {deleteAllMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Excluir Todos ({invites.length})
             </Button>
           </DialogFooter>
         </DialogContent>

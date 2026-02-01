@@ -529,7 +529,7 @@ export default function Calendar() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Agenda</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Agenda</h1>
             <p className="text-muted-foreground">Sincronizada automaticamente com Google Sheets</p>
           </div>
         </div>
@@ -540,7 +540,11 @@ export default function Calendar() {
           <div className="flex flex-wrap gap-3 items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 dark:text-gray-200 dark:border-slate-600 dark:hover:bg-slate-800"
+                >
                   <Filter className="h-4 w-4 mr-2" />
                   Filtros de Eventos
                 </Button>
@@ -579,7 +583,9 @@ export default function Calendar() {
                         />
                         <span>{type.label}</span>
                         {type.isDynamic && (
-                          <span className="text-xs text-emerald-600 ml-1">✨</span>
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 ml-1">
+                            ✨
+                          </span>
                         )}
                       </div>
                     </DropdownMenuCheckboxItem>
@@ -608,7 +614,7 @@ export default function Calendar() {
               size="sm"
               onClick={handleSync}
               disabled={isSyncing}
-              className="h-8 flex items-center gap-2 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:border-blue-600/50 dark:hover:bg-blue-900/50"
+              className="h-8 flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:border-blue-600/50 dark:text-blue-300 dark:hover:bg-blue-900/50"
             >
               <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Sincronizando...' : 'Sincronizar'}

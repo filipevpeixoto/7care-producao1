@@ -847,6 +847,7 @@ export default function Settings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
 
@@ -2440,6 +2441,35 @@ export default function Settings() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Botão para rever tutorial (apenas para pastores) */}
+                  {user?.role === 'pastor' && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <div className="text-sm font-medium">Tutorial de Boas-vindas</div>
+                          <div className="text-xs text-muted-foreground">
+                            Reveja o tutorial que apresenta as funcionalidades do sistema
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Remove a flag do localStorage para permitir rever
+                            localStorage.removeItem(`7care_welcome_tour_completed_${user.id}`);
+                            // Recarrega a página para mostrar o tour
+                            window.location.reload();
+                          }}
+                          className="gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Rever Tutorial
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 

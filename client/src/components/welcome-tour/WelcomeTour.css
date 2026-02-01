@@ -1,0 +1,562 @@
+/**
+ * WelcomeTour CSS - Estilos com suporte a Dark Mode
+ * Animações elegantes e transições suaves
+ */
+
+/* ========== Overlay Base ========== */
+.welcome-tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+  transition: opacity 0.3s ease-out;
+}
+
+.welcome-tour-overlay.visible {
+  opacity: 1;
+}
+
+.welcome-tour-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ========== Backdrop (para modais centralizados) ========== */
+.welcome-tour-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Dark mode backdrop */
+.dark .welcome-tour-backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+/* ========== Spotlight ========== */
+.welcome-tour-spotlight {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.spotlight-svg {
+  position: absolute;
+  inset: 0;
+}
+
+.spotlight-background {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark mode spotlight - mais escuro */
+.dark .spotlight-background {
+  fill: rgba(0, 0, 0, 0.85);
+}
+
+/* ========== Pulsing Ring ========== */
+.spotlight-ring {
+  position: fixed;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 
+    0 0 0 4px rgba(59, 130, 246, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.3),
+    0 0 40px rgba(59, 130, 246, 0.1);
+  animation: pulse-ring 2s ease-in-out infinite;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark mode - anel roxo */
+.dark .spotlight-ring {
+  box-shadow: 
+    0 0 0 4px rgba(139, 92, 246, 0.6),
+    0 0 20px rgba(139, 92, 246, 0.4),
+    0 0 40px rgba(139, 92, 246, 0.2);
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 4px rgba(59, 130, 246, 0.5),
+      0 0 20px rgba(59, 130, 246, 0.3),
+      0 0 40px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 0 8px rgba(59, 130, 246, 0.3),
+      0 0 30px rgba(59, 130, 246, 0.4),
+      0 0 60px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.dark .spotlight-ring {
+  animation-name: pulse-ring-dark;
+}
+
+@keyframes pulse-ring-dark {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 4px rgba(139, 92, 246, 0.6),
+      0 0 20px rgba(139, 92, 246, 0.4),
+      0 0 40px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 0 8px rgba(139, 92, 246, 0.4),
+      0 0 30px rgba(139, 92, 246, 0.5),
+      0 0 60px rgba(139, 92, 246, 0.3);
+  }
+}
+
+/* ========== Tooltip Card ========== */
+.welcome-tour-tooltip {
+  position: fixed;
+  width: 400px;
+  max-width: calc(100vw - 40px);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 10000;
+  overflow: hidden;
+}
+
+/* Dark mode tooltip */
+.dark .welcome-tour-tooltip {
+  background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(139, 92, 246, 0.1);
+}
+
+.welcome-tour-tooltip.centered {
+  max-width: 480px;
+}
+
+.welcome-tour-tooltip.animating {
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Centered tooltip needs different animation */
+.welcome-tour-tooltip.centered {
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ========== Close Button ========== */
+.welcome-tour-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  color: #64748b;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.welcome-tour-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #334155;
+  transform: rotate(90deg);
+}
+
+/* Dark mode close button */
+.dark .welcome-tour-close {
+  background: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+.dark .welcome-tour-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+}
+
+/* ========== Progress Bar ========== */
+.welcome-tour-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+
+.dark .welcome-tour-progress {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.welcome-tour-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 4px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-tour-progress-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ========== Icon ========== */
+.welcome-tour-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+  animation: bounceIn 0.5s ease-out 0.2s both;
+  box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
+}
+
+/* Dark mode icon - mais vibrante */
+.dark .welcome-tour-icon {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  box-shadow: 
+    0 10px 30px -10px rgba(139, 92, 246, 0.6),
+    0 0 20px rgba(139, 92, 246, 0.2);
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ========== Content ========== */
+.welcome-tour-content {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.welcome-tour-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.dark .welcome-tour-title {
+  color: #f1f5f9;
+}
+
+.welcome-tour-description {
+  font-size: 0.9375rem;
+  color: #64748b;
+  line-height: 1.6;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.dark .welcome-tour-description {
+  color: #94a3b8;
+}
+
+/* ========== Navigation ========== */
+.welcome-tour-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+/* ========== Dots ========== */
+.welcome-tour-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.welcome-tour-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.welcome-tour-dot:hover {
+  background: #cbd5e1;
+  transform: scale(1.2);
+}
+
+.welcome-tour-dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+}
+
+.welcome-tour-dot.completed {
+  background: #3b82f6;
+}
+
+/* Dark mode dots */
+.dark .welcome-tour-dot {
+  background: #374151;
+}
+
+.dark .welcome-tour-dot:hover {
+  background: #4b5563;
+}
+
+.dark .welcome-tour-dot.active {
+  background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+}
+
+.dark .welcome-tour-dot.completed {
+  background: #6366f1;
+}
+
+/* ========== Buttons ========== */
+.welcome-tour-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+.welcome-tour-btn-prev,
+.welcome-tour-btn-skip {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.welcome-tour-btn-prev:hover,
+.welcome-tour-btn-skip:hover {
+  color: #334155;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .welcome-tour-btn-prev,
+.dark .welcome-tour-btn-skip {
+  color: #94a3b8;
+}
+
+.dark .welcome-tour-btn-prev:hover,
+.dark .welcome-tour-btn-skip:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.welcome-tour-btn-next {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.4);
+}
+
+.welcome-tour-btn-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px -3px rgba(59, 130, 246, 0.5);
+}
+
+/* Dark mode next button */
+.dark .welcome-tour-btn-next {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  box-shadow: 0 4px 15px -3px rgba(139, 92, 246, 0.5);
+}
+
+.dark .welcome-tour-btn-next:hover {
+  box-shadow: 0 6px 20px -3px rgba(139, 92, 246, 0.6);
+}
+
+/* ========== Step Counter ========== */
+.welcome-tour-counter {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.dark .welcome-tour-counter {
+  color: #64748b;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 480px) {
+  .welcome-tour-tooltip {
+    width: calc(100vw - 32px);
+    padding: 20px;
+    margin: 16px;
+  }
+
+  .welcome-tour-tooltip.centered {
+    position: fixed;
+    top: auto !important;
+    bottom: 16px;
+    left: 16px !important;
+    right: 16px;
+    transform: none !important;
+    animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .welcome-tour-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .welcome-tour-title {
+    font-size: 1.25rem;
+  }
+
+  .welcome-tour-description {
+    font-size: 0.875rem;
+  }
+
+  .welcome-tour-buttons {
+    flex-direction: column;
+  }
+
+  .welcome-tour-btn-next {
+    width: 100%;
+  }
+}
+
+/* ========== Confetti Animation (opcional para o último passo) ========== */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  animation: confetti-fall 3s ease-in-out forwards;
+}
+
+/* ========== Floating particles background ========== */
+.welcome-tour-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(59, 130, 246, 0.03) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 70% 70%,
+    rgba(139, 92, 246, 0.03) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+  animation: float 10s ease-in-out infinite;
+}
+
+.dark .welcome-tour-tooltip::before {
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(99, 102, 241, 0.08) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 70% 70%,
+    rgba(168, 85, 247, 0.08) 0%,
+    transparent 50%
+  );
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-2%, -2%);
+  }
+}

@@ -762,7 +762,9 @@ export default function Tasks() {
                     <Circle className="h-5 w-5 text-gray-300 hover:text-gray-500" />
                   )}
                 </button>
-                <h3 className="text-lg font-semibold text-gray-900 truncate">{task.title}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+                  {task.title}
+                </h3>
                 {isNotSynced && (
                   <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
                     <CloudOff className="h-2 w-2 mr-1" />
@@ -868,7 +870,7 @@ export default function Tasks() {
       <div className="inline-flex p-4 rounded-full bg-gray-100 mb-4">
         <Icon className="h-8 w-8 text-gray-400" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
       <p className="text-gray-500 max-w-sm mx-auto">{description}</p>
     </div>
   );
@@ -1115,7 +1117,7 @@ export default function Tasks() {
                       className="flex-shrink-0"
                     />
                     <div>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">
                         {selectedTasks.length > 0
                           ? `${selectedTasks.length} selecionada${selectedTasks.length > 1 ? 's' : ''}`
                           : 'Selecionar todas'}

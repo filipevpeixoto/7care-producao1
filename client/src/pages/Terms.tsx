@@ -22,7 +22,7 @@ export default function Terms() {
             <div className="p-2 bg-blue-100 rounded-lg">
               <FileText className="w-6 h-6 text-blue-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Termos de Uso</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Termos de Uso</h1>
           </div>
         </div>
 
@@ -31,7 +31,7 @@ export default function Terms() {
           <div className="prose prose-blue max-w-none">
             <p className="text-sm text-gray-500 mb-6">Última atualização: Janeiro de 2026</p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               1. Aceitação dos Termos
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -40,7 +40,7 @@ export default function Terms() {
               usar nosso aplicativo.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               2. Descrição do Serviço
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -49,14 +49,18 @@ export default function Terms() {
               funcionalidades relacionadas à administração eclesiástica.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3. Cadastro e Conta</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
+              3. Cadastro e Conta
+            </h2>
             <p className="text-gray-600 leading-relaxed">
               Para utilizar o 7Care, você deve criar uma conta fornecendo informações precisas e
               atualizadas. Você é responsável por manter a confidencialidade de sua senha e por
               todas as atividades que ocorram em sua conta.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">4. Uso Adequado</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
+              4. Uso Adequado
+            </h2>
             <p className="text-gray-600 leading-relaxed">
               Você concorda em usar o 7Care apenas para fins legais e de acordo com estes termos.
               Você não deve usar o serviço para:
@@ -68,7 +72,7 @@ export default function Terms() {
               <li>Tentar acessar sistemas ou dados sem autorização</li>
             </ul>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               5. Propriedade Intelectual
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -77,7 +81,7 @@ export default function Terms() {
               intelectual.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               6. Limitação de Responsabilidade
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -86,7 +90,7 @@ export default function Terms() {
               danos indiretos, incidentais ou consequenciais.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
               7. Modificações dos Termos
             </h2>
             <p className="text-gray-600 leading-relaxed">
@@ -95,14 +99,18 @@ export default function Terms() {
               após as alterações constitui sua aceitação dos novos termos.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">8. Lei Aplicável</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
+              8. Lei Aplicável
+            </h2>
             <p className="text-gray-600 leading-relaxed">
               Estes termos serão regidos e interpretados de acordo com as leis do Brasil. Qualquer
               disputa decorrente destes termos será submetida à jurisdição exclusiva dos tribunais
               brasileiros.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9. Contato</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
+              9. Contato
+            </h2>
             <p className="text-gray-600 leading-relaxed">
               Se você tiver dúvidas sobre estes Termos de Uso, entre em contato conosco através do
               suporte disponível no aplicativo.

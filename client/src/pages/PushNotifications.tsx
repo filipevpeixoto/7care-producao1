@@ -423,7 +423,9 @@ export default function PushNotifications() {
           <Card className="max-w-md mx-4">
             <CardContent className="pt-6 text-center">
               <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Acesso Restrito</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Acesso Restrito
+              </h3>
               <p className="text-sm text-gray-600">Esta página é exclusiva para administradores.</p>
             </CardContent>
           </Card>
@@ -584,7 +586,7 @@ export default function PushNotifications() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                               {subscription.user_name}
                             </span>
                             <span className="px-2 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 text-xs font-medium rounded-full flex items-center gap-1">

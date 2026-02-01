@@ -37,84 +37,98 @@ const navigationItems = [
     url: '/dashboard',
     icon: LayoutDashboard,
     roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'] as UserRole[],
+    tourId: 'dashboard',
   },
   {
     title: 'Agenda',
     url: '/calendar',
     icon: Calendar,
     roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'] as UserRole[],
+    tourId: 'calendar',
   },
   {
     title: 'Usuários',
     url: '/users',
     icon: Users,
     roles: ['superadmin', 'pastor'] as UserRole[],
+    tourId: 'members',
   },
   {
     title: 'Distritos',
     url: '/districts',
     icon: Building2,
     roles: ['superadmin'] as UserRole[],
+    tourId: 'districts',
   },
   {
     title: 'Pastores',
     url: '/pastors',
     icon: UserCog,
     roles: ['superadmin'] as UserRole[],
+    tourId: 'pastors',
   },
   {
     title: 'Convites',
     url: '/pastor-invites',
     icon: Mail,
     roles: ['superadmin'] as UserRole[],
+    tourId: 'invites',
   },
   {
     title: 'Amigos',
     url: '/interested',
     icon: UserPlus,
     roles: ['superadmin', 'pastor', 'missionary'] as UserRole[],
+    tourId: 'prayers',
   },
   {
     title: 'Meus Amigos',
     url: '/my-interested',
     icon: Heart,
     roles: ['missionary', 'member'] as UserRole[],
+    tourId: 'my-friends',
   },
   {
     title: 'Chat',
     url: '/chat',
     icon: MessageCircle,
     roles: ['superadmin', 'pastor', 'missionary', 'member'] as UserRole[],
+    tourId: 'chat',
   },
   {
     title: 'Relatórios',
     url: '/reports',
     icon: BarChart3,
     roles: ['superadmin', 'pastor', 'missionary'] as UserRole[],
+    tourId: 'reports',
   },
   {
     title: 'Meus Relatórios',
     url: '/my-reports',
     icon: FileText,
     roles: ['missionary'] as UserRole[],
+    tourId: 'my-reports',
   },
   {
     title: 'Configurações',
     url: '/settings',
     icon: Settings,
     roles: ['superadmin', 'pastor'] as UserRole[],
+    tourId: 'settings',
   },
   {
     title: 'Aparência',
     url: '/appearance',
     icon: Settings,
     roles: ['superadmin', 'pastor'] as UserRole[],
+    tourId: 'appearance',
   },
   {
     title: 'Notificações Push',
     url: '/push',
     icon: Bell,
     roles: ['superadmin', 'pastor'] as UserRole[],
+    tourId: 'push',
   },
 ];
 
@@ -178,7 +192,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {allowedItems.map(item => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} data-tour={item.tourId}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavClasses(item.url)}>
                       <item.icon className="h-4 w-4" />
