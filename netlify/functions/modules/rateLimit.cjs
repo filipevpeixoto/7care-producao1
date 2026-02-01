@@ -186,7 +186,7 @@ function rateLimitMiddleware(event, headers = {}) {
  * Verifica rate limit por identificador e tipo (versão simplificada para API direta)
  * @param {string} identifier - IP ou ID do usuário
  * @param {string} type - Tipo de rate limit (auth, api, write, bulk)
- * @returns {Object|null} null se permitido, objeto com retryAfter se bloqueado
+ * @returns {Object} Resultado com allowed, remaining, limit, resetTime
  */
 function checkRateLimitSimple(identifier, type = 'api') {
   const config = RATE_LIMIT_CONFIG[type] || RATE_LIMIT_CONFIG.api;
@@ -203,22 +203,38 @@ function checkRateLimitSimple(identifier, type = 'api') {
       windowMs: config.windowMs
     };
     rateLimitCache.set(key, data);
-    return null;
+    return {
+      allowed: true,
+      remaining: config.maxRequests - 1,
+      limit: config.maxRequests,
+      resetTime: now + config.windowMs
+    };
   }
   
   // Incrementar contador
   data.count++;
   rateLimitCache.set(key, data);
   
+  const resetTime = data.windowStart + config.windowMs;
+  
   // Verificar se excedeu limite
   if (data.count > config.maxRequests) {
     return {
-      retryAfter: Math.ceil((data.windowStart + config.windowMs - now) / 1000),
+      allowed: false,
+      remaining: 0,
+      limit: config.maxRequests,
+      resetTime: resetTime,
+      retryAfter: Math.ceil((resetTime - now) / 1000),
       message: config.message
     };
   }
   
-  return null;
+  return {
+    allowed: true,
+    remaining: config.maxRequests - data.count,
+    limit: config.maxRequests,
+    resetTime: resetTime
+  };
 }
 
 /**
