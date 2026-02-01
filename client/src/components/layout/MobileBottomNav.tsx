@@ -248,13 +248,11 @@ export const MobileBottomNav = memo(() => {
 
   return (
     <div
-      className="fixed left-0 right-0 pointer-events-none transition-transform duration-300 ease-in-out"
+      className="fixed bottom-0 left-0 right-0 p-4 pointer-events-none transition-transform duration-300 ease-in-out"
       style={{
         zIndex: 999999,
         transform: isAnyModalOpen ? 'translateY(100%)' : 'translateY(0)',
-        bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-        paddingLeft: '16px',
-        paddingRight: '16px',
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
       }}
     >
       {/* Menu principal suspenso/flutuante */}

@@ -39,6 +39,7 @@ import { districtRoutes } from './districtRoutes';
 import { importRoutes } from './importRoutes';
 import { inviteRoutes } from './inviteRoutes';
 import { adminRoutes } from './adminRoutes';
+import { receiptRoutes } from './receiptRoutes';
 
 /**
  * Registra todas as rotas da aplicação
@@ -88,6 +89,9 @@ export const registerAllRoutes = async (app: Express): Promise<Server> => {
 
   // Rotas de convite de pastores
   inviteRoutes(app);
+
+  // Rotas de recibos de despesas (notas fiscais)
+  receiptRoutes(app);
 
   // Rotas administrativas (auditoria, métricas, etc)
   app.use('/api/admin', adminRoutes);
