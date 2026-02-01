@@ -246,7 +246,8 @@ export const ChatSidebar = ({
     const term = searchTerm.toLowerCase();
     return allUsers
       .filter(u => u.id !== currentUserId)
-      .filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
+      .filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
   }, [allUsers, currentUserId, searchTerm]);
 
   return (
