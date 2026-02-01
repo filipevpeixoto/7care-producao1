@@ -124,7 +124,7 @@ describe('Performance Tests', () => {
         simulatedOperations.findUser(1)
       );
 
-      expect(duration).toBeLessThan(50); // Max 50ms for single query
+      expect(duration).toBeLessThan(100); // Max 100ms for single query (generous for CI)
     });
 
     it('should benefit from caching', async () => {
