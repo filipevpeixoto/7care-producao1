@@ -113,34 +113,28 @@ export default function Chat() {
     avatar?: string;
   }) => {
     if (!user?.id) return;
-    try {
-      const resp = await fetch('/api/conversations/direct', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userAId: Number(user.id), userBId: targetUser.id }),
-      });
-      if (!resp.ok) throw new Error('Falha ao abrir conversa');
-      const conv = await resp.json();
-      setSelectedConversation({
-        id: conv.id,
-        type: 'direct',
-        name: targetUser.name,
-        participants: [{ id: targetUser.id, name: targetUser.name, role: 'user', isOnline: false }],
-        lastMessage: {
-          content: '',
-          timestamp: new Date().toISOString(),
-          senderId: 0,
-          senderName: '',
-        },
-        unreadCount: 0,
-        isPinned: false,
-        isArchived: false,
-      } as any);
-      setSelectedUser(targetUser);
-      setShowNewChat(false);
-    } catch (e) {
-      console.error(e);
-    }
+
+    // Criar conversa local diretamente (sem depender de endpoint)
+    const conversationId =
+      Math.min(Number(user.id), targetUser.id) * 100000 + Math.max(Number(user.id), targetUser.id);
+
+    setSelectedConversation({
+      id: conversationId,
+      type: 'direct',
+      name: targetUser.name,
+      participants: [{ id: targetUser.id, name: targetUser.name, role: 'user', isOnline: false }],
+      lastMessage: {
+        content: '',
+        timestamp: new Date().toISOString(),
+        senderId: 0,
+        senderName: '',
+      },
+      unreadCount: 0,
+      isPinned: false,
+      isArchived: false,
+    } as any);
+    setSelectedUser(targetUser);
+    setShowNewChat(false);
   };
 
   return (
