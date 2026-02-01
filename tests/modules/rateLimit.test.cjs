@@ -53,7 +53,7 @@ describe('Rate Limit Module', () => {
   describe('checkRateLimit', () => {
     it('should allow requests under the limit', () => {
       const result = checkRateLimit('test-ip', 'api');
-      expect(result).toBe(null);
+      expect(result.allowed).toBe(true);
     });
 
     it('should track request count', () => {
@@ -69,12 +69,12 @@ describe('Rate Limit Module', () => {
       // Make 10 auth requests (limit)
       for (let i = 0; i < 10; i++) {
         const result = checkRateLimit('blocked-ip', 'auth');
-        expect(result).toBe(null);
+        expect(result.allowed).toBe(true);
       }
       
       // 11th request should be blocked
       const result = checkRateLimit('blocked-ip', 'auth');
-      expect(result).not.toBe(null);
+      expect(result.allowed).toBe(false);
       expect(result.retryAfter).toBeDefined();
     });
 
@@ -92,12 +92,12 @@ describe('Rate Limit Module', () => {
     it('should use different limits for different types', () => {
       // 5 bulk requests is the limit
       for (let i = 0; i < 5; i++) {
-        expect(checkRateLimit('bulk-ip', 'bulk')).toBe(null);
+        expect(checkRateLimit('bulk-ip', 'bulk').allowed).toBe(true);
       }
-      expect(checkRateLimit('bulk-ip', 'bulk')).not.toBe(null);
+      expect(checkRateLimit('bulk-ip', 'bulk').allowed).toBe(false);
       
       // Same IP should still have 100 api requests available
-      expect(checkRateLimit('bulk-ip', 'api')).toBe(null);
+      expect(checkRateLimit('bulk-ip', 'api').allowed).toBe(true);
     });
 
     it('should track different identifiers separately', () => {
@@ -107,13 +107,13 @@ describe('Rate Limit Module', () => {
       }
       
       // Different identifier should still have quota
-      expect(checkRateLimit('ip-2', 'auth')).toBe(null);
+      expect(checkRateLimit('ip-2', 'auth').allowed).toBe(true);
     });
 
     it('should handle unknown rate limit types gracefully', () => {
       const result = checkRateLimit('test-ip', 'unknown');
-      // Should use default (api) config or allow
-      expect(result === null || result.retryAfter).toBeTruthy();
+      // Should use default (api) config and allow
+      expect(result.allowed).toBe(true);
     });
   });
 
