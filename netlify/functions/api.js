@@ -2982,39 +2982,14 @@ exports.handler = async (event, context) => {
 
     // Rota para listar usuários para chat (simplificada)
     if (path === '/api/users/chat-list' && method === 'GET') {
-      console.log('🔍 Get users for chat list');
+      console.log('🔍 Get users for chat list - ROTA ENCONTRADA');
       
-      try {
-        // Buscar todos usuários aprovados
-        const users = await sql`
-          SELECT id, name, email, profile_photo 
-          FROM users 
-          WHERE status = 'approved'
-          LIMIT 500
-        `;
-        
-        console.log('✅ Found', users.length, 'users for chat');
-        
-        const chatList = users.map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          profilePhoto: u.profile_photo
-        }));
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify(chatList)
-        };
-      } catch (error) {
-        console.error('❌ Get chat list error:', error.message || error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ error: 'Erro ao buscar lista de usuários para chat', details: error.message })
-        };
-      }
+      // Teste simples sem banco
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify([{id: 1, name: 'Teste', email: 'teste@test.com', profilePhoto: null}])
+      };
     }
 
     // Rota para buscar usuário por ID
