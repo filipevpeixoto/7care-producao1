@@ -1,0 +1,1 @@
+import 'dotenv/config'; import { sql } from './server/neonConfig.ts'; const cols = await sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'churches' ORDER BY ordinal_position`; console.table(cols); process.exit(0);

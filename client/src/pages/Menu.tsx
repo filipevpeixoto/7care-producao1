@@ -279,7 +279,7 @@ const Menu = () => {
 
         {/* Profile Actions */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Perfil</h3>
+          <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Perfil</h3>
           <div className="grid grid-cols-2 gap-3">
             {profileActions.map(item => (
               <Card
@@ -294,7 +294,9 @@ const Menu = () => {
                     >
                       <item.icon className="w-6 h-6 text-white" />
                     </div>
-                    <span className="text-sm font-medium">{item.title}</span>
+                    <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      {item.title}
+                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -304,7 +306,9 @@ const Menu = () => {
 
         {/* Main Menu */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Funcionalidades</h3>
+          <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
+            Funcionalidades
+          </h3>
           <div className="grid grid-cols-2 gap-3">
             {(currentMenuItems || []).map(item => (
               <Card
@@ -319,8 +323,12 @@ const Menu = () => {
                     >
                       <item.icon className="w-6 h-6 text-white" />
                     </div>
-                    <span className="text-sm font-medium">{item.title}</span>
-                    <span className="text-xs text-muted-foreground">{item.description}</span>
+                    <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      {item.title}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-300">
+                      {item.description}
+                    </span>
                   </div>
                 </CardContent>
               </Card>

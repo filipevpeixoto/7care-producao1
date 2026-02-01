@@ -9,6 +9,7 @@ import { DracmaSubmitter } from '../services/dracmaSubmitter';
 
 interface PendingReceipt {
   id: number;
+  user_id: number; // Adicionado para buscar credenciais do pastor
   merchant_name: string | null;
   receipt_date: string | null; // yyyy-mm-dd from database
   total_amount: string | null;
@@ -28,7 +29,7 @@ export async function processDracmaSubmissions(): Promise<void> {
     // Buscar recibos prontos para submissão
     const pendingReceipts = await sql<PendingReceipt[]>`
       SELECT
-        id, merchant_name, receipt_date, total_amount, category,
+        id, user_id, merchant_name, receipt_date, total_amount, category,
         image_url, tax_id, dracma_retry_count
       FROM expense_receipts
       WHERE status = 'pending'
@@ -58,6 +59,7 @@ export async function processDracmaSubmissions(): Promise<void> {
         // Converter dados para formato esperado pelo serviço
         await submitter.submitReceipt({
           id: receipt.id,
+          userId: receipt.user_id,
           merchantName: receipt.merchant_name,
           receiptDate: receipt.receipt_date,
           totalAmount: receipt.total_amount,

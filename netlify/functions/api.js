@@ -2980,8 +2980,53 @@ exports.handler = async (event, context) => {
     }
 
 
+    // Rota para listar usuários para chat (simplificada)
+    if (path === '/api/users/chat-list' && method === 'GET') {
+      console.log('🔍 Get users for chat list');
+      
+      try {
+        const requestingUserId = event.headers['x-user-id'] ? parseInt(event.headers['x-user-id']) : 0;
+        let requestingUser = null;
+        
+        if (requestingUserId) {
+          const userResult = await sql`SELECT role, district_id FROM users WHERE id = ${requestingUserId} LIMIT 1`;
+          if (userResult.length > 0) {
+            requestingUser = userResult[0];
+          }
+        }
+        
+        let users;
+        // Se for pastor, filtrar por distrito
+        if (requestingUser?.role === 'pastor' && requestingUser?.district_id) {
+          users = await sql`SELECT id, name, email, profile_photo FROM users WHERE status = 'approved' AND district_id = ${requestingUser.district_id}`;
+        } else {
+          users = await sql`SELECT id, name, email, profile_photo FROM users WHERE status = 'approved'`;
+        }
+        
+        const chatList = users.map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          profilePhoto: u.profile_photo
+        }));
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(chatList)
+        };
+      } catch (error) {
+        console.error('❌ Get chat list error:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao buscar lista de usuários para chat' })
+        };
+      }
+    }
+
     // Rota para buscar usuário por ID
-    if (path.startsWith('/api/users/') && !path.includes('/points-details') && !path.includes('/with-points') && method === 'GET') {
+    if (path.startsWith('/api/users/') && !path.includes('/points-details') && !path.includes('/with-points') && !path.includes('/chat-list') && method === 'GET') {
       console.log('❌ ROTA GENÉRICA INTERCEPTOU:', path);
       const userId = path.split('/')[3];
       console.log('🔍 Get user by ID:', userId);

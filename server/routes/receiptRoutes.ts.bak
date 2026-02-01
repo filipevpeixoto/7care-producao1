@@ -255,7 +255,7 @@ export const receiptRoutes = (app: Express): void => {
       // @ts-ignore
       const userId = req.user?.id;
       // @ts-ignore
-      const userDistrictId = req.user?.district_id;
+      const userChurchId = req.user?.church_id;
 
       if (userRole !== 'pastor' && userRole !== 'admin' && userRole !== 'superadmin') {
         return sendError(res, 'Forbidden: Only admins and pastors can access this endpoint', 403);
@@ -264,7 +264,7 @@ export const receiptRoutes = (app: Express): void => {
       let receipts;
 
       // Pastores veem apenas recibos da sua igreja
-      if (userRole === 'pastor' && userDistrictId) {
+      if (userRole === 'pastor' && userChurchId) {
         receipts = await sql<
           {
             id: number;
@@ -288,7 +288,7 @@ export const receiptRoutes = (app: Express): void => {
           FROM expense_receipts er
           JOIN users u ON er.user_id = u.id
           WHERE er.status = 'pending'
-          AND u.district_id = ${userDistrictId}
+          AND u.church_id = ${userChurchId}
           ORDER BY er.created_at DESC
           LIMIT 100
         `;
@@ -322,9 +322,7 @@ export const receiptRoutes = (app: Express): void => {
         `;
       }
 
-      logger.info(
-        `📋 ${userRole} (ID ${userId}) buscando recibos pendentes: ${receipts.length} encontrados`
-      );
+      logger.info(`📋 ${userRole} (ID ${userId}) buscando recibos pendentes: ${receipts.length} encontrados`);
 
       sendSuccess(res, receipts);
     })
@@ -363,7 +361,7 @@ export const receiptRoutes = (app: Express): void => {
       // @ts-ignore
       const userRole = req.user?.role;
       // @ts-ignore
-      const userDistrictId = req.user?.district_id;
+      const userChurchId = req.user?.church_id;
 
       if (userRole !== 'pastor' && userRole !== 'admin' && userRole !== 'superadmin') {
         return sendError(res, 'Forbidden', 403);
@@ -374,10 +372,9 @@ export const receiptRoutes = (app: Express): void => {
 
       let receipts;
 
-      // Filtro de igreja para pastores (preparado para uso futuro)
+      // Filtro de igreja para pastores
       const isPastor = userRole === 'pastor';
-      const _churchFilter =
-        isPastor && userDistrictId ? `AND u.district_id = ${userDistrictId}` : '';
+      const churchFilter = isPastor && userChurchId ? `AND u.church_id = ${userChurchId}` : '';
 
       if (status) {
         receipts = await sql<
@@ -402,7 +399,7 @@ export const receiptRoutes = (app: Express): void => {
           FROM expense_receipts er
           JOIN users u ON er.user_id = u.id
           WHERE er.status = ${status}
-          ${isPastor && userDistrictId ? sql`AND u.district_id = ${userDistrictId}` : sql``}
+          ${isPastor && userChurchId ? sql`AND u.church_id = ${userChurchId}` : sql``}
           ORDER BY er.created_at DESC
           LIMIT ${limitNum}
         `;
@@ -428,7 +425,7 @@ export const receiptRoutes = (app: Express): void => {
             er.image_url, er.created_at, er.dracma_submitted_at, er.dracma_confirmation_id
           FROM expense_receipts er
           JOIN users u ON er.user_id = u.id
-          ${isPastor && userDistrictId ? sql`WHERE u.district_id = ${userDistrictId}` : sql``}
+          ${isPastor && userChurchId ? sql`WHERE u.church_id = ${userChurchId}` : sql``}
           ORDER BY er.created_at DESC
           LIMIT ${limitNum}
         `;
@@ -458,7 +455,7 @@ export const receiptRoutes = (app: Express): void => {
       // @ts-ignore
       const userRole = req.user?.role;
       // @ts-ignore
-      const userDistrictId = req.user?.district_id;
+      const userChurchId = req.user?.church_id;
 
       if (!userId) {
         return sendError(res, 'Unauthorized', 401);
@@ -494,7 +491,7 @@ export const receiptRoutes = (app: Express): void => {
             ) as total_amount_sum
           FROM expense_receipts
         `;
-      } else if (isPastor && userDistrictId) {
+      } else if (isPastor && userChurchId) {
         // Pastor: estatísticas da sua igreja
         stats = await sql<
           {
@@ -519,7 +516,7 @@ export const receiptRoutes = (app: Express): void => {
             ) as total_amount_sum
           FROM expense_receipts er
           JOIN users u ON er.user_id = u.id
-          WHERE u.district_id = ${userDistrictId}
+          WHERE u.church_id = ${userChurchId}
         `;
       } else {
         // Usuário: estatísticas pessoais

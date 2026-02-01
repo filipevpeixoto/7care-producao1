@@ -20,19 +20,20 @@ interface ChatUser {
 
 interface Conversation {
   id: number;
-  type: 'direct' | 'group';
-  name: string;
+  type: 'direct' | 'group' | 'private' | string;
+  name?: string;
+  title?: string; // Backend pode retornar title ao invés de name
   avatar?: string;
-  participants: ChatUser[];
-  lastMessage: {
+  participants?: ChatUser[];
+  lastMessage?: {
     content: string;
     timestamp: string;
     senderId: number;
     senderName: string;
   };
-  unreadCount: number;
-  isPinned: boolean;
-  isArchived: boolean;
+  unreadCount?: number;
+  isPinned?: boolean;
+  isArchived?: boolean;
 }
 
 const mockConversations: Conversation[] = [
@@ -198,9 +199,11 @@ export const ChatSidebar = ({
   }, [mode]);
 
   const filteredConversations = conversations.filter(conversation => {
+    const conversationName = conversation.name || conversation.title || '';
+    const lastMessageContent = conversation.lastMessage?.content || '';
     const matchesSearch =
-      conversation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conversation.lastMessage.content.toLowerCase().includes(searchTerm.toLowerCase());
+      conversationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lastMessageContent.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesArchived = showArchived ? conversation.isArchived : !conversation.isArchived;
     return matchesSearch && matchesArchived;
   });
@@ -226,15 +229,16 @@ export const ChatSidebar = ({
     if (conversation.type === 'group') {
       return '👥';
     }
-    return conversation.participants[0]?.name?.charAt(0) || 'U';
+    return conversation.participants?.[0]?.name?.charAt(0) || conversation.name?.charAt(0) || 'U';
   };
 
   const getLastMessagePreview = (conversation: Conversation) => {
-    const { content, senderName } = conversation.lastMessage;
-    if (conversation.type === 'group') {
+    const content = conversation.lastMessage?.content || '';
+    const senderName = conversation.lastMessage?.senderName || '';
+    if (conversation.type === 'group' && senderName) {
       return `${senderName}: ${content}`;
     }
-    return content;
+    return content || 'Sem mensagens';
   };
 
   const totalUnread = filteredConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
@@ -431,12 +435,12 @@ const ConversationItem = ({
           <AvatarImage src={conversation.avatar} />
           <AvatarFallback>{getConversationAvatar(conversation)}</AvatarFallback>
         </Avatar>
-        {conversation.type === 'direct' && conversation.participants[0]?.isOnline && (
+        {conversation.type === 'direct' && conversation.participants?.[0]?.isOnline && (
           <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
         )}
-        {conversation.type === 'group' && (
+        {conversation.type === 'group' && (conversation.participants?.length || 0) > 0 && (
           <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs">
-            {conversation.participants.length}
+            {conversation.participants?.length || 0}
           </div>
         )}
       </div>
@@ -447,12 +451,14 @@ const ConversationItem = ({
             className={cn('font-medium truncate', conversation.unreadCount > 0 && 'font-semibold')}
             data-testid={`conversation-name-${conversation.id}`}
           >
-            {conversation.name}
+            {conversation.name || 'Conversa'}
           </h3>
           <div className="flex items-center space-x-1">
             {conversation.isPinned && <Pin className="h-3 w-3 text-muted-foreground" />}
             <span className="text-xs text-muted-foreground">
-              {formatTime(conversation.lastMessage.timestamp)}
+              {conversation.lastMessage?.timestamp
+                ? formatTime(conversation.lastMessage.timestamp)
+                : ''}
             </span>
           </div>
         </div>

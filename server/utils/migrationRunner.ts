@@ -3,6 +3,7 @@
  * Sistema de migrações formais para o banco de dados
  */
 
+import 'dotenv/config';
 import { neon } from '@neondatabase/serverless';
 import { logger } from '../utils/logger';
 import * as fs from 'fs';
@@ -50,12 +51,13 @@ async function markMigrationAsExecuted(name: string): Promise<void> {
  */
 function getMigrationFiles(): string[] {
   const migrationsDir = path.join(__dirname, '../migrations');
-  
+
   if (!fs.existsSync(migrationsDir)) {
     return [];
   }
-  
-  return fs.readdirSync(migrationsDir)
+
+  return fs
+    .readdirSync(migrationsDir)
     .filter(file => file.endsWith('.ts') || file.endsWith('.js'))
     .filter(file => !file.includes('.test.'))
     .sort();
@@ -66,31 +68,29 @@ function getMigrationFiles(): string[] {
  */
 export async function runMigrations(): Promise<void> {
   logger.info('🔄 Iniciando sistema de migrações...');
-  
+
   try {
     await ensureMigrationsTable();
-    
+
     const executedMigrations = await getExecutedMigrations();
     const migrationFiles = getMigrationFiles();
-    
-    const pendingMigrations = migrationFiles.filter(
-      file => !executedMigrations.includes(file)
-    );
-    
+
+    const pendingMigrations = migrationFiles.filter(file => !executedMigrations.includes(file));
+
     if (pendingMigrations.length === 0) {
       logger.info('✅ Nenhuma migração pendente');
       return;
     }
-    
+
     logger.info(`📋 ${pendingMigrations.length} migrações pendentes`);
-    
+
     for (const migrationFile of pendingMigrations) {
       logger.info(`⏳ Executando: ${migrationFile}`);
-      
+
       try {
         const migrationPath = path.join(__dirname, '../migrations', migrationFile);
         const migration = await import(migrationPath);
-        
+
         if (typeof migration.up === 'function') {
           await migration.up(sql);
         } else if (typeof migration.default === 'function') {
@@ -99,7 +99,7 @@ export async function runMigrations(): Promise<void> {
           logger.warn(`⚠️ Migração ${migrationFile} não tem função up() ou default()`);
           continue;
         }
-        
+
         await markMigrationAsExecuted(migrationFile);
         logger.info(`✅ Migração executada: ${migrationFile}`);
       } catch (error) {
@@ -107,7 +107,7 @@ export async function runMigrations(): Promise<void> {
         throw error;
       }
     }
-    
+
     logger.info('🎉 Todas as migrações executadas com sucesso!');
   } catch (error) {
     logger.error('❌ Erro ao executar migrações:', error);
@@ -120,27 +120,27 @@ export async function runMigrations(): Promise<void> {
  */
 export async function rollbackLastMigration(): Promise<void> {
   logger.info('🔄 Revertendo última migração...');
-  
+
   try {
     await ensureMigrationsTable();
-    
+
     const result = await sql`
       SELECT name FROM _migrations 
       ORDER BY id DESC 
       LIMIT 1
     `;
-    
+
     if (result.length === 0) {
       logger.info('ℹ️ Nenhuma migração para reverter');
       return;
     }
-    
+
     const lastMigration = result[0].name as string;
     logger.info(`⏳ Revertendo: ${lastMigration}`);
-    
+
     const migrationPath = path.join(__dirname, '../migrations', lastMigration);
     const migration = await import(migrationPath);
-    
+
     if (typeof migration.down === 'function') {
       await migration.down(sql);
       await sql`DELETE FROM _migrations WHERE name = ${lastMigration}`;
@@ -159,15 +159,15 @@ export async function rollbackLastMigration(): Promise<void> {
  */
 export async function getMigrationStatus(): Promise<Migration[]> {
   await ensureMigrationsTable();
-  
+
   const executedMigrations = await sql`
     SELECT name, executed_at as "executedAt" 
     FROM _migrations 
     ORDER BY id
   `;
-  
+
   const migrationFiles = getMigrationFiles();
-  
+
   return migrationFiles.map(file => ({
     id: file,
     name: file.replace(/^\d+[-_]/, '').replace(/\.(ts|js)$/, ''),
@@ -175,10 +175,12 @@ export async function getMigrationStatus(): Promise<Migration[]> {
   }));
 }
 
-// Executar se chamado diretamente
-if (require.main === module) {
+// Executar se chamado diretamente (ESM)
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+
+if (isMainModule) {
   const command = process.argv[2];
-  
+
   switch (command) {
     case 'up':
       runMigrations()
@@ -193,11 +195,13 @@ if (require.main === module) {
     case 'status':
       getMigrationStatus()
         .then(migrations => {
-          console.table(migrations.map(m => ({
-            name: m.name,
-            executed: m.executedAt ? '✅' : '❌',
-            date: m.executedAt?.toISOString() || '-'
-          })));
+          console.table(
+            migrations.map(m => ({
+              name: m.name,
+              executed: m.executedAt ? '✅' : '❌',
+              date: m.executedAt?.toISOString() || '-',
+            }))
+          );
           process.exit(0);
         })
         .catch(() => process.exit(1));

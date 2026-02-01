@@ -258,6 +258,53 @@ export const userRoutes = (app: Express): void => {
    *                     totalPages:
    *                       type: integer
    */
+
+  /**
+   * @swagger
+   * /api/users/chat-list:
+   *   get:
+   *     summary: Lista simplificada de usuários para chat
+   *     tags: [Users]
+   *     responses:
+   *       200:
+   *         description: Lista de usuários para chat
+   */
+  app.get(
+    '/api/users/chat-list',
+    asyncHandler(async (req: Request, res: Response) => {
+      logger.debug('🔍 [GET /api/users/chat-list] Buscando lista de usuários para chat');
+
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+
+      // Buscar dados do usuário que está fazendo a requisição
+      let requestingUser = null;
+      if (requestingUserId) {
+        requestingUser = await storage.getUserById(requestingUserId);
+      }
+
+      // Buscar todos os usuários aprovados
+      let users = await storage.getUsers();
+
+      // Filtrar apenas usuários aprovados
+      users = users.filter(u => u.status === 'approved');
+
+      // Se for pastor, filtrar por distrito
+      if (requestingUser?.role === 'pastor' && requestingUser?.districtId) {
+        users = users.filter(u => u.districtId === requestingUser!.districtId);
+      }
+
+      // Retornar apenas campos necessários para chat
+      const chatList = users.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        profilePhoto: u.profilePhoto,
+      }));
+
+      res.json(chatList);
+    })
+  );
+
   app.get(
     '/api/users',
     cacheMiddleware('users', CACHE_TTL.USERS),

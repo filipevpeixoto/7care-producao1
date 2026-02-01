@@ -793,6 +793,93 @@
         }
 
         /* ========================================
+           Mission Section
+           ======================================== */
+        .mission {
+            padding: var(--space-3xl) 0;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            color: var(--white);
+        }
+
+        .mission__content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3xl);
+            align-items: center;
+        }
+
+        .mission__text h2 {
+            font-size: clamp(1.75rem, 3vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: var(--space-lg);
+            line-height: 1.2;
+        }
+
+        .mission__text p {
+            font-size: 1.125rem;
+            line-height: 1.7;
+            opacity: 0.9;
+            margin-bottom: var(--space-md);
+        }
+
+        .mission__verse {
+            font-style: italic;
+            padding: var(--space-lg);
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--primary);
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+            margin-top: var(--space-xl);
+        }
+
+        .mission__verse cite {
+            display: block;
+            margin-top: var(--space-sm);
+            font-style: normal;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        .mission__features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-lg);
+        }
+
+        .mission__feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: var(--space-lg);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            transition: var(--transition-normal);
+        }
+
+        .mission__feature:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px);
+        }
+
+        .mission__feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--space-sm);
+        }
+
+        .mission__feature-title {
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+
+        .mission__feature-text {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 1024px) {
+            .mission__content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========================================
            Stats Section
            ======================================== */
         .stats {
@@ -1061,12 +1148,13 @@
                             <span>Convite Exclusivo para Pastores</span>
                         </div>
                         <h1 class="hero__title">
-                            Gerencie seu Distrito com 
-                            <span class="hero__title-highlight">Excelência e Simplicidade</span>
+                            <span class="hero__title-highlight">"Apascenta as minhas ovelhas"</span>
+                            com Excelência
                         </h1>
                         <p class="hero__description">
-                            O 7Care é a ferramenta completa para pastores que desejam acompanhar suas igrejas, 
-                            membros e atividades ministeriais de forma organizada e eficiente.
+                            O 7Care é a ferramenta que auxilia pastores na missão sagrada de cuidar do rebanho de Deus. 
+                            Acompanhe suas igrejas, fortaleça relacionamentos e cumpra a Grande Comissão com organização 
+                            e propósito divino. <em>"Ide e fazei discípulos..."</em> – Mateus 28:19
                         </p>
                         <div class="hero__cta-group">
                             <a href="#comecar" class="btn btn--primary">
@@ -1144,9 +1232,9 @@
             <div class="container">
                 <header class="section__header reveal">
                     <span class="section__badge">Para Pastores</span>
-                    <h2 class="section__title">Tudo que você precisa para liderar com excelência</h2>
+                    <h2 class="section__title">Ferramentas para cumprir o chamado pastoral</h2>
                     <p class="section__description">
-                        Ferramentas pensadas especialmente para as necessidades do ministério pastoral adventista.
+                        "Cuidem do rebanho de Deus que está sob os seus cuidados." — 1 Pedro 5:2
                     </p>
                 </header>
                 <div class="benefits__grid">
@@ -1155,47 +1243,47 @@
                         <h3 class="benefit-card__title">Gestão de Distrito</h3>
                         <p class="benefit-card__description">
                             Organize todas as igrejas do seu distrito em um só lugar. 
-                            Acompanhe estatísticas, crescimento e necessidades de cada congregação.
+                            Acompanhe o crescimento espiritual e as necessidades de cada congregação.
                         </p>
                     </article>
                     <article class="benefit-card reveal">
-                        <div class="benefit-card__icon">👥</div>
-                        <h3 class="benefit-card__title">Acompanhamento de Membros</h3>
+                        <div class="benefit-card__icon">📖</div>
+                        <h3 class="benefit-card__title">Estudos Bíblicos</h3>
                         <p class="benefit-card__description">
-                            Visualize o perfil de cada membro, histórico de visitas, 
-                            participação em atividades e necessidades especiais.
+                            Acompanhe interessados e estudantes da Bíblia. Registre o progresso 
+                            de cada pessoa no caminho do discipulado até o batismo.
+                        </p>
+                    </article>
+                    <article class="benefit-card reveal">
+                        <div class="benefit-card__icon">🤝</div>
+                        <h3 class="benefit-card__title">Discipulado</h3>
+                        <p class="benefit-card__description">
+                            Sistema de relacionamentos discipulador-discípulo. Conecte novos 
+                            membros a mentores espirituais para crescimento na fé.
+                        </p>
+                    </article>
+                    <article class="benefit-card reveal">
+                        <div class="benefit-card__icon">🙏</div>
+                        <h3 class="benefit-card__title">Pedidos de Oração</h3>
+                        <p class="benefit-card__description">
+                            Centralize os pedidos de oração da congregação. "Orem uns pelos outros" 
+                            — Tiago 5:16. Acompanhe as bênçãos e respostas divinas.
+                        </p>
+                    </article>
+                    <article class="benefit-card reveal">
+                        <div class="benefit-card__icon">🗳️</div>
+                        <h3 class="benefit-card__title">Eleições da Igreja</h3>
+                        <p class="benefit-card__description">
+                            Sistema completo para eleições de oficiais. Nomear diretoria, 
+                            votação digital segura e resultados transparentes.
                         </p>
                     </article>
                     <article class="benefit-card reveal">
                         <div class="benefit-card__icon">📋</div>
                         <h3 class="benefit-card__title">Relatórios Automáticos</h3>
                         <p class="benefit-card__description">
-                            Gere relatórios completos para a associação com apenas um clique. 
-                            Dados de frequência, batismos, estudos bíblicos e muito mais.
-                        </p>
-                    </article>
-                    <article class="benefit-card reveal">
-                        <div class="benefit-card__icon">🗓️</div>
-                        <h3 class="benefit-card__title">Agenda Integrada</h3>
-                        <p class="benefit-card__description">
-                            Calendário unificado com todas as atividades das igrejas. 
-                            Evite conflitos e planeje com antecedência.
-                        </p>
-                    </article>
-                    <article class="benefit-card reveal">
-                        <div class="benefit-card__icon">📱</div>
-                        <h3 class="benefit-card__title">Acesso Mobile</h3>
-                        <p class="benefit-card__description">
-                            Use em qualquer dispositivo. O 7Care funciona perfeitamente 
-                            no celular, tablet ou computador.
-                        </p>
-                    </article>
-                    <article class="benefit-card reveal">
-                        <div class="benefit-card__icon">🔔</div>
-                        <h3 class="benefit-card__title">Notificações Inteligentes</h3>
-                        <p class="benefit-card__description">
-                            Receba alertas sobre aniversários, membros afastados, 
-                            pedidos de oração e tarefas pendentes.
+                            Gere relatórios completos para a Associação/Missão. 
+                            Frequência, batismos, estudos bíblicos e crescimento do distrito.
                         </p>
                     </article>
                 </div>
@@ -1207,9 +1295,9 @@
             <div class="container">
                 <header class="section__header reveal">
                     <span class="section__badge">Recursos</span>
-                    <h2 class="section__title">Funcionalidades que fazem a diferença</h2>
+                    <h2 class="section__title">Funcionalidades para o ministério pastoral</h2>
                     <p class="section__description">
-                        Desenvolvido com base nas necessidades reais de pastores adventistas.
+                        Desenvolvido por adventistas, para adventistas. Focado na missão e no cuidado pastoral.
                     </p>
                 </header>
                 <div class="features__content">
@@ -1217,40 +1305,60 @@
                         <li class="feature-item active">
                             <div class="feature-item__icon">📊</div>
                             <div class="feature-item__content">
-                                <h3 class="feature-item__title">Dashboard Completo</h3>
+                                <h3 class="feature-item__title">Dashboard Pastoral</h3>
                                 <p class="feature-item__description">
-                                    Visão geral do seu distrito com métricas em tempo real, 
-                                    gráficos de crescimento e indicadores de saúde espiritual.
+                                    Visão completa do seu rebanho: métricas em tempo real, 
+                                    indicadores de saúde espiritual e necessidades da congregação.
                                 </p>
                             </div>
                         </li>
                         <li class="feature-item">
                             <div class="feature-item__icon">📝</div>
                             <div class="feature-item__content">
-                                <h3 class="feature-item__title">Registro de Visitas</h3>
+                                <h3 class="feature-item__title">Visitas Pastorais</h3>
                                 <p class="feature-item__description">
-                                    Documente cada visita pastoral com fotos, anotações 
-                                    e acompanhamento de follow-up.
+                                    Documente cada visita com fotos e anotações. "Visitando os 
+                                    órfãos e as viúvas" — Tiago 1:27. Follow-up automático.
                                 </p>
                             </div>
                         </li>
                         <li class="feature-item">
-                            <div class="feature-item__icon">🙏</div>
+                            <div class="feature-item__icon">🗓️</div>
                             <div class="feature-item__content">
-                                <h3 class="feature-item__title">Pedidos de Oração</h3>
+                                <h3 class="feature-item__title">Calendário Integrado</h3>
                                 <p class="feature-item__description">
-                                    Centralize os pedidos de oração e acompanhe 
-                                    as respostas divinas em cada situação.
+                                    Todas as atividades do distrito: Escola Sabatina, cultos, 
+                                    pequenos grupos, programações especiais em um só lugar.
                                 </p>
                             </div>
                         </li>
                         <li class="feature-item">
                             <div class="feature-item__icon">🏆</div>
                             <div class="feature-item__content">
-                                <h3 class="feature-item__title">Gamificação</h3>
+                                <h3 class="feature-item__title">Gamificação Missionária</h3>
                                 <p class="feature-item__description">
-                                    Sistema de pontos e conquistas que motiva 
-                                    missionários e líderes em suas atividades.
+                                    Sistema de pontos que incentiva missionários e líderes. 
+                                    Visitas, estudos bíblicos e atividades missionárias valendo pontos!
+                                </p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-item__icon">💬</div>
+                            <div class="feature-item__content">
+                                <h3 class="feature-item__title">Chat Interno</h3>
+                                <p class="feature-item__description">
+                                    Comunique-se diretamente com líderes e membros. 
+                                    Mensagens seguras dentro do sistema, sem precisar de WhatsApp.
+                                </p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-item__icon">🔔</div>
+                            <div class="feature-item__content">
+                                <h3 class="feature-item__title">Notificações Push</h3>
+                                <p class="feature-item__description">
+                                    Alertas de aniversários, membros afastados, pedidos de 
+                                    oração urgentes e tarefas pendentes direto no celular.
                                 </p>
                             </div>
                         </li>
@@ -1297,7 +1405,7 @@
             <div class="container">
                 <header class="section__header reveal">
                     <span class="section__badge">Como Funciona</span>
-                    <h2 class="section__title">Comece a usar em minutos</h2>
+                    <h2 class="section__title">Comece sua jornada pastoral digital</h2>
                     <p class="section__description">
                         Processo simples e guiado para você configurar seu distrito rapidamente.
                     </p>
@@ -1355,6 +1463,53 @@
             </div>
         </section>
 
+        <!-- Mission Section -->
+        <section class="mission" id="missao">
+            <div class="container">
+                <div class="mission__content reveal">
+                    <div class="mission__text">
+                        <h2>Tecnologia a serviço da missão adventista</h2>
+                        <p>
+                            O 7Care foi desenvolvido com um propósito claro: ajudar pastores e líderes 
+                            a cumprirem a missão que Deus nos confiou. Em um mundo onde a volta de Jesus 
+                            se aproxima, precisamos de ferramentas que nos ajudem a alcançar mais pessoas.
+                        </p>
+                        <p>
+                            Cada funcionalidade foi pensada para facilitar o cuidado pastoral: desde o 
+                            acompanhamento de interessados até a gestão de estudos bíblicos e discipulado.
+                        </p>
+                        <blockquote class="mission__verse">
+                            "E este evangelho do Reino será pregado em todo o mundo como testemunho 
+                            a todas as nações, e então virá o fim."
+                            <cite>— Mateus 24:14</cite>
+                        </blockquote>
+                    </div>
+                    <div class="mission__features">
+                        <div class="mission__feature">
+                            <div class="mission__feature-icon">📖</div>
+                            <div class="mission__feature-title">Estudos Bíblicos</div>
+                            <div class="mission__feature-text">Acompanhe cada pessoa no caminho da verdade</div>
+                        </div>
+                        <div class="mission__feature">
+                            <div class="mission__feature-icon">🤝</div>
+                            <div class="mission__feature-title">Discipulado</div>
+                            <div class="mission__feature-text">Conecte novos membros a mentores</div>
+                        </div>
+                        <div class="mission__feature">
+                            <div class="mission__feature-icon">🗳️</div>
+                            <div class="mission__feature-title">Eleições</div>
+                            <div class="mission__feature-text">Processo transparente e democrático</div>
+                        </div>
+                        <div class="mission__feature">
+                            <div class="mission__feature-icon">✅</div>
+                            <div class="mission__feature-title">Tarefas</div>
+                            <div class="mission__feature-text">Organize atividades e responsabilidades</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Stats Section -->
         <section class="stats">
             <div class="container">
@@ -1384,17 +1539,17 @@
             <div class="container">
                 <div class="cta__content reveal">
                     <div class="cta__icon">🙌</div>
-                    <h2 class="cta__title">Pronto para transformar sua gestão pastoral?</h2>
+                    <h2 class="cta__title">"Ide por todo o mundo e pregai o evangelho"</h2>
                     <p class="cta__description">
-                        Aceite este convite exclusivo e comece a usar o 7Care hoje mesmo. 
-                        É gratuito e leva apenas alguns minutos para configurar.
+                        O 7Care foi criado para apoiar pastores e líderes na missão sagrada de fazer discípulos. 
+                        Aceite este convite e tenha mais tempo para o que realmente importa: cuidar das almas.
                     </p>
                     <a href="#" class="cta__button" id="ctaButton" onclick="handleCTA(event)">
                         <span>Aceitar Convite e Começar</span>
                         <span aria-hidden="true">→</span>
                     </a>
                     <p class="cta__note">
-                        ✓ Gratuito &nbsp; ✓ Sem cartão de crédito &nbsp; ✓ Suporte incluso
+                        ✓ Gratuito &nbsp; ✓ Feito por adventistas &nbsp; ✓ Suporte incluso
                     </p>
                     <p class="cta__invite-note" id="inviteNote" style="display: none; margin-top: var(--space-lg); padding: var(--space-md); background: var(--gray-100); border-radius: var(--radius-lg); color: var(--gray-700); font-size: 0.9375rem;">
                         💡 <strong>Como funciona:</strong> Você precisa de um link de convite personalizado enviado pelo administrador do sistema. 
@@ -1413,8 +1568,8 @@
                 <span>7Care</span>
             </div>
             <p class="footer__text">
-                © 2026 7Care - Sistema de Gestão para Igrejas Adventistas. 
-                Desenvolvido com ❤️ para o avanço do Reino.
+                © 2026 7Care - Sistema de Gestão para Igrejas Adventistas do Sétimo Dia.<br>
+                "Lembrai-vos dos vossos pastores" — Hebreus 13:7 | Desenvolvido com ❤️ para o avanço do Reino.
             </p>
         </div>
     </footer>

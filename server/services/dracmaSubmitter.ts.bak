@@ -63,13 +63,13 @@ export class DracmaSubmitter {
   }
 
   /**
-   * Busca credenciais do Dracma no banco de dados para um pastor específico
-   * IMPORTANTE: Apenas pastores podem enviar notas fiscais
+   * Busca credenciais do Dracma no banco de dados para um usuário específico
+   * Se o usuário não tiver configurações, busca do pastor da igreja dele
    */
   async getCredentials(userId: number): Promise<DracmaCredentials> {
-    // Verificar que o usuário é um pastor
-    const userResult = await sql<{ id: number; role: string; name: string }[]>`
-      SELECT id, role, name FROM users WHERE id = ${userId} LIMIT 1
+    // Primeiro, buscar informações do usuário
+    const userResult = await sql<{ id: number; role: string; church_id: number | null }[]>`
+      SELECT id, role, church_id FROM users WHERE id = ${userId} LIMIT 1
     `;
 
     if (!userResult.length) {
@@ -77,31 +77,52 @@ export class DracmaSubmitter {
     }
 
     const user = userResult[0];
+    const churchId = user.church_id;
 
-    if (!['pastor', 'admin', 'superadmin'].includes(user.role)) {
-      throw new Error(
-        `Usuário ${user.name} não é pastor. Apenas pastores podem enviar notas fiscais.`
-      );
-    }
-
-    // Buscar credenciais do próprio pastor
-    const configs = await sql<{ key: string; value: string }[]>`
+    // Tentar buscar credenciais do próprio usuário primeiro (se for pastor)
+    let configs = await sql<{ key: string; value: string }[]>`
       SELECT key, value FROM automation_config
       WHERE key IN ('dracma_username', 'dracma_password')
       AND user_id = ${userId}
       AND value != 'CHANGE_ME'
     `;
 
+    // Se não encontrou e tem igreja associada, buscar do pastor da igreja
+    if (configs.length < 2 && churchId) {
+      const pastorResult = await sql<{ id: number }[]>`
+        SELECT id FROM users
+        WHERE church_id = ${churchId}
+        AND role IN ('pastor', 'admin')
+        LIMIT 1
+      `;
+
+      if (pastorResult.length > 0) {
+        const pastorId = pastorResult[0].id;
+        configs = await sql<{ key: string; value: string }[]>`
+          SELECT key, value FROM automation_config
+          WHERE key IN ('dracma_username', 'dracma_password')
+          AND user_id = ${pastorId}
+          AND value != 'CHANGE_ME'
+        `;
+      }
+    }
+
+    // Fallback para configurações globais (exemplos)
+    if (configs.length < 2) {
+      configs = await sql<{ key: string; value: string }[]>`
+        SELECT key, value FROM automation_config
+        WHERE key IN ('dracma_username', 'dracma_password')
+        AND user_id IS NULL
+      `;
+    }
+
     const creds: Record<string, string> = {};
     configs.forEach(c => {
       creds[c.key.replace('dracma_', '')] = c.value;
     });
 
-    if (!creds.username || !creds.password) {
-      throw new Error(
-        `Pastor ${user.name} não tem credenciais configuradas. ` +
-          `Execute: npx tsx configure-pastor-credentials.mjs`
-      );
+    if (!creds.username || !creds.password || creds.username === 'CHANGE_ME' || creds.password === 'CHANGE_ME') {
+      throw new Error('Credenciais do Dracma não configuradas para este usuário/igreja');
     }
 
     return creds as DracmaCredentials;

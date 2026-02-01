@@ -34,7 +34,59 @@ export const messagingRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.userId);
       const conversations = await storage.getConversationsByUser(userId);
-      res.json(conversations);
+
+      // Enriquecer conversas com participantes e última mensagem
+      const enrichedConversations = await Promise.all(
+        conversations.map(async conv => {
+          // Buscar participantes
+          const participants = await storage.getConversationParticipants(conv.id);
+
+          // Buscar última mensagem
+          const messages = await storage.getMessagesByConversation(conv.id);
+          const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+
+          // Para conversas diretas, usar o nome do outro participante
+          let name = conv.title || 'Conversa';
+          if (conv.type === 'direct' || conv.type === 'private') {
+            const otherParticipant = participants.find(p => p.userId !== userId);
+            if (otherParticipant) {
+              const otherUser = await storage.getUserById(otherParticipant.userId);
+              name = otherUser?.name || 'Usuário';
+            }
+          }
+
+          return {
+            id: conv.id,
+            type: conv.type === 'private' ? 'direct' : conv.type || 'direct',
+            name,
+            avatar: undefined,
+            participants: participants.map(p => ({
+              id: p.userId,
+              name: p.userName || 'Usuário',
+              role: 'user',
+              isOnline: false,
+            })),
+            lastMessage: lastMessage
+              ? {
+                  content: lastMessage.content || '',
+                  timestamp: lastMessage.createdAt || new Date().toISOString(),
+                  senderId: lastMessage.senderId || 0,
+                  senderName: '',
+                }
+              : {
+                  content: '',
+                  timestamp: conv.createdAt || new Date().toISOString(),
+                  senderId: 0,
+                  senderName: '',
+                },
+            unreadCount: 0,
+            isPinned: false,
+            isArchived: false,
+          };
+        })
+      );
+
+      res.json(enrichedConversations);
     })
   );
 
