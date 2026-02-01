@@ -40,22 +40,29 @@ exports.handler = async (event) => {
 
     const sql = neon(dbUrl);
 
-    // Get all approved users for chat
+    // Get all active users for chat (status can be 'active' or 'approved')
     const users = await sql`
-      SELECT id, name, email, profile_photo 
+      SELECT id, name, email, extra_data 
       FROM users 
-      WHERE status = 'approved'
+      WHERE status IN ('approved', 'active')
       LIMIT 500
     `;
 
     console.log('✅ Chat list: Found', users.length, 'users');
 
-    const chatList = users.map(u => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      profilePhoto: u.profile_photo
-    }));
+    const chatList = users.map(u => {
+      // Try to get profilePhoto from extra_data if it exists
+      let profilePhoto = null;
+      if (u.extra_data && typeof u.extra_data === 'object') {
+        profilePhoto = u.extra_data.profilePhoto || u.extra_data.profile_photo || null;
+      }
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        profilePhoto
+      };
+    });
 
     return {
       statusCode: 200,
