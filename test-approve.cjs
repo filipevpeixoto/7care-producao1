@@ -75,6 +75,34 @@ async function approveInvite(token, inviteId) {
   throw new Error(res.body);
 }
 
+async function testImportRemaining(token, inviteId, startFrom = 50) {
+  console.log(`\n📦 Testando endpoint import-remaining (startFrom: ${startFrom})...`);
+  
+  const data = JSON.stringify({ startFrom, limit: 50 });
+  const res = await makeRequest({
+    hostname: '7careapp-2026.netlify.app',
+    path: `/api/invites/${inviteId}/import-remaining`,
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': `Bearer ${token}`,
+      'Content-Length': data.length 
+    }
+  }, data);
+  
+  console.log(`📡 Status: ${res.status}`);
+  console.log(`📄 Resposta: ${res.body}`);
+  
+  if (res.status === 200) {
+    const result = res.json();
+    console.log(`✅ Lote importado: ${result.membersImported} membros`);
+    console.log(`   Total: ${result.totalMembers}, Próximo: ${result.nextStartFrom}, Mais: ${result.hasMore}`);
+    return result;
+  }
+  
+  return null;
+}
+
 async function main() {
   try {
     console.log('🔐 Fazendo login...');
@@ -82,14 +110,42 @@ async function main() {
     
     const invites = await listInvites(token);
     
+    // Testar aprovação de convite submitted
     const submitted = invites.filter(i => i.status === 'submitted');
-    if (submitted.length === 0) {
+    if (submitted.length > 0) {
+      console.log(`\n🎯 Testando aprovação do convite ID: ${submitted[0].id}`);
+      const result = await approveInvite(token, submitted[0].id);
+      
+      // Se há membros pendentes, testar importação em lotes
+      if (result?.details?.importDeferred) {
+        console.log(`\n📊 ${result.details.membersPending} membros pendentes para importar`);
+        let startFrom = result.details.membersImported;
+        let hasMore = true;
+        let totalImported = startFrom;
+        
+        while (hasMore) {
+          const batch = await testImportRemaining(token, submitted[0].id, startFrom);
+          if (batch && batch.success) {
+            totalImported += batch.membersImported;
+            hasMore = batch.hasMore;
+            startFrom = batch.nextStartFrom || startFrom + 50;
+          } else {
+            hasMore = false;
+          }
+        }
+        
+        console.log(`\n🎉 Importação completa! Total: ${totalImported} membros`);
+      }
+    } else {
       console.log('\n⚠️ Nenhum convite com status "submitted"');
-      return;
+      
+      // Testar endpoint import-remaining com convite já aprovado
+      const approved = invites.filter(i => i.status === 'approved');
+      if (approved.length > 0 && approved[0].onboardingData?.excelData?.data?.length > 0) {
+        console.log('\n📋 Testando endpoint import-remaining com convite já aprovado...');
+        await testImportRemaining(token, approved[0].id, 0);
+      }
     }
-    
-    console.log(`\n🎯 Testando aprovação do convite ID: ${submitted[0].id}`);
-    await approveInvite(token, submitted[0].id);
     
   } catch (error) {
     console.error('❌ Erro:', error.message);

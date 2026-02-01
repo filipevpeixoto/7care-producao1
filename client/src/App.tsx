@@ -185,6 +185,7 @@ const App = () => {
                   <main id="main-content" role="main" tabIndex={-1}>
                     <Routes>
                       <Route path="/" element={<Login />} />
+                      <Route path="/login" element={<Login />} />
                       <Route path="/first-access" element={<FirstAccessWelcome />} />
                       <Route path="/pastor-first-access" element={<PastorFirstAccess />} />
                       <Route path="/pastor-onboarding/:token" element={<PastorOnboarding />} />

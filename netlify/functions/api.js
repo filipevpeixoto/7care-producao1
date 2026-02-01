@@ -17497,11 +17497,54 @@ exports.handler = async (event, context) => {
             return digits;
           };
           
-          const getRole = (tipo) => {
-            if (!tipo) return 'member';
-            const t = String(tipo).toLowerCase().trim();
-            if (t.includes('pastor') || t.includes('lider') || t.includes('líder')) return 'pastor';
-            if (t.includes('admin') || t.includes('sec')) return 'secretary';
+          // Função completa para detectar tipo de perfil (igual ao Settings.tsx)
+          const getRole = (tipo, classificacao = null) => {
+            // Primeiro tenta pelo campo tipo
+            if (tipo) {
+              const t = String(tipo).toLowerCase().trim();
+              
+              // Superadmin roles
+              if (t.includes('superadmin') || t.includes('super admin') || t.includes('super-adm') || t.includes('admin geral')) {
+                return 'superadmin';
+              }
+              
+              // Admin/Pastor roles
+              if (t.includes('pastor') || t.includes('pastora') || t.includes('ministro') || t.includes('ministra') ||
+                  t.includes('líder') || t.includes('lider') || t.includes('coordenador') || t.includes('coordenadora')) {
+                return 'pastor';
+              }
+              
+              // Missionary/Diácono roles
+              if (t.includes('mission') || t.includes('missionário') || t.includes('missionaria') ||
+                  t.includes('diácon') || t.includes('diacon') || t.includes('evangelista') ||
+                  t.includes('pioneiro') || t.includes('pioneira') || t.includes('colportor') || t.includes('colportora')) {
+                return 'missionary';
+              }
+              
+              // Interested/Visitor roles
+              if (t.includes('interest') || t.includes('interessado') || t.includes('interessada') ||
+                  t.includes('visit') || t.includes('visitante') || t.includes('simpatizante') ||
+                  t.includes('estudante') || t.includes('candidato') || t.includes('candidata') ||
+                  t.includes('amigo') || t.includes('amiga') || t.includes('prospecto')) {
+                return 'interested';
+              }
+              
+              // Member roles
+              if (t.includes('member') || t.includes('membro') || t.includes('fiel') ||
+                  t.includes('batizado') || t.includes('batizada') || t.includes('adventista')) {
+                return 'member';
+              }
+            }
+            
+            // Tenta detectar pela classificação (se presente)
+            if (classificacao) {
+              const c = String(classificacao).toLowerCase().trim();
+              if (c.includes('amigo') || c.includes('interessado') || c.includes('visitante')) {
+                return 'interested';
+              }
+            }
+            
+            // Default: member
             return 'member';
           };
           
@@ -17544,7 +17587,8 @@ exports.handler = async (event, context) => {
             const validMembers = [];
             
             for (const member of batch) {
-              const memberName = member.nome || member.name;
+              // Nome com mapeamento completo
+              const memberName = member.nome || member.Nome || member.name || member.Name;
               if (!memberName || memberName.trim() === '') {
                 membersSkipped++;
                 continue;
@@ -17553,40 +17597,65 @@ exports.handler = async (event, context) => {
               // Gerar email único
               const memberEmail = `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2, 4)}@importado.local`;
               
-              // Determinar igreja
-              const memberChurchRaw = member.igreja || member.church;
+              // Igreja - mapeamento completo
+              const memberChurchRaw = member.igreja || member.Igreja || member.church || member.Church || member['Igreja'];
               let memberChurchCode = null;
               let memberChurchName = memberChurchRaw || null;
               
+              // Tentar encontrar o código da igreja no mapa
               if (memberChurchRaw && churchCodeMap) {
-                memberChurchCode = churchCodeMap[memberChurchRaw?.toLowerCase()] || null;
+                const churchLower = String(memberChurchRaw).toLowerCase().trim();
+                memberChurchCode = churchCodeMap[churchLower] || null;
+                console.log(`🔍 Igreja do membro "${memberName}": "${memberChurchRaw}" -> código: ${memberChurchCode || 'não encontrado'}`);
               }
+              
+              // Se não encontrou, usar a primeira igreja cadastrada no onboarding
               if (!memberChurchCode && churchIds.length > 0 && onboardingData.churches?.length > 0) {
-                memberChurchCode = churchCodeMap[onboardingData.churches[0]?.name?.toLowerCase()] || null;
-                memberChurchName = memberChurchName || onboardingData.churches[0]?.name || null;
+                const primeiraIgreja = onboardingData.churches[0];
+                memberChurchCode = churchCodeMap[primeiraIgreja?.name?.toLowerCase()] || null;
+                memberChurchName = memberChurchName || primeiraIgreja?.name || null;
+                console.log(`⚠️ Usando igreja padrão para "${memberName}": ${memberChurchName}`);
               }
+              
+              // Classificação e Tipo com mapeamento completo
+              const classificacao = member.classificacao || member.Classificação || member['Classificação'] || member.classification;
+              const tipo = member.tipo || member.Tipo || member.role || member.cargo || member.Cargo;
               
               // Processar campos básicos
-              const phone = formatPhoneNumber(member.telefone || member.celular || member.phone);
-              const birthDate = parseDate(member.dataNascimento || member.nascimento || member.birthDate);
-              const baptismDate = parseDate(member.dataBatismo || member.batismo || member.baptismDate);
-              const role = getRole(member.tipo || member.cargo);
-              const dizimistaResult = parseDizimistaField(member.dizimista);
-              const ofertanteResult = parseOfertanteField(member.ofertante);
+              const phone = formatPhoneNumber(member.telefone || member.Telefone || member.celular || member.Celular || member.phone);
+              const birthDate = parseDate(member.dataNascimento || member['Data de nascimento'] || member.nascimento || member.Nascimento || member.birthDate);
+              const baptismDate = parseDate(member.dataBatismo || member['Data do batismo'] || member.batismo || member.Batismo || member.baptismDate);
+              
+              // Role com detecção completa (usando tipo E classificacao)
+              const role = getRole(tipo, classificacao);
+              console.log(`👤 ${memberName}: tipo="${tipo}", classificação="${classificacao}" -> role="${role}"`);
+              
+              const dizimistaResult = parseDizimistaField(member.dizimista || member.Dizimista);
+              const ofertanteResult = parseOfertanteField(member.ofertante || member.Ofertante);
               
               // Tempo de batismo
-              let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos);
+              let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos || member['Tempo de batismo - anos']);
               if (tempoBatismoAnos === 0 && baptismDate) {
                 const hoje = new Date();
                 tempoBatismoAnos = Math.floor((hoje.getTime() - baptismDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
                 if (tempoBatismoAnos < 0) tempoBatismoAnos = 0;
               }
               
-              // ExtraData simplificado
+              // Campos adicionais com mapeamento completo
+              const civilStatus = member.estadoCivil || member['Estado civil'] || member.estadoCivil || null;
+              const occupation = member.profissao || member.Profissão || member.ocupacao || member.Ocupação || member.occupation || null;
+              const education = member.escolaridade || member.Escolaridade || member['Grau de educação'] || member.education || null;
+              const address = member.endereco || member.Endereço || member.address || null;
+              const engajamento = member.engajamento || member.Engajamento || null;
+              
+              // ExtraData com mais campos úteis
               const extraData = JSON.stringify({
-                sexo: member.sexo || null,
-                idade: parseNumber(member.idade),
-                codigo: member.codigo || null,
+                sexo: member.sexo || member.Sexo || null,
+                idade: parseNumber(member.idade || member.Idade),
+                codigo: member.codigo || member.Código || null,
+                cpf: member.cpf || member.CPF || null,
+                nomeUnidade: member.nomeUnidade || member['Nome da unidade'] || null,
+                departamentosCargos: member.departamentosCargos || member['Departamentos e cargos'] || null,
                 importedAt: new Date().toISOString(),
                 importSource: 'pastor-onboarding'
               });
@@ -17600,17 +17669,19 @@ exports.handler = async (event, context) => {
                 church_code: memberChurchCode,
                 phone,
                 birth_date: birthDate,
-                civil_status: member.estadoCivil || null,
-                occupation: member.profissao || null,
-                education: member.escolaridade || null,
-                address: member.endereco || null,
+                civil_status: civilStatus,
+                occupation: occupation,
+                education: education,
+                address: address,
                 baptism_date: baptismDate,
                 is_tither: dizimistaResult.isDonor,
                 is_donor: ofertanteResult.isOffering,
                 district_id: districtId,
-                engajamento: member.engajamento || null,
-                classificacao: member.classificacao || null,
+                engajamento: engajamento,
+                classificacao: classificacao,
                 tempo_batismo_anos: tempoBatismoAnos > 0 ? tempoBatismoAnos : null,
+                dizimista_type: dizimistaResult.dizimistaType,
+                ofertante_type: ofertanteResult.ofertanteType,
                 extra_data: extraData
               });
             }
@@ -17624,12 +17695,14 @@ exports.handler = async (event, context) => {
                       name, email, password, role, church, church_code, phone,
                       birth_date, civil_status, occupation, education, address,
                       baptism_date, is_tither, is_donor, status, first_access, created_at,
-                      district_id, engajamento, classificacao, tempo_batismo_anos, extra_data
+                      district_id, engajamento, classificacao, tempo_batismo_anos, 
+                      dizimista_type, ofertante_type, extra_data
                     ) VALUES (
                       ${m.name}, ${m.email}, ${m.password}, ${m.role}, ${m.church}, ${m.church_code}, ${m.phone},
                       ${m.birth_date}, ${m.civil_status}, ${m.occupation}, ${m.education}, ${m.address},
                       ${m.baptism_date}, ${m.is_tither}, ${m.is_donor}, 'active', true, NOW(),
-                      ${m.district_id}, ${m.engajamento}, ${m.classificacao}, ${m.tempo_batismo_anos}, ${m.extra_data}
+                      ${m.district_id}, ${m.engajamento}, ${m.classificacao}, ${m.tempo_batismo_anos},
+                      ${m.dizimista_type}, ${m.ofertante_type}, ${m.extra_data}
                     )
                   `;
                   membersImported++;
@@ -17811,47 +17884,120 @@ exports.handler = async (event, context) => {
             }
             const str = String(val).trim();
             if (str.includes('/')) {
-              const [d,m,y] = str.split('/');
-              return new Date(parseInt(y) < 100 ? 2000+parseInt(y) : parseInt(y), parseInt(m)-1, parseInt(d));
+              const parts = str.split('/');
+              if (parts.length === 3) {
+                const [d,m,y] = parts;
+                let parsedYear = parseInt(y);
+                if (parsedYear < 100) parsedYear += parsedYear < 50 ? 2000 : 1900;
+                return new Date(parsedYear, parseInt(m)-1, parseInt(d));
+              }
             }
-            return new Date(val);
+            const date = new Date(val);
+            if (!isNaN(date.getTime())) return date;
+            return null;
           } catch { return null; }
         };
         const parseNumber = (val) => typeof val === 'number' ? val : parseFloat(String(val || '0').replace(',','.')) || 0;
-        const parseBool = (val) => val && ['sim','true','1','x','yes'].includes(String(val).toLowerCase().trim());
         const formatPhone = (p) => p ? String(p).replace(/\D/g, '') : null;
+        
+        // Função completa para detectar tipo de perfil
+        const getRole = (tipo, classificacao = null) => {
+          if (tipo) {
+            const t = String(tipo).toLowerCase().trim();
+            if (t.includes('superadmin') || t.includes('super admin')) return 'superadmin';
+            if (t.includes('pastor') || t.includes('líder') || t.includes('lider') || t.includes('ministro')) return 'pastor';
+            if (t.includes('mission') || t.includes('diácon') || t.includes('diacon') || t.includes('evangelista')) return 'missionary';
+            if (t.includes('interest') || t.includes('interessado') || t.includes('visit') || t.includes('amigo') || t.includes('simpatizante')) return 'interested';
+            if (t.includes('member') || t.includes('membro') || t.includes('batizado') || t.includes('adventista')) return 'member';
+          }
+          if (classificacao) {
+            const c = String(classificacao).toLowerCase().trim();
+            if (c.includes('amigo') || c.includes('interessado') || c.includes('visitante')) return 'interested';
+          }
+          return 'member';
+        };
+        
+        const parseDizimistaField = (val) => {
+          if (!val) return { isDonor: false, dizimistaType: null };
+          const str = String(val).toLowerCase().trim();
+          if (str === 'sim' || str === 'true' || str === '1' || str === 'x') return { isDonor: true, dizimistaType: 'regular' };
+          if (str.includes('fiel')) return { isDonor: true, dizimistaType: 'fiel' };
+          if (str.includes('irregular')) return { isDonor: true, dizimistaType: 'irregular' };
+          if (str !== 'não' && str !== 'nao' && str !== 'false' && str !== '0' && str !== '') return { isDonor: true, dizimistaType: str };
+          return { isDonor: false, dizimistaType: null };
+        };
+        
+        const parseOfertanteField = (val) => {
+          if (!val) return { isOffering: false, ofertanteType: null };
+          const str = String(val).toLowerCase().trim();
+          if (str === 'sim' || str === 'true' || str === '1' || str === 'x') return { isOffering: true, ofertanteType: 'regular' };
+          if (str.includes('fiel')) return { isOffering: true, ofertanteType: 'fiel' };
+          if (str.includes('irregular')) return { isOffering: true, ofertanteType: 'irregular' };
+          if (str !== 'não' && str !== 'nao' && str !== 'false' && str !== '0' && str !== '') return { isOffering: true, ofertanteType: str };
+          return { isOffering: false, ofertanteType: null };
+        };
 
         let membersImported = 0;
         let membersSkipped = 0;
 
         for (const member of membersToImport) {
           try {
-            const name = (member.nome || member.name || '').trim();
+            const name = (member.nome || member.Nome || member.name || '').trim();
             if (!name) { membersSkipped++; continue; }
 
             const email = `${name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2,4)}@importado.local`;
-            const churchName = member.igreja || member.church || onboardingData.churches?.[0]?.name || null;
-            const churchCode = churchCodeMap[churchName?.toLowerCase()] || null;
+            
+            // Igreja com mapeamento completo
+            const churchNameRaw = member.igreja || member.Igreja || member.church || onboardingData.churches?.[0]?.name || null;
+            const churchCode = churchNameRaw ? (churchCodeMap[churchNameRaw?.toLowerCase()] || null) : null;
+            
+            // Role com detecção completa
+            const tipo = member.tipo || member.Tipo || member.role;
+            const classificacao = member.classificacao || member.Classificação;
+            const role = getRole(tipo, classificacao);
+            
+            // Processar campos
+            const phone = formatPhone(member.telefone || member.Telefone || member.celular || member.Celular);
+            const birthDate = parseDate(member.dataNascimento || member['Data de nascimento'] || member.Nascimento);
+            const baptismDate = parseDate(member.dataBatismo || member['Data do batismo'] || member.Batismo);
+            const dizimistaResult = parseDizimistaField(member.dizimista || member.Dizimista);
+            const ofertanteResult = parseOfertanteField(member.ofertante || member.Ofertante);
+            
+            // Campos adicionais
+            const civilStatus = member.estadoCivil || member['Estado civil'] || null;
+            const occupation = member.profissao || member.Profissão || member.ocupacao || null;
+            const education = member.escolaridade || member.Escolaridade || member['Grau de educação'] || null;
+            const address = member.endereco || member.Endereço || null;
+            const engajamento = member.engajamento || member.Engajamento || null;
+            
+            // Tempo de batismo
+            let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos || member['Tempo de batismo - anos']);
+            if (tempoBatismoAnos === 0 && baptismDate) {
+              const hoje = new Date();
+              tempoBatismoAnos = Math.floor((hoje.getTime() - baptismDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+              if (tempoBatismoAnos < 0) tempoBatismoAnos = 0;
+            }
 
             await sql`
               INSERT INTO users (
                 name, email, password, role, church, church_code, phone,
                 birth_date, civil_status, occupation, education, address,
                 baptism_date, is_tither, is_donor, status, first_access, created_at,
-                district_id, engajamento, classificacao, extra_data
+                district_id, engajamento, classificacao, tempo_batismo_anos,
+                dizimista_type, ofertante_type, extra_data
               ) VALUES (
-                ${name}, ${email}, ${defaultPassword}, 'member', ${churchName}, ${churchCode}, 
-                ${formatPhone(member.telefone || member.celular)},
-                ${parseDate(member.dataNascimento)}, ${member.estadoCivil || null}, 
-                ${member.profissao || null}, ${member.escolaridade || null}, ${member.endereco || null},
-                ${parseDate(member.dataBatismo)}, ${parseBool(member.dizimista)}, ${parseBool(member.ofertante)},
-                'active', true, NOW(), ${districtId}, ${member.engajamento || null}, ${member.classificacao || null},
+                ${name}, ${email}, ${defaultPassword}, ${role}, ${churchNameRaw}, ${churchCode}, 
+                ${phone}, ${birthDate}, ${civilStatus}, ${occupation}, ${education}, ${address},
+                ${baptismDate}, ${dizimistaResult.isDonor}, ${ofertanteResult.isOffering},
+                'active', true, NOW(), ${districtId}, ${engajamento}, ${classificacao},
+                ${tempoBatismoAnos > 0 ? tempoBatismoAnos : null},
+                ${dizimistaResult.dizimistaType}, ${ofertanteResult.ofertanteType},
                 ${JSON.stringify({ importedAt: new Date().toISOString(), importSource: 'pastor-onboarding-batch' })}
               )
             `;
             membersImported++;
           } catch (e) {
-            console.error(`Erro ao importar ${member.nome}:`, e.message);
+            console.error(`Erro ao importar ${member.nome || member.Nome}:`, e.message);
             membersSkipped++;
           }
         }
