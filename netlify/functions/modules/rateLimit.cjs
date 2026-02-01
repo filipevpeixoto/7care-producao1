@@ -262,11 +262,36 @@ function getRateLimitStatus(identifier, type = 'api') {
   };
 }
 
+/**
+ * Gera resposta de rate limit excedido
+ * @param {Object} headers - Headers base
+ * @param {Object} rateLimitResult - Resultado do checkRateLimitSimple
+ * @returns {Object} Resposta HTTP
+ */
+function rateLimitResponse(headers, rateLimitResult) {
+  const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+  return {
+    statusCode: 429,
+    headers: {
+      ...headers,
+      'Retry-After': String(Math.max(retryAfter, 1)),
+      'X-RateLimit-Limit': String(rateLimitResult.limit || 100),
+      'X-RateLimit-Remaining': '0',
+      'X-RateLimit-Reset': String(rateLimitResult.resetTime || Date.now() + 60000)
+    },
+    body: JSON.stringify({
+      error: rateLimitResult.message || 'Limite de requisições excedido. Tente novamente em alguns minutos.',
+      retryAfter: Math.max(retryAfter, 1)
+    })
+  };
+}
+
 module.exports = {
   checkRateLimit,
   checkRateLimitSimple,
   getRateLimitHeaders,
   rateLimitMiddleware,
+  rateLimitResponse,
   resetRateLimit,
   getRateLimitStatus,
   RATE_LIMIT_CONFIG

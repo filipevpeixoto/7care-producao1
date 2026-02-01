@@ -24,7 +24,9 @@ module.exports = {
   // Rate Limiting
   rateLimit,
   checkRateLimit: rateLimit.checkRateLimit,
+  checkRateLimitSimple: rateLimit.checkRateLimitSimple,
   rateLimitMiddleware: rateLimit.rateLimitMiddleware,
+  rateLimitResponse: rateLimit.rateLimitResponse,
   
   // Validação
   validation,
