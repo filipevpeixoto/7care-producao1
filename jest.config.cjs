@@ -2,8 +2,8 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/server'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  roots: ['<rootDir>/server', '<rootDir>/tests', '<rootDir>/netlify'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/tests/**/*.test.js', '**/tests/**/*.test.ts', '**/tests/**/*.test.cjs'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/client/src/$1',
     '^@shared/(.*)$': '<rootDir>/shared/$1'
@@ -81,9 +81,10 @@ module.exports = {
         esModuleInterop: true,
         allowSyntheticDefaultImports: true
       }
-    }]
+    }],
+    '^.+\\.[cm]?jsx?$': 'babel-jest'
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'cjs', 'mjs', 'json', 'node'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   coverageDirectory: '<rootDir>/coverage',
   verbose: true

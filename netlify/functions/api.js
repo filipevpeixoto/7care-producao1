@@ -3,7 +3,33 @@ const bcrypt = require('bcryptjs');
 const webpush = require('web-push');
 const jwt = require('jsonwebtoken');
 
+// ============================================
+// MÓDULOS REFATORADOS (nova arquitetura)
+// ============================================
+const modules = require('./modules/index.cjs');
+const { 
+  checkRateLimitSimple,
+  sanitizeObject,
+  sanitizeString,
+  successResponse: moduleSuccessResponse,
+  errorResponse: moduleErrorResponse,
+  rateLimitResponse,
+  toCamelCase,
+  toSnakeCase,
+  calculateUserPoints,
+  calculateLevel,
+  calculateGroupStats,
+  processExcel,
+  extractChurches,
+  detectMemberType,
+  parseDate,
+  parseBool
+} = modules;
+const logger = modules.logger;
+
+// ============================================
 // SEGURANÇA: Variáveis de ambiente obrigatórias
+// ============================================
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '24h';
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
@@ -122,6 +148,9 @@ const PUBLIC_ROUTES = [
 // para funcionar corretamente em ambientes serverless onde cada request pode ser uma nova instância
 
 exports.handler = async (event, context) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const startTime = Date.now();
+  
   // Configurar CORS
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
@@ -136,7 +165,8 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Origin': accessControlAllowOrigin,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Request-ID': requestId
   };
 
   // Responder a requisições OPTIONS (CORS preflight)
@@ -150,6 +180,32 @@ exports.handler = async (event, context) => {
 
   const path = event.path;
   const method = event.httpMethod;
+  const clientIP = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
+  
+  // Log da requisição
+  logger.info('Request received', {
+    requestId,
+    method,
+    path,
+    ip: clientIP,
+    userAgent: event.headers['user-agent']
+  });
+  
+  // Rate limiting - determinar tier baseado na rota
+  let rateLimitTier = 'api';
+  if (path.includes('/auth/login') || path.includes('/auth/register')) {
+    rateLimitTier = 'auth';
+  } else if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+    rateLimitTier = 'write';
+  } else if (path.includes('/excel') || path.includes('/import') || path.includes('/export')) {
+    rateLimitTier = 'bulk';
+  }
+  
+  const rateLimitResult = checkRateLimitSimple(clientIP, rateLimitTier);
+  if (!rateLimitResult.allowed) {
+    logger.warn('Rate limit exceeded', { requestId, ip: clientIP, tier: rateLimitTier });
+    return rateLimitResponse(headers, rateLimitResult);
+  }
 
   // JWT OPCIONAL: Verificar se tem token, mas NÃO bloquear se não tiver
   // Isso mantém compatibilidade enquanto adiciona segurança gradualmente
@@ -162,9 +218,22 @@ exports.handler = async (event, context) => {
       if (!event.headers['x-user-id']) {
         event.headers['x-user-id'] = String(decoded.id);
       }
-      console.log(`✅ Autenticado via JWT: ${decoded.email} (${decoded.role})`);
+      logger.info('JWT authentication successful', { requestId, userId: decoded.id, role: decoded.role });
     } else {
-      console.log(`⚠️ Token JWT inválido ou expirado para ${path}`);
+      logger.warn('Invalid or expired JWT token', { requestId, path });
+    }
+  }
+  
+  // Sanitizar body das requisições POST/PUT/PATCH
+  let body = null;
+  if (event.body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+    try {
+      const rawBody = JSON.parse(event.body);
+      body = sanitizeObject(rawBody);
+      event.sanitizedBody = body; // Disponibilizar para uso posterior
+    } catch (e) {
+      // Body não é JSON, manter original
+      body = event.body;
     }
   }
 
@@ -3023,10 +3092,26 @@ exports.handler = async (event, context) => {
     if (path === '/api/churches' && method === 'GET') {
       try {
         const churches = await sql`SELECT * FROM churches ORDER BY name`;
+        
+        // Converter para camelCase para compatibilidade com frontend
+        const formattedChurches = churches.map(c => ({
+          id: c.id,
+          name: c.name,
+          code: c.code,
+          address: c.address,
+          phone: c.phone,
+          email: c.email,
+          pastor: c.pastor,
+          districtId: c.district_id,
+          isDefault: c.is_default,
+          createdAt: c.created_at,
+          updatedAt: c.updated_at
+        }));
+        
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify(churches)
+          body: JSON.stringify(formattedChurches)
         };
       } catch (error) {
         console.error('❌ Churches error:', error);
@@ -8488,6 +8573,119 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // POST /api/users/recalculate-all-points - Recalcular pontos de todos os usuários
+    if (path === '/api/users/recalculate-all-points' && method === 'POST') {
+      try {
+        // Aceitar autenticação via Bearer token OU x-user-id header
+        let userId = null;
+        let userRole = null;
+        const auth = requireAuth(event);
+        
+        if (auth.isValid) {
+          userId = auth.user.id;
+          userRole = auth.user.role;
+        } else {
+          // Fallback para x-user-id header
+          userId = event.headers['x-user-id'];
+          if (userId) {
+            // Buscar role do usuário
+            const userCheck = await sql`SELECT role FROM users WHERE id = ${userId} LIMIT 1`;
+            if (userCheck.length > 0) {
+              userRole = userCheck[0].role;
+            }
+          }
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+
+        // Apenas admin/pastor podem recalcular
+        if (!['superadmin', 'pastor', 'admin'].includes(userRole)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Sem permissão para recalcular pontos' })
+          };
+        }
+
+        console.log('🔄 Iniciando recálculo de pontos para todos os usuários...');
+
+        // Buscar usuários (pastor vê só do distrito, superadmin vê todos)
+        let users;
+        if (userRole === 'superadmin') {
+          users = await sql`SELECT * FROM users WHERE role != 'superadmin' ORDER BY id`;
+        } else {
+          // Pastor/Admin: buscar apenas usuários do seu distrito
+          const userInfo = await sql`SELECT district_id FROM users WHERE id = ${userId} LIMIT 1`;
+          const districtId = userInfo[0]?.district_id;
+          
+          if (districtId) {
+            users = await sql`SELECT * FROM users WHERE district_id = ${districtId} AND role != 'superadmin' ORDER BY id`;
+          } else {
+            users = await sql`SELECT * FROM users WHERE role != 'superadmin' ORDER BY id LIMIT 100`;
+          }
+        }
+
+        console.log(`👥 ${users.length} usuários encontrados para recálculo`);
+
+        let updatedCount = 0;
+        let errorCount = 0;
+
+        // Processar em lotes para evitar timeout
+        const batchSize = 20;
+        for (let i = 0; i < users.length; i += batchSize) {
+          const batch = users.slice(i, i + batchSize);
+          
+          const batchPromises = batch.map(async (user) => {
+            try {
+              const calculatedPoints = await calculateUserPoints(user);
+              if (user.points !== calculatedPoints) {
+                await sql`UPDATE users SET points = ${calculatedPoints} WHERE id = ${user.id}`;
+                return { updated: true };
+              }
+              return { updated: false };
+            } catch (error) {
+              console.error(`Erro ao processar usuário ${user.name}:`, error);
+              return { error: true };
+            }
+          });
+
+          const results = await Promise.all(batchPromises);
+          results.forEach(r => {
+            if (r.error) errorCount++;
+            if (r.updated) updatedCount++;
+          });
+        }
+
+        console.log(`✅ Recálculo concluído: ${updatedCount} atualizados, ${errorCount} erros`);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: `Pontos recalculados para ${users.length} usuários. ${updatedCount} atualizados.`,
+            updatedCount,
+            updatedUsers: updatedCount,
+            totalUsers: users.length,
+            errors: errorCount
+          })
+        };
+      } catch (error) {
+        console.error('❌ Erro ao recalcular pontos:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao recalcular pontos', details: error.message })
+        };
+      }
+    }
+
     // Rota para registrar visita - VERSÃO COM TABELA SEPARADA
     if (path.startsWith('/api/users/') && path.endsWith('/visit') && method === 'POST') {
       try {
@@ -10516,6 +10714,332 @@ exports.handler = async (event, context) => {
           statusCode: 500,
           headers,
           body: JSON.stringify({ error: 'Erro ao buscar igreja do usuário' })
+        };
+      }
+    }
+
+    // GET /api/settings/my-district - Obter distrito do usuário logado
+    if (path === '/api/settings/my-district' && method === 'GET') {
+      try {
+        // Aceitar autenticação via Bearer token OU x-user-id header
+        let userId = null;
+        const auth = requireAuth(event);
+        if (auth.isValid) {
+          userId = auth.user.id;
+        } else {
+          // Fallback para x-user-id header
+          userId = event.headers['x-user-id'];
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+        
+        // Buscar usuário com district_id
+        const users = await sql`
+          SELECT district_id FROM users WHERE id = ${userId} LIMIT 1
+        `;
+        
+        if (users.length === 0 || !users[0].district_id) {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ districtId: null, settings: {} })
+          };
+        }
+        
+        const districtId = users[0].district_id;
+        
+        // Buscar configurações do distrito (se existir tabela district_settings)
+        let settings = {};
+        try {
+          const settingsResult = await sql`
+            SELECT settings FROM district_settings WHERE district_id = ${districtId} LIMIT 1
+          `;
+          if (settingsResult.length > 0 && settingsResult[0].settings) {
+            settings = typeof settingsResult[0].settings === 'string' 
+              ? JSON.parse(settingsResult[0].settings) 
+              : settingsResult[0].settings;
+          }
+        } catch (e) {
+          // Tabela pode não existir, ignorar
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ districtId, settings })
+        };
+      } catch (error) {
+        console.error('Erro ao buscar distrito do usuário:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao buscar distrito' })
+        };
+      }
+    }
+    
+    // POST /api/settings/my-district - Salvar configurações do distrito
+    if (path === '/api/settings/my-district' && method === 'POST') {
+      try {
+        // Aceitar autenticação via Bearer token OU x-user-id header
+        let userId = null;
+        const auth = requireAuth(event);
+        if (auth.isValid) {
+          userId = auth.user.id;
+        } else {
+          userId = event.headers['x-user-id'];
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+        const { settings } = JSON.parse(body || '{}');
+        
+        // Buscar district_id do usuário
+        const users = await sql`
+          SELECT district_id FROM users WHERE id = ${userId} LIMIT 1
+        `;
+        
+        if (users.length === 0 || !users[0].district_id) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Usuário não está associado a um distrito' })
+          };
+        }
+        
+        const districtId = users[0].district_id;
+        
+        // Tentar criar tabela se não existir
+        try {
+          await sql`
+            CREATE TABLE IF NOT EXISTS district_settings (
+              id SERIAL PRIMARY KEY,
+              district_id INTEGER UNIQUE NOT NULL,
+              settings JSONB DEFAULT '{}',
+              created_at TIMESTAMP DEFAULT NOW(),
+              updated_at TIMESTAMP DEFAULT NOW()
+            )
+          `;
+        } catch (e) {
+          // Tabela já existe, ignorar
+        }
+        
+        // Salvar ou atualizar configurações
+        await sql`
+          INSERT INTO district_settings (district_id, settings, updated_at)
+          VALUES (${districtId}, ${JSON.stringify(settings)}, NOW())
+          ON CONFLICT (district_id) 
+          DO UPDATE SET settings = ${JSON.stringify(settings)}, updated_at = NOW()
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, message: 'Configurações salvas' })
+        };
+      } catch (error) {
+        console.error('Erro ao salvar configurações do distrito:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao salvar configurações' })
+        };
+      }
+    }
+    
+    // GET /api/settings/my-district/points-config - Obter configuração de pontos do distrito
+    if (path === '/api/settings/my-district/points-config' && method === 'GET') {
+      try {
+        // Aceitar autenticação via Bearer token OU x-user-id header
+        let userId = null;
+        const auth = requireAuth(event);
+        if (auth.isValid) {
+          userId = auth.user.id;
+        } else {
+          userId = event.headers['x-user-id'];
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+        
+        // Buscar district_id do usuário
+        const users = await sql`
+          SELECT district_id FROM users WHERE id = ${userId} LIMIT 1
+        `;
+        
+        const districtId = users.length > 0 ? users[0].district_id : null;
+        
+        // Buscar configuração de pontos do distrito
+        let config = {};
+        let isGlobal = true;
+        
+        if (districtId) {
+          try {
+            const configResult = await sql`
+              SELECT points_config FROM district_settings WHERE district_id = ${districtId} LIMIT 1
+            `;
+            if (configResult.length > 0 && configResult[0].points_config) {
+              config = typeof configResult[0].points_config === 'string' 
+                ? JSON.parse(configResult[0].points_config) 
+                : configResult[0].points_config;
+              isGlobal = false;
+            }
+          } catch (e) {
+            // Tabela ou coluna pode não existir
+          }
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ districtId, config, isGlobal })
+        };
+      } catch (error) {
+        console.error('Erro ao buscar configuração de pontos:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao buscar configuração de pontos' })
+        };
+      }
+    }
+    
+    // POST /api/settings/my-district/points-config - Salvar configuração de pontos do distrito
+    if (path === '/api/settings/my-district/points-config' && method === 'POST') {
+      try {
+        // Aceitar autenticação via Bearer token OU x-user-id header
+        let userId = null;
+        const auth = requireAuth(event);
+        if (auth.isValid) {
+          userId = auth.user.id;
+        } else {
+          userId = event.headers['x-user-id'];
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+        const { config } = JSON.parse(body || '{}');
+        
+        // Buscar district_id do usuário
+        const users = await sql`
+          SELECT district_id FROM users WHERE id = ${userId} LIMIT 1
+        `;
+        
+        if (users.length === 0 || !users[0].district_id) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Usuário não está associado a um distrito' })
+          };
+        }
+        
+        const districtId = users[0].district_id;
+        
+        // Tentar adicionar coluna points_config se não existir
+        try {
+          await sql`
+            ALTER TABLE district_settings ADD COLUMN IF NOT EXISTS points_config JSONB DEFAULT '{}'
+          `;
+        } catch (e) {
+          // Coluna já existe ou erro ignorável
+        }
+        
+        // Salvar ou atualizar configuração de pontos
+        await sql`
+          INSERT INTO district_settings (district_id, points_config, updated_at)
+          VALUES (${districtId}, ${JSON.stringify(config)}, NOW())
+          ON CONFLICT (district_id) 
+          DO UPDATE SET points_config = ${JSON.stringify(config)}, updated_at = NOW()
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, message: 'Configuração de pontos salva' })
+        };
+      } catch (error) {
+        console.error('Erro ao salvar configuração de pontos:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao salvar configuração de pontos' })
+        };
+      }
+    }
+    
+    // POST /api/settings/my-district/points-config/reset - Resetar configuração de pontos do distrito
+    if (path === '/api/settings/my-district/points-config/reset' && method === 'POST') {
+      try {
+        // Aceitar autenticação via Bearer token OU x-user-id header
+        let userId = null;
+        const auth = requireAuth(event);
+        if (auth.isValid) {
+          userId = auth.user.id;
+        } else {
+          userId = event.headers['x-user-id'];
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+        
+        // Buscar district_id do usuário
+        const users = await sql`
+          SELECT district_id FROM users WHERE id = ${userId} LIMIT 1
+        `;
+        
+        if (users.length === 0 || !users[0].district_id) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Usuário não está associado a um distrito' })
+          };
+        }
+        
+        const districtId = users[0].district_id;
+        
+        // Remover configuração de pontos específica do distrito
+        await sql`
+          UPDATE district_settings SET points_config = NULL, updated_at = NOW()
+          WHERE district_id = ${districtId}
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, message: 'Configuração de pontos resetada para o padrão do sistema' })
+        };
+      } catch (error) {
+        console.error('Erro ao resetar configuração de pontos:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao resetar configuração de pontos' })
         };
       }
     }
@@ -17345,9 +17869,46 @@ exports.handler = async (event, context) => {
         // 2. Criar igrejas (se houver)
         const churchIds = [];
         const churchCodeMap = {}; // Mapeia nome da igreja para código
-        if (onboardingData?.churches && onboardingData.churches.length > 0) {
-          for (let i = 0; i < onboardingData.churches.length; i++) {
-            const church = onboardingData.churches[i];
+        
+        // Verificar se pastor escolheu importar igrejas via PowerBI/Excel
+        const isPowerBIImport = onboardingData?.churches?.some(c => c.name === '__POWERBI_IMPORT__');
+        
+        // Se PowerBI import, extrair igrejas únicas do Excel
+        let churchesToCreate = onboardingData?.churches || [];
+        
+        if (isPowerBIImport && onboardingData?.excelData?.data?.length > 0) {
+          console.log('📊 Detectado import via PowerBI - extraindo igrejas do Excel...');
+          const uniqueChurchNames = new Set();
+          
+          for (const row of onboardingData.excelData.data) {
+            // Buscar nome da igreja em vários campos possíveis
+            const churchName = row.igreja || row.Igreja || row.church || row.Church || 
+                              row.congregacao || row.Congregação || row['Igreja'] || row['Congregação'];
+            if (churchName && churchName.trim() && churchName.trim() !== '__POWERBI_IMPORT__') {
+              uniqueChurchNames.add(churchName.trim());
+            }
+          }
+          
+          // Criar lista de igrejas a partir dos nomes únicos
+          churchesToCreate = Array.from(uniqueChurchNames).map(name => ({
+            name: name,
+            address: '',
+            isNew: true,
+            type: 'igreja'
+          }));
+          
+          console.log(`📊 Igrejas extraídas do Excel: ${churchesToCreate.map(c => c.name).join(', ')}`);
+        }
+        
+        if (churchesToCreate && churchesToCreate.length > 0) {
+          for (let i = 0; i < churchesToCreate.length; i++) {
+            const church = churchesToCreate[i];
+            
+            // Ignorar placeholder do PowerBI
+            if (church.name === '__POWERBI_IMPORT__') {
+              console.log('⏭️ Ignorando placeholder __POWERBI_IMPORT__');
+              continue;
+            }
             // Verificar se igreja já existe
             const existingChurches = await sql`
               SELECT id, code FROM churches WHERE name = ${church.name} AND district_id = ${districtId} LIMIT 1
@@ -17859,13 +18420,28 @@ exports.handler = async (event, context) => {
 
         // Buscar código da primeira igreja
         const churchCodeMap = {};
-        if (onboardingData.churches?.length > 0) {
+        
+        // Verificar se foi import via PowerBI (igrejas extraídas do Excel)
+        const isPowerBIImport = onboardingData.churches?.some(c => c.name === '__POWERBI_IMPORT__');
+        
+        if (isPowerBIImport) {
+          // Buscar todas as igrejas do distrito para mapear códigos
+          const districtChurches = await sql`
+            SELECT name, code FROM churches WHERE district_id = ${districtId}
+          `;
+          for (const ch of districtChurches) {
+            churchCodeMap[ch.name?.toLowerCase()] = ch.code;
+          }
+          console.log(`📊 PowerBI import - ${districtChurches.length} igrejas mapeadas do distrito`);
+        } else if (onboardingData.churches?.length > 0) {
           for (const ch of onboardingData.churches) {
-            const existingChurch = await sql`
-              SELECT code FROM churches WHERE name = ${ch.name} AND district_id = ${districtId} LIMIT 1
-            `;
-            if (existingChurch.length > 0) {
-              churchCodeMap[ch.name?.toLowerCase()] = existingChurch[0].code;
+            if (ch.name && ch.name !== '__POWERBI_IMPORT__') {
+              const existingChurch = await sql`
+                SELECT code FROM churches WHERE name = ${ch.name} AND district_id = ${districtId} LIMIT 1
+              `;
+              if (existingChurch.length > 0) {
+                churchCodeMap[ch.name?.toLowerCase()] = existingChurch[0].code;
+              }
             }
           }
         }
@@ -18082,18 +18658,32 @@ exports.handler = async (event, context) => {
     }
 
     // Rota padrão - retornar erro 404
+    const duration = Date.now() - startTime;
+    logger.warn('Route not found', { requestId, path, method, duration });
     return {
       statusCode: 404,
       headers,
-      body: JSON.stringify({ error: 'Rota não encontrada' })
+      body: JSON.stringify({ error: 'Rota não encontrada', requestId })
     };
 
   } catch (error) {
-    console.error('❌ Erro na função API:', error);
+    const duration = Date.now() - startTime;
+    logger.error('API error', { 
+      requestId, 
+      path, 
+      method, 
+      duration,
+      error: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Erro interno do servidor' })
+      body: JSON.stringify({ 
+        error: 'Erro interno do servidor',
+        requestId,
+        message: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      })
     };
   }
 };

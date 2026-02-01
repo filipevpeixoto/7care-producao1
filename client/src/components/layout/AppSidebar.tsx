@@ -13,7 +13,8 @@ import {
   UserCog,
   Mail,
 } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { PrefetchLink } from '@/components/navigation/PrefetchLink';
 import {
   Sidebar,
   SidebarContent,
@@ -194,10 +195,10 @@ export function AppSidebar() {
               {allowedItems.map(item => (
                 <SidebarMenuItem key={item.title} data-tour={item.tourId}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClasses(item.url)}>
+                    <PrefetchLink to={item.url} className={getNavClasses(item.url)} viewTransition>
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && <span>{item.title}</span>}
-                    </NavLink>
+                    </PrefetchLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

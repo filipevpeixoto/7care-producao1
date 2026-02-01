@@ -1,0 +1,200 @@
+/**
+ * View Transitions CSS - Estilos para transições suaves entre páginas
+ * 
+ * @description
+ * Usa a View Transitions API nativa do browser para transições performáticas.
+ * Fallback gracioso para browsers sem suporte.
+ */
+
+/* ============================================
+   View Transitions - Configuração Global
+   ============================================ */
+
+/* Desabilita transições se o usuário preferir movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   Transição padrão - Fade + Slide sutil
+   ============================================ */
+
+::view-transition-old(root) {
+  animation: fade-out 150ms ease-out;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 150ms ease-in;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Transições específicas por elemento
+   ============================================ */
+
+/* Header permanece fixo durante transição */
+[data-view-transition="header"] {
+  view-transition-name: header;
+}
+
+::view-transition-group(header) {
+  animation-duration: 0ms;
+}
+
+/* Sidebar permanece fixa */
+[data-view-transition="sidebar"] {
+  view-transition-name: sidebar;
+}
+
+::view-transition-group(sidebar) {
+  animation-duration: 0ms;
+}
+
+/* Bottom nav permanece fixo */
+[data-view-transition="bottom-nav"] {
+  view-transition-name: bottom-nav;
+}
+
+::view-transition-group(bottom-nav) {
+  animation-duration: 0ms;
+}
+
+/* Conteúdo principal com transição */
+[data-view-transition="main-content"] {
+  view-transition-name: main-content;
+}
+
+::view-transition-old(main-content) {
+  animation: slide-out-left 200ms ease-out;
+}
+
+::view-transition-new(main-content) {
+  animation: slide-in-right 200ms ease-out;
+}
+
+@keyframes slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   Cards com transição de escala
+   ============================================ */
+
+[data-view-transition="card"] {
+  view-transition-name: var(--view-transition-name);
+}
+
+::view-transition-old(card) {
+  animation: scale-out 150ms ease-out;
+}
+
+::view-transition-new(card) {
+  animation: scale-in 150ms ease-out;
+}
+
+@keyframes scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   Fallback para browsers sem View Transitions
+   ============================================ */
+
+/* Transição CSS padrão quando View Transitions não está disponível */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+/* ============================================
+   Otimizações de Performance
+   ============================================ */
+
+/* Promove elementos para própria camada de composição */
+[data-view-transition] {
+  will-change: transform, opacity;
+  contain: layout style paint;
+}
+
+/* Remove will-change após animação para liberar memória */
+::view-transition-group(*) {
+  will-change: auto;
+}

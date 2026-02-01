@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import { usePrefetch } from '@/hooks/usePrefetch';
 import { useModal } from '@/contexts/ModalContext';
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ export const MobileBottomNav = memo(() => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const { prefetchRoute } = usePrefetch();
 
   // Estrutura simplificada do menu - memoizada para evitar recriações
   const menuStructure = useMemo(() => {
@@ -375,6 +377,8 @@ export const MobileBottomNav = memo(() => {
                     handleNavigation(item.path, index);
                   }
                 }}
+                onTouchStart={() => item.path !== '#' && prefetchRoute(item.path)}
+                onMouseEnter={() => item.path !== '#' && prefetchRoute(item.path)}
                 className="relative flex flex-col items-center justify-center w-full h-12 transition-all duration-300 ease-out"
                 style={{
                   touchAction: 'manipulation',

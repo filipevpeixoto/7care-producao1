@@ -18,7 +18,14 @@ credentials/
 
 # Build outputs
 dist/
+dist-server/
 build/
+
+# Test outputs
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
 
 # Logs
 *.log

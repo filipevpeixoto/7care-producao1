@@ -2,8 +2,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useMemo } from 'react';
 import { Login } from './pages/Login';
 import { FirstAccessWelcome } from './components/auth/FirstAccessWelcome';
 import {
@@ -24,6 +24,11 @@ import {
   testOfflineData,
 } from './lib/offline';
 import { SkipLink } from './components/accessibility/SkipLink';
+import { getSkeletonForRoute } from './components/ui/page-skeleton';
+import { usePrefetchOnMount } from './hooks/usePrefetch';
+
+// View Transitions CSS
+import './styles/view-transitions.css';
 
 // Lazy load all pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -59,12 +64,28 @@ const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Loading component for lazy loaded pages
-const PageLoader = () => (
+// Loading component for lazy loaded pages - com skeleton específico por rota
+const PageLoader = () => {
+  const location = useLocation();
+  const SkeletonComponent = useMemo(
+    () => getSkeletonForRoute(location.pathname),
+    [location.pathname]
+  );
+  return <SkeletonComponent />;
+};
+
+// Fallback simples para rotas sem skeleton mapeado
+const SimpleLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
   </div>
 );
+
+// Componente para prefetch de rotas críticas
+const PrefetchManager = () => {
+  usePrefetchOnMount();
+  return null;
+};
 
 // Create optimized query client
 const queryClient = createQueryClient();
@@ -180,48 +201,56 @@ const App = () => {
               <Sonner />
               <OfflineUserSync />
               <BrowserRouter>
-                <Suspense fallback={<PageLoader />}>
-                  {/* Main content wrapper com id para o skip link */}
-                  <main id="main-content" role="main" tabIndex={-1}>
-                    <Routes>
-                      <Route path="/" element={<Login />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/first-access" element={<FirstAccessWelcome />} />
-                      <Route path="/pastor-first-access" element={<PastorFirstAccess />} />
-                      <Route path="/pastor-onboarding/:token" element={<PastorOnboarding />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/calendar" element={<Calendar />} />
-                      <Route path="/menu" element={<Menu />} />
-                      <Route path="/meu-cadastro" element={<MeuCadastro />} />
-                      <Route path="/users" element={<Users />} />
-                      <Route path="/interested" element={<Interested />} />
-                      <Route path="/my-interested" element={<MyInterested />} />
-                      <Route path="/chat" element={<Chat />} />
-                      <Route path="/gamification" element={<Gamification />} />
-                      <Route path="/prayers" element={<Prayers />} />
-                      <Route path="/push-notifications" element={<PushNotifications />} />
-                      <Route path="/notifications" element={<NotificationsHistory />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/tasks" element={<Tasks />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/my-reports" element={<Tasks />} />
-                      <Route path="/contact" element={<Contact />} />
-                      <Route path="/election-config" element={<ElectionConfig />} />
-                      <Route path="/election-voting" element={<ElectionVoting />} />
-                      <Route path="/election-dashboard" element={<ElectionDashboard />} />
-                      <Route path="/elections" element={<UnifiedElection />} />
-                      <Route path="/election-dashboard/:configId" element={<ElectionResults />} />
-                      <Route path="/election-manage" element={<ElectionDashboard />} />
-                      <Route path="/election-manage/:configId" element={<ElectionManage />} />
-                      <Route path="/election-vote/:configId" element={<ElectionVotingMobile />} />
-                      <Route path="/districts" element={<Districts />} />
-                      <Route path="/pastors" element={<Pastors />} />
-                      <Route path="/pastor-invites" element={<PastorInvites />} />
-                      <Route path="/termos" element={<Terms />} />
-                      <Route path="/privacidade" element={<Privacy />} />
-                      {/* <Route path="/test-calendar" element={<TestCalendar />} /> */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
+                {/* Prefetch de rotas críticas */}
+                <PrefetchManager />
+                <Suspense fallback={<SimpleLoader />}>
+                  {/* Main content wrapper com id para o skip link e View Transition */}
+                  <main
+                    id="main-content"
+                    role="main"
+                    tabIndex={-1}
+                    data-view-transition="main-content"
+                  >
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/" element={<Login />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/first-access" element={<FirstAccessWelcome />} />
+                        <Route path="/pastor-first-access" element={<PastorFirstAccess />} />
+                        <Route path="/pastor-onboarding/:token" element={<PastorOnboarding />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/calendar" element={<Calendar />} />
+                        <Route path="/menu" element={<Menu />} />
+                        <Route path="/meu-cadastro" element={<MeuCadastro />} />
+                        <Route path="/users" element={<Users />} />
+                        <Route path="/interested" element={<Interested />} />
+                        <Route path="/my-interested" element={<MyInterested />} />
+                        <Route path="/chat" element={<Chat />} />
+                        <Route path="/gamification" element={<Gamification />} />
+                        <Route path="/prayers" element={<Prayers />} />
+                        <Route path="/push-notifications" element={<PushNotifications />} />
+                        <Route path="/notifications" element={<NotificationsHistory />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/tasks" element={<Tasks />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/my-reports" element={<Tasks />} />
+                        <Route path="/contact" element={<Contact />} />
+                        <Route path="/election-config" element={<ElectionConfig />} />
+                        <Route path="/election-voting" element={<ElectionVoting />} />
+                        <Route path="/election-dashboard" element={<ElectionDashboard />} />
+                        <Route path="/elections" element={<UnifiedElection />} />
+                        <Route path="/election-dashboard/:configId" element={<ElectionResults />} />
+                        <Route path="/election-manage" element={<ElectionDashboard />} />
+                        <Route path="/election-manage/:configId" element={<ElectionManage />} />
+                        <Route path="/election-vote/:configId" element={<ElectionVotingMobile />} />
+                        <Route path="/districts" element={<Districts />} />
+                        <Route path="/pastors" element={<Pastors />} />
+                        <Route path="/pastor-invites" element={<PastorInvites />} />
+                        <Route path="/termos" element={<Terms />} />
+                        <Route path="/privacidade" element={<Privacy />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
                   </main>
                 </Suspense>
               </BrowserRouter>
