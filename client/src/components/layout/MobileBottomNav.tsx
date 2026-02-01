@@ -293,6 +293,7 @@ export const MobileBottomNav = memo(() => {
                 >
                   <DropdownMenuTrigger asChild>
                     <button
+                      id="tour-nav-admin"
                       className={`relative flex flex-col items-center justify-center w-full h-12 transition-all duration-300 ease-out ${
                         isActive ? 'scale-110' : 'scale-100'
                       }`}
@@ -372,9 +373,13 @@ export const MobileBottomNav = memo(() => {
             }
 
             // Botões normais sem submenu
+            // Gerar ID para o tour baseado no título
+            const tourId = `tour-nav-${item.title.toLowerCase().replace(/\s+/g, '-').replace('7mount', 'gamification').replace('início', 'dashboard').replace('usuários', 'users')}`;
+
             return (
               <button
                 key={index}
+                id={tourId}
                 onClick={e => {
                   e.stopPropagation();
                   if (item.path !== '#') {

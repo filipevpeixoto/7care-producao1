@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAppTour } from '@/hooks/useAppTour';
 
 export const MobileHeader = () => {
   const { user, logout, stopImpersonating } = useAuth();
@@ -44,10 +45,9 @@ export const MobileHeader = () => {
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonationContext, setImpersonationContext] = useState<any>(null);
 
-  // Verificar se o tour foi completado
-  const tutorialCompleted = localStorage.getItem('tutorial_completed');
-  const tutorialSkipped = localStorage.getItem('tutorial_skipped');
-  const showTourButton = !tutorialCompleted && !tutorialSkipped;
+  // Hook do tour interativo
+  const { startTour, isTourCompleted } = useAppTour();
+  const showTourButton = !isTourCompleted();
 
   // Verificar se está impersonando
   useEffect(() => {
@@ -200,6 +200,7 @@ export const MobileHeader = () => {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <button
+              id="tour-logo"
               onClick={() => navigate('/dashboard')}
               className="relative cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200"
               style={{
@@ -223,6 +224,7 @@ export const MobileHeader = () => {
             {/* Informações de Boas-vindas em linha com a logo */}
             {user && (
               <div
+                id="tour-welcome"
                 className="flex items-center gap-2 pl-3 border-l border-gray-200/50 dark:border-gray-600/50"
                 style={{
                   transform: `translateX(${mobileHeaderLayout.welcome.offsetX}px) translateY(${mobileHeaderLayout.welcome.offsetY}px)`,
@@ -247,13 +249,14 @@ export const MobileHeader = () => {
             {/* Offline Indicator */}
             <OfflineIndicator userRole={user?.role} compact />
 
-            {/* Botão de Tour (se não completou) */}
+            {/* Botão de Tour Interativo */}
             {showTourButton && (
               <Button
+                id="tour-help-button"
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/first-access')}
-                title="Ver tour do app"
+                onClick={startTour}
+                title="Iniciar tour do app"
                 className="bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200/50 hover:border-blue-300/50 transition-all duration-200 dark:from-blue-900/30 dark:to-cyan-900/30 dark:hover:from-blue-800/40 dark:hover:to-cyan-800/40 dark:border-blue-700/50 animate-pulse"
               >
                 <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -261,6 +264,7 @@ export const MobileHeader = () => {
             )}
 
             <Button
+              id="tour-chat-button"
               variant="ghost"
               size="sm"
               onClick={() => navigate('/chat')}
@@ -270,6 +274,7 @@ export const MobileHeader = () => {
               <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             </Button>
             <Button
+              id="tour-notifications-button"
               variant="ghost"
               size="sm"
               onClick={() => navigate('/notifications')}
@@ -280,6 +285,7 @@ export const MobileHeader = () => {
             </Button>
 
             <Button
+              id="tour-theme-button"
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
@@ -296,7 +302,7 @@ export const MobileHeader = () => {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-0">
+                  <Button id="tour-profile-menu" variant="ghost" size="sm" className="p-0">
                     <div className="relative w-8 h-8">
                       {getPhotoUrl() ? (
                         <>

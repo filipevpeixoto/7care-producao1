@@ -479,3 +479,144 @@ html {
 .dark .badge-info {
   @apply bg-blue-500/20 text-blue-400 border-blue-500/30;
 }
+
+/* ==========================================
+   Driver.js Tour Customization
+   ========================================== */
+
+/* Popover styling */
+.driver-popover {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1) !important;
+  padding: 20px !important;
+  max-width: 340px !important;
+}
+
+.dark .driver-popover {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Title styling */
+.driver-popover-title {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #1e3a5f !important;
+  margin-bottom: 8px !important;
+  line-height: 1.4 !important;
+}
+
+.dark .driver-popover-title {
+  color: #f1f5f9 !important;
+}
+
+/* Description styling */
+.driver-popover-description {
+  font-size: 0.95rem !important;
+  color: #475569 !important;
+  line-height: 1.6 !important;
+  margin-bottom: 16px !important;
+}
+
+.dark .driver-popover-description {
+  color: #94a3b8 !important;
+}
+
+/* Progress text */
+.driver-popover-progress-text {
+  font-size: 0.8rem !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+.dark .driver-popover-progress-text {
+  color: #94a3b8 !important;
+}
+
+/* Buttons container */
+.driver-popover-footer {
+  margin-top: 16px !important;
+  gap: 8px !important;
+}
+
+/* Navigation buttons */
+.driver-popover-prev-btn,
+.driver-popover-next-btn {
+  padding: 10px 20px !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+}
+
+.driver-popover-prev-btn {
+  background: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background: #cbd5e1 !important;
+}
+
+.dark .driver-popover-prev-btn {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark .driver-popover-prev-btn:hover {
+  background: #475569 !important;
+}
+
+.driver-popover-next-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4) !important;
+}
+
+.driver-popover-next-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Close button */
+.driver-popover-close-btn {
+  color: #94a3b8 !important;
+  width: 28px !important;
+  height: 28px !important;
+  opacity: 0.7 !important;
+  transition: all 0.2s ease !important;
+}
+
+.driver-popover-close-btn:hover {
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+
+.dark .driver-popover-close-btn:hover {
+  color: #e2e8f0 !important;
+}
+
+/* Arrow styling */
+.driver-popover-arrow {
+  border-color: #ffffff !important;
+}
+
+.dark .driver-popover-arrow {
+  border-color: #1e293b !important;
+}
+
+/* Highlighted element */
+.driver-active-element {
+  outline: 3px solid #3b82f6 !important;
+  outline-offset: 4px !important;
+  border-radius: 8px !important;
+}
+
+/* Overlay */
+.driver-overlay {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
