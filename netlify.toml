@@ -7,6 +7,12 @@
   NODE_ENV = "production"
   NPM_CONFIG_PRODUCTION = "false"
 
+# Nova função dedicada para chat-list (antes da rota genérica de API)
+[[redirects]]
+  from = "/api/users/chat-list"
+  to = "/.netlify/functions/chatlist"
+  status = 200
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api"
