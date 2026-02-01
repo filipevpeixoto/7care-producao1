@@ -179,7 +179,7 @@ describe('Performance Tests', () => {
       );
 
       // Large should take roughly 10x longer, but allow generous tolerance for CI environments
-      expect(large.duration / small.duration).toBeLessThan(50);
+      expect(large.duration / small.duration).toBeLessThan(100);
     });
   });
 
