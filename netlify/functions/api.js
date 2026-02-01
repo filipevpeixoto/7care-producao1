@@ -17252,9 +17252,12 @@ exports.handler = async (event, context) => {
             districtId = existingDistricts[0].id;
             console.log(`📍 Distrito já existe: ${districtData.name} (ID: ${districtId})`);
           } else {
+            // Gerar código único para o distrito
+            const districtCode = `D${Date.now().toString(36).toUpperCase().substring(0, 6)}`;
+            
             const [newDistrict] = await sql`
-              INSERT INTO districts (name, region, created_at)
-              VALUES (${districtData.name}, ${districtData.region || null}, NOW())
+              INSERT INTO districts (name, code, pastor_id, description, created_at, updated_at)
+              VALUES (${districtData.name}, ${districtCode}, ${invite.user_id}, ${districtData.description || null}, NOW(), NOW())
               RETURNING id
             `;
             districtId = newDistrict.id;
