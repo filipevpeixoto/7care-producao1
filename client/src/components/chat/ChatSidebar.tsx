@@ -251,8 +251,8 @@ export const ChatSidebar = ({
   }, [allUsers, currentUserId, searchTerm]);
 
   return (
-    <Card className="h-full min-h-0 flex flex-col">
-      <CardHeader className="border-b p-4">
+    <Card className="h-full flex flex-col overflow-hidden">
+      <CardHeader className="border-b p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />

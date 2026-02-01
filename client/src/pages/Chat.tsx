@@ -145,10 +145,10 @@ export default function Chat() {
 
   return (
     <MobileLayout>
-      <div className="p-4 h-full min-h-0">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full min-h-0">
+      <div className="p-4 h-[calc(100vh-120px)] overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
           {/* Sidebar */}
-          <div className="md:col-span-1 h-full min-h-0">
+          <div className="md:col-span-1 h-full overflow-hidden">
             <ChatSidebar
               mode={isAdmin ? 'users' : 'conversations'}
               currentUserId={user?.id as any}
