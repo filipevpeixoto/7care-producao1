@@ -248,14 +248,15 @@ export const MobileBottomNav = memo(() => {
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 p-4 pointer-events-none transition-transform duration-300 ease-in-out`}
+      className={`fixed bottom-0 left-0 right-0 px-4 pb-4 pointer-events-none transition-transform duration-300 ease-in-out`}
       style={{
         zIndex: 999999,
         transform: isAnyModalOpen ? 'translateY(100%)' : 'translateY(0)',
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
       }}
     >
-      {/* Menu principal suspenso */}
-      <nav ref={navRef} className={navClasses}>
+      {/* Menu principal suspenso/flutuante */}
+      <nav ref={navRef} className={`${navClasses} mx-auto max-w-md`}>
         <div className="relative flex justify-around items-center py-2 px-3">
           {/* Fundo deslizante centralizado - não aparece quando menu admin está aberto */}
           {!adminMenuOpen && (
