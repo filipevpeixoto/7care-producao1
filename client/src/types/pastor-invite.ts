@@ -32,6 +32,20 @@ export interface ExcelRow {
   telefone?: string;
   email?: string;
   cargo?: string;
+  // Dados pessoais adicionais
+  dataNascimento?: string;
+  estadoCivil?: string;
+  profissao?: string;
+  escolaridade?: string;
+  endereco?: string;
+  // Dados religiosos
+  dataBatismo?: string;
+  dizimista?: string;
+  ofertante?: string;
+  // Outros
+  sexo?: string;
+  cpf?: string;
+  observacoes?: string;
 }
 
 export interface ExcelData {

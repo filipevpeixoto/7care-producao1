@@ -17328,36 +17328,40 @@ exports.handler = async (event, context) => {
         // 3. Importar membros da planilha (se houver excelData)
         let membersImported = 0;
         let membersSkipped = 0;
-        if (onboardingData?.excelData && onboardingData.excelData.length > 0) {
-          console.log(`📊 Importando ${onboardingData.excelData.length} membros...`);
+        if (onboardingData?.excelData?.data && onboardingData.excelData.data.length > 0) {
+          const membersToImport = onboardingData.excelData.data;
+          console.log(`📊 Importando ${membersToImport.length} membros...`);
           
-          for (const member of onboardingData.excelData) {
+          for (const member of membersToImport) {
             try {
               // Pular membros sem nome
-              if (!member.name || member.name.trim() === '') {
+              const memberName = member.nome || member.name;
+              if (!memberName || memberName.trim() === '') {
                 console.log(`⚠️ Membro sem nome - pulando`);
                 membersSkipped++;
                 continue;
               }
               
               // Verificar se membro já existe pelo email (se tiver email)
-              if (member.email && member.email.trim() !== '') {
+              const memberEmailRaw = member.email;
+              if (memberEmailRaw && memberEmailRaw.trim() !== '') {
                 const existingMember = await sql`
-                  SELECT id FROM users WHERE email = ${member.email.trim().toLowerCase()} LIMIT 1
+                  SELECT id FROM users WHERE email = ${memberEmailRaw.trim().toLowerCase()} LIMIT 1
                 `;
                 if (existingMember.length > 0) {
-                  console.log(`⚠️ Membro já existe: ${member.email}`);
+                  console.log(`⚠️ Membro já existe: ${memberEmailRaw}`);
                   membersSkipped++;
                   continue;
                 }
               }
               
               // Determinar a igreja do membro (código e nome)
+              const memberChurchRaw = member.igreja || member.church;
               let memberChurchCode = null;
-              let memberChurchName = member.church || null;
+              let memberChurchName = memberChurchRaw || null;
               
-              if (member.church && churchCodeMap) {
-                memberChurchCode = churchCodeMap[member.church?.toLowerCase()] || null;
+              if (memberChurchRaw && churchCodeMap) {
+                memberChurchCode = churchCodeMap[memberChurchRaw?.toLowerCase()] || null;
               }
               // Se não encontrou pelo nome, usa a primeira igreja
               if (!memberChurchCode && churchIds.length > 0 && onboardingData.churches?.length > 0) {
@@ -17366,65 +17370,91 @@ exports.handler = async (event, context) => {
               }
               
               // Gerar email único se não tiver (formato: nome.timestamp@importado.local)
-              const memberEmail = member.email?.trim() 
-                ? member.email.trim().toLowerCase() 
-                : `${member.name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}@importado.local`;
+              const memberEmail = memberEmailRaw?.trim() 
+                ? memberEmailRaw.trim().toLowerCase() 
+                : `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2, 4)}@importado.local`;
               
               // Gerar senha padrão hasheada (será alterada no primeiro acesso)
               const bcrypt = require('bcryptjs');
               const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
               
-              // Processar datas com segurança
-              let birthDate = null;
-              let baptismDate = null;
-              
-              if (member.birthDate) {
+              // Função auxiliar para parsear datas
+              const parseDate = (dateStr) => {
+                if (!dateStr) return null;
                 try {
-                  const bd = new Date(member.birthDate);
-                  if (!isNaN(bd.getTime())) birthDate = bd;
-                } catch (e) { /* ignora data inválida */ }
-              }
+                  // Tentar diferentes formatos
+                  const str = String(dateStr).trim();
+                  
+                  // Formato DD/MM/YYYY ou DD-MM-YYYY
+                  const brMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+                  if (brMatch) {
+                    const [, day, month, year] = brMatch;
+                    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                    if (!isNaN(d.getTime())) return d;
+                  }
+                  
+                  // Formato YYYY-MM-DD (ISO)
+                  const isoMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+                  if (isoMatch) {
+                    const d = new Date(str);
+                    if (!isNaN(d.getTime())) return d;
+                  }
+                  
+                  // Tentar parse direto
+                  const d = new Date(dateStr);
+                  if (!isNaN(d.getTime())) return d;
+                  
+                  return null;
+                } catch (e) {
+                  return null;
+                }
+              };
               
-              if (member.baptismDate) {
-                try {
-                  const baptd = new Date(member.baptismDate);
-                  if (!isNaN(baptd.getTime())) baptismDate = baptd;
-                } catch (e) { /* ignora data inválida */ }
-              }
+              // Função para parsear booleano
+              const parseBool = (val) => {
+                if (val === undefined || val === null) return false;
+                const str = String(val).toLowerCase().trim();
+                return str === 'true' || str === 'sim' || str === 's' || str === '1' || str === 'yes' || str === 'x';
+              };
               
-              // Criar membro
+              // Processar datas
+              const birthDate = parseDate(member.dataNascimento || member.birthDate);
+              const baptismDate = parseDate(member.dataBatismo || member.baptismDate);
+              
+              // Criar membro com todos os campos
               await sql`
                 INSERT INTO users (
                   name, email, password, role, church, church_code, phone, 
                   birth_date, civil_status, occupation, education, address,
                   baptism_date, is_tither, is_donor, status, first_access, created_at,
-                  district_id
+                  district_id, observations
                 )
                 VALUES (
-                  ${member.name.trim()},
+                  ${memberName.trim()},
                   ${memberEmail},
                   ${defaultPassword},
                   'member',
                   ${memberChurchName},
                   ${memberChurchCode},
-                  ${member.phone || null},
+                  ${member.telefone || member.phone || null},
                   ${birthDate},
-                  ${member.civilStatus || null},
-                  ${member.occupation || null},
-                  ${member.education || null},
-                  ${member.address || null},
+                  ${member.estadoCivil || member.civilStatus || null},
+                  ${member.profissao || member.occupation || null},
+                  ${member.escolaridade || member.education || null},
+                  ${member.endereco || member.address || null},
                   ${baptismDate},
-                  ${member.isTither === true || member.isTither === 'true' || member.isTither === 'Sim'},
-                  ${member.isDonor === true || member.isDonor === 'true' || member.isDonor === 'Sim'},
+                  ${parseBool(member.dizimista || member.isTither)},
+                  ${parseBool(member.ofertante || member.isDonor)},
                   'active',
                   true,
                   NOW(),
-                  ${districtId}
+                  ${districtId},
+                  ${member.observacoes || member.observations || null}
                 )
               `;
               membersImported++;
             } catch (memberError) {
-              console.error(`❌ Erro ao importar membro ${member.name}:`, memberError.message);
+              console.error(`❌ Erro ao importar membro ${member.nome || member.name}:`, memberError.message);
               membersSkipped++;
             }
           }

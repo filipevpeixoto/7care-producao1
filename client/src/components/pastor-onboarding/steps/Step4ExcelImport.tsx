@@ -74,21 +74,103 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       // Processar Excel localmente no navegador
       const result = await readExcelFile(file);
 
-      // Converter dados para formato ExcelRow
+      // Converter dados para formato ExcelRow com todos os campos possíveis
       const formattedData: ExcelRow[] = result.data
-        .map(row => ({
-          nome: String(row.nome || row.Nome || row.name || '').trim(),
-          igreja: String(row.igreja || row.Igreja || row.church || '').trim(),
-          telefone:
-            row.telefone || row.Telefone || row.phone
-              ? String(row.telefone || row.Telefone || row.phone).trim()
-              : undefined,
-          email: row.email || row.Email ? String(row.email || row.Email).trim() : undefined,
-          cargo:
-            row.cargo || row.Cargo || row.role
-              ? String(row.cargo || row.Cargo || row.role).trim()
-              : undefined,
-        }))
+        .map(row => {
+          // Extrair nome (obrigatório)
+          const nome = String(row.nome || row.Nome || row.name || row.NOME || '').trim();
+
+          // Extrair igreja (obrigatório)
+          const igreja = String(row.igreja || row.Igreja || row.church || row.IGREJA || '').trim();
+
+          // Extrair campos opcionais
+          const telefone =
+            row.telefone || row.Telefone || row.phone || row.TELEFONE || row.celular || row.Celular;
+          const email = row.email || row.Email || row.EMAIL || row['e-mail'] || row['E-mail'];
+          const cargo = row.cargo || row.Cargo || row.role || row.CARGO || row.funcao || row.Funcao;
+
+          // Dados pessoais adicionais
+          const dataNascimento =
+            row.dataNascimento ||
+            row['data_nascimento'] ||
+            row['Data Nascimento'] ||
+            row['Data de Nascimento'] ||
+            row.nascimento ||
+            row.Nascimento ||
+            row.birthDate ||
+            row['data nascimento'];
+          const estadoCivil =
+            row.estadoCivil ||
+            row['estado_civil'] ||
+            row['Estado Civil'] ||
+            row.civilStatus ||
+            row['estado civil'];
+          const profissao =
+            row.profissao ||
+            row.Profissao ||
+            row.occupation ||
+            row.ocupacao ||
+            row.Ocupacao ||
+            row['Profissão'];
+          const escolaridade =
+            row.escolaridade || row.Escolaridade || row.education || row.Education;
+          const endereco =
+            row.endereco || row.Endereco || row.address || row['Endereço'] || row.ENDERECO;
+
+          // Dados religiosos
+          const dataBatismo =
+            row.dataBatismo ||
+            row['data_batismo'] ||
+            row['Data Batismo'] ||
+            row['Data de Batismo'] ||
+            row.batismo ||
+            row.Batismo ||
+            row.baptismDate ||
+            row['data batismo'];
+          const dizimista =
+            row.dizimista ||
+            row.Dizimista ||
+            row.isTither ||
+            row['é dizimista'] ||
+            row['É Dizimista'] ||
+            row['dízimo'];
+          const ofertante =
+            row.ofertante ||
+            row.Ofertante ||
+            row.isDonor ||
+            row['é ofertante'] ||
+            row['É Ofertante'] ||
+            row.oferta ||
+            row.Oferta;
+
+          // Outros campos úteis
+          const sexo = row.sexo || row.Sexo || row.gender || row.genero || row.Genero;
+          const cpf = row.cpf || row.CPF || row.Cpf;
+          const observacoes =
+            row.observacoes || row.Observacoes || row.observations || row.obs || row.Obs;
+
+          return {
+            nome,
+            igreja,
+            telefone: telefone ? String(telefone).trim() : undefined,
+            email: email ? String(email).trim() : undefined,
+            cargo: cargo ? String(cargo).trim() : undefined,
+            // Dados pessoais
+            dataNascimento: dataNascimento ? String(dataNascimento) : undefined,
+            estadoCivil: estadoCivil ? String(estadoCivil).trim() : undefined,
+            profissao: profissao ? String(profissao).trim() : undefined,
+            escolaridade: escolaridade ? String(escolaridade).trim() : undefined,
+            endereco: endereco ? String(endereco).trim() : undefined,
+            // Dados religiosos
+            dataBatismo: dataBatismo ? String(dataBatismo) : undefined,
+            dizimista: dizimista !== undefined ? String(dizimista) : undefined,
+            ofertante: ofertante !== undefined ? String(ofertante) : undefined,
+            // Outros
+            sexo: sexo ? String(sexo).trim() : undefined,
+            cpf: cpf ? String(cpf).trim() : undefined,
+            observacoes: observacoes ? String(observacoes).trim() : undefined,
+          };
+        })
         .filter(row => row.nome && row.igreja); // Filtrar linhas sem dados obrigatórios
 
       if (formattedData.length === 0) {
