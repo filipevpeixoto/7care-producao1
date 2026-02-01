@@ -2980,16 +2980,41 @@ exports.handler = async (event, context) => {
     }
 
 
-    // Rota para listar usuários para chat (simplificada)
-    if (path === '/api/users/chat-list' && method === 'GET') {
-      console.log('🔍 Get users for chat list - ROTA ENCONTRADA');
+    // Rota para listar usuários para chat (simplificada) - V2
+    if ((path === '/api/users/chat-list' || path === '/api/chat-list') && method === 'GET') {
+      console.log('🔍 Get users for chat list - V2 - ROTA ENCONTRADA');
       
-      // Teste simples sem banco
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify([{id: 1, name: 'Teste', email: 'teste@test.com', profilePhoto: null}])
-      };
+      try {
+        // Buscar todos usuários aprovados
+        const users = await sql`
+          SELECT id, name, email, profile_photo 
+          FROM users 
+          WHERE status = 'approved'
+          LIMIT 500
+        `;
+        
+        console.log('✅ Found', users.length, 'users for chat');
+        
+        const chatList = users.map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          profilePhoto: u.profile_photo
+        }));
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(chatList)
+        };
+      } catch (error) {
+        console.error('❌ Get chat list V2 error:', error.message || error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao buscar usuários V2', details: error.message })
+        };
+      }
     }
 
     // Rota para buscar usuário por ID
