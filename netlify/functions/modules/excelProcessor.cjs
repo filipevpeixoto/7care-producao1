@@ -3,7 +3,7 @@
  * Centraliza parsing e processamento de arquivos Excel
  */
 
-const { parseDate, parseBool, parseNumber, formatPhoneNumber } = require('./validation');
+const { parseDate, parseBool, parseNumber, formatPhoneNumber } = require('./validation.cjs');
 
 /**
  * Mapeamento de nomes de colunas para campos do sistema

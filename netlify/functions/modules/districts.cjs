@@ -3,8 +3,8 @@
  * Centraliza operações CRUD de distritos
  */
 
-const db = require('./database');
-const { sanitizeObject, validateDistrictData } = require('./validation');
+const db = require('./database.cjs');
+const { sanitizeObject, validateDistrictData } = require('./validation.cjs');
 
 /**
  * Campos padrão para selecionar distrito

@@ -3,10 +3,10 @@
  * Centraliza operações CRUD de usuários
  */
 
-const db = require('./database');
-const { hashPassword, comparePassword } = require('./auth');
-const { calculateUserPoints, calculateLevel } = require('./points');
-const { sanitizeObject, validateUserData, isValidEmail } = require('./validation');
+const db = require('./database.cjs');
+const { hashPassword, comparePassword } = require('./auth.cjs');
+const { calculateUserPoints, calculateLevel } = require('./points.cjs');
+const { sanitizeObject, validateUserData, isValidEmail } = require('./validation.cjs');
 
 /**
  * Campos padrão para selecionar usuário (sem senha)

@@ -3,8 +3,8 @@
  * Centraliza operações CRUD de igrejas
  */
 
-const db = require('./database');
-const { sanitizeObject, validateChurchData } = require('./validation');
+const db = require('./database.cjs');
+const { sanitizeObject, validateChurchData } = require('./validation.cjs');
 
 /**
  * Campos padrão para selecionar igreja

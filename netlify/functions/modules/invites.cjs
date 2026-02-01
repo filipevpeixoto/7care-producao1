@@ -4,8 +4,8 @@
  */
 
 const crypto = require('crypto');
-const db = require('./database');
-const { sanitizeObject } = require('./validation');
+const db = require('./database.cjs');
+const { sanitizeObject } = require('./validation.cjs');
 
 /**
  * Status de convite
