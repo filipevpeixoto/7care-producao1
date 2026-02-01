@@ -132,6 +132,63 @@ export function usePrefetch() {
     }
   }, [prefetchRoute]);
 
+  /**
+   * Pré-carrega dados específicos do Dashboard
+   */
+  const prefetchDashboardData = useCallback(
+    (userId?: number, userRole?: string) => {
+      if (!userId) return;
+
+      // Prefetch dos dados unificados do dashboard (para superadmin)
+      if (userRole === 'superadmin') {
+        queryClient.prefetchQuery({
+          queryKey: ['/api/dashboard/unified', userId],
+          queryFn: async () => {
+            const response = await fetch('/api/dashboard/unified', {
+              headers: {
+                'x-user-id': userId.toString(),
+                'x-user-role': userRole,
+              },
+            });
+            if (!response.ok) throw new Error('Failed to prefetch');
+            return response.json();
+          },
+          staleTime: 2 * 60 * 1000,
+        });
+      }
+
+      // Prefetch das stats gerais
+      queryClient.prefetchQuery({
+        queryKey: ['/api/dashboard/stats', userId],
+        queryFn: async () => {
+          const response = await fetch('/api/dashboard/stats', {
+            headers: { 'x-user-id': userId.toString() },
+          });
+          if (!response.ok) throw new Error('Failed to prefetch');
+          return response.json();
+        },
+        staleTime: 2 * 60 * 1000,
+      });
+
+      // Prefetch dos aniversariantes
+      queryClient.prefetchQuery({
+        queryKey: ['/api/users/birthdays', userId, userRole],
+        queryFn: async () => {
+          const response = await fetch('/api/users/birthdays', {
+            headers: {
+              'x-user-id': userId.toString(),
+              'x-user-role': userRole || 'member',
+            },
+          });
+          if (!response.ok) throw new Error('Failed to prefetch');
+          return response.json();
+        },
+        staleTime: 4 * 60 * 1000,
+      });
+    },
+    [queryClient]
+  );
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -147,6 +204,7 @@ export function usePrefetch() {
     cancelPrefetch,
     prefetchData,
     prefetchCriticalRoutes,
+    prefetchDashboardData,
     isRouteLoaded: (path: string) => loadedRoutes.has(path),
   };
 }

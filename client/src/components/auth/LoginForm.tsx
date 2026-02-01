@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { usePrefetch } from '@/hooks/usePrefetch';
 
 export const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +18,7 @@ export const LoginForm = () => {
   const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { prefetchDashboardData, prefetchRoute } = usePrefetch();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +67,9 @@ export const LoginForm = () => {
           navigate('/first-access');
         } else {
           console.log('🔍 Debug LoginForm - Redirecting to /dashboard');
+          // Prefetch dos dados do dashboard enquanto navega (reduz tempo de carregamento)
+          prefetchRoute('/dashboard');
+          prefetchDashboardData(user?.id, user?.role);
           navigate('/dashboard');
         }
       } else {

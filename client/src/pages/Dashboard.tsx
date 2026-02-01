@@ -19,6 +19,10 @@ import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
 import { BirthdayCard } from '@/components/dashboard/BirthdayCard';
 import { Visitometer } from '@/components/dashboard/Visitometer';
 import { QuickGamificationCard } from '@/components/dashboard/QuickGamificationCard';
+import {
+  DashboardSkeletonGrid,
+  NumberSkeleton,
+} from '@/components/dashboard/DashboardCardSkeleton';
 
 import { SpiritualCheckInModal } from '@/components/dashboard/SpiritualCheckInModal';
 import { useSpiritualCheckIn } from '@/hooks/useSpiritualCheckIn';
@@ -61,8 +65,11 @@ const Dashboard = () => {
     },
     enabled: !!user?.id && isSuperAdmin(user),
     staleTime: 2 * 60 * 1000, // 2 minutos
+    gcTime: 10 * 60 * 1000, // Manter em cache por 10 minutos
     refetchInterval: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
+    // Mostrar dados em cache imediatamente enquanto busca novos
+    placeholderData: previousData => previousData,
   });
 
   // BUSCAR dados de usuários da mesma query da página Users (fallback para não-superadmin)
@@ -1125,265 +1132,287 @@ const Dashboard = () => {
   // Loading state otimizado para superadmin (usa dados unificados)
   const isUnifiedLoading = isSuperAdmin(user) && unifiedLoading;
 
+  // Verifica se é o primeiro carregamento (sem dados em cache)
+  const isFirstLoad = isUnifiedLoading && !unifiedData;
+
   const renderAdminDashboard = () => (
     <div className="space-y-4 lg:space-y-8">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6">
-        <Card className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-blue-800/30 opacity-100 group-hover:from-blue-600/30 group-hover:to-blue-800/40 transition-all duration-300"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/30 to-blue-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
-            <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Total de Usuários
-            </CardTitle>
-            <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-              <Users className="h-3 w-3 lg:h-4 lg:w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative z-10 p-3 lg:p-6">
-            <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-              {isLoading ? '...' : stats.totalUsers}
-            </div>
-            <p className="text-xs lg:text-sm text-white/80 mt-1">
-              {stats.approvedUsers} usuários aprovados
-            </p>
-            <Button
-              onClick={() => navigate('/users')}
-              className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
-            >
-              <Users className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-              <span className="hidden sm:inline">Gerenciar Usuários</span>
-              <span className="sm:hidden">Usuários</span>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="group relative overflow-hidden bg-gradient-to-br from-red-500 to-red-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-red-600/20 to-red-800/30 opacity-100 group-hover:from-red-600/30 group-hover:to-red-800/40 transition-all duration-300"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400/30 to-red-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
-            <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Amigos da igreja
-            </CardTitle>
-            <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-              <Heart className="h-3 w-3 lg:h-4 lg:w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative z-10 p-3 lg:p-6 space-y-2">
-            <div className="flex items-baseline gap-2">
-              <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                {isLoading ? '...' : stats.totalInterested}
-              </div>
-              <span className="text-xs lg:text-sm text-white/80">Amigos</span>
-            </div>
-            <div className="flex items-center gap-2 pt-1 border-t border-white/20">
-              <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
-                {isLoading ? '...' : stats.interestedBeingDiscipled || 0}
-              </div>
-              <span className="text-xs lg:text-sm text-white/80 leading-tight">
-                Estão Sendo Discipulados
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-orange-800/30 opacity-100 group-hover:from-orange-600/30 group-hover:to-orange-800/40 transition-all duration-300"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-400/30 to-orange-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
-            <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Tarefas
-            </CardTitle>
-            <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-              <CheckSquare className="h-3 w-3 lg:h-4 lg:w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative z-10 p-3 lg:p-6 space-y-2">
-            <div className="flex items-baseline gap-2">
-              <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                {isLoading || tasksLoading ? '...' : dashboardStats?.pendingTasks || 0}
-              </div>
-              <span className="text-xs lg:text-sm text-white/80">Pendentes</span>
-            </div>
-            <div className="flex items-center gap-2 pt-1 border-t border-white/20">
-              <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
-                {isLoading || tasksLoading ? '...' : dashboardStats?.completedTasks || 0}
-              </div>
-              <span className="text-xs lg:text-sm text-white/80 leading-tight">Concluídas</span>
-            </div>
-            <div className="flex items-center gap-2 pt-1 border-t border-white/20">
-              <div className="text-sm lg:text-lg font-semibold text-white/90 drop-shadow">
-                {isLoading || tasksLoading ? '...' : dashboardStats?.totalTasks || 0}
-              </div>
-              <span className="text-xs lg:text-sm text-white/80 leading-tight">Total</span>
-            </div>
-            <Button
-              onClick={() => navigate('/tasks')}
-              className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 w-full"
-            >
-              <CheckSquare className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-              <span className="hidden sm:inline">Gerenciar Tarefas</span>
-              <span className="sm:hidden">Tarefas</span>
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Card de Membros */}
-        <Card className="group relative overflow-hidden bg-gradient-to-br from-green-500 to-green-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 to-green-800/30 opacity-100 group-hover:from-green-600/30 group-hover:to-green-800/40 transition-all duration-300"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/30 to-green-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
-            <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Membros
-            </CardTitle>
-            <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-              <Users className="h-3 w-3 lg:h-4 lg:w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative z-10 p-3 lg:p-6">
-            <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-              {isLoading ? '...' : stats.totalMembers}
-            </div>
-            <p className="text-xs lg:text-sm text-white/80 mt-1">Membros ativos da igreja</p>
-          </CardContent>
-        </Card>
-
-        {/* Card de Missionários */}
-        <Card className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-purple-800/30 opacity-100 group-hover:from-purple-600/30 group-hover:to-purple-800/40 transition-all duration-300"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/30 to-purple-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
-            <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Missionários
-            </CardTitle>
-            <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-              <Heart className="h-3 w-3 lg:h-4 lg:w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative z-10 p-3 lg:p-6">
-            <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-              {isLoading ? '...' : stats.totalMissionaries}
-            </div>
-            <p className="text-xs lg:text-sm text-white/80 mt-1">Discipuladores ativos</p>
-          </CardContent>
-        </Card>
-
-        {/* Card de Check-ins Espirituais */}
-        <Card className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-600/20 to-pink-800/30 opacity-100 group-hover:from-pink-600/30 group-hover:to-pink-800/40 transition-all duration-300"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/30 to-pink-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
-            <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Check-ins Espirituais
-            </CardTitle>
-            <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-              <span className="text-sm lg:text-base filter brightness-0 invert">🙏</span>
-            </div>
-          </CardHeader>
-          <CardContent className="relative z-10 p-3 lg:p-6">
-            <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-              {spiritualCheckInsLoading ? '...' : spiritualCheckIns?.length || 0}
-            </div>
-            <p className="text-xs lg:text-sm text-white/80 mt-1">
-              Últimos check-ins espirituais dos membros
-            </p>
-            <Button
-              onClick={() => setShowCheckIn(true)}
-              className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
-            >
-              <span className="mr-1 filter brightness-0 invert">🙏</span>
-              <span className="hidden sm:inline">Fazer meu check-in</span>
-              <span className="sm:hidden">Check-in</span>
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Cards específicos para Superadmin */}
-        {isSuperAdmin(user) && (
-          <>
-            {/* Card de Distritos */}
-            <Card className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-emerald-800/30 opacity-100 group-hover:from-emerald-600/30 group-hover:to-emerald-800/40 transition-all duration-300"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/30 to-emerald-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+      {/* Skeleton Grid para primeiro carregamento */}
+      {isFirstLoad ? (
+        <DashboardSkeletonGrid count={6} />
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6">
+            <Card className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-blue-800/30 opacity-100 group-hover:from-blue-600/30 group-hover:to-blue-800/40 transition-all duration-300"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/30 to-blue-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Distritos
+                  Total de Usuários
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-                  <Building2 className="h-3 w-3 lg:h-4 lg:w-4" />
+                  <Users className="h-3 w-3 lg:h-4 lg:w-4" />
                 </div>
               </CardHeader>
               <CardContent className="relative z-10 p-3 lg:p-6">
                 <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                  {districtsCount ?? '...'}
+                  {isLoading ? <NumberSkeleton /> : stats.totalUsers}
                 </div>
-                <p className="text-xs lg:text-sm text-white/80 mt-1">Distritos cadastrados</p>
+                <p className="text-xs lg:text-sm text-white/80 mt-1">
+                  {stats.approvedUsers} usuários aprovados
+                </p>
                 <Button
-                  onClick={() => navigate('/districts')}
+                  onClick={() => navigate('/users')}
                   className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
                 >
-                  <Building2 className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-                  <span className="hidden sm:inline">Gerenciar Distritos</span>
-                  <span className="sm:hidden">Distritos</span>
+                  <Users className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
+                  <span className="hidden sm:inline">Gerenciar Usuários</span>
+                  <span className="sm:hidden">Usuários</span>
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Card de Pastores */}
-            <Card className="group relative overflow-hidden bg-gradient-to-br from-amber-500 to-amber-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-600/20 to-amber-800/30 opacity-100 group-hover:from-amber-600/30 group-hover:to-amber-800/40 transition-all duration-300"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/30 to-amber-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+            <Card className="group relative overflow-hidden bg-gradient-to-br from-red-500 to-red-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-red-600/20 to-red-800/30 opacity-100 group-hover:from-red-600/30 group-hover:to-red-800/40 transition-all duration-300"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400/30 to-red-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Pastores
+                  Amigos da igreja
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
-                  <UserCog className="h-3 w-3 lg:h-4 lg:w-4" />
+                  <Heart className="h-3 w-3 lg:h-4 lg:w-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10 p-3 lg:p-6 space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
+                    {isLoading ? <NumberSkeleton /> : stats.totalInterested}
+                  </div>
+                  <span className="text-xs lg:text-sm text-white/80">Amigos</span>
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-white/20">
+                  <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
+                    {isLoading ? <NumberSkeleton size="sm" /> : stats.interestedBeingDiscipled || 0}
+                  </div>
+                  <span className="text-xs lg:text-sm text-white/80 leading-tight">
+                    Estão Sendo Discipulados
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-orange-800/30 opacity-100 group-hover:from-orange-600/30 group-hover:to-orange-800/40 transition-all duration-300"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-400/30 to-orange-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
+                <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
+                  Tarefas
+                </CardTitle>
+                <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                  <CheckSquare className="h-3 w-3 lg:h-4 lg:w-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10 p-3 lg:p-6 space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
+                    {isLoading || tasksLoading ? (
+                      <NumberSkeleton />
+                    ) : (
+                      dashboardStats?.pendingTasks || 0
+                    )}
+                  </div>
+                  <span className="text-xs lg:text-sm text-white/80">Pendentes</span>
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-white/20">
+                  <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
+                    {isLoading || tasksLoading ? (
+                      <NumberSkeleton size="sm" />
+                    ) : (
+                      dashboardStats?.completedTasks || 0
+                    )}
+                  </div>
+                  <span className="text-xs lg:text-sm text-white/80 leading-tight">Concluídas</span>
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-white/20">
+                  <div className="text-sm lg:text-lg font-semibold text-white/90 drop-shadow">
+                    {isLoading || tasksLoading ? (
+                      <NumberSkeleton size="sm" />
+                    ) : (
+                      dashboardStats?.totalTasks || 0
+                    )}
+                  </div>
+                  <span className="text-xs lg:text-sm text-white/80 leading-tight">Total</span>
+                </div>
+                <Button
+                  onClick={() => navigate('/tasks')}
+                  className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 w-full"
+                >
+                  <CheckSquare className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
+                  <span className="hidden sm:inline">Gerenciar Tarefas</span>
+                  <span className="sm:hidden">Tarefas</span>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Card de Membros */}
+            <Card className="group relative overflow-hidden bg-gradient-to-br from-green-500 to-green-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 to-green-800/30 opacity-100 group-hover:from-green-600/30 group-hover:to-green-800/40 transition-all duration-300"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/30 to-green-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
+                <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
+                  Membros
+                </CardTitle>
+                <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                  <Users className="h-3 w-3 lg:h-4 lg:w-4" />
                 </div>
               </CardHeader>
               <CardContent className="relative z-10 p-3 lg:p-6">
                 <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                  {pastorsCount ?? '...'}
+                  {isLoading ? <NumberSkeleton /> : stats.totalMembers}
                 </div>
-                <p className="text-xs lg:text-sm text-white/80 mt-1">Pastores cadastrados</p>
+                <p className="text-xs lg:text-sm text-white/80 mt-1">Membros ativos da igreja</p>
+              </CardContent>
+            </Card>
+
+            {/* Card de Missionários */}
+            <Card className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-purple-800/30 opacity-100 group-hover:from-purple-600/30 group-hover:to-purple-800/40 transition-all duration-300"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/30 to-purple-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
+                <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
+                  Missionários
+                </CardTitle>
+                <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                  <Heart className="h-3 w-3 lg:h-4 lg:w-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10 p-3 lg:p-6">
+                <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
+                  {isLoading ? <NumberSkeleton /> : stats.totalMissionaries}
+                </div>
+                <p className="text-xs lg:text-sm text-white/80 mt-1">Discipuladores ativos</p>
+              </CardContent>
+            </Card>
+
+            {/* Card de Check-ins Espirituais */}
+            <Card className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-600/20 to-pink-800/30 opacity-100 group-hover:from-pink-600/30 group-hover:to-pink-800/40 transition-all duration-300"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/30 to-pink-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
+                <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
+                  Check-ins Espirituais
+                </CardTitle>
+                <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                  <span className="text-sm lg:text-base filter brightness-0 invert">🙏</span>
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10 p-3 lg:p-6">
+                <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
+                  {spiritualCheckInsLoading ? '...' : spiritualCheckIns?.length || 0}
+                </div>
+                <p className="text-xs lg:text-sm text-white/80 mt-1">
+                  Últimos check-ins espirituais dos membros
+                </p>
                 <Button
-                  onClick={() => navigate('/pastors')}
+                  onClick={() => setShowCheckIn(true)}
                   className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
                 >
-                  <UserCog className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-                  <span className="hidden sm:inline">Gerenciar Pastores</span>
-                  <span className="sm:hidden">Pastores</span>
+                  <span className="mr-1 filter brightness-0 invert">🙏</span>
+                  <span className="hidden sm:inline">Fazer meu check-in</span>
+                  <span className="sm:hidden">Check-in</span>
                 </Button>
               </CardContent>
             </Card>
-          </>
-        )}
-      </div>
 
-      {/* Special Components Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
-        {/* Visitômetro */}
-        <div className="group">
-          <Visitometer
-            visitsCompleted={visitData?.completed || 0}
-            visitsExpected={visitData?.expected || 0}
-            totalVisits={visitData?.totalVisits || 0}
-            visitedPeople={visitData?.visitedPeople || 0}
-            percentage={visitData?.percentage || 0}
-            isLoading={isLoading || visitsLoading}
-            onRefresh={refetchVisits}
-          />
-        </div>
+            {/* Cards específicos para Superadmin */}
+            {isSuperAdmin(user) && (
+              <>
+                {/* Card de Distritos */}
+                <Card className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-emerald-800/30 opacity-100 group-hover:from-emerald-600/30 group-hover:to-emerald-800/40 transition-all duration-300"></div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/30 to-emerald-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
+                    <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
+                      Distritos
+                    </CardTitle>
+                    <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                      <Building2 className="h-3 w-3 lg:h-4 lg:w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative z-10 p-3 lg:p-6">
+                    <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
+                      {districtsCount ?? '...'}
+                    </div>
+                    <p className="text-xs lg:text-sm text-white/80 mt-1">Distritos cadastrados</p>
+                    <Button
+                      onClick={() => navigate('/districts')}
+                      className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
+                    >
+                      <Building2 className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
+                      <span className="hidden sm:inline">Gerenciar Distritos</span>
+                      <span className="sm:hidden">Distritos</span>
+                    </Button>
+                  </CardContent>
+                </Card>
 
-        {/* Card de Aniversariantes */}
-        <div className="group">
-          <BirthdayCard
-            birthdaysToday={birthdayData?.today || []}
-            birthdaysThisMonth={birthdayData?.thisMonth || []}
-            isLoading={birthdayLoading}
-          />
-        </div>
-      </div>
+                {/* Card de Pastores */}
+                <Card className="group relative overflow-hidden bg-gradient-to-br from-amber-500 to-amber-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-600/20 to-amber-800/30 opacity-100 group-hover:from-amber-600/30 group-hover:to-amber-800/40 transition-all duration-300"></div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/30 to-amber-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
+                    <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
+                      Pastores
+                    </CardTitle>
+                    <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                      <UserCog className="h-3 w-3 lg:h-4 lg:w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative z-10 p-3 lg:p-6">
+                    <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
+                      {pastorsCount ?? '...'}
+                    </div>
+                    <p className="text-xs lg:text-sm text-white/80 mt-1">Pastores cadastrados</p>
+                    <Button
+                      onClick={() => navigate('/pastors')}
+                      className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
+                    >
+                      <UserCog className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
+                      <span className="hidden sm:inline">Gerenciar Pastores</span>
+                      <span className="sm:hidden">Pastores</span>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+
+          {/* Special Components Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
+            {/* Visitômetro */}
+            <div className="group">
+              <Visitometer
+                visitsCompleted={visitData?.completed || 0}
+                visitsExpected={visitData?.expected || 0}
+                totalVisits={visitData?.totalVisits || 0}
+                visitedPeople={visitData?.visitedPeople || 0}
+                percentage={visitData?.percentage || 0}
+                isLoading={isLoading || visitsLoading}
+                onRefresh={refetchVisits}
+              />
+            </div>
+
+            {/* Card de Aniversariantes */}
+            <div className="group">
+              <BirthdayCard
+                birthdaysToday={birthdayData?.today || []}
+                birthdaysThisMonth={birthdayData?.thisMonth || []}
+                isLoading={birthdayLoading}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 
