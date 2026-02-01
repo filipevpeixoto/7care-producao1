@@ -57,7 +57,6 @@ const UnifiedElection = lazy(() => import('./pages/UnifiedElection'));
 const Districts = lazy(() => import('./pages/Districts'));
 const Pastors = lazy(() => import('./pages/Pastors'));
 const PastorInvites = lazy(() => import('./pages/PastorInvites'));
-const PastorFirstAccess = lazy(() => import('./pages/PastorFirstAccess'));
 const PastorOnboarding = lazy(() => import('./pages/PastorOnboarding'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Terms = lazy(() => import('./pages/Terms'));
@@ -216,7 +215,6 @@ const App = () => {
                         <Route path="/" element={<Login />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/first-access" element={<FirstAccessWelcome />} />
-                        <Route path="/pastor-first-access" element={<PastorFirstAccess />} />
                         <Route path="/pastor-onboarding/:token" element={<PastorOnboarding />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/calendar" element={<Calendar />} />

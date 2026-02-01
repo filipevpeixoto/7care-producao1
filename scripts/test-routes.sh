@@ -37,7 +37,6 @@ ROUTES=(
     "/pastors"
     "/pastor-invites"
     "/first-access"
-    "/pastor-first-access"
     "/pastor-onboarding/abc123"
 )
 

@@ -42,27 +42,15 @@ export const LoginForm = () => {
         const user = JSON.parse(localStorage.getItem('7care_auth') || '{}');
         const tutorialCompleted = localStorage.getItem('tutorial_completed');
         const tutorialSkipped = localStorage.getItem('tutorial_skipped');
+        // Pastores aprovados via convite também veem o tour geral na primeira vez
         const needsFirstAccess =
-          !tutorialCompleted &&
-          !tutorialSkipped &&
-          (user.usingDefaultPassword || user.firstAccess || user.status === 'pending');
-
-        // Verificar se é pastor e precisa de primeiro acesso específico
-        const pastorFirstAccessCompleted = localStorage.getItem('pastor_first_access_completed');
-        const isPastorUser = user.role === 'pastor';
-        const needsPastorFirstAccess =
-          isPastorUser && !pastorFirstAccessCompleted && needsFirstAccess;
+          !tutorialCompleted && !tutorialSkipped && (user.usingDefaultPassword || user.firstAccess);
 
         console.log('🔍 Debug LoginForm - Login completed, checking redirect...');
         console.log('  - user:', user);
         console.log('  - needsFirstAccess:', needsFirstAccess);
-        console.log('  - isPastorUser:', isPastorUser);
-        console.log('  - needsPastorFirstAccess:', needsPastorFirstAccess);
 
-        if (needsPastorFirstAccess) {
-          console.log('🔍 Debug LoginForm - Redirecting to /pastor-first-access');
-          navigate('/pastor-first-access');
-        } else if (needsFirstAccess) {
+        if (needsFirstAccess) {
           console.log('🔍 Debug LoginForm - Redirecting to /first-access');
           navigate('/first-access');
         } else {

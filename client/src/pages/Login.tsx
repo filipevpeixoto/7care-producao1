@@ -54,29 +54,16 @@ export const Login = () => {
 
     // Check if user needs first access (firstAccess flag, or using default password)
     // But only if they haven't completed the tutorial yet
-    // Note: status 'pending' alone should not force first access
+    // Pastores aprovados via convite também veem o tour geral na primeira vez
     const needsFirstAccess =
       !tutorialCompleted && !tutorialSkipped && (user?.firstAccess || user?.usingDefaultPassword);
 
-    // Verificar se é pastor e precisa de primeiro acesso específico
-    const pastorFirstAccessCompleted = localStorage.getItem('pastor_first_access_completed');
-    const isPastorUser = user?.role === 'pastor';
-    const needsPastorFirstAccess = isPastorUser && !pastorFirstAccessCompleted && needsFirstAccess;
-
     console.log('  - needsFirstAccess:', needsFirstAccess);
-    console.log('  - isPastorUser:', isPastorUser);
-    console.log('  - needsPastorFirstAccess:', needsPastorFirstAccess);
     console.log('  - Conditions breakdown:');
     console.log('    - !tutorialCompleted:', !tutorialCompleted);
     console.log('    - !tutorialSkipped:', !tutorialSkipped);
     console.log('    - user?.firstAccess:', user?.firstAccess);
-    console.log('    - user?.status === "pending":', user?.status === 'pending');
     console.log('    - user?.usingDefaultPassword:', user?.usingDefaultPassword);
-
-    if (needsPastorFirstAccess) {
-      console.log('  - Redirecionando para /pastor-first-access');
-      return <Navigate to="/pastor-first-access" replace />;
-    }
 
     if (needsFirstAccess) {
       console.log('  - Redirecionando para /first-access');
