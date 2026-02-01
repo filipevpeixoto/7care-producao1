@@ -17431,9 +17431,9 @@ exports.handler = async (event, context) => {
           console.log(`✅ ${membersImported} membros importados, ${membersSkipped} pulados`);
         }
 
-        // 4. Ativar o usuário pastor
+        // 4. Ativar o usuário pastor (mantém first_access = true para que veja o tutorial)
         await sql`
-          UPDATE users SET status = 'active', first_access = false WHERE id = ${invite.user_id}
+          UPDATE users SET status = 'active' WHERE id = ${invite.user_id}
         `;
 
         // 5. Atualizar status do convite para approved
