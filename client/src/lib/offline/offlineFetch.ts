@@ -47,6 +47,23 @@ interface CacheHandler {
 const DEFAULT_TIMEOUT = 30000; // 30 segundos
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
+// URLs que devem ser ignoradas pelo sistema offline (não usar cache nem fila de sync)
+const OFFLINE_BYPASS_PATTERNS = [
+  '/api/invites',
+  '/api/auth',
+  '/api/upload',
+  '/api/districts',
+  '/api/churches',
+  '/api/pastors',
+];
+
+/**
+ * Verifica se a URL deve ignorar o sistema offline
+ */
+function shouldBypassOffline(url: string): boolean {
+  return OFFLINE_BYPASS_PATTERNS.some(pattern => url.includes(pattern));
+}
+
 // Cache de timestamps para invalidação
 const cacheTimestamps: Map<string, number> = new Map();
 
@@ -133,8 +150,8 @@ export async function offlineFetch(
   const url = typeof input === 'string' ? input : input.toString();
   const method = (init?.method?.toUpperCase() || 'GET') as HttpMethod;
 
-  // Se requisitado para pular cache offline
-  if (init?.skipOfflineCache) {
+  // Se requisitado para pular cache offline ou URL deve ser ignorada
+  if (init?.skipOfflineCache || shouldBypassOffline(url)) {
     return fetchWithTimeout(input, init);
   }
 

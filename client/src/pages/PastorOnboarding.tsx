@@ -67,6 +67,11 @@ export default function PastorOnboarding() {
       .then(data => {
         if (data.valid) {
           setInviteData({ email: data.email, expiresAt: data.expiresAt });
+        } else if (data.status === 'submitted') {
+          // Cadastro já foi enviado, aguardando aprovação
+          setValidationError(
+            data.message || 'Seu cadastro foi enviado e está aguardando aprovação do administrador.'
+          );
         } else {
           setValidationError(data.error || 'Convite inválido');
         }

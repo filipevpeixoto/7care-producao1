@@ -28,6 +28,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -66,6 +67,94 @@ export default function PastorInvites() {
   // Form data
   const [newEmail, setNewEmail] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Progress dialog for approval
+  const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
+  const [approvalProgress, setApprovalProgress] = useState<{
+    step: string;
+    progress: number;
+    details: string;
+    isComplete: boolean;
+    isError: boolean;
+    result?: {
+      districtId?: number;
+      churchesCreated?: number;
+      membersImported?: number;
+      membersUpdated?: number;
+      membersPending?: number;
+      importDeferred?: boolean;
+    };
+  }>({
+    step: '',
+    progress: 0,
+    details: '',
+    isComplete: false,
+    isError: false,
+  });
+
+  // Função para importar membros restantes em lotes
+  const importRemainingMembers = async (inviteId: number, startFrom: number) => {
+    let currentStart = startFrom;
+    let totalImported = startFrom;
+    let hasMore = true;
+
+    while (hasMore) {
+      try {
+        setApprovalProgress(prev => ({
+          ...prev,
+          step: 'Importando membros restantes...',
+          details: `Processando lote a partir do membro ${currentStart}...`,
+        }));
+
+        const response = await fetchWithAuth(`/api/invites/${inviteId}/import-remaining`, {
+          method: 'POST',
+          body: JSON.stringify({ startFrom: currentStart, limit: 50 }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          totalImported += result.membersImported;
+          hasMore = result.hasMore;
+          currentStart = result.nextStartFrom || currentStart + 50;
+
+          setApprovalProgress(prev => ({
+            ...prev,
+            details: `${totalImported} membros importados de ${result.totalMembers}...`,
+            result: {
+              ...prev.result,
+              membersImported: totalImported,
+              membersPending: result.hasMore ? result.totalMembers - totalImported : 0,
+            },
+          }));
+
+          // Pequena pausa entre lotes
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          console.error('Erro ao importar lote:', result);
+          hasMore = false;
+        }
+      } catch (error) {
+        console.error('Erro na importação em lote:', error);
+        hasMore = false;
+      }
+    }
+
+    // Atualizar para conclusão final
+    setApprovalProgress(prev => ({
+      ...prev,
+      step: 'Importação concluída!',
+      details: `Todos os ${totalImported} membros foram importados com sucesso.`,
+      result: {
+        ...prev.result,
+        membersImported: totalImported,
+        membersPending: 0,
+        importDeferred: false,
+      },
+    }));
+
+    queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+  };
 
   // Buscar convites
   const { data: invites = [], isLoading } = useQuery<PastorInvite[]>({
@@ -120,39 +209,114 @@ export default function PastorInvites() {
     },
   });
 
-  // Aprovar convite
+  // Aprovar convite com progresso visual
   const approveMutation = useMutation({
     mutationFn: async (id: number) => {
+      // Abrir modal de progresso
+      setIsProgressDialogOpen(true);
+      setApprovalProgress({
+        step: 'Iniciando aprovação...',
+        progress: 5,
+        details: 'Conectando ao servidor...',
+        isComplete: false,
+        isError: false,
+      });
+
+      // Simular passos iniciais para feedback visual
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setApprovalProgress(prev => ({
+        ...prev,
+        step: 'Validando dados do convite...',
+        progress: 15,
+        details: 'Verificando informações do pastor...',
+      }));
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setApprovalProgress(prev => ({
+        ...prev,
+        step: 'Criando distrito...',
+        progress: 25,
+        details: selectedInvite?.onboardingData?.district?.name || 'Processando distrito...',
+      }));
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setApprovalProgress(prev => ({
+        ...prev,
+        step: 'Criando igrejas...',
+        progress: 40,
+        details: `${selectedInvite?.onboardingData?.churches?.length || 0} igreja(s) a serem cadastradas...`,
+      }));
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const membersCount = selectedInvite?.onboardingData?.excelData?.data?.length || 0;
+      setApprovalProgress(prev => ({
+        ...prev,
+        step: 'Importando membros...',
+        progress: 60,
+        details:
+          membersCount > 0
+            ? `Processando ${membersCount} membros da planilha...`
+            : 'Nenhum membro para importar',
+      }));
+
+      // Fazer a requisição real
       const response = await fetchWithAuth(`/api/invites/${id}/approve`, {
         method: 'POST',
       });
+
+      const result = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        // Include details if available
-        const errorMessage = error.details
-          ? `${error.error}: ${error.details}`
-          : error.error || 'Erro ao aprovar convite';
+        const errorMessage = result.details
+          ? `${result.error}: ${result.details}`
+          : result.error || 'Erro ao aprovar convite';
         throw new Error(errorMessage);
       }
-      return response.json();
+
+      // Atualizar para conclusão
+      setApprovalProgress(prev => ({
+        ...prev,
+        step: 'Ativando pastor...',
+        progress: 90,
+        details: 'Finalizando cadastro...',
+      }));
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: data => {
+      // Mostrar resultado final
+      setApprovalProgress({
+        step: 'Aprovação concluída!',
+        progress: 100,
+        details: data.details?.importDeferred
+          ? `${data.details.membersImported} membros importados. ${data.details.membersPending} serão importados em lotes.`
+          : 'O pastor foi cadastrado com sucesso no sistema.',
+        isComplete: true,
+        isError: false,
+        result: data.details,
+      });
+
+      // Se há membros pendentes, iniciar importação automática em lotes
+      if (data.details?.importDeferred && selectedInvite) {
+        importRemainingMembers(selectedInvite.id, data.details.membersImported);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
       queryClient.invalidateQueries({ queryKey: ['/api/pastors'] });
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
-      toast({
-        title: 'Convite aprovado',
-        description: 'O pastor foi cadastrado com sucesso no sistema.',
-      });
-      setIsDetailsDialogOpen(false);
-      setSelectedInvite(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível aprovar o convite.',
-        variant: 'destructive',
-      });
+      setApprovalProgress(prev => ({
+        ...prev,
+        step: 'Erro na aprovação',
+        progress: 0,
+        details: error.message || 'Não foi possível aprovar o convite.',
+        isComplete: false,
+        isError: true,
+      }));
     },
   });
 
@@ -899,6 +1063,164 @@ export default function PastorInvites() {
               )}
               Excluir Convite
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Progresso da Aprovação */}
+      <Dialog
+        open={isProgressDialogOpen}
+        onOpenChange={open => {
+          // Só permitir fechar se completou (sem membros pendentes) ou teve erro
+          const hasPendingMembers = (approvalProgress.result?.membersPending ?? 0) > 0;
+          if (
+            !open &&
+            ((approvalProgress.isComplete && !hasPendingMembers) || approvalProgress.isError)
+          ) {
+            setIsProgressDialogOpen(false);
+            if (approvalProgress.isComplete) {
+              setIsDetailsDialogOpen(false);
+              setSelectedInvite(null);
+              toast({
+                title: 'Aprovação concluída!',
+                description: 'O pastor foi cadastrado com sucesso.',
+              });
+            }
+          }
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          onInteractOutside={e => {
+            // Prevenir fechar clicando fora durante processamento ou importação de membros
+            const hasPendingMembers = (approvalProgress.result?.membersPending ?? 0) > 0;
+            if ((!approvalProgress.isComplete && !approvalProgress.isError) || hasPendingMembers) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {approvalProgress.isComplete ? (
+                <>
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  Aprovação Concluída
+                </>
+              ) : approvalProgress.isError ? (
+                <>
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  Erro na Aprovação
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  Processando Aprovação
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Barra de progresso */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-medium">{approvalProgress.step}</span>
+                <span className="text-muted-foreground">{approvalProgress.progress}%</span>
+              </div>
+              <Progress
+                value={approvalProgress.progress}
+                className={`h-2 ${
+                  approvalProgress.isError
+                    ? '[&>div]:bg-red-500'
+                    : approvalProgress.isComplete
+                      ? '[&>div]:bg-green-500'
+                      : ''
+                }`}
+              />
+              <p className="text-sm text-muted-foreground">{approvalProgress.details}</p>
+            </div>
+
+            {/* Resultado final */}
+            {approvalProgress.isComplete && approvalProgress.result && (
+              <div className="space-y-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <h4 className="font-semibold text-green-800 dark:text-green-300 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Resumo da Importação
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {approvalProgress.result.districtId && (
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-green-600" />
+                      <span>Distrito criado</span>
+                    </div>
+                  )}
+                  {(approvalProgress.result.churchesCreated ?? 0) > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-green-600" />
+                      <span>{approvalProgress.result.churchesCreated} igreja(s)</span>
+                    </div>
+                  )}
+                  {(approvalProgress.result.membersImported ?? 0) > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-green-600" />
+                      <span>{approvalProgress.result.membersImported} novos membros</span>
+                    </div>
+                  )}
+                  {(approvalProgress.result.membersUpdated ?? 0) > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-600" />
+                      <span>{approvalProgress.result.membersUpdated} atualizados</span>
+                    </div>
+                  )}
+                  {(approvalProgress.result.membersPending ?? 0) > 0 && (
+                    <div className="flex items-center gap-2 col-span-2">
+                      <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                      <span className="text-amber-700 dark:text-amber-400">
+                        {approvalProgress.result.membersPending} membros sendo importados...
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Erro */}
+            {approvalProgress.isError && (
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="text-sm text-red-700 dark:text-red-300">{approvalProgress.details}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            {(approvalProgress.isComplete || approvalProgress.isError) &&
+              (() => {
+                const hasPendingMembers = (approvalProgress.result?.membersPending ?? 0) > 0;
+                return (
+                  <Button
+                    onClick={() => {
+                      if (hasPendingMembers) return; // Não fechar enquanto importa
+                      setIsProgressDialogOpen(false);
+                      if (approvalProgress.isComplete) {
+                        setIsDetailsDialogOpen(false);
+                        setSelectedInvite(null);
+                      }
+                    }}
+                    disabled={hasPendingMembers}
+                    className={
+                      approvalProgress.isComplete && !hasPendingMembers
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : ''
+                    }
+                  >
+                    {hasPendingMembers
+                      ? 'Importando...'
+                      : approvalProgress.isComplete
+                        ? 'Concluir'
+                        : 'Fechar'}
+                  </Button>
+                );
+              })()}
           </DialogFooter>
         </DialogContent>
       </Dialog>

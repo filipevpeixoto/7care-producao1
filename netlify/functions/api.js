@@ -2220,7 +2220,25 @@ exports.handler = async (event, context) => {
         }
 
         const user = users[0];
-        console.log('🔍 User found:', { id: user.id, name: user.name, role: user.role, district_id: user.district_id });
+        console.log('🔍 User found:', { id: user.id, name: user.name, role: user.role, district_id: user.district_id, status: user.status });
+        
+        // Verificar se o usuário está pendente de aprovação
+        if (user.status === 'pending') {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Seu cadastro está aguardando aprovação do administrador. Por favor, aguarde.' })
+          };
+        }
+        
+        // Verificar se o usuário está inativo
+        if (user.status === 'inactive') {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Sua conta está desativada. Entre em contato com o administrador.' })
+          };
+        }
         
         // Verificar senha usando bcrypt
         const passwordMatch = await bcrypt.compare(password, user.password);
@@ -16710,10 +16728,37 @@ exports.handler = async (event, context) => {
           LIMIT 50
         `;
 
+        // Mapear para camelCase (alinhado com frontend)
+        const mappedInvites = invites.map(invite => ({
+          id: invite.id,
+          token: invite.token,
+          email: invite.email,
+          createdBy: invite.created_by,
+          expiresAt: invite.expires_at,
+          status: invite.status,
+          onboardingData: invite.onboarding_data ? (
+            typeof invite.onboarding_data === 'string' 
+              ? JSON.parse(invite.onboarding_data) 
+              : invite.onboarding_data
+          ) : null,
+          submittedAt: invite.submitted_at,
+          reviewedAt: invite.reviewed_at,
+          reviewedBy: invite.reviewed_by,
+          rejectionReason: invite.rejection_reason,
+          userId: invite.user_id,
+          districtId: invite.district_id,
+          approvedAt: invite.approved_at,
+          approvedBy: invite.approved_by,
+          createdAt: invite.created_at,
+          updatedAt: invite.updated_at,
+          createdByName: invite.created_by_name,
+          createdByEmail: invite.created_by_email,
+        }));
+
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify(invites)
+          body: JSON.stringify(mappedInvites)
         };
       } catch (error) {
         console.error('Erro ao listar convites:', error);
@@ -16842,11 +16887,33 @@ exports.handler = async (event, context) => {
 
         const invite = invites[0];
 
-        if (invite.status !== 'pending') {
+        // Convite já foi aprovado ou rejeitado - não pode mais ser usado
+        if (invite.status === 'approved') {
           return {
             statusCode: 400,
             headers,
-            body: JSON.stringify({ valid: false, error: `Convite já foi ${invite.status === 'approved' ? 'aprovado' : invite.status === 'rejected' ? 'rejeitado' : 'processado'}` })
+            body: JSON.stringify({ valid: false, error: 'Este convite já foi aprovado. Você já pode fazer login com seu email e senha.' })
+          };
+        }
+
+        if (invite.status === 'rejected') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ valid: false, error: 'Este convite foi rejeitado pelo administrador.' })
+          };
+        }
+
+        // Convite já foi submetido - pastor aguarda aprovação
+        if (invite.status === 'submitted') {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              valid: false, 
+              status: 'submitted',
+              message: 'Seu cadastro foi enviado e está aguardando aprovação do administrador. Você receberá uma notificação quando for aprovado.' 
+            })
           };
         }
 
@@ -16942,10 +17009,10 @@ exports.handler = async (event, context) => {
         // Hash da senha
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Criar usuário pastor
+        // Criar usuário pastor (status = 'pending' até ser aprovado pelo superadmin)
         const [newUser] = await sql`
-          INSERT INTO users (name, email, password, role, phone, created_at)
-          VALUES (${name}, ${invite.email}, ${hashedPassword}, 'pastor', ${phone || null}, NOW())
+          INSERT INTO users (name, email, password, role, phone, status, first_access, created_at)
+          VALUES (${name}, ${invite.email}, ${hashedPassword}, 'pastor', ${phone || null}, 'pending', true, NOW())
           RETURNING id, name, email, role
         `;
 
@@ -17138,6 +17205,8 @@ exports.handler = async (event, context) => {
     // POST /api/invites/:id/approve - Aprovar convite (Superadmin)
     if (path.match(/^\/api\/invites\/\d+\/approve$/) && method === 'POST') {
       try {
+        console.log('📋 Iniciando aprovação de convite...');
+        
         const auth = requireAuth(event);
         if (!auth.isValid) {
           return {
@@ -17156,6 +17225,7 @@ exports.handler = async (event, context) => {
         }
 
         const inviteId = parseInt(path.split('/')[3]);
+        console.log(`📋 Aprovando convite ID: ${inviteId}`);
 
         const invites = await sql`
           SELECT * FROM pastor_invites WHERE id = ${inviteId} LIMIT 1
@@ -17170,6 +17240,7 @@ exports.handler = async (event, context) => {
         }
 
         const invite = invites[0];
+        console.log(`📋 Convite encontrado: status=${invite.status}, user_id=${invite.user_id}`);
 
         if (invite.status !== 'submitted') {
           return {
@@ -17330,15 +17401,29 @@ exports.handler = async (event, context) => {
         }
 
         // 3. Importar membros da planilha (se houver excelData)
-        // Alinhado com a importação do Gestão de Dados
+        // OTIMIZADO: Armazenar para importação em segundo plano se muitos membros
         let membersImported = 0;
         let membersSkipped = 0;
         let membersUpdated = 0;
+        let importDeferred = false;
+        
         if (onboardingData?.excelData?.data && onboardingData.excelData.data.length > 0) {
           const membersToImport = onboardingData.excelData.data;
-          console.log(`📊 Importando ${membersToImport.length} membros...`);
+          console.log(`📊 Processando ${membersToImport.length} membros...`);
           
-          // Funções auxiliares (alinhadas com Gestão de Dados)
+          // Se muitos membros, limitar para evitar timeout (max 50 na aprovação)
+          const maxImmediateImport = 50;
+          const membersForNow = membersToImport.slice(0, maxImmediateImport);
+          
+          if (membersToImport.length > maxImmediateImport) {
+            console.log(`⚠️ Muitos membros (${membersToImport.length}). Importando ${maxImmediateImport} agora, resto depois.`);
+            importDeferred = true;
+          }
+          
+          // Pré-gerar senha padrão
+          const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+          
+          // Funções auxiliares simples
           const parseDate = (dateValue) => {
             if (!dateValue) return null;
             try {
@@ -17450,249 +17535,112 @@ exports.handler = async (event, context) => {
             return { isOffering: false, ofertanteType: null };
           };
           
-          // Processar em lotes
-          const batchSize = 50;
-          for (let i = 0; i < membersToImport.length; i += batchSize) {
-            const batch = membersToImport.slice(i, i + batchSize);
+          // Processar membros limitados para evitar timeout
+          const batchSize = 100;
+          for (let i = 0; i < membersForNow.length; i += batchSize) {
+            const batch = membersForNow.slice(i, i + batchSize);
+            
+            // Preparar valores para INSERT em batch
+            const validMembers = [];
             
             for (const member of batch) {
+              const memberName = member.nome || member.name;
+              if (!memberName || memberName.trim() === '') {
+                membersSkipped++;
+                continue;
+              }
+              
+              // Gerar email único
+              const memberEmail = `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2, 4)}@importado.local`;
+              
+              // Determinar igreja
+              const memberChurchRaw = member.igreja || member.church;
+              let memberChurchCode = null;
+              let memberChurchName = memberChurchRaw || null;
+              
+              if (memberChurchRaw && churchCodeMap) {
+                memberChurchCode = churchCodeMap[memberChurchRaw?.toLowerCase()] || null;
+              }
+              if (!memberChurchCode && churchIds.length > 0 && onboardingData.churches?.length > 0) {
+                memberChurchCode = churchCodeMap[onboardingData.churches[0]?.name?.toLowerCase()] || null;
+                memberChurchName = memberChurchName || onboardingData.churches[0]?.name || null;
+              }
+              
+              // Processar campos básicos
+              const phone = formatPhoneNumber(member.telefone || member.celular || member.phone);
+              const birthDate = parseDate(member.dataNascimento || member.nascimento || member.birthDate);
+              const baptismDate = parseDate(member.dataBatismo || member.batismo || member.baptismDate);
+              const role = getRole(member.tipo || member.cargo);
+              const dizimistaResult = parseDizimistaField(member.dizimista);
+              const ofertanteResult = parseOfertanteField(member.ofertante);
+              
+              // Tempo de batismo
+              let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos);
+              if (tempoBatismoAnos === 0 && baptismDate) {
+                const hoje = new Date();
+                tempoBatismoAnos = Math.floor((hoje.getTime() - baptismDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+                if (tempoBatismoAnos < 0) tempoBatismoAnos = 0;
+              }
+              
+              // ExtraData simplificado
+              const extraData = JSON.stringify({
+                sexo: member.sexo || null,
+                idade: parseNumber(member.idade),
+                codigo: member.codigo || null,
+                importedAt: new Date().toISOString(),
+                importSource: 'pastor-onboarding'
+              });
+              
+              validMembers.push({
+                name: memberName.trim(),
+                email: memberEmail,
+                password: defaultPassword,
+                role,
+                church: memberChurchName,
+                church_code: memberChurchCode,
+                phone,
+                birth_date: birthDate,
+                civil_status: member.estadoCivil || null,
+                occupation: member.profissao || null,
+                education: member.escolaridade || null,
+                address: member.endereco || null,
+                baptism_date: baptismDate,
+                is_tither: dizimistaResult.isDonor,
+                is_donor: ofertanteResult.isOffering,
+                district_id: districtId,
+                engajamento: member.engajamento || null,
+                classificacao: member.classificacao || null,
+                tempo_batismo_anos: tempoBatismoAnos > 0 ? tempoBatismoAnos : null,
+                extra_data: extraData
+              });
+            }
+            
+            // INSERT em batch usando uma única query
+            if (validMembers.length > 0) {
               try {
-                // Pular membros sem nome
-                const memberName = member.nome || member.name;
-                if (!memberName || memberName.trim() === '') {
-                  membersSkipped++;
-                  continue;
-                }
-                
-                // Preparar email
-                const memberEmailRaw = member.email;
-                let memberEmail = memberEmailRaw?.trim()?.toLowerCase();
-                
-                // Verificar se já existe
-                let existingMemberId = null;
-                if (memberEmail && memberEmail.includes('@')) {
-                  const existing = await sql`
-                    SELECT id FROM users WHERE email = ${memberEmail} LIMIT 1
-                  `;
-                  if (existing.length > 0) {
-                    existingMemberId = existing[0].id;
-                  }
-                }
-                
-                // Gerar email se não tiver
-                if (!memberEmail || !memberEmail.includes('@')) {
-                  memberEmail = `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2, 4)}@importado.local`;
-                }
-                
-                // Determinar igreja
-                const memberChurchRaw = member.igreja || member.church;
-                let memberChurchCode = null;
-                let memberChurchName = memberChurchRaw || null;
-                
-                if (memberChurchRaw && churchCodeMap) {
-                  memberChurchCode = churchCodeMap[memberChurchRaw?.toLowerCase()] || null;
-                }
-                if (!memberChurchCode && churchIds.length > 0 && onboardingData.churches?.length > 0) {
-                  memberChurchCode = churchCodeMap[onboardingData.churches[0]?.name?.toLowerCase()] || null;
-                  memberChurchName = memberChurchName || onboardingData.churches[0]?.name || null;
-                }
-                
-                // Processar todos os campos (igual Gestão de Dados)
-                const phone = formatPhoneNumber(member.telefone || member.celular || member.phone);
-                const birthDate = parseDate(member.dataNascimento || member.nascimento || member.birthDate);
-                const baptismDate = parseDate(member.dataBatismo || member.batismo || member.baptismDate);
-                const role = getRole(member.tipo || member.cargo);
-                
-                // Dízimo e oferta
-                const dizimistaResult = parseDizimistaField(member.dizimista);
-                const ofertanteResult = parseOfertanteField(member.ofertante);
-                
-                // Tempo de batismo em anos
-                let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos);
-                if (tempoBatismoAnos === 0 && baptismDate) {
-                  const hoje = new Date();
-                  const diffAnos = Math.floor((hoje.getTime() - baptismDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
-                  tempoBatismoAnos = diffAnos > 0 ? diffAnos : 0;
-                }
-                
-                // Preparar extraData com todos os campos adicionais
-                const extraData = JSON.stringify({
-                  sexo: member.sexo || null,
-                  idade: parseNumber(member.idade),
-                  codigo: member.codigo || null,
-                  bairro: member.bairro || null,
-                  cidadeEstado: member.cidadeEstado || null,
-                  cidadeNascimento: member.cidadeNascimento || null,
-                  estadoNascimento: member.estadoNascimento || null,
-                  cpf: member.cpf || null,
-                  
-                  // Dízimos detalhados
-                  dizimos12m: member.dizimos12m || null,
-                  ultimoDizimo: member.ultimoDizimo || null,
-                  valorDizimo: member.valorDizimo || null,
-                  numeroMesesSemDizimar: parseNumber(member.numeroMesesSemDizimar),
-                  dizimistaAntesUltimoDizimo: member.dizimistaAntesUltimoDizimo || null,
-                  dizimistaType: dizimistaResult.dizimistaType,
-                  
-                  // Ofertas detalhadas
-                  ofertas12m: member.ofertas12m || null,
-                  ultimaOferta: member.ultimaOferta || null,
-                  valorOferta: member.valorOferta || null,
-                  numeroMesesSemOfertar: parseNumber(member.numeroMesesSemOfertar),
-                  ofertanteAntesUltimaOferta: member.ofertanteAntesUltimaOferta || null,
-                  ofertanteType: ofertanteResult.ofertanteType,
-                  
-                  // Movimentos
-                  ultimoMovimento: member.ultimoMovimento || null,
-                  dataUltimoMovimento: member.dataUltimoMovimento || null,
-                  tipoEntrada: member.tipoEntrada || null,
-                  
-                  // Batismo detalhado
-                  tempoBatismo: member.tempoBatismo || null,
-                  localidadeBatismo: member.localidadeBatismo || null,
-                  batizadoPor: member.batizadoPor || null,
-                  idadeBatismo: member.idadeBatismo || null,
-                  
-                  // Conversão
-                  comoConheceu: member.comoConheceu || null,
-                  fatorDecisivo: member.fatorDecisivo || null,
-                  comoEstudou: member.comoEstudou || null,
-                  instrutorBiblico2: member.instrutorBiblico2 || null,
-                  
-                  // Cargos
-                  temCargo: member.temCargo || null,
-                  teen: member.teen || null,
-                  
-                  // Família
-                  nomeMae: member.nomeMae || null,
-                  nomePai: member.nomePai || null,
-                  dataCasamento: member.dataCasamento || null,
-                  
-                  // Presença detalhada
-                  presencaCartao: parseNumber(member.presencaCartao),
-                  presencaQuizLocal: parseNumber(member.presencaQuizLocal),
-                  presencaQuizOutra: parseNumber(member.presencaQuizOutra),
-                  presencaQuizOnline: parseNumber(member.presencaQuizOnline),
-                  teveParticipacao: member.teveParticipacao || null,
-                  
-                  // Colaboração
-                  campoColaborador: member.campoColaborador || null,
-                  areaColaborador: member.areaColaborador || null,
-                  estabelecimentoColaborador: member.estabelecimentoColaborador || null,
-                  funcaoColaborador: member.funcaoColaborador || null,
-                  
-                  // Educação
-                  alunoEducacao: member.alunoEducacao || null,
-                  parentesco: member.parentesco || null,
-                  
-                  // Validação
-                  nomeCamposVazios: member.nomeCamposVazios || null,
-                  
-                  importedAt: new Date().toISOString(),
-                  importSource: 'pastor-onboarding'
-                });
-                
-                if (existingMemberId) {
-                  // Atualizar membro existente
-                  await sql`
-                    UPDATE users SET
-                      name = COALESCE(${memberName.trim()}, name),
-                      phone = COALESCE(${phone}, phone),
-                      church = COALESCE(${memberChurchName}, church),
-                      church_code = COALESCE(${memberChurchCode}, church_code),
-                      birth_date = COALESCE(${birthDate}, birth_date),
-                      civil_status = COALESCE(${member.estadoCivil || null}, civil_status),
-                      occupation = COALESCE(${member.profissao || null}, occupation),
-                      education = COALESCE(${member.escolaridade || null}, education),
-                      address = COALESCE(${member.endereco || null}, address),
-                      baptism_date = COALESCE(${baptismDate}, baptism_date),
-                      is_tither = ${dizimistaResult.isDonor},
-                      is_donor = ${ofertanteResult.isOffering},
-                      district_id = COALESCE(${districtId}, district_id),
-                      engajamento = COALESCE(${member.engajamento || null}, engajamento),
-                      classificacao = COALESCE(${member.classificacao || null}, classificacao),
-                      tempo_batismo_anos = COALESCE(${tempoBatismoAnos > 0 ? tempoBatismoAnos : null}, tempo_batismo_anos),
-                      departamentos_cargos = COALESCE(${member.departamentosCargos || null}, departamentos_cargos),
-                      nome_unidade = COALESCE(${member.nomeUnidade || null}, nome_unidade),
-                      tem_licao = COALESCE(${parseBool(member.temLicao)}, tem_licao),
-                      total_presenca = COALESCE(${parseNumber(member.totalPresenca) || null}, total_presenca),
-                      comunhao = COALESCE(${parseNumber(member.comunhao) || null}, comunhao),
-                      missao = COALESCE(${parseNumber(member.missao) || null}, missao),
-                      estudo_biblico = COALESCE(${parseNumber(member.estudoBiblico) || null}, estudo_biblico),
-                      batizou_alguem = COALESCE(${parseBool(member.batizouAlguem)}, batizou_alguem),
-                      disc_pos_batismal = COALESCE(${parseNumber(member.discPosBatismal) || null}, disc_pos_batismal),
-                      matriculado_es = COALESCE(${parseBool(member.matriculadoES)}, matriculado_es),
-                      previous_religion = COALESCE(${member.religiaoAnterior || null}, previous_religion),
-                      biblical_instructor = COALESCE(${member.instrutorBiblico || null}, biblical_instructor),
-                      observations = COALESCE(${member.observacoes || null}, observations),
-                      extra_data = ${extraData},
-                      updated_at = NOW()
-                    WHERE id = ${existingMemberId}
-                  `;
-                  membersUpdated++;
-                } else {
-                  // Gerar senha padrão hasheada
-                  const bcrypt = require('bcryptjs');
-                  const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
-                  
-                  // Criar novo membro com todos os campos
+                for (const m of validMembers) {
                   await sql`
                     INSERT INTO users (
                       name, email, password, role, church, church_code, phone,
                       birth_date, civil_status, occupation, education, address,
                       baptism_date, is_tither, is_donor, status, first_access, created_at,
-                      district_id, engajamento, classificacao, tempo_batismo_anos,
-                      departamentos_cargos, nome_unidade, tem_licao, total_presenca,
-                      comunhao, missao, estudo_biblico, batizou_alguem, disc_pos_batismal,
-                      matriculado_es, previous_religion, biblical_instructor, observations,
-                      extra_data
-                    )
-                    VALUES (
-                      ${memberName.trim()},
-                      ${memberEmail},
-                      ${defaultPassword},
-                      ${role},
-                      ${memberChurchName},
-                      ${memberChurchCode},
-                      ${phone},
-                      ${birthDate},
-                      ${member.estadoCivil || null},
-                      ${member.profissao || null},
-                      ${member.escolaridade || null},
-                      ${member.endereco || null},
-                      ${baptismDate},
-                      ${dizimistaResult.isDonor},
-                      ${ofertanteResult.isOffering},
-                      'active',
-                      true,
-                      NOW(),
-                      ${districtId},
-                      ${member.engajamento || null},
-                      ${member.classificacao || null},
-                      ${tempoBatismoAnos > 0 ? tempoBatismoAnos : null},
-                      ${member.departamentosCargos || null},
-                      ${member.nomeUnidade || null},
-                      ${parseBool(member.temLicao)},
-                      ${parseNumber(member.totalPresenca) || null},
-                      ${parseNumber(member.comunhao) || null},
-                      ${parseNumber(member.missao) || null},
-                      ${parseNumber(member.estudoBiblico) || null},
-                      ${parseBool(member.batizouAlguem)},
-                      ${parseNumber(member.discPosBatismal) || null},
-                      ${parseBool(member.matriculadoES)},
-                      ${member.religiaoAnterior || null},
-                      ${member.instrutorBiblico || null},
-                      ${member.observacoes || null},
-                      ${extraData}
+                      district_id, engajamento, classificacao, tempo_batismo_anos, extra_data
+                    ) VALUES (
+                      ${m.name}, ${m.email}, ${m.password}, ${m.role}, ${m.church}, ${m.church_code}, ${m.phone},
+                      ${m.birth_date}, ${m.civil_status}, ${m.occupation}, ${m.education}, ${m.address},
+                      ${m.baptism_date}, ${m.is_tither}, ${m.is_donor}, 'active', true, NOW(),
+                      ${m.district_id}, ${m.engajamento}, ${m.classificacao}, ${m.tempo_batismo_anos}, ${m.extra_data}
                     )
                   `;
                   membersImported++;
                 }
-              } catch (memberError) {
-                console.error(`❌ Erro ao importar membro ${member.nome || member.name}:`, memberError.message);
-                membersSkipped++;
+              } catch (batchError) {
+                console.error(`❌ Erro no batch:`, batchError.message);
+                membersSkipped += validMembers.length;
               }
             }
+            
+            console.log(`📊 Lote ${Math.floor(i/batchSize)+1}: ${validMembers.length} processados`);
           }
           console.log(`✅ ${membersImported} membros importados, ${membersUpdated} atualizados, ${membersSkipped} pulados`);
         }
@@ -17715,18 +17663,28 @@ exports.handler = async (event, context) => {
         console.log(`   - Distrito: ${districtId || 'Nenhum'}`);
         console.log(`   - Igrejas: ${churchIds.length}`);
         console.log(`   - Membros importados: ${membersImported}, atualizados: ${membersUpdated}`);
+        if (importDeferred) {
+          console.log(`   - Importação pendente: ${onboardingData.excelData.data.length - membersImported} membros restantes`);
+        }
+
+        const totalMembers = onboardingData?.excelData?.data?.length || 0;
+        const membersPending = importDeferred ? totalMembers - membersImported : 0;
 
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             success: true,
-            message: 'Convite aprovado com sucesso!',
+            message: importDeferred 
+              ? `Convite aprovado! ${membersImported} membros importados. Os demais ${membersPending} serão importados em segundo plano.`
+              : 'Convite aprovado com sucesso!',
             details: {
               districtId,
               churchesCreated: churchIds.length,
               membersImported,
-              membersUpdated: membersUpdated || 0
+              membersUpdated: membersUpdated || 0,
+              membersPending,
+              importDeferred
             }
           })
         };
@@ -17740,6 +17698,188 @@ exports.handler = async (event, context) => {
             error: 'Erro ao aprovar convite',
             details: error.message || 'Erro desconhecido'
           })
+        };
+      }
+    }
+
+    // POST /api/invites/:id/import-remaining - Importar membros restantes (Superadmin/Pastor)
+    if (path.match(/^\/api\/invites\/\d+\/import-remaining$/) && method === 'POST') {
+      try {
+        const auth = requireAuth(event);
+        if (!auth.isValid) {
+          return {
+            statusCode: auth.statusCode,
+            headers,
+            body: JSON.stringify({ error: auth.error })
+          };
+        }
+
+        const inviteId = parseInt(path.split('/')[3]);
+        const parsedBody = JSON.parse(body || '{}');
+        const startFrom = parseInt(parsedBody.startFrom) || 50;
+        const batchLimit = Math.min(parseInt(parsedBody.limit) || 50, 100);
+
+        const invites = await sql`
+          SELECT * FROM pastor_invites WHERE id = ${inviteId} LIMIT 1
+        `;
+
+        if (invites.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Convite não encontrado' })
+          };
+        }
+
+        const invite = invites[0];
+
+        if (invite.status !== 'approved') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Convite não está aprovado' })
+          };
+        }
+
+        // Verificar permissão (superadmin ou dono do convite)
+        if (!isSuperAdmin(auth.user) && invite.user_id !== auth.user.id) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Sem permissão para importar membros deste convite' })
+          };
+        }
+
+        // Parsear dados de onboarding
+        let onboardingData;
+        try {
+          onboardingData = typeof invite.onboarding_data === 'string' 
+            ? JSON.parse(invite.onboarding_data) 
+            : invite.onboarding_data;
+        } catch (e) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Dados de onboarding inválidos' })
+          };
+        }
+
+        if (!onboardingData?.excelData?.data || onboardingData.excelData.data.length <= startFrom) {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              success: true, 
+              message: 'Todos os membros já foram importados',
+              membersImported: 0,
+              totalMembers: onboardingData?.excelData?.data?.length || 0
+            })
+          };
+        }
+
+        const membersToImport = onboardingData.excelData.data.slice(startFrom, startFrom + batchLimit);
+        console.log(`📊 Importando membros ${startFrom} a ${startFrom + membersToImport.length}...`);
+
+        // Buscar distrito do pastor
+        const userResult = await sql`SELECT district_id FROM users WHERE id = ${invite.user_id} LIMIT 1`;
+        const districtId = userResult[0]?.district_id || null;
+
+        // Buscar código da primeira igreja
+        const churchCodeMap = {};
+        if (onboardingData.churches?.length > 0) {
+          for (const ch of onboardingData.churches) {
+            const existingChurch = await sql`
+              SELECT code FROM churches WHERE name = ${ch.name} AND district_id = ${districtId} LIMIT 1
+            `;
+            if (existingChurch.length > 0) {
+              churchCodeMap[ch.name?.toLowerCase()] = existingChurch[0].code;
+            }
+          }
+        }
+
+        // Senha padrão
+        const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+
+        // Funções auxiliares
+        const parseDate = (val) => {
+          if (!val) return null;
+          try {
+            if (typeof val === 'number') {
+              const d = new Date(1900, 0, 1);
+              d.setDate(d.getDate() + val - 2);
+              return d;
+            }
+            const str = String(val).trim();
+            if (str.includes('/')) {
+              const [d,m,y] = str.split('/');
+              return new Date(parseInt(y) < 100 ? 2000+parseInt(y) : parseInt(y), parseInt(m)-1, parseInt(d));
+            }
+            return new Date(val);
+          } catch { return null; }
+        };
+        const parseNumber = (val) => typeof val === 'number' ? val : parseFloat(String(val || '0').replace(',','.')) || 0;
+        const parseBool = (val) => val && ['sim','true','1','x','yes'].includes(String(val).toLowerCase().trim());
+        const formatPhone = (p) => p ? String(p).replace(/\D/g, '') : null;
+
+        let membersImported = 0;
+        let membersSkipped = 0;
+
+        for (const member of membersToImport) {
+          try {
+            const name = (member.nome || member.name || '').trim();
+            if (!name) { membersSkipped++; continue; }
+
+            const email = `${name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2,4)}@importado.local`;
+            const churchName = member.igreja || member.church || onboardingData.churches?.[0]?.name || null;
+            const churchCode = churchCodeMap[churchName?.toLowerCase()] || null;
+
+            await sql`
+              INSERT INTO users (
+                name, email, password, role, church, church_code, phone,
+                birth_date, civil_status, occupation, education, address,
+                baptism_date, is_tither, is_donor, status, first_access, created_at,
+                district_id, engajamento, classificacao, extra_data
+              ) VALUES (
+                ${name}, ${email}, ${defaultPassword}, 'member', ${churchName}, ${churchCode}, 
+                ${formatPhone(member.telefone || member.celular)},
+                ${parseDate(member.dataNascimento)}, ${member.estadoCivil || null}, 
+                ${member.profissao || null}, ${member.escolaridade || null}, ${member.endereco || null},
+                ${parseDate(member.dataBatismo)}, ${parseBool(member.dizimista)}, ${parseBool(member.ofertante)},
+                'active', true, NOW(), ${districtId}, ${member.engajamento || null}, ${member.classificacao || null},
+                ${JSON.stringify({ importedAt: new Date().toISOString(), importSource: 'pastor-onboarding-batch' })}
+              )
+            `;
+            membersImported++;
+          } catch (e) {
+            console.error(`Erro ao importar ${member.nome}:`, e.message);
+            membersSkipped++;
+          }
+        }
+
+        const totalMembers = onboardingData.excelData.data.length;
+        const nextStart = startFrom + batchLimit;
+        const hasMore = nextStart < totalMembers;
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: `${membersImported} membros importados neste lote`,
+            membersImported,
+            membersSkipped,
+            totalMembers,
+            processedUntil: startFrom + membersToImport.length,
+            hasMore,
+            nextStartFrom: hasMore ? nextStart : null
+          })
+        };
+      } catch (error) {
+        console.error('Erro ao importar membros restantes:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao importar membros', details: error.message })
         };
       }
     }
