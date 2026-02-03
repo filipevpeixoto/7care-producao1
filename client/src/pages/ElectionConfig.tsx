@@ -493,14 +493,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
   const loadMembers = async () => {
     try {
-      const response = await fetch('/api/users', {
+      // Buscar todos os membros sem limite de paginação
+      const response = await fetch('/api/users?limit=500', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache',
         },
       });
       if (response.ok) {
-        const data = await response.json();
+        const rawData = await response.json();
+        // A API retorna { data: [...], pagination: {...} } ou array diretamente
+        const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
         // Filtrar apenas membros (incluindo status pending e approved)
         const membersOnly = (data || []).filter(
           (u: any) =>
@@ -686,6 +689,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       try {
         const response = await fetch('/api/elections/configs', {
           headers: {
+            'x-user-id': user?.id?.toString() || '',
             'Cache-Control': 'no-cache',
             Pragma: 'no-cache',
           },
@@ -918,10 +922,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
   const loadEligibleCandidates = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users?limit=500', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+        },
+      });
 
       if (response.ok) {
-        const users = await response.json();
+        const rawData = await response.json();
+        // A API retorna { data: [...], pagination: {...} } ou array diretamente
+        const users = Array.isArray(rawData) ? rawData : rawData?.data || [];
 
         // Filtrar membros da igreja selecionada
         const churchMembers = users.filter((user: any) => {

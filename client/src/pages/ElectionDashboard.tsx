@@ -106,7 +106,12 @@ export default function ElectionDashboard() {
 
   const loadVoteLog = async (electionId: number) => {
     try {
-      const response = await fetch(`/api/elections/vote-log/${electionId}`);
+      const response = await fetch(`/api/elections/vote-log/${electionId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id?.toString() || '',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setVoteLog(data);
@@ -118,9 +123,10 @@ export default function ElectionDashboard() {
           description: `${data.length} voto(s) registrado(s)`,
         });
       } else {
+        const errorData = await response.json().catch(() => ({}));
         toast({
           title: 'Erro',
-          description: 'Não foi possível carregar o log de votos.',
+          description: errorData.error || 'Não foi possível carregar o log de votos.',
           variant: 'destructive',
         });
       }
