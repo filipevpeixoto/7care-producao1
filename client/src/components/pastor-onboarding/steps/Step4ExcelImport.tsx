@@ -546,17 +546,17 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
   const validCount = previewData.filter(r => r.valid !== false).length;
 
   return (
-    <div className="p-8 md:p-10">
+    <div className="p-4 sm:p-6 md:p-10">
       {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
-          <Sparkles className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-medium text-blue-700">Passo 4 de 6</span>
+      <div className="text-center mb-6 sm:mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-3 sm:mb-4">
+          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+          <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 4 de 6</span>
         </div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
           Importar Membros
         </h2>
-        <p className="text-gray-500 mt-3 text-lg">
+        <p className="text-blue-600 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
           Importe uma planilha com os membros existentes. Este passo é opcional.
         </p>
       </div>
@@ -565,11 +565,11 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       {importStep !== 'upload' && (
         <div className="mb-8 space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Progresso da Importação</span>
-            <span className="font-medium">{importProgress}%</span>
+            <span className="text-blue-700">Progresso da Importação</span>
+            <span className="font-medium text-blue-800">{importProgress}%</span>
           </div>
           <Progress value={importProgress} className="w-full h-2" />
-          <div className="flex justify-between text-xs text-gray-400">
+          <div className="flex justify-between text-xs text-blue-500">
             <span className={importStep === 'upload' ? 'text-blue-600 font-medium' : ''}>
               Upload
             </span>
@@ -591,7 +591,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
 
       {/* Upload Step */}
       {importStep === 'upload' && (
-        <div className="border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-400 transition-all bg-gradient-to-br from-gray-50 to-white">
+        <div className="border-2 border-dashed border-blue-200 rounded-2xl hover:border-blue-400 transition-all bg-gradient-to-br from-blue-50/50 to-white">
           <div className="p-10">
             <div className="flex flex-col items-center justify-center text-center">
               <input
@@ -607,10 +607,10 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 <FileSpreadsheet className="w-10 h-10 text-blue-500" />
               </div>
 
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">
+              <h3 className="text-xl font-semibold mb-2 text-blue-900">
                 Arraste sua planilha aqui
               </h3>
-              <p className="text-gray-400 text-sm mb-6">ou</p>
+              <p className="text-blue-500 text-sm mb-6">ou</p>
 
               <Button
                 onClick={() => fileInputRef.current?.click()}
@@ -621,7 +621,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 {isUploading ? 'Processando...' : 'Selecionar Arquivo'}
               </Button>
 
-              <p className="text-xs text-gray-400 mt-4">
+              <p className="text-xs text-blue-500 mt-4">
                 Formatos aceitos: Excel (.xlsx, .xls) ou CSV. Máximo 10MB.
               </p>
             </div>
@@ -632,7 +632,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       {/* Preview Step */}
       {importStep === 'preview' && (
         <div className="space-y-6">
-          <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="border-2 border-blue-100 rounded-2xl overflow-hidden shadow-sm">
             <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -640,8 +640,8 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                     <CheckCircle className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{fileName}</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="text-lg font-semibold text-blue-900">{fileName}</h3>
+                    <p className="text-sm text-blue-600">
                       {previewData.length} membros • {uniqueChurches.size} igrejas •{' '}
                       {detectedColumns.length} colunas detectadas
                     </p>
@@ -680,28 +680,53 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
               </div>
 
               {/* Tabela de Preview */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="max-h-64 overflow-y-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 bg-gray-50">
-                      <TableRow>
-                        <TableHead className="w-12 font-semibold">#</TableHead>
-                        <TableHead className="font-semibold">Nome</TableHead>
-                        <TableHead className="font-semibold">Igreja</TableHead>
-                        <TableHead className="font-semibold">Telefone</TableHead>
-                        <TableHead className="font-semibold">Email</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
+              <div className="border-2 border-blue-200 rounded-xl overflow-hidden !bg-blue-50">
+                <div className="max-h-64 overflow-y-auto !bg-blue-50">
+                  <Table className="!bg-blue-50">
+                    <TableHeader className="sticky top-0 !bg-blue-100">
+                      <TableRow className="!bg-blue-100 !border-blue-200">
+                        <TableHead className="w-12 font-semibold text-blue-800 !bg-blue-100">
+                          #
+                        </TableHead>
+                        <TableHead className="font-semibold text-blue-800 !bg-blue-100">
+                          Nome
+                        </TableHead>
+                        <TableHead className="font-semibold text-blue-800 !bg-blue-100">
+                          Igreja
+                        </TableHead>
+                        <TableHead className="font-semibold text-blue-800 !bg-blue-100">
+                          Telefone
+                        </TableHead>
+                        <TableHead className="font-semibold text-blue-800 !bg-blue-100">
+                          Email
+                        </TableHead>
+                        <TableHead className="font-semibold text-blue-800 !bg-blue-100">
+                          Status
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="!bg-blue-50">
                       {previewData.slice(0, 5).map((row, index) => (
-                        <TableRow key={index} className="hover:bg-blue-50/50">
-                          <TableCell className="text-gray-400 font-medium">{index + 1}</TableCell>
-                          <TableCell className="font-medium text-gray-900">{row.nome}</TableCell>
-                          <TableCell className="text-gray-600">{row.igreja || '-'}</TableCell>
-                          <TableCell className="text-gray-600">{row.telefone || '-'}</TableCell>
-                          <TableCell className="text-gray-600">{row.email || '-'}</TableCell>
-                          <TableCell>
+                        <TableRow
+                          key={index}
+                          className="hover:!bg-blue-100 !bg-blue-50 !border-blue-200"
+                        >
+                          <TableCell className="text-blue-500 font-medium !bg-blue-50">
+                            {index + 1}
+                          </TableCell>
+                          <TableCell className="font-medium text-blue-900 !bg-blue-50">
+                            {row.nome}
+                          </TableCell>
+                          <TableCell className="text-blue-700 !bg-blue-50">
+                            {row.igreja || '-'}
+                          </TableCell>
+                          <TableCell className="text-blue-700 !bg-blue-50">
+                            {row.telefone || '-'}
+                          </TableCell>
+                          <TableCell className="text-blue-700 !bg-blue-50">
+                            {row.email || '-'}
+                          </TableCell>
+                          <TableCell className="!bg-blue-50">
                             <Badge variant={row.valid !== false ? 'secondary' : 'destructive'}>
                               {row.valid !== false ? 'Válido' : 'Erro'}
                             </Badge>
@@ -712,7 +737,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                   </Table>
                 </div>
                 {previewData.length > 5 && (
-                  <div className="p-3 bg-gray-50 text-center text-sm text-gray-500 border-t">
+                  <div className="p-3 !bg-blue-100 text-center text-sm text-blue-700 border-t border-blue-200">
                     ... e mais {previewData.length - 5} membros
                   </div>
                 )}
@@ -728,7 +753,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 setImportStep('upload');
                 setImportProgress(0);
               }}
-              className="rounded-xl"
+              className="rounded-xl !border-blue-200 !bg-blue-50 !text-blue-700 hover:!border-blue-400 hover:!bg-blue-100"
             >
               Voltar
             </Button>
@@ -749,16 +774,16 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       {/* Mapping Step */}
       {importStep === 'mapping' && (
         <div className="space-y-6">
-          <div className="border border-gray-200 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold mb-2">Mapeamento de Colunas</h3>
-            <p className="text-sm text-gray-500 mb-6">
+          <div className="border-2 border-blue-200 rounded-2xl p-6 !bg-blue-50/50">
+            <h3 className="text-lg font-semibold mb-2 text-blue-900">Mapeamento de Colunas</h3>
+            <p className="text-sm text-blue-600 mb-6">
               Confirme o mapeamento automático das colunas ou ajuste conforme necessário
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
               {detectedColumns.map(col => (
                 <div key={col} className="space-y-2">
-                  <Label className="text-sm">
+                  <Label className="text-sm text-blue-800">
                     {col}
                     {AVAILABLE_FIELDS.find(f => f.field === columnMapping[col])?.required && (
                       <span className="text-red-500 ml-1">*</span>
@@ -768,7 +793,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                     value={columnMapping[col] || 'none'}
                     onValueChange={value => handleMappingChange(col, value)}
                   >
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="rounded-xl !bg-white !border-blue-200 focus:!border-blue-400">
                       <SelectValue placeholder="Não mapear" />
                     </SelectTrigger>
                     <SelectContent>
@@ -804,7 +829,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 setImportStep('preview');
                 setImportProgress(25);
               }}
-              className="rounded-xl"
+              className="rounded-xl !border-blue-200 !bg-blue-50 !text-blue-700 hover:!border-blue-400 hover:!bg-blue-100"
             >
               Voltar
             </Button>
@@ -829,37 +854,46 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
         <div className="space-y-6">
           {/* Cards de estatísticas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="rounded-2xl">
-              <CardContent className="p-4">
+            <Card
+              className="rounded-2xl border-2 border-blue-200 !bg-blue-50"
+              style={{ backgroundColor: '#eff6ff' }}
+            >
+              <CardContent className="p-4 !bg-blue-50" style={{ backgroundColor: '#eff6ff' }}>
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <CheckCircle className="h-6 w-6 text-blue-600" />
                   <div>
-                    <p className="text-2xl font-bold text-green-700">{validCount}</p>
-                    <p className="text-sm text-gray-500">Registros válidos</p>
+                    <p className="text-2xl font-bold text-blue-700">{validCount}</p>
+                    <p className="text-sm text-blue-600">Registros válidos</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl">
-              <CardContent className="p-4">
+            <Card
+              className="rounded-2xl border-2 border-purple-200 !bg-purple-50"
+              style={{ backgroundColor: '#faf5ff' }}
+            >
+              <CardContent className="p-4 !bg-purple-50" style={{ backgroundColor: '#faf5ff' }}>
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                  <AlertTriangle className="h-6 w-6 text-purple-600" />
                   <div>
-                    <p className="text-2xl font-bold text-yellow-700">{validationErrors.length}</p>
-                    <p className="text-sm text-gray-500">Avisos encontrados</p>
+                    <p className="text-2xl font-bold text-purple-700">{validationErrors.length}</p>
+                    <p className="text-sm text-purple-600">Avisos encontrados</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl">
-              <CardContent className="p-4">
+            <Card
+              className="rounded-2xl border-2 border-indigo-200 !bg-indigo-50"
+              style={{ backgroundColor: '#eef2ff' }}
+            >
+              <CardContent className="p-4 !bg-indigo-50" style={{ backgroundColor: '#eef2ff' }}>
                 <div className="flex items-center gap-3">
-                  <X className="h-6 w-6 text-red-600" />
+                  <X className="h-6 w-6 text-indigo-600" />
                   <div>
-                    <p className="text-2xl font-bold text-red-700">{duplicates.length}</p>
-                    <p className="text-sm text-gray-500">Duplicatas</p>
+                    <p className="text-2xl font-bold text-indigo-700">{duplicates.length}</p>
+                    <p className="text-sm text-indigo-600">Duplicatas</p>
                   </div>
                 </div>
               </CardContent>
@@ -868,24 +902,26 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
 
           {/* Alertas */}
           {validationErrors.length > 0 && (
-            <Alert className="rounded-xl">
-              <AlertTriangle className="h-4 w-4" />
+            <Alert className="rounded-xl border-2 border-yellow-200 !bg-yellow-50">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertDescription>
-                <p className="font-medium mb-2">Avisos encontrados:</p>
-                <ul className="list-disc pl-4 space-y-1 text-sm">
+                <p className="font-medium mb-2 text-yellow-800">Avisos encontrados:</p>
+                <ul className="list-disc pl-4 space-y-1 text-sm text-yellow-700">
                   {validationErrors.slice(0, 5).map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
                 </ul>
                 {validationErrors.length > 5 && (
-                  <p className="text-sm mt-2">E mais {validationErrors.length - 5} avisos...</p>
+                  <p className="text-sm mt-2 text-yellow-700">
+                    E mais {validationErrors.length - 5} avisos...
+                  </p>
                 )}
               </AlertDescription>
             </Alert>
           )}
 
           {duplicates.length > 0 && (
-            <Alert className="rounded-xl border-yellow-200 bg-yellow-50">
+            <Alert className="rounded-xl border-2 border-yellow-200 !bg-yellow-50">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertDescription>
                 <p className="font-medium mb-2 text-yellow-800">Possíveis duplicatas:</p>
@@ -904,7 +940,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
           )}
 
           {validationErrors.length === 0 && duplicates.length === 0 && (
-            <Alert className="rounded-xl border-green-200 bg-green-50">
+            <Alert className="rounded-xl border-2 border-green-200 !bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-700">
                 Todos os registros foram validados com sucesso! Nenhum erro encontrado.
@@ -920,7 +956,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 setImportStep('mapping');
                 setImportProgress(50);
               }}
-              className="rounded-xl"
+              className="rounded-xl !border-blue-200 !bg-blue-50 !text-blue-700 hover:!border-blue-400 hover:!bg-blue-100"
             >
               Voltar
             </Button>
@@ -1017,25 +1053,24 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       )}
 
       {/* Actions */}
-      <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-blue-100">
         <Button
-          variant="outline"
           onClick={onBack}
           size="lg"
-          className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-2 sm:order-1"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
           Voltar
         </Button>
-        <div className="flex gap-3">
+        <div className="flex gap-2 order-1 sm:order-2">
           {importStep === 'upload' && (
             <Button
               variant="ghost"
               onClick={handleSkip}
               size="lg"
-              className="h-14 px-6 text-lg rounded-xl hover:bg-gray-100"
+              className="h-10 xs:h-11 sm:h-14 px-2 xs:px-3 sm:px-6 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl !bg-purple-50 !text-purple-700 hover:!bg-purple-100 flex-1 sm:flex-none"
             >
-              <SkipForward className="w-5 h-5 mr-2" />
+              <SkipForward className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
               Pular
             </Button>
           )}
@@ -1043,10 +1078,10 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
             onClick={onNext}
             disabled={isUploading || (importStep !== 'upload' && importStep !== 'complete')}
             size="lg"
-            className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+            className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 flex-1 sm:flex-none"
           >
             {importStep === 'complete' ? 'Continuar' : 'Próximo'}
-            <ArrowRight className="w-5 h-5 ml-2" />
+            <ArrowRight className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
           </Button>
         </div>
       </div>

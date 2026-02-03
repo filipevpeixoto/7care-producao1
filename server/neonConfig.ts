@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+import { logger } from './utils/logger';
 
 // Configuração do Neon Database - usa variável de ambiente ou fallback
 const connectionString =
@@ -32,7 +33,7 @@ async function withRetry<T>(
   } catch (error: unknown) {
     const err = error as Error & { code?: string };
     if (retries === 0) {
-      console.error('❌ Falha após todas as tentativas:', err.message);
+      logger.error('❌ Falha após todas as tentativas:', err.message);
       throw error;
     }
 
@@ -47,7 +48,7 @@ async function withRetry<T>(
       throw error;
     }
 
-    console.warn(
+    logger.warn(
       `⚠️ Erro de conexão, tentando novamente em ${delay}ms (${retries} tentativas restantes)...`
     );
     await new Promise(resolve => setTimeout(resolve, delay));

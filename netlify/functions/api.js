@@ -17505,19 +17505,19 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // POST /api/invites/onboarding/:token - Submeter onboarding de pastor (Público)
+    // POST /api/invites/onboarding/:token - Submeter onboarding de pastor (Público) - APROVAÇÃO AUTOMÁTICA
     if (path.match(/^\/api\/invites\/onboarding\/[a-f0-9]+$/) && method === 'POST') {
       try {
         const token = path.split('/').pop();
         const parsedBody = JSON.parse(body || '{}');
-        const { name, password, phone, churches = [], district, excelData, churchValidation } = parsedBody;
+        const { name, password, phone, churches = [], district, excelData, churchValidation, dracmaConfig, gamificationConfig } = parsedBody;
 
         // Validar campos obrigatórios
-        if (!name || !password) {
+        if (!password) {
           return {
             statusCode: 400,
             headers,
-            body: JSON.stringify({ error: 'Nome e senha são obrigatórios' })
+            body: JSON.stringify({ error: 'Senha é obrigatória' })
           };
         }
 
@@ -17570,40 +17570,489 @@ exports.handler = async (event, context) => {
         // Hash da senha
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Criar usuário pastor (status = 'pending' até ser aprovado pelo superadmin)
+        console.log(`🚀 Iniciando aprovação automática para ${invite.email}`);
+
+        // ============================================
+        // APROVAÇÃO AUTOMÁTICA COMPLETA
+        // ============================================
+
+        // 1. Criar usuário pastor com status ACTIVE
         const [newUser] = await sql`
           INSERT INTO users (name, email, password, role, phone, status, first_access, created_at)
-          VALUES (${name}, ${invite.email}, ${hashedPassword}, 'pastor', ${phone || null}, 'pending', true, NOW())
+          VALUES (${name || 'Pastor'}, ${invite.email}, ${hashedPassword}, 'pastor', ${phone || null}, 'active', true, NOW())
           RETURNING id, name, email, role
         `;
+        console.log(`✅ Usuário pastor criado: ${newUser.id} - ${newUser.email}`);
 
-        // Salvar dados de onboarding no convite (todos os dados para processar na aprovação)
+        // 2. Criar distrito
+        const districtName = district?.name || `Distrito - ${invite.email}`;
+        const districtCode = `D${Date.now().toString(36).toUpperCase().substring(0, 6)}`;
+        const [newDistrict] = await sql`
+          INSERT INTO districts (name, code, pastor_id, description, created_at, updated_at)
+          VALUES (${districtName}, ${districtCode}, ${newUser.id}, ${district?.description || null}, NOW(), NOW())
+          RETURNING id, name
+        `;
+        console.log(`✅ Distrito criado: ${newDistrict.id} - ${newDistrict.name}`);
+
+        // 3. Atualizar usuário com district_id
+        await sql`
+          UPDATE users SET district_id = ${newDistrict.id} WHERE id = ${newUser.id}
+        `;
+
+        // 4. Extrair e criar TODAS as igrejas do Excel
+        const churchCodeMap = {};
+        let churchesCreated = 0;
+        
+        // Primeiro, criar igrejas do formulário
+        for (let i = 0; i < churches.length; i++) {
+          const church = churches[i];
+          if (!church.name || church.name === '__POWERBI_IMPORT__') continue;
+          
+          const existingChurches = await sql`
+            SELECT id, code FROM churches WHERE name = ${church.name} AND district_id = ${newDistrict.id} LIMIT 1
+          `;
+          
+          if (existingChurches.length > 0) {
+            churchCodeMap[church.name.toLowerCase()] = existingChurches[0].code;
+          } else {
+            const namePrefix = (church.name || 'IGR').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X');
+            const randomPart = Math.floor(1000 + Math.random() * 9000);
+            let churchCode = `${namePrefix}${randomPart}${i}`.substring(0, 10);
+            
+            try {
+              const [createdChurch] = await sql`
+                INSERT INTO churches (name, code, address, district_id, created_at)
+                VALUES (${church.name}, ${churchCode}, ${church.address || ''}, ${newDistrict.id}, NOW())
+                RETURNING id, code, name
+              `;
+              churchCodeMap[church.name.toLowerCase()] = createdChurch.code;
+              churchesCreated++;
+              console.log(`✅ Igreja criada: ${createdChurch.name}`);
+            } catch (e) {
+              console.error(`❌ Erro ao criar igreja ${church.name}:`, e.message);
+            }
+          }
+        }
+        
+        // Segundo, extrair igrejas ÚNICAS do Excel e criar as que faltam
+        if (excelData && excelData.data && excelData.data.length > 0) {
+          const uniqueChurchNames = new Set();
+          for (const row of excelData.data) {
+            const churchName = row.igreja || row.Igreja || row.church || row.Church;
+            if (churchName && churchName.trim() && !churchCodeMap[churchName.toLowerCase().trim()]) {
+              uniqueChurchNames.add(churchName.trim());
+            }
+          }
+          
+          console.log(`📊 Igrejas únicas do Excel a criar: ${uniqueChurchNames.size}`);
+          
+          let idx = churches.length;
+          for (const churchName of uniqueChurchNames) {
+            const namePrefix = (churchName || 'IGR').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X');
+            const randomPart = Math.floor(1000 + Math.random() * 9000);
+            let churchCode = `${namePrefix}${randomPart}${idx}`.substring(0, 10);
+            
+            try {
+              const [createdChurch] = await sql`
+                INSERT INTO churches (name, code, address, district_id, created_at)
+                VALUES (${churchName}, ${churchCode}, '', ${newDistrict.id}, NOW())
+                RETURNING id, code, name
+              `;
+              churchCodeMap[churchName.toLowerCase()] = createdChurch.code;
+              churchesCreated++;
+              idx++;
+              console.log(`✅ Igreja do Excel criada: ${createdChurch.name}`);
+            } catch (e) {
+              console.error(`❌ Erro ao criar igreja ${churchName}:`, e.message);
+            }
+          }
+        }
+        
+        console.log(`⛪ Total de igrejas criadas: ${churchesCreated}`);
+
+        // 5. Salvar configuração de gamificação (se houver)
+        let pointsConfig = null;
+        if (gamificationConfig) {
+          try {
+            // Salvar/atualizar configuração de pontos para o distrito
+            const configExists = await sql`
+              SELECT id FROM points_configuration WHERE district_id = ${newDistrict.id} LIMIT 1
+            `;
+            
+            if (configExists.length > 0) {
+              await sql`
+                UPDATE points_configuration 
+                SET engajamento = ${JSON.stringify(gamificationConfig.engajamento || {})},
+                    classificacao = ${JSON.stringify(gamificationConfig.classificacao || {})},
+                    dizimista = ${JSON.stringify(gamificationConfig.dizimista || {})},
+                    ofertante = ${JSON.stringify(gamificationConfig.ofertante || {})},
+                    tempobatismo = ${JSON.stringify(gamificationConfig.tempoBatismo || gamificationConfig.tempobatismo || {})},
+                    cargos = ${JSON.stringify(gamificationConfig.cargos || {})},
+                    nomeunidade = ${JSON.stringify(gamificationConfig.nomeUnidade || gamificationConfig.nomeunidade || {})},
+                    temlicao = ${JSON.stringify(gamificationConfig.temLicao || gamificationConfig.temlicao || {})},
+                    totalpresenca = ${JSON.stringify(gamificationConfig.totalPresenca || gamificationConfig.totalpresenca || {})},
+                    escolasabatina = ${JSON.stringify(gamificationConfig.escolaSabatina || gamificationConfig.escolasabatina || {})},
+                    cpfvalido = ${JSON.stringify(gamificationConfig.cpfValido || gamificationConfig.cpfvalido || {})},
+                    camposvaziosacms = ${JSON.stringify(gamificationConfig.camposVazios || gamificationConfig.camposvaziosacms || {})},
+                    updated_at = NOW()
+                WHERE district_id = ${newDistrict.id}
+              `;
+            } else {
+              await sql`
+                INSERT INTO points_configuration (
+                  district_id, engajamento, classificacao, dizimista, ofertante,
+                  tempobatismo, cargos, nomeunidade, temlicao, totalpresenca,
+                  escolasabatina, cpfvalido, camposvaziosacms, created_at
+                ) VALUES (
+                  ${newDistrict.id},
+                  ${JSON.stringify(gamificationConfig.engajamento || {})},
+                  ${JSON.stringify(gamificationConfig.classificacao || {})},
+                  ${JSON.stringify(gamificationConfig.dizimista || {})},
+                  ${JSON.stringify(gamificationConfig.ofertante || {})},
+                  ${JSON.stringify(gamificationConfig.tempoBatismo || gamificationConfig.tempobatismo || {})},
+                  ${JSON.stringify(gamificationConfig.cargos || {})},
+                  ${JSON.stringify(gamificationConfig.nomeUnidade || gamificationConfig.nomeunidade || {})},
+                  ${JSON.stringify(gamificationConfig.temLicao || gamificationConfig.temlicao || {})},
+                  ${JSON.stringify(gamificationConfig.totalPresenca || gamificationConfig.totalpresenca || {})},
+                  ${JSON.stringify(gamificationConfig.escolaSabatina || gamificationConfig.escolasabatina || {})},
+                  ${JSON.stringify(gamificationConfig.cpfValido || gamificationConfig.cpfvalido || {})},
+                  ${JSON.stringify(gamificationConfig.camposVazios || gamificationConfig.camposvaziosacms || {})},
+                  NOW()
+                )
+              `;
+            }
+            pointsConfig = gamificationConfig;
+            console.log(`✅ Configuração de gamificação salva para distrito ${newDistrict.id}`);
+          } catch (configError) {
+            console.error(`⚠️ Erro ao salvar config de gamificação:`, configError.message);
+          }
+        }
+
+        // 6. Importar TODOS os membros em BATCH (otimizado para evitar timeout)
+        let membersImported = 0;
+        let membersSkipped = 0;
+        
+        if (excelData && excelData.data && excelData.data.length > 0) {
+          const membersToImport = excelData.data;
+          console.log(`📊 Processando ${membersToImport.length} membros em BATCH...`);
+          
+          // Pré-gerar senha padrão (uma vez só)
+          const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+          
+          // Funções auxiliares INLINE para velocidade
+          const parseDate = (dateValue) => {
+            if (!dateValue) return null;
+            try {
+              const dateStr = String(dateValue).trim().replace(/['"]/g, '');
+              if (typeof dateValue === 'number') {
+                const excelEpoch = new Date(1900, 0, 1);
+                const daysSinceEpoch = dateValue - 2;
+                const date = new Date(excelEpoch.getTime() + daysSinceEpoch * 24 * 60 * 60 * 1000);
+                if (!isNaN(date.getTime()) && date.getFullYear() > 1900) return date;
+              }
+              if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                  const [day, month, year] = parts;
+                  let parsedYear = parseInt(year);
+                  if (parsedYear < 100) parsedYear += parsedYear < 50 ? 2000 : 1900;
+                  const date = new Date(parsedYear, parseInt(month) - 1, parseInt(day));
+                  if (!isNaN(date.getTime())) return date;
+                }
+              }
+              if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+                const date = new Date(dateStr);
+                if (!isNaN(date.getTime())) return date;
+              }
+              const date = new Date(dateValue);
+              if (!isNaN(date.getTime()) && date.getFullYear() > 1900) return date;
+              return null;
+            } catch (e) { return null; }
+          };
+          
+          const parseNumber = (val) => {
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') {
+              const num = parseFloat(val.replace(',', '.'));
+              return isNaN(num) ? 0 : num;
+            }
+            return 0;
+          };
+          
+          const parseBool = (val) => {
+            if (val === undefined || val === null) return false;
+            if (typeof val === 'boolean') return val;
+            if (typeof val === 'number') return val > 0;
+            const str = String(val).toLowerCase().trim();
+            return str === 'true' || str === 'sim' || str === 's' || str === '1' || str === 'yes' || str === 'x';
+          };
+          
+          const formatPhoneNumber = (phone) => {
+            if (!phone) return null;
+            const digits = String(phone).replace(/\D/g, '');
+            if (digits.length < 8) return null;
+            return digits;
+          };
+          
+          const getRole = (tipo, classificacao = null) => {
+            if (tipo) {
+              const t = String(tipo).toLowerCase().trim();
+              if (t.includes('pastor') || t.includes('líder') || t.includes('lider') || t.includes('coordenador')) return 'pastor';
+              if (t.includes('mission') || t.includes('diácon') || t.includes('diacon') || t.includes('evangelista')) return 'missionary';
+              if (t.includes('interest') || t.includes('interessado') || t.includes('visit') || t.includes('visitante')) return 'interested';
+            }
+            if (classificacao) {
+              const c = String(classificacao).toLowerCase().trim();
+              if (c.includes('amigo') || c.includes('interessado') || c.includes('visitante')) return 'interested';
+            }
+            return 'member';
+          };
+          
+          const parseDizimistaField = (val) => {
+            if (!val) return { isDonor: false, dizimistaType: 'naoDizimista' };
+            const str = String(val).toLowerCase().trim();
+            if (str === 'sim' || str === 'true' || str === '1') return { isDonor: true, dizimistaType: 'regular' };
+            if (str.includes('fiel') || str.includes('recorrente')) return { isDonor: true, dizimistaType: 'recorrente' };
+            if (str.includes('sazonal')) return { isDonor: true, dizimistaType: 'sazonal' };
+            if (str.includes('pontual')) return { isDonor: true, dizimistaType: 'pontual' };
+            if (str !== 'não' && str !== 'nao' && str !== 'false' && str !== '0' && str !== '' && !str.includes('não dizimista')) {
+              return { isDonor: true, dizimistaType: str };
+            }
+            return { isDonor: false, dizimistaType: 'naoDizimista' };
+          };
+          
+          const parseOfertanteField = (val) => {
+            if (!val) return { isOffering: false, ofertanteType: 'naoOfertante' };
+            const str = String(val).toLowerCase().trim();
+            if (str === 'sim' || str === 'true' || str === '1') return { isOffering: true, ofertanteType: 'regular' };
+            if (str.includes('fiel') || str.includes('recorrente')) return { isOffering: true, ofertanteType: 'recorrente' };
+            if (str.includes('sazonal')) return { isOffering: true, ofertanteType: 'sazonal' };
+            if (str.includes('pontual')) return { isOffering: true, ofertanteType: 'pontual' };
+            if (str !== 'não' && str !== 'nao' && str !== 'false' && str !== '0' && str !== '' && !str.includes('não ofertante')) {
+              return { isOffering: true, ofertanteType: str };
+            }
+            return { isOffering: false, ofertanteType: 'naoOfertante' };
+          };
+          
+          // PREPARAR TODOS OS MEMBROS PRIMEIRO (sem queries)
+          const preparedMembers = [];
+          let counter = 0;
+          const baseTime = Date.now();
+          
+          for (const member of membersToImport) {
+            const memberName = member.nome || member.Nome || member.name || member.Name;
+            if (!memberName || memberName.trim() === '') {
+              membersSkipped++;
+              continue;
+            }
+            
+            // Email único
+            const memberEmail = `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${baseTime}.${counter++}@importado.local`;
+            
+            // Igreja
+            const memberChurchRaw = member.igreja || member.Igreja || member.church || member.Church;
+            let memberChurchCode = null;
+            let memberChurchName = memberChurchRaw || null;
+            
+            if (memberChurchRaw && churchCodeMap) {
+              const churchLower = String(memberChurchRaw).toLowerCase().trim();
+              memberChurchCode = churchCodeMap[churchLower] || null;
+            }
+            
+            // Campos
+            const classificacao = member.classificacao || member.Classificação || member['Classificação'];
+            const tipo = member.tipo || member.Tipo || member.role;
+            const phone = formatPhoneNumber(member.telefone || member.Telefone || member.celular || member.Celular);
+            const birthDate = parseDate(member.dataNascimento || member['Data de nascimento'] || member.nascimento || member.Nascimento);
+            const baptismDate = parseDate(member.dataBatismo || member['Data do batismo'] || member.batismo || member.Batismo);
+            const role = getRole(tipo, classificacao);
+            const dizimistaResult = parseDizimistaField(member.dizimista || member.Dizimista);
+            const ofertanteResult = parseOfertanteField(member.ofertante || member.Ofertante);
+            
+            // Tempo de batismo
+            let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos || member['Tempo de batismo - anos']);
+            if (tempoBatismoAnos === 0 && baptismDate) {
+              const hoje = new Date();
+              tempoBatismoAnos = Math.floor((hoje.getTime() - baptismDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+              if (tempoBatismoAnos < 0) tempoBatismoAnos = 0;
+            }
+            
+            const civilStatus = member.estadoCivil || member['Estado civil'] || null;
+            const occupation = member.profissao || member.Profissão || member.ocupacao || member.Ocupação || null;
+            const education = member.escolaridade || member.Escolaridade || member['Grau de educação'] || null;
+            const address = member.endereco || member.Endereço || member.address || null;
+            const engajamento = member.engajamento || member.Engajamento || null;
+            const nomeUnidade = member.nomeUnidade || member['Nome da unidade'] || null;
+            const temLicao = parseBool(member.temLicao || member['Tem lição']);
+            const totalPresenca = parseNumber(member.totalPresenca || member['Total de presença']);
+            const comunhao = parseNumber(member.comunhao || member.Comunhão || member['Comunhão']);
+            const missao = parseNumber(member.missao || member.Missão || member['Missão']);
+            const estudoBiblico = parseNumber(member.estudoBiblico || member['Estudo bíblico']);
+            const batizouAlguem = parseBool(member.batizouAlguem || member['Batizou alguém']);
+            const cpfValido = parseBool(member.valid || member['CPF válido']);
+            const departamentosCargos = member.departamentosCargos || member['Departamentos e cargos'] || null;
+            
+            // Verificar campos vazios
+            const camposObrigatorios = [member.cpf, member.telefone, member.endereco, member.dataNascimento];
+            const camposVazios = camposObrigatorios.some(c => !c || c === '' || c === 'Sem informação');
+            
+            preparedMembers.push({
+              name: memberName.trim(),
+              email: memberEmail,
+              password: defaultPassword,
+              role,
+              church: memberChurchName,
+              church_code: memberChurchCode,
+              phone,
+              birth_date: birthDate,
+              civil_status: civilStatus,
+              occupation,
+              education,
+              address,
+              baptism_date: baptismDate,
+              is_tither: dizimistaResult.isDonor,
+              is_donor: ofertanteResult.isOffering,
+              district_id: newDistrict.id,
+              engajamento,
+              classificacao,
+              tempo_batismo_anos: tempoBatismoAnos > 0 ? tempoBatismoAnos : null,
+              dizimista_type: dizimistaResult.dizimistaType,
+              ofertante_type: ofertanteResult.ofertanteType,
+              nome_unidade: nomeUnidade,
+              tem_licao: temLicao,
+              total_presenca: totalPresenca,
+              comunhao,
+              missao,
+              estudo_biblico: estudoBiblico,
+              batizou_alguem: batizouAlguem,
+              cpf_valido: cpfValido,
+              campos_vazios: camposVazios,
+              departamentos_cargos: departamentosCargos
+            });
+          }
+          
+          console.log(`📋 ${preparedMembers.length} membros preparados para inserção`);
+          
+          // INSERIR MEMBROS EM BATCHES usando Promise.all para paralelizar
+          const BATCH_SIZE = 20;
+          for (let i = 0; i < preparedMembers.length; i += BATCH_SIZE) {
+            const batch = preparedMembers.slice(i, i + BATCH_SIZE);
+            console.log(`📥 Batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(preparedMembers.length/BATCH_SIZE)} (${batch.length} membros)...`);
+            
+            const promises = batch.map(m => 
+              sql`
+                INSERT INTO users (
+                  name, email, password, role, church, church_code, phone,
+                  birth_date, civil_status, occupation, education, address,
+                  baptism_date, is_tither, is_donor, status, first_access, created_at,
+                  district_id, engajamento, classificacao, tempo_batismo_anos, 
+                  dizimista_type, ofertante_type, nome_unidade, tem_licao,
+                  total_presenca, comunhao, missao, estudo_biblico, batizou_alguem,
+                  cpf_valido, campos_vazios, departamentos_cargos
+                ) VALUES (
+                  ${m.name}, ${m.email}, ${m.password}, ${m.role}, ${m.church}, ${m.church_code}, ${m.phone},
+                  ${m.birth_date}, ${m.civil_status}, ${m.occupation}, ${m.education}, ${m.address},
+                  ${m.baptism_date}, ${m.is_tither}, ${m.is_donor}, 'active', true, NOW(),
+                  ${m.district_id}, ${m.engajamento}, ${m.classificacao}, ${m.tempo_batismo_anos},
+                  ${m.dizimista_type}, ${m.ofertante_type}, ${m.nome_unidade}, ${m.tem_licao},
+                  ${m.total_presenca}, ${m.comunhao}, ${m.missao}, ${m.estudo_biblico}, ${m.batizou_alguem},
+                  ${m.cpf_valido}, ${m.campos_vazios}, ${m.departamentos_cargos}
+                )
+              `.catch(err => {
+                console.error(`❌ ${m.name}: ${err.message}`);
+                return null;
+              })
+            );
+            
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r !== null).length;
+            membersImported += successCount;
+            membersSkipped += (batch.length - successCount);
+          }
+          
+          console.log(`✅ ${membersImported} membros inseridos, ${membersSkipped} pulados`);
+          
+          // CALCULAR PONTOS EM LOTES DE 50 (usando Promise.all para paralelizar)
+          if (membersImported > 0) {
+            console.log(`📊 Calculando pontos para membros do distrito ${newDistrict.id}...`);
+            try {
+              const usersToUpdate = await sql`
+                SELECT * FROM users 
+                WHERE district_id = ${newDistrict.id} 
+                AND role = 'member'
+                AND (points IS NULL OR points = 0)
+              `;
+              
+              const POINTS_BATCH_SIZE = 50;
+              let pointsUpdated = 0;
+              
+              for (let i = 0; i < usersToUpdate.length; i += POINTS_BATCH_SIZE) {
+                const batch = usersToUpdate.slice(i, i + POINTS_BATCH_SIZE);
+                console.log(`📊 Batch pontos ${Math.floor(i/POINTS_BATCH_SIZE) + 1}/${Math.ceil(usersToUpdate.length/POINTS_BATCH_SIZE)} (${batch.length})...`);
+                
+                const pointsPromises = batch.map(async (user) => {
+                  try {
+                    const points = await calculateUserPoints(user);
+                    if (points > 0) {
+                      await sql`UPDATE users SET points = ${points} WHERE id = ${user.id}`;
+                      return true;
+                    }
+                    return false;
+                  } catch (e) {
+                    return false;
+                  }
+                });
+                
+                const results = await Promise.all(pointsPromises);
+                pointsUpdated += results.filter(r => r === true).length;
+              }
+              
+              console.log(`✅ Pontos calculados para ${pointsUpdated}/${usersToUpdate.length} membros`);
+            } catch (pointsError) {
+              console.error(`⚠️ Erro ao calcular pontos:`, pointsError.message);
+            }
+          }
+        }
+
+        // 7. Salvar dados de onboarding e marcar como APPROVED
         const onboardingData = {
-          personal: { name, phone },
+          personal: { name: name || 'Pastor', phone, email: invite.email },
           churches,
           district,
-          excelData,
+          excelData: { totalRows: excelData?.data?.length || 0 }, // Não salvar todos os dados para economizar espaço
           churchValidation,
+          dracmaConfig,
+          gamificationConfig,
           submittedAt: new Date().toISOString()
         };
 
         await sql`
           UPDATE pastor_invites 
-          SET status = 'submitted', 
+          SET status = 'approved', 
               onboarding_data = ${JSON.stringify(onboardingData)},
-              user_id = ${newUser.id}
+              user_id = ${newUser.id},
+              district_id = ${newDistrict.id},
+              submitted_at = NOW(),
+              reviewed_at = NOW()
           WHERE id = ${invite.id}
         `;
 
-        console.log(`Onboarding submetido por ${invite.email}`);
+        console.log(`🎉 Onboarding completo: ${invite.email}`);
+        console.log(`   - Distrito: ${newDistrict.id}`);
+        console.log(`   - Igrejas: ${churchesCreated}`);
+        console.log(`   - Membros: ${membersImported} importados, ${membersSkipped} pulados`);
 
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             success: true,
-            message: 'Cadastro realizado com sucesso! Aguarde aprovação do administrador.',
-            user: newUser
+            message: `Cadastro concluído com sucesso! ${membersImported} membros importados.`,
+            userId: newUser.id,
+            districtId: newDistrict.id,
+            churchesCreated,
+            membersImported,
+            membersSkipped
           })
         };
       } catch (error) {
@@ -17611,7 +18060,11 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 500,
           headers,
-          body: JSON.stringify({ error: 'Erro ao processar cadastro' })
+          body: JSON.stringify({ 
+            error: 'Erro ao processar cadastro', 
+            details: error.message || String(error),
+            stack: error.stack
+          })
         };
       }
     }

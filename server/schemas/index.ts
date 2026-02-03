@@ -459,3 +459,118 @@ export type CastVoteInput = z.infer<typeof castVoteSchema>;
 export type CreateDistrictInput = z.infer<typeof createDistrictSchema>;
 export type CreatePastorInput = z.infer<typeof createPastorSchema>;
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+
+// ============================================
+// Schemas de Admin/Auditoria
+// ============================================
+
+export const auditQuerySchema = z.object({
+  action: z.enum(['CREATE', 'READ', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT']).optional(),
+  userId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  page: z.string().regex(/^\d+$/).transform(Number).default('1'),
+  limit: z.string().regex(/^\d+$/).transform(Number).default('50'),
+});
+
+// ============================================
+// Schemas de 2FA
+// ============================================
+
+export const twoFactorEnableSchema = z.object({
+  token: z.string().length(6, 'Token deve ter 6 dígitos'),
+});
+
+export const twoFactorVerifySchema = z.object({
+  token: z.string().length(6, 'Token deve ter 6 dígitos'),
+});
+
+export const twoFactorDisableSchema = z.object({
+  token: z.string().length(6, 'Token deve ter 6 dígitos'),
+  password: z.string().min(1, 'Senha é obrigatória'),
+});
+
+// ============================================
+// Schemas de Notificação
+// ============================================
+
+export const sendNotificationSchema = z.object({
+  userId: z.number().int().positive('ID do usuário inválido'),
+  title: z.string().min(1, 'Título é obrigatório'),
+  message: z.string().min(1, 'Mensagem é obrigatória'),
+  type: z.enum(['info', 'warning', 'error', 'success']).default('info'),
+  link: z.string().url().optional(),
+});
+
+export const bulkNotificationSchema = z.object({
+  userIds: z.array(z.number().int().positive()).min(1, 'Selecione pelo menos um usuário'),
+  title: z.string().min(1, 'Título é obrigatório'),
+  message: z.string().min(1, 'Mensagem é obrigatória'),
+  type: z.enum(['info', 'warning', 'error', 'success']).default('info'),
+});
+
+// ============================================
+// Schemas de Import
+// ============================================
+
+export const importOptionsSchema = z.object({
+  skipDuplicates: z.boolean().default(true),
+  updateExisting: z.boolean().default(false),
+  churchId: z.number().int().positive().optional(),
+  districtId: z.number().int().positive().optional(),
+});
+
+// ============================================
+// Schemas de Reports
+// ============================================
+
+export const reportFilterSchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  churchId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  districtId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  type: z.string().optional(),
+  format: z.enum(['json', 'csv', 'pdf', 'excel']).default('json'),
+});
+
+// ============================================
+// Schemas de Receipt
+// ============================================
+
+export const createReceiptSchema = z.object({
+  userId: z.number().int().positive('ID do usuário inválido'),
+  amount: z.number().positive('Valor deve ser positivo'),
+  type: z.enum(['tithe', 'offering', 'donation']),
+  date: z.string().min(1, 'Data é obrigatória'),
+  description: z.string().optional(),
+  paymentMethod: z.enum(['cash', 'pix', 'card', 'transfer']).default('cash'),
+});
+
+// ============================================
+// Schemas de Invite
+// ============================================
+
+export const createInviteSchema = z.object({
+  email: z.string().email('Email inválido'),
+  role: z.enum(['member', 'interested', 'missionary', 'pastor']).default('member'),
+  churchId: z.number().int().positive().optional(),
+  expiresIn: z.number().int().positive().default(7), // dias
+});
+
+export const bulkInviteSchema = z.object({
+  emails: z.array(z.string().email()).min(1, 'Adicione pelo menos um email'),
+  role: z.enum(['member', 'interested', 'missionary', 'pastor']).default('member'),
+  churchId: z.number().int().positive().optional(),
+});
+
+// ============================================
+// Tipos adicionais inferidos
+// ============================================
+
+export type AuditQueryInput = z.infer<typeof auditQuerySchema>;
+export type TwoFactorEnableInput = z.infer<typeof twoFactorEnableSchema>;
+export type TwoFactorVerifyInput = z.infer<typeof twoFactorVerifySchema>;
+export type SendNotificationInput = z.infer<typeof sendNotificationSchema>;
+export type ReportFilterInput = z.infer<typeof reportFilterSchema>;
+export type CreateReceiptInput = z.infer<typeof createReceiptSchema>;
+export type CreateInviteInput = z.infer<typeof createInviteSchema>;

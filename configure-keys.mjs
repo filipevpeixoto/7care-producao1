@@ -9,7 +9,7 @@ const n8nApiKey = crypto.randomBytes(32).toString('hex');
 
 console.log('📝 Gerando configurações...\n');
 console.log('1️⃣ n8n_api_key (gerada automaticamente):');
-console.log('   ' + n8nApiKey);
+console.log(`   ${  n8nApiKey}`);
 console.log('   ⚠️ COPIE e use no n8n quando configurar o webhook\n');
 
 console.log('2️⃣ dracma_username:');

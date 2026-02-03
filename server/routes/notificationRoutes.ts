@@ -6,6 +6,8 @@
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { asyncHandler, sendSuccess, sendNotFound, sendError } from '../utils';
+import { validateParams, ValidatedRequest } from '../middleware/validation';
+import { idParamSchema, userIdParamSchema } from '../schemas';
 
 export const notificationRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -33,8 +35,9 @@ export const notificationRoutes = (app: Express): void => {
    */
   app.get(
     '/api/notifications/:userId',
+    validateParams(userIdParamSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt(req.params.userId);
+      const userId = (req as ValidatedRequest<typeof userIdParamSchema._type>).validatedParams.id;
       const { unreadOnly } = req.query;
 
       let notifications = await storage.getNotificationsByUser(userId);
@@ -67,8 +70,9 @@ export const notificationRoutes = (app: Express): void => {
    */
   app.put(
     '/api/notifications/:id/read',
+    validateParams(idParamSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const id = parseInt(req.params.id);
+      const id = (req as ValidatedRequest<typeof idParamSchema._type>).validatedParams.id;
       const notification = await storage.markNotificationAsRead(id);
 
       if (!notification) {

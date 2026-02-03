@@ -69,6 +69,13 @@ export interface DracmaConfigData {
   ocrApiKey?: string;
 }
 
+// Configuração de Gamificação (Passo 7)
+export interface GamificationConfigData {
+  enableGamification: boolean;
+  targetAverage: number; // Média de pontos desejada (ex: 595)
+  calculateOnApproval: boolean; // Se deve calcular pontos na aprovação
+}
+
 // Sugestão de igreja similar
 export interface SimilarChurch {
   id: number;
@@ -94,7 +101,8 @@ export interface OnboardingData {
   churches: ChurchData[];
   excelData?: ExcelData;
   churchValidation?: ChurchValidation[];
-  dracmaConfig?: DracmaConfigData; // NOVO: Configuração do Dracma
+  dracmaConfig?: DracmaConfigData; // Configuração do Dracma
+  gamificationConfig?: GamificationConfigData; // Configuração de Gamificação
   passwordHash?: string;
   completedSteps: number[];
   lastStepAt: string;
@@ -132,7 +140,8 @@ export interface SubmitOnboardingDTO {
   churches: ChurchData[];
   excelData?: ExcelData;
   churchValidation?: ChurchValidation[];
-  dracmaConfig?: DracmaConfigData; // NOVO: Configuração do Dracma
+  dracmaConfig?: DracmaConfigData; // Configuração do Dracma
+  gamificationConfig?: GamificationConfigData; // Configuração de Gamificação
   password: string;
 }
 

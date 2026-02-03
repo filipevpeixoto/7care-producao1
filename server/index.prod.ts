@@ -88,12 +88,19 @@ app.use(express.urlencoded({ extended: false, limit: '10mb' }));
   const server = await registerRoutes(app);
 
   // Error handler
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || 'Internal Server Error';
-    log(`Error: ${message}`, 'error');
-    res.status(status).json({ message });
-  });
+  app.use(
+    (
+      err: Error & { status?: number; statusCode?: number },
+      _req: Request,
+      res: Response,
+      _next: NextFunction
+    ) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || 'Internal Server Error';
+      log(`Error: ${message}`, 'error');
+      res.status(status).json({ message });
+    }
+  );
 
   // Serve static files in production
   serveStatic(app);

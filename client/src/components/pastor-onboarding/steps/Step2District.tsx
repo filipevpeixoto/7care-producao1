@@ -45,25 +45,25 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-8 md:p-10">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-10">
       {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
-          <Sparkles className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-medium text-blue-700">Passo 2 de 6</span>
+      <div className="text-center mb-6 sm:mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-3 sm:mb-4">
+          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+          <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 2 de 6</span>
         </div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           Seu Distrito
         </h2>
-        <p className="text-gray-500 mt-3 text-lg">
+        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
           Informe os dados do distrito que você pastoreia
         </p>
       </div>
 
       {/* Icon */}
-      <div className="flex justify-center mb-10">
-        <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center shadow-lg">
-          <Building2 className="w-12 h-12 text-blue-500" />
+      <div className="flex justify-center mb-6 sm:mb-10">
+        <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center shadow-lg">
+          <Building2 className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500" />
         </div>
       </div>
 
@@ -80,7 +80,7 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
               type="text"
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="pl-12 h-14 text-lg rounded-xl border-gray-200 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 transition-all"
+              className="pl-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 transition-all"
               placeholder="Ex: Distrito Central de São Paulo"
             />
           </div>
@@ -103,7 +103,7 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
               id="description"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="pl-12 min-h-[120px] text-base rounded-xl border-gray-200 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 transition-all resize-none"
+              className="pl-12 min-h-[120px] text-base rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 transition-all resize-none"
               placeholder="Informações adicionais sobre o distrito..."
             />
           </div>
@@ -114,24 +114,23 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
         <Button
           type="button"
           onClick={onBack}
-          variant="outline"
           size="lg"
-          className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-2 sm:order-1"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
           Voltar
         </Button>
         <Button
           type="submit"
           size="lg"
-          className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-1 sm:order-2"
         >
           Próximo Passo
-          <ArrowRight className="w-5 h-5 ml-2" />
+          <ArrowRight className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
         </Button>
       </div>
     </form>

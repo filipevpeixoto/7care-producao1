@@ -11,6 +11,8 @@ import { monitoringService } from '../services/monitoringService';
 import { getRateLimitStats } from '../middleware/rateLimiter';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/apiResponse';
+import { validateQuery, ValidatedRequest } from '../middleware/validation';
+import { auditQuerySchema } from '../schemas';
 
 const router = Router();
 
@@ -67,8 +69,11 @@ router.use(requireRole('superadmin'));
  */
 router.get(
   '/audit',
+  validateQuery(auditQuerySchema),
   asyncHandler(async (req: Request, res: Response) => {
-    const { action, userId, startDate, endDate, page = 1, limit = 50 } = req.query;
+    const { action, userId, startDate, endDate, page, limit } = (
+      req as ValidatedRequest<typeof auditQuerySchema._type>
+    ).validatedQuery;
 
     const result = await auditService.getLogs({
       action: action as
@@ -86,11 +91,11 @@ router.get(
         | 'BULK_UPDATE'
         | 'BULK_DELETE'
         | undefined,
-      userId: userId ? parseInt(userId as string) : undefined,
-      startDate: startDate ? new Date(startDate as string) : undefined,
-      endDate: endDate ? new Date(endDate as string) : undefined,
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
+      userId: userId,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      page: page || 1,
+      limit: limit || 50,
     });
 
     sendSuccess(res, result);

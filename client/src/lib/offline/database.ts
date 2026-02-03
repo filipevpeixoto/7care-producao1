@@ -56,10 +56,82 @@ export interface OfflineMessage {
   version: number;
 }
 
+export interface OfflineRelationship {
+  id: number;
+  data: string; // JSON string com dados do relacionamento
+  checksum: string;
+  syncedAt: number;
+  modifiedAt: number;
+  isModified: boolean;
+  version: number;
+}
+
+export interface OfflinePrayer {
+  id: number;
+  data: string; // JSON string com dados do pedido de oração
+  checksum: string;
+  syncedAt: number;
+  modifiedAt: number;
+  isModified: boolean;
+  version: number;
+}
+
+export interface OfflineMeeting {
+  id: number;
+  data: string; // JSON string com dados da reunião
+  checksum: string;
+  syncedAt: number;
+  modifiedAt: number;
+  isModified: boolean;
+  version: number;
+}
+
+export interface OfflineEmotionalCheckin {
+  id: number;
+  userId: number;
+  data: string; // JSON string com dados do check-in
+  checksum: string;
+  syncedAt: number;
+  modifiedAt: number;
+  isModified: boolean;
+  version: number;
+}
+
+export interface OfflineDiscipleshipRequest {
+  id: number;
+  data: string; // JSON string com dados do pedido de discipulado
+  checksum: string;
+  syncedAt: number;
+  modifiedAt: number;
+  isModified: boolean;
+  version: number;
+}
+
+export interface OfflineNotification {
+  id: number;
+  userId: number;
+  data: string; // JSON string com dados da notificação
+  checksum: string;
+  syncedAt: number;
+  modifiedAt: number;
+  isModified: boolean;
+  version: number;
+}
+
 export interface SyncQueueItem {
   id?: number;
   type: 'create' | 'update' | 'delete';
-  entity: 'users' | 'events' | 'tasks' | 'messages';
+  entity:
+    | 'users'
+    | 'events'
+    | 'tasks'
+    | 'messages'
+    | 'relationships'
+    | 'prayers'
+    | 'meetings'
+    | 'emotional-checkins'
+    | 'discipleship-requests'
+    | 'notifications';
   entityId?: number;
   data: string;
   originalChecksum?: string; // Checksum dos dados originais (para detectar conflitos)
@@ -107,6 +179,12 @@ class OfflineDatabase extends Dexie {
   events!: Table<OfflineEvent>;
   tasks!: Table<OfflineTask>;
   messages!: Table<OfflineMessage>;
+  relationships!: Table<OfflineRelationship>;
+  prayers!: Table<OfflinePrayer>;
+  meetings!: Table<OfflineMeeting>;
+  emotionalCheckins!: Table<OfflineEmotionalCheckin>;
+  discipleshipRequests!: Table<OfflineDiscipleshipRequest>;
+  notifications!: Table<OfflineNotification>;
   syncQueue!: Table<SyncQueueItem>;
   meta!: Table<OfflineMeta>;
   conflicts!: Table<ConflictRecord>;
@@ -135,10 +213,40 @@ class OfflineDatabase extends Dexie {
         meta: 'key, updatedAt',
         conflicts: '++id, entity, entityId, createdAt, resolvedAt',
       })
-      .upgrade((tx) => {
+      .upgrade(tx => {
         // Migração: adicionar campos novos aos registros existentes
         return migrateToV2(tx);
       });
+
+    // Versão 3 - Adiciona suporte a relationships (discipulado)
+    this.version(3).stores({
+      users: 'id, syncedAt, modifiedAt, isModified, version',
+      events: 'id, syncedAt, modifiedAt, isModified, version',
+      tasks: 'id, syncedAt, modifiedAt, isModified, version',
+      messages: 'id, conversationId, syncedAt, modifiedAt, isModified, version',
+      relationships: 'id, syncedAt, modifiedAt, isModified, version',
+      syncQueue: '++id, entity, entityId, createdAt, nextRetryAt, priority',
+      meta: 'key, updatedAt',
+      conflicts: '++id, entity, entityId, createdAt, resolvedAt',
+    });
+
+    // Versão 4 - Adiciona suporte completo para pastores offline
+    // prayers, meetings, emotional-checkins, discipleship-requests, notifications
+    this.version(4).stores({
+      users: 'id, syncedAt, modifiedAt, isModified, version',
+      events: 'id, syncedAt, modifiedAt, isModified, version',
+      tasks: 'id, syncedAt, modifiedAt, isModified, version',
+      messages: 'id, conversationId, syncedAt, modifiedAt, isModified, version',
+      relationships: 'id, syncedAt, modifiedAt, isModified, version',
+      prayers: 'id, syncedAt, modifiedAt, isModified, version',
+      meetings: 'id, syncedAt, modifiedAt, isModified, version',
+      emotionalCheckins: 'id, userId, syncedAt, modifiedAt, isModified, version',
+      discipleshipRequests: 'id, syncedAt, modifiedAt, isModified, version',
+      notifications: 'id, userId, syncedAt, modifiedAt, isModified, version',
+      syncQueue: '++id, entity, entityId, createdAt, nextRetryAt, priority',
+      meta: 'key, updatedAt',
+      conflicts: '++id, entity, entityId, createdAt, resolvedAt',
+    });
   }
 }
 
@@ -149,38 +257,53 @@ async function migrateToV2(tx: Transaction): Promise<void> {
   const now = Date.now();
 
   // Migrar usuários
-  await tx.table('users').toCollection().modify((user: OfflineUser) => {
-    user.checksum = user.checksum || '';
-    user.modifiedAt = user.modifiedAt || user.syncedAt || now;
-    user.version = user.version || 1;
-  });
+  await tx
+    .table('users')
+    .toCollection()
+    .modify((user: OfflineUser) => {
+      user.checksum = user.checksum || '';
+      user.modifiedAt = user.modifiedAt || user.syncedAt || now;
+      user.version = user.version || 1;
+    });
 
   // Migrar eventos
-  await tx.table('events').toCollection().modify((event: OfflineEvent) => {
-    event.checksum = event.checksum || '';
-    event.modifiedAt = event.modifiedAt || event.syncedAt || now;
-    event.version = event.version || 1;
-  });
+  await tx
+    .table('events')
+    .toCollection()
+    .modify((event: OfflineEvent) => {
+      event.checksum = event.checksum || '';
+      event.modifiedAt = event.modifiedAt || event.syncedAt || now;
+      event.version = event.version || 1;
+    });
 
   // Migrar tarefas
-  await tx.table('tasks').toCollection().modify((task: OfflineTask) => {
-    task.checksum = task.checksum || '';
-    task.modifiedAt = task.modifiedAt || task.syncedAt || now;
-    task.version = task.version || 1;
-  });
+  await tx
+    .table('tasks')
+    .toCollection()
+    .modify((task: OfflineTask) => {
+      task.checksum = task.checksum || '';
+      task.modifiedAt = task.modifiedAt || task.syncedAt || now;
+      task.version = task.version || 1;
+    });
 
   // Migrar mensagens
-  await tx.table('messages').toCollection().modify((message: OfflineMessage) => {
-    message.checksum = message.checksum || '';
-    message.modifiedAt = message.modifiedAt || message.syncedAt || now;
-    message.version = message.version || 1;
-  });
+  await tx
+    .table('messages')
+    .toCollection()
+    .modify((message: OfflineMessage) => {
+      message.checksum = message.checksum || '';
+      message.modifiedAt = message.modifiedAt || message.syncedAt || now;
+      message.version = message.version || 1;
+    });
 
   // Migrar fila de sync
-  await tx.table('syncQueue').toCollection().modify((item: SyncQueueItem) => {
-    item.priority = item.priority ?? 5;
-    item.nextRetryAt = item.nextRetryAt ?? 0;
-  });
+  await tx
+    .table('syncQueue')
+    .toCollection()
+    .modify((item: SyncQueueItem) => {
+      item.priority = item.priority ?? 5;
+      item.nextRetryAt = item.nextRetryAt ?? 0;
+    });
 
   console.log('[Database] Migração para v2 concluída');
 }
@@ -202,7 +325,7 @@ async function generateChecksum(data: unknown): Promise<string> {
  * Verifica se o usuário tem permissão para acesso offline
  */
 export function hasOfflinePermission(role: string): boolean {
-  return ALLOWED_OFFLINE_ROLES.includes(role as typeof ALLOWED_OFFLINE_ROLES[number]);
+  return ALLOWED_OFFLINE_ROLES.includes(role as (typeof ALLOWED_OFFLINE_ROLES)[number]);
 }
 
 // ===== FUNÇÕES PARA USUÁRIOS (CRIPTOGRAFADOS) =====
@@ -216,11 +339,11 @@ export async function saveUsersOffline(users: User[], userRole: string): Promise
   const now = Date.now();
 
   console.log(`[Offline] Preparando ${users.length} usuários para salvar...`);
-  
+
   // IMPORTANTE: Preparar TODOS os dados ANTES de abrir a transaction
   // para evitar que a transaction expire durante operações assíncronas
   const offlineUsers: OfflineUser[] = await Promise.all(
-    users.map(async (user) => ({
+    users.map(async user => ({
       id: user.id,
       data: await encryptData(user),
       checksum: await generateChecksum(user),
@@ -253,7 +376,7 @@ export async function getUsersOffline(): Promise<User[]> {
   }
 
   const users = await Promise.all(
-    offlineUsers.map(async (ou) => {
+    offlineUsers.map(async ou => {
       try {
         return await decryptData<User>(ou.data);
       } catch (error) {
@@ -336,7 +459,7 @@ export async function saveEventsOffline(events: Event[]): Promise<void> {
 
   // Preparar TODOS os dados ANTES de abrir a transaction
   const offlineEvents: OfflineEvent[] = await Promise.all(
-    events.map(async (event) => ({
+    events.map(async event => ({
       id: event.id,
       data: JSON.stringify(event),
       checksum: await generateChecksum(event),
@@ -362,15 +485,18 @@ export async function getEventsOffline(): Promise<Event[]> {
   console.log('[Offline] Buscando eventos do IndexedDB...');
   const offlineEvents = await db.events.toArray();
   console.log(`[Offline] Encontrados ${offlineEvents.length} eventos`);
-  
+
   if (offlineEvents.length === 0) {
     console.warn('[Offline] ⚠️ Nenhum evento encontrado no cache!');
   }
-  
-  return offlineEvents.map((oe) => JSON.parse(oe.data) as Event);
+
+  return offlineEvents.map(oe => JSON.parse(oe.data) as Event);
 }
 
-export async function updateEventOffline(eventId: number, eventData: Partial<Event>): Promise<void> {
+export async function updateEventOffline(
+  eventId: number,
+  eventData: Partial<Event>
+): Promise<void> {
   const now = Date.now();
 
   await db.transaction('rw', db.events, async () => {
@@ -406,7 +532,7 @@ export async function saveTasksOffline(tasks: TaskData[]): Promise<void> {
 
   // Preparar TODOS os dados ANTES de abrir a transaction
   const offlineTasks: OfflineTask[] = await Promise.all(
-    tasks.map(async (task) => ({
+    tasks.map(async task => ({
       id: task.id,
       data: JSON.stringify(task),
       checksum: await generateChecksum(task),
@@ -432,15 +558,18 @@ export async function getTasksOffline(): Promise<TaskData[]> {
   console.log('[Offline] Buscando tarefas do IndexedDB...');
   const offlineTasks = await db.tasks.toArray();
   console.log(`[Offline] Encontradas ${offlineTasks.length} tarefas`);
-  
+
   if (offlineTasks.length === 0) {
     console.warn('[Offline] ⚠️ Nenhuma tarefa encontrada no cache!');
   }
-  
-  return offlineTasks.map((ot) => JSON.parse(ot.data) as TaskData);
+
+  return offlineTasks.map(ot => JSON.parse(ot.data) as TaskData);
 }
 
-export async function updateTaskOffline(taskId: number, taskData: Partial<TaskData>): Promise<void> {
+export async function updateTaskOffline(
+  taskId: number,
+  taskData: Partial<TaskData>
+): Promise<void> {
   const now = Date.now();
 
   await db.transaction('rw', db.tasks, async () => {
@@ -462,14 +591,463 @@ export async function updateTaskOffline(taskId: number, taskData: Partial<TaskDa
   });
 }
 
+// ===== FUNÇÕES PARA RELATIONSHIPS (DISCIPULADO) =====
+
+export interface RelationshipData {
+  id: number;
+  interestedId?: number;
+  missionaryId?: number;
+  userId1?: number;
+  userId2?: number;
+  relationshipType?: string;
+  status?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export async function saveRelationshipsOffline(relationships: RelationshipData[]): Promise<void> {
+  const now = Date.now();
+
+  console.log(`[Offline] Preparando ${relationships.length} relacionamentos para salvar...`);
+
+  // Preparar TODOS os dados ANTES de abrir a transaction
+  const offlineRelationships: OfflineRelationship[] = await Promise.all(
+    relationships.map(async rel => ({
+      id: rel.id,
+      data: JSON.stringify(rel),
+      checksum: await generateChecksum(rel),
+      syncedAt: now,
+      modifiedAt: now,
+      isModified: false,
+      version: 1,
+    }))
+  );
+
+  console.log(`[Offline] Dados preparados, salvando no IndexedDB...`);
+
+  // Transaction com dados já preparados
+  await db.transaction('rw', db.relationships, db.meta, async () => {
+    await db.relationships.bulkPut(offlineRelationships);
+    await db.meta.put({ key: 'relationships_last_sync', value: now.toString(), updatedAt: now });
+  });
+
+  console.log(`[Offline] ✅ ${relationships.length} relacionamentos salvos`);
+}
+
+export async function getRelationshipsOffline(): Promise<RelationshipData[]> {
+  console.log('[Offline] Buscando relacionamentos do IndexedDB...');
+  const offlineRelationships = await db.relationships.toArray();
+  console.log(`[Offline] Encontrados ${offlineRelationships.length} relacionamentos`);
+
+  if (offlineRelationships.length === 0) {
+    console.warn('[Offline] ⚠️ Nenhum relacionamento encontrado no cache!');
+  }
+
+  return offlineRelationships.map(or => JSON.parse(or.data) as RelationshipData);
+}
+
+export async function updateRelationshipOffline(
+  relationshipId: number,
+  relationshipData: Partial<RelationshipData>
+): Promise<void> {
+  const now = Date.now();
+
+  await db.transaction('rw', db.relationships, async () => {
+    const existing = await db.relationships.get(relationshipId);
+    if (!existing) {
+      throw new Error(`Relacionamento ${relationshipId} não encontrado no cache`);
+    }
+
+    const currentData = JSON.parse(existing.data) as RelationshipData;
+    const updatedData = { ...currentData, ...relationshipData };
+
+    await db.relationships.update(relationshipId, {
+      data: JSON.stringify(updatedData),
+      checksum: await generateChecksum(updatedData),
+      modifiedAt: now,
+      isModified: true,
+      version: existing.version + 1,
+    });
+  });
+}
+
+// ===== FUNÇÕES PARA PEDIDOS DE ORAÇÃO =====
+
+export interface PrayerData {
+  id: number;
+  userId?: number;
+  title?: string;
+  description?: string;
+  isPublic?: boolean;
+  isAnswered?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export async function savePrayersOffline(prayers: PrayerData[]): Promise<void> {
+  const now = Date.now();
+
+  console.log(`[Offline] Preparando ${prayers.length} pedidos de oração para salvar...`);
+
+  const offlinePrayers: OfflinePrayer[] = await Promise.all(
+    prayers.map(async prayer => ({
+      id: prayer.id,
+      data: JSON.stringify(prayer),
+      checksum: await generateChecksum(prayer),
+      syncedAt: now,
+      modifiedAt: now,
+      isModified: false,
+      version: 1,
+    }))
+  );
+
+  await db.transaction('rw', db.prayers, db.meta, async () => {
+    await db.prayers.bulkPut(offlinePrayers);
+    await db.meta.put({ key: 'prayers_last_sync', value: now.toString(), updatedAt: now });
+  });
+
+  console.log(`[Offline] ✅ ${prayers.length} pedidos de oração salvos`);
+}
+
+export async function getPrayersOffline(): Promise<PrayerData[]> {
+  console.log('[Offline] Buscando pedidos de oração do IndexedDB...');
+  const offlinePrayers = await db.prayers.toArray();
+  console.log(`[Offline] Encontrados ${offlinePrayers.length} pedidos de oração`);
+
+  return offlinePrayers.map(op => JSON.parse(op.data) as PrayerData);
+}
+
+export async function updatePrayerOffline(
+  prayerId: number,
+  prayerData: Partial<PrayerData>
+): Promise<void> {
+  const now = Date.now();
+
+  await db.transaction('rw', db.prayers, async () => {
+    const existing = await db.prayers.get(prayerId);
+    if (!existing) {
+      throw new Error(`Pedido de oração ${prayerId} não encontrado no cache`);
+    }
+
+    const currentData = JSON.parse(existing.data) as PrayerData;
+    const updatedData = { ...currentData, ...prayerData };
+
+    await db.prayers.update(prayerId, {
+      data: JSON.stringify(updatedData),
+      checksum: await generateChecksum(updatedData),
+      modifiedAt: now,
+      isModified: true,
+      version: existing.version + 1,
+    });
+  });
+}
+
+// ===== FUNÇÕES PARA REUNIÕES =====
+
+export interface MeetingData {
+  id: number;
+  requesterId?: number;
+  assignedToId?: number;
+  title?: string;
+  description?: string;
+  scheduledAt?: string;
+  duration?: number;
+  location?: string;
+  status?: string;
+  priority?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export async function saveMeetingsOffline(meetings: MeetingData[]): Promise<void> {
+  const now = Date.now();
+
+  console.log(`[Offline] Preparando ${meetings.length} reuniões para salvar...`);
+
+  const offlineMeetings: OfflineMeeting[] = await Promise.all(
+    meetings.map(async meeting => ({
+      id: meeting.id,
+      data: JSON.stringify(meeting),
+      checksum: await generateChecksum(meeting),
+      syncedAt: now,
+      modifiedAt: now,
+      isModified: false,
+      version: 1,
+    }))
+  );
+
+  await db.transaction('rw', db.meetings, db.meta, async () => {
+    await db.meetings.bulkPut(offlineMeetings);
+    await db.meta.put({ key: 'meetings_last_sync', value: now.toString(), updatedAt: now });
+  });
+
+  console.log(`[Offline] ✅ ${meetings.length} reuniões salvas`);
+}
+
+export async function getMeetingsOffline(): Promise<MeetingData[]> {
+  console.log('[Offline] Buscando reuniões do IndexedDB...');
+  const offlineMeetings = await db.meetings.toArray();
+  console.log(`[Offline] Encontradas ${offlineMeetings.length} reuniões`);
+
+  return offlineMeetings.map(om => JSON.parse(om.data) as MeetingData);
+}
+
+export async function updateMeetingOffline(
+  meetingId: number,
+  meetingData: Partial<MeetingData>
+): Promise<void> {
+  const now = Date.now();
+
+  await db.transaction('rw', db.meetings, async () => {
+    const existing = await db.meetings.get(meetingId);
+    if (!existing) {
+      throw new Error(`Reunião ${meetingId} não encontrada no cache`);
+    }
+
+    const currentData = JSON.parse(existing.data) as MeetingData;
+    const updatedData = { ...currentData, ...meetingData };
+
+    await db.meetings.update(meetingId, {
+      data: JSON.stringify(updatedData),
+      checksum: await generateChecksum(updatedData),
+      modifiedAt: now,
+      isModified: true,
+      version: existing.version + 1,
+    });
+  });
+}
+
+// ===== FUNÇÕES PARA CHECK-IN EMOCIONAL =====
+
+export interface EmotionalCheckinData {
+  id: number;
+  userId: number;
+  emotionalScore?: number;
+  mood?: string;
+  prayerRequest?: string;
+  isPrivate?: boolean;
+  allowChurchMembers?: boolean;
+  createdAt?: string;
+  [key: string]: unknown;
+}
+
+export async function saveEmotionalCheckinsOffline(
+  checkins: EmotionalCheckinData[]
+): Promise<void> {
+  const now = Date.now();
+
+  console.log(`[Offline] Preparando ${checkins.length} check-ins emocionais para salvar...`);
+
+  const offlineCheckins: OfflineEmotionalCheckin[] = await Promise.all(
+    checkins.map(async checkin => ({
+      id: checkin.id,
+      userId: checkin.userId,
+      data: JSON.stringify(checkin),
+      checksum: await generateChecksum(checkin),
+      syncedAt: now,
+      modifiedAt: now,
+      isModified: false,
+      version: 1,
+    }))
+  );
+
+  await db.transaction('rw', db.emotionalCheckins, db.meta, async () => {
+    await db.emotionalCheckins.bulkPut(offlineCheckins);
+    await db.meta.put({
+      key: 'emotional_checkins_last_sync',
+      value: now.toString(),
+      updatedAt: now,
+    });
+  });
+
+  console.log(`[Offline] ✅ ${checkins.length} check-ins emocionais salvos`);
+}
+
+export async function getEmotionalCheckinsOffline(
+  userId?: number
+): Promise<EmotionalCheckinData[]> {
+  console.log('[Offline] Buscando check-ins emocionais do IndexedDB...');
+  let offlineCheckins = await db.emotionalCheckins.toArray();
+
+  if (userId) {
+    offlineCheckins = offlineCheckins.filter(c => c.userId === userId);
+  }
+
+  console.log(`[Offline] Encontrados ${offlineCheckins.length} check-ins emocionais`);
+
+  return offlineCheckins.map(oc => JSON.parse(oc.data) as EmotionalCheckinData);
+}
+
+// ===== FUNÇÕES PARA PEDIDOS DE DISCIPULADO =====
+
+export interface DiscipleshipRequestData {
+  id: number;
+  interestedId?: number;
+  missionaryId?: number;
+  status?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export async function saveDiscipleshipRequestsOffline(
+  requests: DiscipleshipRequestData[]
+): Promise<void> {
+  const now = Date.now();
+
+  console.log(`[Offline] Preparando ${requests.length} pedidos de discipulado para salvar...`);
+
+  const offlineRequests: OfflineDiscipleshipRequest[] = await Promise.all(
+    requests.map(async request => ({
+      id: request.id,
+      data: JSON.stringify(request),
+      checksum: await generateChecksum(request),
+      syncedAt: now,
+      modifiedAt: now,
+      isModified: false,
+      version: 1,
+    }))
+  );
+
+  await db.transaction('rw', db.discipleshipRequests, db.meta, async () => {
+    await db.discipleshipRequests.bulkPut(offlineRequests);
+    await db.meta.put({
+      key: 'discipleship_requests_last_sync',
+      value: now.toString(),
+      updatedAt: now,
+    });
+  });
+
+  console.log(`[Offline] ✅ ${requests.length} pedidos de discipulado salvos`);
+}
+
+export async function getDiscipleshipRequestsOffline(): Promise<DiscipleshipRequestData[]> {
+  console.log('[Offline] Buscando pedidos de discipulado do IndexedDB...');
+  const offlineRequests = await db.discipleshipRequests.toArray();
+  console.log(`[Offline] Encontrados ${offlineRequests.length} pedidos de discipulado`);
+
+  return offlineRequests.map(or => JSON.parse(or.data) as DiscipleshipRequestData);
+}
+
+export async function updateDiscipleshipRequestOffline(
+  requestId: number,
+  requestData: Partial<DiscipleshipRequestData>
+): Promise<void> {
+  const now = Date.now();
+
+  await db.transaction('rw', db.discipleshipRequests, async () => {
+    const existing = await db.discipleshipRequests.get(requestId);
+    if (!existing) {
+      throw new Error(`Pedido de discipulado ${requestId} não encontrado no cache`);
+    }
+
+    const currentData = JSON.parse(existing.data) as DiscipleshipRequestData;
+    const updatedData = { ...currentData, ...requestData };
+
+    await db.discipleshipRequests.update(requestId, {
+      data: JSON.stringify(updatedData),
+      checksum: await generateChecksum(updatedData),
+      modifiedAt: now,
+      isModified: true,
+      version: existing.version + 1,
+    });
+  });
+}
+
+// ===== FUNÇÕES PARA NOTIFICAÇÕES =====
+
+export interface NotificationData {
+  id: number;
+  userId: number;
+  title?: string;
+  message?: string;
+  type?: string;
+  isRead?: boolean;
+  createdAt?: string;
+  [key: string]: unknown;
+}
+
+export async function saveNotificationsOffline(notifications: NotificationData[]): Promise<void> {
+  const now = Date.now();
+
+  console.log(`[Offline] Preparando ${notifications.length} notificações para salvar...`);
+
+  const offlineNotifications: OfflineNotification[] = await Promise.all(
+    notifications.map(async notification => ({
+      id: notification.id,
+      userId: notification.userId,
+      data: JSON.stringify(notification),
+      checksum: await generateChecksum(notification),
+      syncedAt: now,
+      modifiedAt: now,
+      isModified: false,
+      version: 1,
+    }))
+  );
+
+  await db.transaction('rw', db.notifications, db.meta, async () => {
+    await db.notifications.bulkPut(offlineNotifications);
+    await db.meta.put({ key: 'notifications_last_sync', value: now.toString(), updatedAt: now });
+  });
+
+  console.log(`[Offline] ✅ ${notifications.length} notificações salvas`);
+}
+
+export async function getNotificationsOffline(userId?: number): Promise<NotificationData[]> {
+  console.log('[Offline] Buscando notificações do IndexedDB...');
+  let offlineNotifications = await db.notifications.toArray();
+
+  if (userId) {
+    offlineNotifications = offlineNotifications.filter(n => n.userId === userId);
+  }
+
+  console.log(`[Offline] Encontradas ${offlineNotifications.length} notificações`);
+
+  return offlineNotifications.map(on => JSON.parse(on.data) as NotificationData);
+}
+
+export async function updateNotificationOffline(
+  notificationId: number,
+  notificationData: Partial<NotificationData>
+): Promise<void> {
+  const now = Date.now();
+
+  await db.transaction('rw', db.notifications, async () => {
+    const existing = await db.notifications.get(notificationId);
+    if (!existing) {
+      throw new Error(`Notificação ${notificationId} não encontrada no cache`);
+    }
+
+    const currentData = JSON.parse(existing.data) as NotificationData;
+    const updatedData = { ...currentData, ...notificationData };
+
+    await db.notifications.update(notificationId, {
+      data: JSON.stringify(updatedData),
+      checksum: await generateChecksum(updatedData),
+      modifiedAt: now,
+      isModified: true,
+      version: existing.version + 1,
+    });
+  });
+}
+
 // ===== FUNÇÕES PARA MENSAGENS (CRIPTOGRAFADAS) =====
 
-export async function saveMessagesOffline(messages: Message[], conversationId: number): Promise<void> {
+export async function saveMessagesOffline(
+  messages: Message[],
+  conversationId: number
+): Promise<void> {
   const now = Date.now();
 
   // Preparar TODOS os dados ANTES de abrir a transaction
   const offlineMessages: OfflineMessage[] = await Promise.all(
-    messages.map(async (msg) => ({
+    messages.map(async msg => ({
       id: msg.id,
       conversationId,
       data: await encryptData(msg),
@@ -496,7 +1074,7 @@ export async function getMessagesOffline(conversationId: number): Promise<Messag
     .toArray();
 
   const messages = await Promise.all(
-    offlineMessages.map(async (om) => {
+    offlineMessages.map(async om => {
       try {
         return await decryptData<Message>(om.data);
       } catch {
@@ -510,7 +1088,10 @@ export async function getMessagesOffline(conversationId: number): Promise<Messag
 
 // ===== SYNC QUEUE =====
 
-type SyncQueueInput = Omit<SyncQueueItem, 'id' | 'createdAt' | 'retryCount' | 'priority' | 'nextRetryAt'>;
+type SyncQueueInput = Omit<
+  SyncQueueItem,
+  'id' | 'createdAt' | 'retryCount' | 'priority' | 'nextRetryAt'
+>;
 
 export async function addToSyncQueue(item: SyncQueueInput): Promise<number> {
   // Calcular prioridade: deletes > creates > updates
@@ -537,10 +1118,7 @@ export async function getSyncQueue(): Promise<SyncQueueItem[]> {
   const now = Date.now();
 
   // Retornar apenas itens que podem ser processados (nextRetryAt <= now)
-  return db.syncQueue
-    .where('nextRetryAt')
-    .belowOrEqual(now)
-    .sortBy('priority');
+  return db.syncQueue.where('nextRetryAt').belowOrEqual(now).sortBy('priority');
 }
 
 export async function getAllSyncQueue(): Promise<SyncQueueItem[]> {
@@ -551,7 +1129,10 @@ export async function removeSyncQueueItem(id: number): Promise<void> {
   await db.syncQueue.delete(id);
 }
 
-export async function updateSyncQueueItem(id: number, updates: Partial<SyncQueueItem>): Promise<void> {
+export async function updateSyncQueueItem(
+  id: number,
+  updates: Partial<SyncQueueItem>
+): Promise<void> {
   await db.syncQueue.update(id, updates);
 }
 
@@ -616,11 +1197,12 @@ export async function resolveConflict(
     });
 
     // Aplicar resolução à entidade
-    const dataToApply = resolution === 'local'
-      ? conflict.localData
-      : resolution === 'server'
-        ? conflict.serverData
-        : mergedData;
+    const dataToApply =
+      resolution === 'local'
+        ? conflict.localData
+        : resolution === 'server'
+          ? conflict.serverData
+          : mergedData;
 
     if (!dataToApply) {
       throw new Error('Dados para aplicar não fornecidos');
@@ -670,58 +1252,75 @@ export async function cleanExpiredData(): Promise<{
   const ttlMs = TTL_DAYS * 24 * 60 * 60 * 1000;
   const cutoff = Date.now() - ttlMs;
 
-  const result = await db.transaction('rw', db.users, db.events, db.tasks, db.messages, async () => {
-    // Não excluir itens modificados localmente (não sincronizados)
-    const deletedUsers = await db.users
-      .where('syncedAt')
-      .below(cutoff)
-      .and((u) => !u.isModified)
-      .delete();
+  const result = await db.transaction(
+    'rw',
+    db.users,
+    db.events,
+    db.tasks,
+    db.messages,
+    async () => {
+      // Não excluir itens modificados localmente (não sincronizados)
+      const deletedUsers = await db.users
+        .where('syncedAt')
+        .below(cutoff)
+        .and(u => !u.isModified)
+        .delete();
 
-    const deletedEvents = await db.events
-      .where('syncedAt')
-      .below(cutoff)
-      .and((e) => !e.isModified)
-      .delete();
+      const deletedEvents = await db.events
+        .where('syncedAt')
+        .below(cutoff)
+        .and(e => !e.isModified)
+        .delete();
 
-    const deletedTasks = await db.tasks
-      .where('syncedAt')
-      .below(cutoff)
-      .and((t) => !t.isModified)
-      .delete();
+      const deletedTasks = await db.tasks
+        .where('syncedAt')
+        .below(cutoff)
+        .and(t => !t.isModified)
+        .delete();
 
-    const deletedMessages = await db.messages
-      .where('syncedAt')
-      .below(cutoff)
-      .and((m) => !m.isModified)
-      .delete();
+      const deletedMessages = await db.messages
+        .where('syncedAt')
+        .below(cutoff)
+        .and(m => !m.isModified)
+        .delete();
 
-    return {
-      users: deletedUsers,
-      events: deletedEvents,
-      tasks: deletedTasks,
-      messages: deletedMessages,
-    };
-  });
+      return {
+        users: deletedUsers,
+        events: deletedEvents,
+        tasks: deletedTasks,
+        messages: deletedMessages,
+      };
+    }
+  );
 
-  console.log(`[Offline] Limpeza: ${result.users} usuários, ${result.events} eventos, ${result.tasks} tarefas, ${result.messages} mensagens`);
+  console.log(
+    `[Offline] Limpeza: ${result.users} usuários, ${result.events} eventos, ${result.tasks} tarefas, ${result.messages} mensagens`
+  );
   return result;
 }
 
 export async function clearAllOfflineData(): Promise<void> {
-  await db.transaction('rw', [db.users, db.events, db.tasks, db.messages, db.syncQueue, db.meta, db.conflicts], async () => {
-    await db.users.clear();
-    await db.events.clear();
-    await db.tasks.clear();
-    await db.messages.clear();
-    await db.syncQueue.clear();
-    await db.meta.clear();
-    await db.conflicts.clear();
-  });
+  await db.transaction(
+    'rw',
+    [db.users, db.events, db.tasks, db.messages, db.syncQueue, db.meta, db.conflicts],
+    async () => {
+      await db.users.clear();
+      await db.events.clear();
+      await db.tasks.clear();
+      await db.messages.clear();
+      await db.syncQueue.clear();
+      await db.meta.clear();
+      await db.conflicts.clear();
+    }
+  );
   console.log('[Offline] Todos os dados offline limpos');
 }
 
-export async function getStorageUsage(): Promise<{ used: number; limit: number; percentage: number }> {
+export async function getStorageUsage(): Promise<{
+  used: number;
+  limit: number;
+  percentage: number;
+}> {
   const limit = MAX_STORAGE_MB * 1024 * 1024;
 
   if ('storage' in navigator && 'estimate' in navigator.storage) {
@@ -797,7 +1396,9 @@ export async function verifyDatabaseIntegrity(): Promise<{
       }
     }
   } catch (error) {
-    errors.push(`Erro ao verificar integridade: ${error instanceof Error ? error.message : 'Desconhecido'}`);
+    errors.push(
+      `Erro ao verificar integridade: ${error instanceof Error ? error.message : 'Desconhecido'}`
+    );
   }
 
   return {

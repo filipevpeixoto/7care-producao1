@@ -206,7 +206,8 @@ describe('UserRepository', () => {
 
   describe('countUsers', () => {
     it('deve contar total de usuários', async () => {
-      mockDb.from.mockResolvedValue([{ count: 10 }]);
+      // countUsers usa db.select().from() - mock precisa resolver na cadeia
+      mockDb.from.mockResolvedValueOnce([{ count: 10 }]);
 
       const result = await userRepository.countUsers();
 

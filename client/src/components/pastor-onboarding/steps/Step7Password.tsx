@@ -275,12 +275,12 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
         )}
 
         {/* Info box */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-5">
-          <p className="text-sm text-blue-800 flex items-start gap-2">
-            <span className="text-xl">💡</span>
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-5">
+          <p className="text-sm text-green-800 flex items-start gap-2">
+            <span className="text-xl">🚀</span>
             <span>
-              Seu cadastro será enviado para aprovação do administrador. Você receberá um email
-              quando for aprovado.
+              Após finalizar, seu cadastro será ativado automaticamente e você poderá fazer login
+              imediatamente!
             </span>
           </p>
         </div>

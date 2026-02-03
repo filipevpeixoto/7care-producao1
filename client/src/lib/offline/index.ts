@@ -17,6 +17,25 @@ export {
   saveTasksOffline,
   getTasksOffline,
   updateTaskOffline,
+  saveRelationshipsOffline,
+  getRelationshipsOffline,
+  updateRelationshipOffline,
+  // Novas funcionalidades offline para pastores
+  savePrayersOffline,
+  getPrayersOffline,
+  updatePrayerOffline,
+  saveMeetingsOffline,
+  getMeetingsOffline,
+  updateMeetingOffline,
+  saveEmotionalCheckinsOffline,
+  getEmotionalCheckinsOffline,
+  saveDiscipleshipRequestsOffline,
+  getDiscipleshipRequestsOffline,
+  updateDiscipleshipRequestOffline,
+  saveNotificationsOffline,
+  getNotificationsOffline,
+  updateNotificationOffline,
+  // Mensagens
   saveMessagesOffline,
   getMessagesOffline,
   addToSyncQueue,
@@ -84,10 +103,7 @@ export {
 } from './offlineFetch';
 
 // Prepare Offline
-export {
-  prepareForOffline,
-  getOfflineDataStatus,
-} from './prepareOffline';
+export { prepareForOffline, getOfflineDataStatus } from './prepareOffline';
 
 // Tipos
 export type {
@@ -100,16 +116,9 @@ export type {
   TaskData,
 } from './database';
 
-export type {
-  SyncStatus,
-  SyncProgress,
-  SyncResult,
-} from './syncManager';
+export type { SyncStatus, SyncProgress, SyncResult } from './syncManager';
 
-export type {
-  PrepareOfflineProgress,
-  ProgressCallback,
-} from './prepareOffline';
+export type { PrepareOfflineProgress, ProgressCallback } from './prepareOffline';
 
 // Debug e diagnóstico
 export { testOfflineData } from './testOfflineData';

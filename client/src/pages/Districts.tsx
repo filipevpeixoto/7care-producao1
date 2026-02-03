@@ -477,26 +477,30 @@ export default function Districts() {
 
   return (
     <MobileLayout>
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Distritos</h1>
-            <p className="text-muted-foreground">Gerencie os distritos e suas igrejas</p>
+            <h1 className="text-xl sm:text-2xl font-bold">Distritos</h1>
+            <p className="text-sm text-muted-foreground">Gerencie os distritos e suas igrejas</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {unassignedChurches.length > 0 && (
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => setLinkChurchesDialogOpen(true)}
                 className="text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600/50 dark:hover:bg-orange-900/30"
               >
-                <Link2 className="h-4 w-4 mr-2" />
-                Igrejas sem Distrito ({unassignedChurches.length})
+                <Link2 className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Igrejas sem Distrito</span>
+                <span className="sm:hidden">Sem Distrito</span>
+                <span className="ml-1">({unassignedChurches.length})</span>
               </Button>
             )}
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Distrito
+            <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Novo Distrito</span>
+              <span className="sm:hidden">Novo</span>
             </Button>
           </div>
         </div>

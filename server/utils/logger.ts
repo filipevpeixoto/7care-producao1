@@ -23,16 +23,11 @@ const SENSITIVE_FIELDS = [
   'apiKey',
   'api_key',
   'privateKey',
-  'private_key'
+  'private_key',
 ];
 
 // Campos que devem ser parcialmente mascarados
-const PARTIAL_MASK_FIELDS = [
-  'email',
-  'phone',
-  'telefone',
-  'celular'
-];
+const PARTIAL_MASK_FIELDS = ['email', 'phone', 'telefone', 'celular'];
 
 /**
  * Mascara um email parcialmente (ex: j***@example.com)
@@ -70,7 +65,11 @@ const sanitizeValue = (key: string, value: unknown): unknown => {
       if (lowerKey.includes('email')) {
         return maskEmail(value);
       }
-      if (lowerKey.includes('phone') || lowerKey.includes('telefone') || lowerKey.includes('celular')) {
+      if (
+        lowerKey.includes('phone') ||
+        lowerKey.includes('telefone') ||
+        lowerKey.includes('celular')
+      ) {
         return maskPhone(value);
       }
     }
@@ -123,10 +122,10 @@ const getTimestamp = (): string => {
  */
 export const logger = {
   /**
-   * Log de informação (apenas em desenvolvimento)
+   * Log de informação (geral)
    */
   info: (message: string, ...args: unknown[]): void => {
-    if (isDev && !isTest) {
+    if (!isTest) {
       console.log(`[${getTimestamp()}] [INFO] ${message}`, ...args.map(arg => sanitizeObject(arg)));
     }
   },
@@ -136,16 +135,22 @@ export const logger = {
    */
   error: (message: string, ...args: unknown[]): void => {
     if (!isTest) {
-      console.error(`[${getTimestamp()}] [ERROR] ${message}`, ...args.map(arg => sanitizeObject(arg)));
+      console.error(
+        `[${getTimestamp()}] [ERROR] ${message}`,
+        ...args.map(arg => sanitizeObject(arg))
+      );
     }
   },
 
   /**
-   * Log de warning (apenas em desenvolvimento)
+   * Log de warning (geral)
    */
   warn: (message: string, ...args: unknown[]): void => {
-    if (isDev && !isTest) {
-      console.warn(`[${getTimestamp()}] [WARN] ${message}`, ...args.map(arg => sanitizeObject(arg)));
+    if (!isTest) {
+      console.warn(
+        `[${getTimestamp()}] [WARN] ${message}`,
+        ...args.map(arg => sanitizeObject(arg))
+      );
     }
   },
 
@@ -154,7 +159,10 @@ export const logger = {
    */
   debug: (message: string, ...args: unknown[]): void => {
     if (isDev && !isTest) {
-      console.log(`[${getTimestamp()}] [DEBUG] ${message}`, ...args.map(arg => sanitizeObject(arg)));
+      console.log(
+        `[${getTimestamp()}] [DEBUG] ${message}`,
+        ...args.map(arg => sanitizeObject(arg))
+      );
     }
   },
 
@@ -194,7 +202,9 @@ export const logger = {
   authSuccess: (userId: number, email?: string): void => {
     if (isDev && !isTest) {
       const maskedEmail = email ? maskEmail(email) : 'unknown';
-      console.log(`[${getTimestamp()}] [AUTH] Login successful - User ID: ${userId}, Email: ${maskedEmail}`);
+      console.log(
+        `[${getTimestamp()}] [AUTH] Login successful - User ID: ${userId}, Email: ${maskedEmail}`
+      );
     }
   },
 
@@ -204,9 +214,11 @@ export const logger = {
   authFailure: (reason: string, email?: string): void => {
     if (!isTest) {
       const maskedEmail = email ? maskEmail(email) : 'unknown';
-      console.log(`[${getTimestamp()}] [AUTH] Login failed - Reason: ${reason}, Email: ${maskedEmail}`);
+      console.log(
+        `[${getTimestamp()}] [AUTH] Login failed - Reason: ${reason}, Email: ${maskedEmail}`
+      );
     }
-  }
+  },
 };
 
 export default logger;

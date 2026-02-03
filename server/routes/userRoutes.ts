@@ -341,10 +341,16 @@ export const userRoutes = (app: Express): void => {
       if (church) {
         users = users.filter(u => u.church === church);
       } else if (requestingUser && !isSuperAdmin(requestingUser)) {
-        // Se não for super admin, filtrar pela igreja do usuário
-        const userChurch = requestingUser.church;
-        if (userChurch) {
-          users = users.filter(u => u.church === userChurch);
+        // Se for pastor, filtrar pelo distrito
+        if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+          logger.debug(`🏛️ Pastor detectado, filtrando por distrito: ${requestingUser.districtId}`);
+          users = users.filter(u => u.districtId === requestingUser.districtId);
+        } else {
+          // Se não for pastor/super admin, filtrar pela igreja do usuário
+          const userChurch = requestingUser.church;
+          if (userChurch) {
+            users = users.filter(u => u.church === userChurch);
+          }
         }
       }
 

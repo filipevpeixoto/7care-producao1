@@ -203,22 +203,22 @@ export default function ElectionResults() {
             <CardDescription>Acompanhe as nomeações em tempo real</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="flex items-center space-x-2">
-                <Users className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">Total de Votantes:</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+              <div className="flex items-center space-x-2 flex-wrap">
+                <Users className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">Total de Votantes:</span>
                 <Badge variant="secondary">{dashboardData.totalVoters}</Badge>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Vote className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium">Votaram:</span>
+              <div className="flex items-center space-x-2 flex-wrap">
+                <Vote className="h-4 w-4 text-green-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">Votaram:</span>
                 <Badge variant="secondary">{dashboardData.votedVoters}</Badge>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium">Progresso:</span>
+              <div className="flex items-center space-x-2 flex-wrap">
+                <Clock className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">Progresso:</span>
                 <Badge variant="secondary">
                   {dashboardData.currentPosition}/{dashboardData.totalPositions}
                 </Badge>

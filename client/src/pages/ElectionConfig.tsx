@@ -1498,13 +1498,13 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
   return (
     <MobileLayout>
-      <div className="p-4 space-y-6">
-        <div className="flex items-center justify-between gap-3">
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Settings className="h-8 w-8 text-blue-600" />
+            <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-bold">Configuração de Nomeações</h1>
+                <h1 className="text-lg sm:text-2xl font-bold">Configuração de Nomeações</h1>
                 {config.title && config.title.trim().length > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {config.title}
@@ -1522,7 +1522,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             variant="default"
             size="sm"
             onClick={handleNewNomination}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nova Nomeação
@@ -1530,18 +1530,20 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         </div>
 
         {/* Indicador de Passos */}
-        <div className="flex items-center justify-center space-x-4 mb-6">
+        <div className="flex items-center justify-center space-x-1 sm:space-x-4 mb-4 sm:mb-6 overflow-x-auto pb-2">
           {[1, 2, 3, 4, 5].map(step => (
-            <div key={step} className="flex items-center">
+            <div key={step} className="flex items-center flex-shrink-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
+                  currentStep >= step
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
                 }`}
               >
                 {step}
               </div>
               <span
-                className={`ml-2 text-sm font-medium ${
+                className={`hidden sm:block ml-2 text-sm font-medium ${
                   currentStep >= step ? 'text-blue-600' : 'text-gray-500'
                 }`}
               >
@@ -1553,7 +1555,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
               </span>
               {step < 5 && (
                 <div
-                  className={`w-8 h-0.5 mx-2 ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`}
+                  className={`w-4 sm:w-8 h-0.5 mx-1 sm:mx-2 ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
                 />
               )}
             </div>
@@ -3025,31 +3027,49 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         </div>
 
         {/* Navegação entre Passos */}
-        <div className="flex justify-between items-center pt-6 border-t">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center pt-4 sm:pt-6 border-t gap-3">
           <Button
             variant="outline"
             onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
             disabled={currentStep === 1}
+            className="order-2 sm:order-1"
           >
             Anterior
           </Button>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 order-1 sm:order-2">
             {currentStep < 5 ? (
               <Button
                 onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
                 disabled={!canProceedToNextStep()}
+                className="w-full sm:w-auto"
               >
                 Próximo
               </Button>
             ) : (
               <>
-                <Button onClick={saveConfig} disabled={saving} variant="outline">
+                <Button
+                  onClick={saveConfig}
+                  disabled={saving}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  {saving ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Salvar Configuração'}
+                  <span className="truncate">
+                    {saving
+                      ? 'Salvando...'
+                      : isEditing
+                        ? 'Salvar Alterações'
+                        : 'Salvar Configuração'}
+                  </span>
                 </Button>
 
-                <Button onClick={startElection} disabled={loading} variant="default">
+                <Button
+                  onClick={startElection}
+                  disabled={loading}
+                  variant="default"
+                  className="w-full sm:w-auto"
+                >
                   <Play className="h-4 w-4 mr-2" />
                   {loading ? 'Iniciando...' : 'Iniciar Nomeação'}
                 </Button>

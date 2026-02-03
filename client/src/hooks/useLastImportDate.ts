@@ -8,7 +8,7 @@ interface ImportSuccessEvent {
 
 export const useLastImportDate = () => {
   const [lastImportDate, setLastImportDate] = useState<string | null>(
-    localStorage.getItem('lastImportDate') || '2025-01-20T14:30:00Z'
+    localStorage.getItem('lastImportDate') || null
   );
 
   useEffect(() => {
@@ -17,11 +17,13 @@ export const useLastImportDate = () => {
         if (event.detail && event.detail.timestamp) {
           const newTimestamp = event.detail.timestamp;
           setLastImportDate(newTimestamp);
-          
+
           // Salvar no localStorage para persistência
           localStorage.setItem('lastImportDate', newTimestamp);
-          
-          console.log(`📅 Data da última importação atualizada: ${newTimestamp} (${event.detail.type})`);
+
+          console.log(
+            `📅 Data da última importação atualizada: ${newTimestamp} (${event.detail.type})`
+          );
         }
       } catch (error) {
         console.error('❌ Erro no handleImportSuccess:', error);
@@ -44,18 +46,18 @@ export const useLastImportDate = () => {
 
   const getDaysSinceLastImport = () => {
     if (!lastImportDate) return null;
-    
+
     const lastImport = new Date(lastImportDate);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - lastImport.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return diffDays;
   };
 
   const getFormattedLastImportDate = () => {
     if (!lastImportDate) return 'Nenhuma importação realizada';
-    
+
     const date = new Date(lastImportDate);
     return `${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR')}`;
   };
@@ -67,4 +69,3 @@ export const useLastImportDate = () => {
     getFormattedLastImportDate,
   };
 };
-

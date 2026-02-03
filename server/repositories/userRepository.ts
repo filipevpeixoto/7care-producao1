@@ -1,296 +1,450 @@
-/**
- * User Repository
- * @module repositories/userRepository
- * @description Repositório para operações de banco de dados relacionadas a usuários.
- * Implementa padrão Repository para abstrair o acesso a dados via Drizzle ORM.
- *
- * @example
- * ```typescript
- * import { userRepository } from '../repositories';
- *
- * // Buscar todos os usuários
- * const users = await userRepository.getAllUsers();
- *
- * // Buscar por email
- * const user = await userRepository.getUserByEmail('user@email.com');
- *
- * // Criar usuário
- * const newUser = await userRepository.createUser({
- *   name: 'João',
- *   email: 'joao@email.com',
- *   password: 'hashedPassword',
- *   role: 'member'
- * });
- * ```
- */
-
-import { eq, sql, or, like, count } from 'drizzle-orm';
-import { db } from '../neonConfig';
-import * as schema from '../schema';
-import type { User, InsertUser, UpdateUser } from '../../shared/schema';
+import { db, sql as neonSql } from '../neonConfig';
+import { schema } from '../schema';
+import { eq, and, or, sql as drizzleSql, asc } from 'drizzle-orm';
+import * as bcrypt from 'bcryptjs';
+import { isSuperAdmin, hasAdminAccess } from '../utils/permissions';
 import { logger } from '../utils/logger';
+import { CreateUserInput, UpdateUserInput } from '../types/storage';
+import { User } from '../../shared/schema';
 
-/**
- * Repositório de usuários
- * @class UserRepository
- * @description Encapsula todas as operações de banco de dados para a entidade User.
- * Utiliza Drizzle ORM com PostgreSQL (Neon).
- */
 export class UserRepository {
+  private toDateString(value: unknown): string {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (value == null) {
+      return '';
+    }
+    return String(value);
+  }
+
+  private normalizeExtraData(value: unknown): Record<string, unknown> | string | null | undefined {
+    if (value == null) {
+      return value as null | undefined;
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'object') {
+      return value as Record<string, unknown>;
+    }
+    return String(value);
+  }
+
+  private toUser(row: Record<string, unknown>): User {
+    return {
+      id: Number(row.id),
+      name: row.name == null ? '' : String(row.name),
+      email: row.email == null ? '' : String(row.email),
+      password: row.password == null ? '' : String(row.password),
+      role: (row.role == null ? 'member' : String(row.role)) as User['role'],
+      church: row.church == null ? null : String(row.church),
+      churchCode: row.churchCode == null ? '' : String(row.churchCode),
+      districtId: row.districtId == null ? null : Number(row.districtId),
+      departments: row.departments == null ? '' : String(row.departments),
+      birthDate: row.birthDate == null ? '' : String(row.birthDate),
+      civilStatus: row.civilStatus == null ? '' : String(row.civilStatus),
+      occupation: row.occupation == null ? '' : String(row.occupation),
+      education: row.education == null ? '' : String(row.education),
+      address: row.address == null ? '' : String(row.address),
+      baptismDate: row.baptismDate == null ? '' : String(row.baptismDate),
+      previousReligion: row.previousReligion == null ? '' : String(row.previousReligion),
+      biblicalInstructor: row.biblicalInstructor == null ? null : String(row.biblicalInstructor),
+      interestedSituation: row.interestedSituation == null ? '' : String(row.interestedSituation),
+      isDonor: Boolean(row.isDonor),
+      isTither: Boolean(row.isTither),
+      isApproved: Boolean(row.isApproved),
+      points: Number(row.points ?? 0),
+      level: row.level == null ? '' : String(row.level),
+      attendance: Number(row.attendance ?? 0),
+      extraData: this.normalizeExtraData(row.extraData),
+      observations: row.observations == null ? '' : String(row.observations),
+      createdAt: this.toDateString(row.createdAt),
+      updatedAt: this.toDateString(row.updatedAt),
+      firstAccess: Boolean(row.firstAccess),
+      status: row.status == null ? undefined : String(row.status),
+      phone: row.phone == null ? undefined : String(row.phone),
+      cpf: row.cpf == null ? undefined : String(row.cpf),
+      profilePhoto: row.profilePhoto == null ? undefined : String(row.profilePhoto),
+      isOffering: row.isOffering == null ? undefined : Boolean(row.isOffering),
+      hasLesson: row.hasLesson == null ? undefined : Boolean(row.hasLesson),
+    };
+  }
+
+  private toPermissionUser(user: {
+    id?: number;
+    role?: string;
+    email?: string;
+    districtId?: number | null;
+    church?: string | null;
+  }): Partial<User> {
+    return {
+      id: user.id,
+      role: user.role as User['role'],
+      email: user.email,
+      districtId: user.districtId ?? undefined,
+      church: user.church ?? undefined,
+    };
+  }
+
   /**
-   * Busca todos os usuários ordenados por nome
-   * @async
-   * @returns {Promise<User[]>} Lista de todos os usuários
-   * @description Retorna lista vazia em caso de erro, logando o problema.
+   * Normaliza um nome para formato de username
+   * Exemplo: "João da Silva" -> "joaodasilva"
    */
+  private normalizeUsername(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
+      .trim();
+  }
+
   async getAllUsers(): Promise<User[]> {
     try {
-      const users = await db.select().from(schema.users).orderBy(schema.users.name);
-      return users.map(this.mapUserRecord);
+      const result = await db.select().from(schema.users).orderBy(asc(schema.users.id));
+      return result.map(user => this.toUser(user));
     } catch (error) {
-      logger.error('Erro ao buscar usuários', error);
+      logger.error('Erro ao buscar usuários:', error);
       return [];
     }
   }
 
-  /**
-   * Busca usuário por ID
-   * @async
-   * @param {number} id - ID do usuário
-   * @returns {Promise<User | null>} Usuário encontrado ou null se não existir
-   */
-  async getUserById(id: number): Promise<User | null> {
+  async getVisitedUsers(): Promise<User[]> {
     try {
-      const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id)).limit(1);
-      return user ? this.mapUserRecord(user) : null;
-    } catch (error) {
-      logger.error('Erro ao buscar usuário por ID', error);
-      return null;
-    }
-  }
-
-  /**
-   * Busca usuário por email (case-insensitive)
-   * @async
-   * @param {string} email - Email do usuário
-   * @returns {Promise<User | null>} Usuário encontrado ou null se não existir
-   * @description Busca é case-insensitive para evitar duplicatas com diferentes cases.
-   */
-  async getUserByEmail(email: string): Promise<User | null> {
-    try {
-      const [user] = await db
+      const result = await db
         .select()
         .from(schema.users)
-        .where(eq(sql`LOWER(${schema.users.email})`, email.toLowerCase()))
-        .limit(1);
-      return user ? this.mapUserRecord(user) : null;
+        .where(
+          and(
+            or(eq(schema.users.role, 'member'), eq(schema.users.role, 'missionary')),
+            drizzleSql`extra_data->>'visited' = 'true'`
+          )
+        )
+        .orderBy(schema.users.id);
+      return result.map(user => this.toUser(user));
     } catch (error) {
-      logger.error('Erro ao buscar usuário por email', error);
+      logger.error('Erro ao buscar usuários visitados:', error);
+      return [];
+    }
+  }
+
+  async getUserById(id: number): Promise<User | null> {
+    try {
+      const result = await db.select().from(schema.users).where(eq(schema.users.id, id)).limit(1);
+      const row = result[0] || null;
+      return row ? this.toUser(row) : null;
+    } catch (error) {
+      logger.error('Erro ao buscar usuário por ID:', error);
+      return null;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email))
+        .limit(1);
+      const row = result[0] || null;
+      return row ? this.toUser(row) : null;
+    } catch (error) {
+      logger.error('Erro ao buscar usuário por email:', error);
       return null;
     }
   }
 
   /**
-   * Cria novo usuário no banco de dados
-   * @async
-   * @param {InsertUser} userData - Dados do novo usuário
-   * @returns {Promise<User>} Usuário criado com ID gerado
-   * @throws {Error} Se ocorrer erro na inserção (ex: email duplicado)
-   * @description Define valores padrão para campos opcionais não fornecidos.
+   * Busca usuário por username normalizado (O(1) com índice)
+   * Usado para login por username gerado do nome
    */
-  async createUser(userData: InsertUser): Promise<User> {
+  async getUserByNormalizedUsername(username: string): Promise<User | null> {
     try {
-      // Construir dados de inserção tipados
-      const insertData: Record<string, unknown> = {
-        name: userData.name,
-        email: userData.email,
-        password: userData.password ?? 'temp123',
-        role: userData.role ?? 'member',
-        church: userData.church ?? null,
-        churchCode: userData.churchCode ?? null,
-        districtId: userData.districtId ?? null,
-        points: userData.points ?? 0,
+      // Normalizar o input da mesma forma que foi salvo
+      const normalized = this.normalizeUsername(username);
+
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.usernameNormalized, normalized))
+        .limit(1);
+
+      const row = result[0] || null;
+      return row ? this.toUser(row) : null;
+    } catch (error) {
+      logger.error('Erro ao buscar usuário por username normalizado:', error);
+      return null;
+    }
+  }
+
+  async createUser(userData: CreateUserInput): Promise<User> {
+    try {
+      // Hash da senha - garantir que sempre tenha uma senha
+      const password = userData.password || 'temp123';
+      let hashedPassword = password;
+      if (!password.startsWith('$2')) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      }
+
+      // Gerar username normalizado para busca eficiente no login
+      const usernameNormalized = this.normalizeUsername(userData.name);
+
+      const newUser = {
+        ...userData,
+        password: hashedPassword,
+        usernameNormalized,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      const [user] = await db
+      const result = await db
         .insert(schema.users)
-        .values(insertData as any)
+        .values(newUser as typeof schema.users.$inferInsert)
         .returning();
-      return this.mapUserRecord(user);
+      return this.toUser(result[0]);
     } catch (error) {
-      logger.error('Erro ao criar usuário', error);
+      logger.error('Erro ao criar usuário:', error);
       throw error;
     }
   }
 
-  /**
-   * Atualiza dados de um usuário existente
-   * @async
-   * @param {number} id - ID do usuário a atualizar
-   * @param {UpdateUser} userData - Campos a atualizar (parcial)
-   * @returns {Promise<User | null>} Usuário atualizado ou null se não encontrado
-   * @description Atualiza automaticamente o campo updatedAt. Ignora campos createdAt.
-   */
-  async updateUser(id: number, userData: UpdateUser): Promise<User | null> {
+  async updateUser(id: number, updates: UpdateUserInput): Promise<User | null> {
     try {
-      // Extrair apenas campos válidos para update, excluindo id e createdAt
-      const { createdAt: _createdAt, ...updateData } = userData as Record<string, unknown>;
-      const [user] = await db
+      // Hash da senha se fornecida
+      if (updates.password && !updates.password.startsWith('$2')) {
+        updates.password = await bcrypt.hash(updates.password, 10);
+      }
+
+      // Converter level para string se for número
+      const dbUpdates: Record<string, unknown> = { ...updates, updatedAt: new Date() };
+
+      // Atualizar username normalizado se o nome foi alterado
+      if (updates.name) {
+        dbUpdates.usernameNormalized = this.normalizeUsername(updates.name);
+      }
+      if (typeof dbUpdates.level === 'number') {
+        dbUpdates.level = String(dbUpdates.level);
+      }
+
+      const result = await db
         .update(schema.users)
-        .set({
-          ...updateData,
-          updatedAt: new Date(),
-        } as Record<string, unknown>)
+        .set(dbUpdates as typeof schema.users.$inferInsert)
         .where(eq(schema.users.id, id))
         .returning();
-      return user ? this.mapUserRecord(user) : null;
+
+      return result[0] ? this.toUser(result[0]) : null;
     } catch (error) {
       logger.error('Erro ao atualizar usuário', error);
       return null;
     }
   }
 
-  /**
-   * Deleta usuário
-   */
+  async updateUserDirectly(id: number, updates: UpdateUserInput): Promise<User | null> {
+    try {
+      logger.debug(`Atualizando usuário ${id} diretamente`, { updates });
+
+      // Hash da senha se fornecida
+      if (updates.password && !updates.password.startsWith('$2')) {
+        updates.password = await bcrypt.hash(updates.password, 10);
+      }
+
+      const updatedAt = new Date();
+
+      // Usar consulta SQL direta para garantir que funcione
+      const extraDataString =
+        typeof updates.extraData === 'object'
+          ? JSON.stringify(updates.extraData)
+          : updates.extraData;
+
+      const result = await neonSql`
+        UPDATE users 
+        SET extra_data = ${extraDataString}::jsonb, updated_at = ${updatedAt}
+        WHERE id = ${id}
+        RETURNING id, name, extra_data, updated_at
+      `;
+
+      logger.debug(`Usuário ${id} atualizado diretamente`, { extraData: result[0]?.extra_data });
+      return await this.getUserById(id);
+    } catch (error) {
+      logger.error('Erro ao atualizar usuário diretamente', error);
+      return null;
+    }
+  }
+
   async deleteUser(id: number): Promise<boolean> {
     try {
-      const result = await db.delete(schema.users).where(eq(schema.users.id, id));
-      return (result.rowCount ?? 0) > 0;
+      // Verificar se é super administrador
+      const user = await this.getUserById(id);
+      if (user && isSuperAdmin(this.toPermissionUser(user))) {
+        throw new Error('Não é possível excluir o Super Administrador do sistema');
+      }
+
+      // Verificar se é administrador (pastor ou superadmin)
+      if (user && hasAdminAccess(this.toPermissionUser(user))) {
+        throw new Error('Não é possível excluir usuários administradores do sistema');
+      }
+
+      await db.delete(schema.users).where(eq(schema.users.id, id));
+      return true;
     } catch (error) {
       logger.error('Erro ao deletar usuário', error);
+      throw error;
+    }
+  }
+
+  async getUserDetailedData(userId: number): Promise<User | null> {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) return null;
+
+      // Extrair dados do extraData se existir
+      let extraData: Record<string, unknown> = {};
+      if (user.extraData) {
+        if (typeof user.extraData === 'string') {
+          try {
+            extraData = JSON.parse(user.extraData);
+          } catch (e) {
+            logger.warn('Erro ao fazer parse do extraData:', e);
+            extraData = {};
+          }
+        } else if (typeof user.extraData === 'object') {
+          extraData = user.extraData;
+        }
+      }
+
+      return {
+        ...user,
+        extraData,
+      };
+    } catch (error) {
+      logger.error('Erro ao buscar dados detalhados do usuário:', error);
+      return null;
+    }
+  }
+
+  async updateUserChurch(userId: number, churchName: string): Promise<boolean> {
+    try {
+      await db.update(schema.users).set({ church: churchName }).where(eq(schema.users.id, userId));
+      return true;
+    } catch (error) {
+      logger.error('Erro ao atualizar igreja do usuário:', error);
       return false;
     }
   }
 
-  /**
-   * Conta total de usuários
-   */
+  async approveUser(id: number): Promise<User | null> {
+    try {
+      const [user] = await db
+        .update(schema.users)
+        .set({ status: 'approved' })
+        .where(eq(schema.users.id, id))
+        .returning();
+      return user ? this.toUser(user) : null;
+    } catch (error) {
+      logger.error('Erro ao aprovar usuário:', error);
+      return null;
+    }
+  }
+
+  async rejectUser(id: number): Promise<User | null> {
+    try {
+      const [user] = await db
+        .update(schema.users)
+        .set({ status: 'rejected' })
+        .where(eq(schema.users.id, id))
+        .returning();
+      return user ? this.toUser(user) : null;
+    } catch (error) {
+      logger.error('Erro ao rejeitar usuário:', error);
+      return null;
+    }
+  }
+
   async countUsers(): Promise<number> {
     try {
-      const [result] = await db.select({ count: count() }).from(schema.users);
-      return result?.count || 0;
+      const result = await db.select({ count: drizzleSql<number>`count(*)` }).from(schema.users);
+      return Number(result[0]?.count ?? 0);
     } catch (error) {
-      logger.error('Erro ao contar usuários', error);
+      logger.error('Erro ao contar usuários:', error);
       return 0;
     }
   }
 
-  /**
-   * Busca usuários por igreja
-   */
-  async getUsersByChurch(church: string): Promise<User[]> {
-    try {
-      const users = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.church, church))
-        .orderBy(schema.users.name);
-      return users.map(this.mapUserRecord);
-    } catch (error) {
-      logger.error('Erro ao buscar usuários por igreja', error);
-      return [];
-    }
-  }
-
-  /**
-   * Busca usuários por distrito
-   */
-  async getUsersByDistrict(districtId: number): Promise<User[]> {
-    try {
-      const users = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.districtId, districtId))
-        .orderBy(schema.users.name);
-      return users.map(this.mapUserRecord);
-    } catch (error) {
-      logger.error('Erro ao buscar usuários por distrito', error);
-      return [];
-    }
-  }
-
-  /**
-   * Busca usuários por role
-   */
   async getUsersByRole(role: string): Promise<User[]> {
     try {
       const users = await db
         .select()
         .from(schema.users)
         .where(eq(schema.users.role, role))
-        .orderBy(schema.users.name);
-      return users.map(this.mapUserRecord);
+        .orderBy(asc(schema.users.name));
+      return users.map(u => this.toUser(u));
     } catch (error) {
-      logger.error('Erro ao buscar usuários por role', error);
+      logger.error('Erro ao buscar usuários por role:', error);
       return [];
     }
   }
 
-  /**
-   * Busca usuários com filtros
-   */
-  async searchUsers(query: string, limit: number = 50): Promise<User[]> {
+  async getUsersByChurch(church: string): Promise<User[]> {
     try {
-      const searchTerm = `%${query.toLowerCase()}%`;
+      const users = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.church, church))
+        .orderBy(asc(schema.users.name));
+      return users.map(u => this.toUser(u));
+    } catch (error) {
+      logger.error('Erro ao buscar usuários por igreja:', error);
+      return [];
+    }
+  }
+
+  async getUsersByDistrict(districtId: number): Promise<User[]> {
+    try {
+      const users = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.districtId, districtId))
+        .orderBy(asc(schema.users.name));
+      return users.map(u => this.toUser(u));
+    } catch (error) {
+      logger.error('Erro ao buscar usuários por distrito:', error);
+      return [];
+    }
+  }
+
+  async searchUsers(term: string, limit = 50): Promise<User[]> {
+    try {
       const users = await db
         .select()
         .from(schema.users)
         .where(
           or(
-            like(sql`LOWER(${schema.users.name})`, searchTerm),
-            like(sql`LOWER(${schema.users.email})`, searchTerm)
+            drizzleSql`LOWER(${schema.users.name}) LIKE LOWER(${`%${term}%`})`,
+            drizzleSql`LOWER(${schema.users.email}) LIKE LOWER(${`%${term}%`})`
           )
         )
-        .orderBy(schema.users.name)
+        .orderBy(asc(schema.users.name))
         .limit(limit);
-      return users.map(this.mapUserRecord);
+      return users.map(u => this.toUser(u));
     } catch (error) {
-      logger.error('Erro ao buscar usuários', error);
+      logger.error('Erro ao buscar usuários:', error);
       return [];
     }
   }
 
-  /**
-   * Atualiza pontos do usuário
-   */
-  async updateUserPoints(id: number, points: number): Promise<User | null> {
-    return this.updateUser(id, { points });
-  }
-
-  /**
-   * Mapeia registro do banco para tipo User
-   */
-  private mapUserRecord(record: Record<string, unknown>): User {
-    return {
-      id: record.id as number,
-      name: record.name as string,
-      email: record.email as string,
-      password: record.password as string | undefined,
-      role: record.role as User['role'],
-      church: record.church as string | null | undefined,
-      districtId: record.districtId as number | null | undefined,
-      points: (record.points as number) || 0,
-      calculatedPoints: (record.calculatedPoints as number) || 0,
-      level: record.level as string | number | undefined,
-      avatarUrl: record.avatarUrl as string | null | undefined,
-      firstAccess: record.firstAccess as boolean | undefined,
-      lastAccess: record.lastAccess as string | undefined,
-      createdAt:
-        record.createdAt instanceof Date
-          ? record.createdAt.toISOString()
-          : (record.createdAt as string | undefined),
-      updatedAt:
-        record.updatedAt instanceof Date
-          ? record.updatedAt.toISOString()
-          : (record.updatedAt as string | undefined),
-      engajamento: record.engajamento as string | undefined,
-      classificacao: record.classificacao as string | undefined,
-      dizimistaType: record.dizimistaType as string | undefined,
-      extraData: record.extraData as Record<string, unknown> | undefined,
-    };
+  async updateUserPoints(userId: number, points: number): Promise<User | null> {
+    try {
+      const [user] = await db
+        .update(schema.users)
+        .set({ points })
+        .where(eq(schema.users.id, userId))
+        .returning();
+      return user ? this.toUser(user) : null;
+    } catch (error) {
+      logger.error('Erro ao atualizar pontos do usuário:', error);
+      return null;
+    }
   }
 }
 

@@ -90,7 +90,7 @@ export function useOnboardingWizard(token: string) {
   // Ir para próximo passo
   const nextStep = useCallback(() => {
     setState(prev => {
-      const newStep = Math.min(prev.currentStep + 1, 7);
+      const newStep = Math.min(prev.currentStep + 1, 8);
 
       // Salvar no localStorage
       setTimeout(() => {
@@ -123,13 +123,24 @@ export function useOnboardingWizard(token: string) {
   const goToStep = useCallback((step: number) => {
     setState(prev => ({
       ...prev,
-      currentStep: Math.max(1, Math.min(step, 7)),
+      currentStep: Math.max(1, Math.min(step, 8)),
     }));
   }, []);
 
   // Submeter tudo no final
   const submit = useCallback(
-    async (password: string) => {
+    async (
+      password: string
+    ): Promise<{
+      success: boolean;
+      result?: {
+        userId?: number;
+        districtId?: number;
+        churchesCreated?: number;
+        membersImported?: number;
+      };
+      error?: string;
+    }> => {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
@@ -142,7 +153,8 @@ export function useOnboardingWizard(token: string) {
           district: state.data.district,
           excelData: state.data.excelData,
           churchValidation: state.data.churchValidation,
-          dracmaConfig: state.data.dracmaConfig, // Adicionar configuração do Dracma
+          // dracmaConfig: state.data.dracmaConfig, // Dracma desabilitado temporariamente
+          gamificationConfig: state.data.gamificationConfig, // Adicionar configuração de Gamificação
         };
 
         const response = await fetch(`/api/invites/onboarding/${token}`, {
@@ -158,11 +170,21 @@ export function useOnboardingWizard(token: string) {
           throw new Error(error.error || 'Erro ao enviar cadastro');
         }
 
+        const data = await response.json();
+
         // Limpar rascunho após sucesso
         localStorage.removeItem(`${STORAGE_KEY}_${token}`);
 
         setState(prev => ({ ...prev, isLoading: false }));
-        return true;
+        return {
+          success: true,
+          result: {
+            userId: data.userId,
+            districtId: data.districtId,
+            churchesCreated: data.churchesCreated,
+            membersImported: data.membersImported,
+          },
+        };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
         setState(prev => ({
@@ -170,7 +192,7 @@ export function useOnboardingWizard(token: string) {
           error: errorMessage,
           isLoading: false,
         }));
-        return false;
+        return { success: false, error: errorMessage };
       }
     },
     [token, state.data]

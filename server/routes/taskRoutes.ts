@@ -7,7 +7,9 @@
 
 import { Express, Request, Response } from 'express';
 import { logger } from '../utils/logger';
-import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
+import { asyncHandler, sendSuccess, sendNotFound } from '../utils';
+import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
+import { createTaskSchema, updateTaskSchema, idParamSchema } from '../schemas';
 
 // Interface para tarefa
 interface Task {
@@ -61,12 +63,17 @@ export function taskRoutes(app: Express): void {
    */
   app.post(
     '/api/tasks',
+    validateBody(createTaskSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const { title, description, priority, due_date, assigned_to, church, tags } = req.body;
-
-      if (!title) {
-        return sendError(res, 'Título é obrigatório', 400);
-      }
+      const validatedReq = req as ValidatedRequest<typeof createTaskSchema._type>;
+      const {
+        title,
+        description,
+        priority,
+        dueDate,
+        assignedToId,
+        relatedUserId: _relatedUserId,
+      } = validatedReq.validatedBody;
 
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
 
@@ -76,13 +83,13 @@ export function taskRoutes(app: Express): void {
         description: description || '',
         status: 'pending',
         priority: priority || 'medium',
-        due_date,
+        due_date: dueDate || undefined,
         created_by: userId,
-        assigned_to: assigned_to ? parseInt(assigned_to) : undefined,
-        church: church || '',
+        assigned_to: assignedToId || undefined,
+        church: '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        tags: tags || [],
+        tags: [],
       };
 
       tasksCache.push(newTask);
@@ -99,8 +106,11 @@ export function taskRoutes(app: Express): void {
    */
   app.put(
     '/api/tasks/:id',
+    validateParams(idParamSchema),
+    validateBody(updateTaskSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const taskId = parseInt(req.params.id);
+      const validatedReq = req as ValidatedRequest<typeof idParamSchema._type>;
+      const taskId = validatedReq.validatedParams.id;
       const taskIndex = tasksCache.findIndex(t => t.id === taskId);
 
       if (taskIndex === -1) {
@@ -127,8 +137,10 @@ export function taskRoutes(app: Express): void {
    */
   app.delete(
     '/api/tasks/:id',
+    validateParams(idParamSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const taskId = parseInt(req.params.id);
+      const validatedReq = req as ValidatedRequest<typeof idParamSchema._type>;
+      const taskId = validatedReq.validatedParams.id;
       const taskIndex = tasksCache.findIndex(t => t.id === taskId);
 
       if (taskIndex === -1) {

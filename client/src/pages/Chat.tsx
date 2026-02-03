@@ -139,10 +139,12 @@ export default function Chat() {
 
   return (
     <MobileLayout>
-      <div className="p-4 h-[calc(100vh-120px)] overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-          {/* Sidebar */}
-          <div className="md:col-span-1 h-full overflow-hidden">
+      <div className="p-2 sm:p-4 h-[calc(100vh-120px)] overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 h-full">
+          {/* Sidebar - Hidden on mobile when conversation is selected */}
+          <div
+            className={`md:col-span-1 h-full overflow-hidden ${selectedConversation ? 'hidden md:block' : 'block'}`}
+          >
             <ChatSidebar
               mode={isAdmin ? 'users' : 'conversations'}
               currentUserId={user?.id as any}
@@ -153,22 +155,49 @@ export default function Chat() {
             />
           </div>
 
-          {/* Chat Interface */}
-          <div className="md:col-span-2 h-full min-h-0">
+          {/* Chat Interface - Show back button on mobile */}
+          <div
+            className={`md:col-span-2 h-full min-h-0 ${!selectedConversation && !showNewChat ? 'hidden md:block' : 'block'}`}
+          >
             {selectedConversation ? (
-              <ChatInterface
-                chatUser={getChatUser(selectedConversation)}
-                conversationId={selectedConversation.id}
-                isGroup={selectedConversation.type === 'group'}
-                groupName={
-                  selectedConversation.type === 'group' ? selectedConversation.name : undefined
-                }
-                groupMembers={
-                  selectedConversation.type === 'group'
-                    ? selectedConversation.participants
-                    : undefined
-                }
-              />
+              <div className="h-full flex flex-col">
+                {/* Mobile back button */}
+                <button
+                  onClick={() => setSelectedConversation(null)}
+                  className="md:hidden flex items-center gap-2 p-2 text-sm text-muted-foreground hover:text-foreground mb-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  Voltar
+                </button>
+                <div className="flex-1 min-h-0">
+                  <ChatInterface
+                    chatUser={getChatUser(selectedConversation)}
+                    conversationId={selectedConversation.id}
+                    isGroup={selectedConversation.type === 'group'}
+                    groupName={
+                      selectedConversation.type === 'group' ? selectedConversation.name : undefined
+                    }
+                    groupMembers={
+                      selectedConversation.type === 'group'
+                        ? selectedConversation.participants
+                        : undefined
+                    }
+                  />
+                </div>
+              </div>
             ) : showNewChat ? (
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">

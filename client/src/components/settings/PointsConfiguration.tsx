@@ -29,6 +29,24 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
+// Helper para obter headers de autenticação
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('7care_token');
+  let userId = '';
+  try {
+    const auth = localStorage.getItem('7care_auth');
+    if (auth) {
+      const user = JSON.parse(auth);
+      userId = user?.id?.toString() || '';
+    }
+  } catch {}
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(userId ? { 'x-user-id': userId } : {}),
+  };
+}
+
 interface PointsConfig {
   engajamento: {
     baixo: number;
@@ -542,7 +560,7 @@ export const PointsConfiguration = () => {
 
       const response = await fetch(saveUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(districtId ? { config: configCompleta } : configCompleta),
       });
 
@@ -567,6 +585,7 @@ export const PointsConfiguration = () => {
       try {
         const recalcResponse = await fetch('/api/users/recalculate-all-points', {
           method: 'POST',
+          headers: getAuthHeaders(),
         });
 
         if (recalcResponse.ok) {
@@ -614,6 +633,7 @@ export const PointsConfiguration = () => {
     try {
       const response = await fetch('/api/users/recalculate-all-points', {
         method: 'POST',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {

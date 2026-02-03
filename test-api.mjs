@@ -7,7 +7,7 @@ console.log('🧪 Testando API de Recibos\n');
 const [config] = await sql`SELECT value FROM automation_config WHERE key = 'n8n_api_key'`;
 const apiKey = config.value;
 
-console.log('✅ API Key encontrada:', apiKey.substring(0, 20) + '...\n');
+console.log('✅ API Key encontrada:', `${apiKey.substring(0, 20)  }...\n`);
 
 // Buscar um usuário existente para testar
 let users = await sql`SELECT id, name, phone FROM users WHERE phone IS NOT NULL LIMIT 1`;

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { registerRoutes } from './routes/index';
 import { serveStatic, log } from './static';
+import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger/config';
 import { apiLimiter } from './middleware/rateLimiter';
@@ -193,31 +194,31 @@ app.get('/api/health', async (_req: Request, res: Response) => {
       host: '0.0.0.0',
     },
     () => {
-      console.log(`🚀 Church Plus Manager rodando em http://localhost:${port}`);
-      console.log(`📊 Dashboard: http://localhost:${port}/dashboard`);
+      logger.info(`🚀 Church Plus Manager rodando em http://localhost:${port}`);
+      logger.info(`📊 Dashboard: http://localhost:${port}/dashboard`);
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`📚 API Docs: http://localhost:${port}/api-docs`);
+        logger.info(`📚 API Docs: http://localhost:${port}/api-docs`);
         // Credenciais apenas em desenvolvimento e via variáveis de ambiente
         if (process.env.ADMIN_EMAIL) {
-          console.log(`🔐 Login Admin: ${process.env.ADMIN_EMAIL}`);
+          logger.info(`🔐 Login Admin: ${process.env.ADMIN_EMAIL}`);
         }
       }
-      console.log(`✅ Servidor iniciado com sucesso!`);
+      logger.info(`✅ Servidor iniciado com sucesso!`);
 
       // Iniciar background job de submissão ao Dracma (a cada 5 minutos)
-      console.log('🔄 Iniciando job de submissão ao Dracma...');
+      logger.info('🔄 Iniciando job de submissão ao Dracma...');
       setInterval(
         async () => {
           try {
             await processDracmaSubmissions();
           } catch (error) {
-            console.error('❌ Erro no job de submissão ao Dracma:', error);
+            logger.error('❌ Erro no job de submissão ao Dracma:', error);
           }
         },
         5 * 60 * 1000
       ); // 5 minutos
 
-      console.log('✅ Job de submissão ao Dracma agendado (a cada 5 minutos)');
+      logger.info('✅ Job de submissão ao Dracma agendado (a cada 5 minutos)');
     }
   );
 })();

@@ -1954,8 +1954,8 @@ export const electionRoutes = (app: Express) => {
         FROM elections e
         JOIN election_configs ec ON e.config_id = ec.id
         WHERE e.status = 'active'
-        AND ${voterId} = ANY(ec.voters)
-        AND (ec.church_name = ${userChurch} OR ${userChurch} IS NULL OR ${userChurch} = '')
+        AND ${voterId}::integer = ANY(ec.voters)
+        AND (ec.church_name = ${userChurch}::text OR ${userChurch}::text IS NULL OR ${userChurch}::text = '')
         ORDER BY e.created_at DESC
       `;
 

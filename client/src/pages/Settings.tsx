@@ -970,6 +970,8 @@ export default function Settings() {
   const handleImportComplete = () => {
     // Invalidar cache e recarregar eventos após importação
     queryClient.invalidateQueries({ queryKey: ['events'] });
+    // Atualizar data da última importação
+    updateLastImportDate(new Date().toISOString());
     toast({
       title: 'Agenda atualizada',
       description: 'Os eventos foram importados e a agenda foi atualizada.',
@@ -1533,6 +1535,9 @@ export default function Settings() {
       // Complete the import
       setImportProgress(100);
       setImportStep('complete');
+
+      // Atualizar data da última importação
+      updateLastImportDate(new Date().toISOString());
 
       // Show the server's message which includes duplicate handling
       toast({

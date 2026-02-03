@@ -5,6 +5,8 @@ import { hasAdminAccess, isSuperAdmin, isPastor, canManagePastors } from '../uti
 import { logger } from '../utils/logger';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
+import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
+import { createDistrictSchema, updateDistrictSchema, idParamSchema } from '../schemas';
 
 export const districtRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -169,104 +171,116 @@ export const districtRoutes = (app: Express): void => {
   );
 
   // Criar distrito (apenas superadmin)
-  app.post('/api/districts', async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+  app.post(
+    '/api/districts',
+    validateBody(createDistrictSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const user = userId ? await storage.getUserById(userId) : null;
 
-      if (!isSuperAdmin(user)) {
-        return res.status(403).json({ error: 'Apenas superadmin pode criar distritos' });
-      }
-
-      const { name, code, pastorId, description } = req.body;
-
-      if (!name || !code) {
-        return res.status(400).json({ error: 'Nome e código são obrigatórios' });
-      }
-
-      // Verificar se código já existe
-      const existing = await sql`
-        SELECT id FROM districts WHERE code = ${code}
-      `;
-      if (existing.length > 0) {
-        return res.status(400).json({ error: 'Código já existe' });
-      }
-
-      // Se pastorId foi fornecido, verificar se é um pastor válido
-      if (pastorId) {
-        const pastor = await storage.getUserById(pastorId);
-        if (!pastor || pastor.role !== 'pastor') {
-          return res.status(400).json({ error: 'Usuário não é um pastor válido' });
+        if (!isSuperAdmin(user)) {
+          return res.status(403).json({ error: 'Apenas superadmin pode criar distritos' });
         }
-      }
 
-      const newDistrict = await sql`
-        INSERT INTO districts (name, code, pastor_id, description, created_at, updated_at)
-        VALUES (${name}, ${code}, ${pastorId || null}, ${description || null}, NOW(), NOW())
-        RETURNING *
-      `;
+        const { name, code, pastorId } = (
+          req as ValidatedRequest<typeof createDistrictSchema._type>
+        ).validatedBody;
+        const description = req.body.description;
 
-      // Se pastorId foi fornecido, atualizar o usuário pastor
-      if (pastorId && newDistrict[0]) {
-        await sql`
-          UPDATE users
-          SET district_id = ${newDistrict[0].id}
-          WHERE id = ${pastorId}
+        // Verificar se código já existe
+        if (code) {
+          const existing = await sql`
+          SELECT id FROM districts WHERE code = ${code}
         `;
-      }
-
-      return res.status(201).json(newDistrict[0]);
-    } catch (error) {
-      logger.error('Erro ao criar distrito:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-
-  // Atualizar distrito (apenas superadmin)
-  app.put('/api/districts/:id', async (req: Request, res: Response) => {
-    try {
-      const districtId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
-
-      if (!isSuperAdmin(user)) {
-        return res.status(403).json({ error: 'Apenas superadmin pode atualizar distritos' });
-      }
-
-      const { name, code, pastorId, description } = req.body;
-
-      // Verificar se distrito existe
-      const existing = await sql`
-        SELECT * FROM districts WHERE id = ${districtId}
-      `;
-      if (existing.length === 0) {
-        return res.status(404).json({ error: 'Distrito não encontrado' });
-      }
-
-      // Se código foi alterado, verificar se já existe
-      if (code && code !== existing[0].code) {
-        const codeExists = await sql`
-          SELECT id FROM districts WHERE code = ${code} AND id != ${districtId}
-        `;
-        if (codeExists.length > 0) {
-          return res.status(400).json({ error: 'Código já existe' });
+          if (existing.length > 0) {
+            return res.status(400).json({ error: 'Código já existe' });
+          }
         }
-      }
 
-      // Se pastorId foi fornecido, verificar se é um pastor válido
-      if (pastorId !== undefined) {
+        // Se pastorId foi fornecido, verificar se é um pastor válido
         if (pastorId) {
           const pastor = await storage.getUserById(pastorId);
           if (!pastor || pastor.role !== 'pastor') {
             return res.status(400).json({ error: 'Usuário não é um pastor válido' });
           }
         }
+
+        const newDistrict = await sql`
+        INSERT INTO districts (name, code, pastor_id, description, created_at, updated_at)
+        VALUES (${name}, ${code || null}, ${pastorId || null}, ${description || null}, NOW(), NOW())
+        RETURNING *
+      `;
+
+        // Se pastorId foi fornecido, atualizar o usuário pastor
+        if (pastorId && newDistrict[0]) {
+          await sql`
+          UPDATE users
+          SET district_id = ${newDistrict[0].id}
+          WHERE id = ${pastorId}
+        `;
+        }
+
+        return res.status(201).json(newDistrict[0]);
+      } catch (error) {
+        logger.error('Erro ao criar distrito:', error);
+        return res.status(500).json({ error: 'Internal server error' });
       }
+    }
+  );
 
-      const currentPastorId = existing[0].pastor_id;
-      const newPastorId = pastorId !== undefined ? pastorId || null : currentPastorId;
+  // Atualizar distrito (apenas superadmin)
+  app.put(
+    '/api/districts/:id',
+    validateParams(idParamSchema),
+    validateBody(updateDistrictSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const districtId = (req as ValidatedRequest<typeof idParamSchema._type>).validatedParams.id;
+        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const user = userId ? await storage.getUserById(userId) : null;
 
-      const updated = await sql`
+        if (!isSuperAdmin(user)) {
+          return res.status(403).json({ error: 'Apenas superadmin pode atualizar distritos' });
+        }
+
+        const { name, code, pastorId } = (
+          req as ValidatedRequest<typeof updateDistrictSchema._type>
+        ).validatedBody;
+        const description = req.body.description;
+
+        // Verificar se distrito existe
+        const existing = await sql`
+        SELECT * FROM districts WHERE id = ${districtId}
+      `;
+        if (existing.length === 0) {
+          return res.status(404).json({ error: 'Distrito não encontrado' });
+        }
+
+        // Se código foi alterado, verificar se já existe
+        if (code && code !== existing[0].code) {
+          const codeExists = await sql`
+          SELECT id FROM districts WHERE code = ${code} AND id != ${districtId}
+        `;
+          if (codeExists.length > 0) {
+            return res.status(400).json({ error: 'Código já existe' });
+          }
+        }
+
+        // Se pastorId foi fornecido, verificar se é um pastor válido
+        if (pastorId !== undefined) {
+          if (pastorId) {
+            const pastor = await storage.getUserById(pastorId);
+            if (!pastor || pastor.role !== 'pastor') {
+              return res.status(400).json({ error: 'Usuário não é um pastor válido' });
+            }
+          }
+        }
+
+        const currentPastorId = existing[0].pastor_id;
+        const newPastorId = pastorId !== undefined ? pastorId || null : currentPastorId;
+
+        const updated = await sql`
         UPDATE districts
         SET 
           name = COALESCE(${name}, name),
@@ -278,32 +292,33 @@ export const districtRoutes = (app: Express): void => {
         RETURNING *
       `;
 
-      // Atualizar districtId do pastor se necessário
-      if (pastorId !== undefined) {
-        // Remover associação do pastor anterior
-        if (existing[0].pastor_id) {
-          await sql`
+        // Atualizar districtId do pastor se necessário
+        if (pastorId !== undefined) {
+          // Remover associação do pastor anterior
+          if (existing[0].pastor_id) {
+            await sql`
             UPDATE users
             SET district_id = NULL
             WHERE id = ${existing[0].pastor_id}
           `;
-        }
-        // Associar novo pastor
-        if (pastorId) {
-          await sql`
+          }
+          // Associar novo pastor
+          if (pastorId) {
+            await sql`
             UPDATE users
             SET district_id = ${districtId}
             WHERE id = ${pastorId}
           `;
+          }
         }
-      }
 
-      return res.json(updated[0]);
-    } catch (error) {
-      logger.error('Erro ao atualizar distrito:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+        return res.json(updated[0]);
+      } catch (error) {
+        logger.error('Erro ao atualizar distrito:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
     }
-  });
+  );
 
   // Deletar distrito (apenas superadmin)
   app.delete('/api/districts/:id', async (req: Request, res: Response) => {

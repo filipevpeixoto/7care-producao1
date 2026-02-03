@@ -563,6 +563,53 @@
             transform: scaleX(1);
         }
 
+        /* Benefit Card Destacado - Modo Offline */
+        .benefit-card--featured {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid rgba(251, 146, 60, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .benefit-card--featured::before {
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            transform: scaleX(1);
+            height: 4px;
+        }
+
+        .benefit-card--featured::after {
+            content: 'NOVO';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            color: white;
+            font-size: 0.625rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: var(--radius-full);
+            letter-spacing: 0.05em;
+            animation: pulse 2s infinite;
+        }
+
+        .benefit-card--featured .benefit-card__title {
+            color: #fb923c;
+        }
+
+        .benefit-card--featured .benefit-card__description {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .benefit-card--featured .benefit-card__icon {
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         .benefit-card__icon {
             width: 56px;
             height: 56px;
@@ -1238,6 +1285,14 @@
                     </p>
                 </header>
                 <div class="benefits__grid">
+                    <article class="benefit-card benefit-card--featured reveal">
+                        <div class="benefit-card__icon">📴</div>
+                        <h3 class="benefit-card__title">Modo Offline Completo</h3>
+                        <p class="benefit-card__description">
+                            Trabalhe sem internet em visitas pastorais! Registre orações, reuniões, 
+                            discipulados e mais. Tudo sincroniza automaticamente quando voltar online.
+                        </p>
+                    </article>
                     <article class="benefit-card reveal">
                         <div class="benefit-card__icon">🏛️</div>
                         <h3 class="benefit-card__title">Gestão de Distrito</h3>
@@ -1359,6 +1414,16 @@
                                 <p class="feature-item__description">
                                     Alertas de aniversários, membros afastados, pedidos de 
                                     oração urgentes e tarefas pendentes direto no celular.
+                                </p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-item__icon" style="background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);">📴</div>
+                            <div class="feature-item__content">
+                                <h3 class="feature-item__title" style="color: #fb923c;">Modo Offline <span style="background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); color: white; font-size: 0.625rem; padding: 2px 6px; border-radius: 9999px; margin-left: 8px;">NOVO</span></h3>
+                                <p class="feature-item__description">
+                                    Trabalhe sem internet durante visitas! Registre orações, reuniões, 
+                                    discipulado e check-ins. Sincronização automática quando reconectar.
                                 </p>
                             </div>
                         </li>

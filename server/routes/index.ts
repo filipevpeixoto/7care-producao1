@@ -31,6 +31,7 @@ import { calendarRoutes } from './calendarRoutes';
 import { taskRoutes } from './taskRoutes';
 import { debugRoutes } from './debugRoutes';
 import { analyticsRoutes } from './analyticsRoutes';
+import { reportsRoutes } from './reportsRoutes';
 import twoFactorRouter from './twoFactorRoutes';
 
 // Rotas movidas para pasta routes
@@ -78,6 +79,7 @@ export const registerAllRoutes = async (app: Express): Promise<Server> => {
   calendarRoutes(app);
   taskRoutes(app);
   analyticsRoutes(app);
+  reportsRoutes(app);
 
   // Rotas de 2FA (Router Express)
   app.use('/api/2fa', twoFactorRouter);

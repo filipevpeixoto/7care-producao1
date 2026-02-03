@@ -11,8 +11,8 @@ import {
   Church,
   FileSpreadsheet,
   CheckCircle,
-  Receipt,
   Lock,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +28,8 @@ const steps = [
   { number: 3, label: 'Igrejas', icon: Church },
   { number: 4, label: 'Membros', icon: FileSpreadsheet },
   { number: 5, label: 'Validação', icon: CheckCircle },
-  { number: 6, label: 'Dracma', icon: Receipt },
+  // { number: 6, label: 'Dracma', icon: Receipt }, // Desabilitado temporariamente
+  { number: 6, label: 'Gamificação', icon: Trophy },
   { number: 7, label: 'Senha', icon: Lock },
 ];
 

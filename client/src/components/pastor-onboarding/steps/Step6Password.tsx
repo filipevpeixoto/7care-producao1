@@ -75,23 +75,25 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-8 md:p-10">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-10">
       {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-full border border-green-100 mb-4">
-          <Sparkles className="w-4 h-4 text-green-500" />
-          <span className="text-sm font-medium text-green-700">Passo Final</span>
+      <div className="text-center mb-6 sm:mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-full border border-green-100 mb-3 sm:mb-4">
+          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+          <span className="text-xs sm:text-sm font-medium text-green-700">Passo Final</span>
         </div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           Criar Senha
         </h2>
-        <p className="text-gray-500 mt-3 text-lg">Defina uma senha segura para sua conta</p>
+        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+          Defina uma senha segura para sua conta
+        </p>
       </div>
 
       {/* Icon */}
-      <div className="flex justify-center mb-10">
-        <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center shadow-lg">
-          <Shield className="w-12 h-12 text-green-500" />
+      <div className="flex justify-center mb-6 sm:mb-10">
+        <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center shadow-lg">
+          <Shield className="w-8 h-8 sm:w-12 sm:h-12 text-green-500" />
         </div>
       </div>
 
@@ -108,7 +110,7 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="pl-12 pr-12 h-14 text-lg rounded-xl border-gray-200 bg-white text-gray-900 focus:border-green-500 focus:ring-green-500 transition-all"
+              className="pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-green-500 focus:ring-green-500 transition-all"
               placeholder="Crie uma senha segura"
             />
             <button
@@ -200,7 +202,7 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
               type={showConfirm ? 'text' : 'password'}
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
-              className="pl-12 pr-12 h-14 text-lg rounded-xl border-gray-200 bg-white text-gray-900 focus:border-green-500 focus:ring-green-500 transition-all"
+              className="pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-green-500 focus:ring-green-500 transition-all"
               placeholder="Digite a senha novamente"
             />
             <button
@@ -271,44 +273,43 @@ export function Step6Password({ onSubmit, onBack, isLoading }: Step6PasswordProp
         )}
 
         {/* Info box */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-5">
-          <p className="text-sm text-blue-800 flex items-start gap-2">
-            <span className="text-xl">💡</span>
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-5">
+          <p className="text-sm text-green-800 flex items-start gap-2">
+            <span className="text-xl">🚀</span>
             <span>
-              Seu cadastro será enviado para aprovação do administrador. Você receberá um email
-              quando for aprovado.
+              Após finalizar, seu cadastro será ativado automaticamente e você poderá fazer login
+              imediatamente!
             </span>
           </p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
         <Button
           type="button"
           onClick={onBack}
-          variant="outline"
           size="lg"
           disabled={isLoading}
-          className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 order-2 sm:order-1"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
           Voltar
         </Button>
         <Button
           type="submit"
           size="lg"
           disabled={!isPasswordValid || !acceptedTerms || isLoading}
-          className="h-14 px-10 text-lg rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-10 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 order-1 sm:order-2"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              <Loader2 className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 animate-spin" />
               Enviando...
             </>
           ) : (
             <>
-              <CheckCircle2 className="w-5 h-5 mr-2" />
+              <CheckCircle2 className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
               Finalizar Cadastro
             </>
           )}

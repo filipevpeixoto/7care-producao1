@@ -195,6 +195,12 @@ export interface DracmaConfigData {
   ocrApiKey?: string;
 }
 
+export interface GamificationConfigData {
+  enableGamification: boolean;
+  targetAverage: number; // Média de pontos desejada (ex: 595)
+  calculateOnApproval: boolean; // Se deve calcular pontos na aprovação
+}
+
 export interface OnboardingData {
   personal?: PersonalData;
   district?: DistrictData;
@@ -202,6 +208,7 @@ export interface OnboardingData {
   excelData?: ExcelData;
   churchValidation?: ChurchValidation[];
   dracmaConfig?: DracmaConfigData;
+  gamificationConfig?: GamificationConfigData;
   completedSteps: number[];
   lastStepAt: string;
 }

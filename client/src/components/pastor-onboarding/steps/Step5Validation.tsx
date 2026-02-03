@@ -155,16 +155,16 @@ export function Step5Validation({
   // Se não há dados de Excel, pular
   if (!excelData || excelData.data.length === 0) {
     return (
-      <div className="p-8 md:p-10">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
-            <Sparkles className="w-4 h-4 text-blue-500" />
-            <span className="text-sm font-medium text-blue-700">Passo 5 de 6</span>
+      <div className="p-4 sm:p-6 md:p-10">
+        <div className="text-center mb-6 sm:mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-3 sm:mb-4">
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+            <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 5 de 6</span>
           </div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
             Validação de Igrejas
           </h2>
-          <p className="text-gray-500 mt-3 text-lg">
+          <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
             Nenhuma planilha foi importada. Você pode continuar sem importar membros.
           </p>
         </div>
@@ -176,23 +176,22 @@ export function Step5Validation({
           </AlertDescription>
         </Alert>
 
-        <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
           <Button
-            variant="outline"
             onClick={onBack}
             size="lg"
-            className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+            className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-2 sm:order-1"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
+            <ArrowLeft className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
             Voltar
           </Button>
           <Button
             onClick={onNext}
             size="lg"
-            className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+            className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-1 sm:order-2"
           >
             Continuar
-            <ArrowRight className="w-5 h-5 ml-2" />
+            <ArrowRight className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
           </Button>
         </div>
       </div>
@@ -233,42 +232,42 @@ export function Step5Validation({
   }
 
   return (
-    <div className="p-8 md:p-10">
+    <div className="p-4 sm:p-6 md:p-10">
       {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
-          <Sparkles className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-medium text-blue-700">Passo 5 de 6</span>
+      <div className="text-center mb-6 sm:mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-3 sm:mb-4">
+          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+          <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 5 de 6</span>
         </div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           Validação de Igrejas
         </h2>
-        <p className="text-gray-500 mt-3 text-lg">
+        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
           Verifique as correspondências e escolha como processar cada igreja.
         </p>
       </div>
 
       {/* Resumo */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <CheckCircle2 className="w-6 h-6 text-white" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 sm:p-5 text-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
+            <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <p className="text-3xl font-bold text-green-900">{exactMatches}</p>
-          <p className="text-sm text-green-700 mt-1">Correspondências exatas</p>
+          <p className="text-2xl sm:text-3xl font-bold text-green-900">{exactMatches}</p>
+          <p className="text-xs sm:text-sm text-green-700 mt-1">Correspondências exatas</p>
         </div>
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-5 text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <AlertTriangle className="w-6 h-6 text-white" />
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-4 sm:p-5 text-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
+            <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <p className="text-3xl font-bold text-yellow-900">{similarFound}</p>
-          <p className="text-sm text-yellow-700 mt-1">Similares encontradas</p>
+          <p className="text-2xl sm:text-3xl font-bold text-yellow-900">{similarFound}</p>
+          <p className="text-xs sm:text-sm text-yellow-700 mt-1">Similares encontradas</p>
         </div>
-        <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-5 text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <XCircle className="w-6 h-6 text-white" />
+        <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-4 sm:p-5 text-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
+            <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <p className="text-3xl font-bold text-red-900">{notFound}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-red-900">{notFound}</p>
           <p className="text-sm text-red-700 mt-1">Não encontradas</p>
         </div>
       </div>
@@ -316,10 +315,10 @@ export function Step5Validation({
                       {getStatusIcon(validation.status)}
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-blue-900">
                         {validation.churchName}
                       </h3>
-                      <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                      <p className="text-sm text-blue-600 flex items-center gap-2 mt-1">
                         <Users className="w-4 h-4" />
                         {validation.memberCount} membros na planilha
                       </p>
@@ -333,9 +332,9 @@ export function Step5Validation({
                       }`}
                     >
                       {isExpanded ? (
-                        <ChevronUp className="w-5 h-5 text-gray-500" />
+                        <ChevronUp className="w-5 h-5 text-blue-500" />
                       ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                        <ChevronDown className="w-5 h-5 text-blue-500" />
                       )}
                     </div>
                   </div>
@@ -380,7 +379,7 @@ export function Step5Validation({
                       {/* Opção: Usar sugestão similar */}
                       {validation.suggestions && validation.suggestions.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-sm font-semibold text-gray-700 mb-2">
+                          <p className="text-sm font-semibold text-blue-800 mb-2">
                             Igrejas similares encontradas:
                           </p>
                           {validation.suggestions.map(suggestion => (
@@ -438,17 +437,17 @@ export function Step5Validation({
                       </div>
 
                       {/* Opção: Ignorar */}
-                      <div className="flex items-center space-x-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                      <div className="flex items-center space-x-3 p-4 rounded-xl bg-purple-50/50 border border-purple-200">
                         <RadioGroupItem value="ignore" id={`ignore-${validation.churchName}`} />
                         <Label
                           htmlFor={`ignore-${validation.churchName}`}
                           className="flex-1 cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
-                            <XCircle className="w-5 h-5 text-gray-400" />
-                            <span className="font-semibold text-gray-600">Ignorar</span>
+                            <XCircle className="w-5 h-5 text-purple-400" />
+                            <span className="font-semibold text-purple-700">Ignorar</span>
                           </div>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <p className="text-sm text-purple-600 mt-1">
                             Não importar membros desta igreja.
                           </p>
                         </Label>
@@ -463,23 +462,22 @@ export function Step5Validation({
       </div>
 
       {/* Actions */}
-      <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
         <Button
-          variant="outline"
           onClick={onBack}
           size="lg"
-          className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-2 sm:order-1"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
           Voltar
         </Button>
         <Button
           onClick={onNext}
           size="lg"
-          className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-1 sm:order-2"
         >
           Continuar para Finalizar
-          <ArrowRight className="w-5 h-5 ml-2" />
+          <ArrowRight className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
         </Button>
       </div>
     </div>

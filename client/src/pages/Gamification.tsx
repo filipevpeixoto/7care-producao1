@@ -158,16 +158,16 @@ export default function Gamification() {
         open={isIconModalOpen}
         onOpenChange={setIsIconModalOpen}
       >
-        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 dark:from-amber-900/30 dark:to-yellow-900/30 dark:border-amber-600/50">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-center text-3xl font-bold text-amber-800 dark:text-amber-300">
+        <DialogContent className="max-w-5xl max-h-[90vh] sm:max-h-[95vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 dark:from-amber-900/30 dark:to-yellow-900/30 dark:border-amber-600/50 p-4 sm:p-6">
+          <DialogHeader className="pb-4 sm:pb-6">
+            <DialogTitle className="text-center text-xl sm:text-2xl lg:text-3xl font-bold text-amber-800 dark:text-amber-300">
               {getMountName(total)} - Detalhes da Conquista
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col lg:flex-row items-center lg:items-start space-y-8 lg:space-y-0 lg:space-x-12 p-8">
+          <div className="flex flex-col lg:flex-row items-center lg:items-start space-y-6 lg:space-y-0 lg:space-x-12 p-2 sm:p-8">
             {/* Ícone */}
             <div className="flex-shrink-0">
-              <div className="w-80 h-80 lg:w-96 lg:h-96 flex items-center justify-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+              <div className="w-48 h-48 sm:w-64 sm:h-64 lg:w-80 lg:h-80 flex items-center justify-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-8">
                 <MountIcon iconType={getLevelIcon(total)} className="w-full h-full" />
               </div>
             </div>

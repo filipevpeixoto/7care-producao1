@@ -7,6 +7,8 @@ import twoFactorService from '../services/twoFactorService';
 import '../types/express'; // Importar tipos customizados do Express
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess, sendError, sendUnauthorized } from '../utils/apiResponse';
+import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { twoFactorEnableSchema, twoFactorVerifySchema } from '../schemas';
 
 const router = Router();
 
@@ -82,16 +84,13 @@ router.post(
  */
 router.post(
   '/enable',
+  validateBody(twoFactorEnableSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    const { token } = req.body;
+    const { token } = (req as ValidatedRequest<typeof twoFactorEnableSchema._type>).validatedBody;
 
     if (!userId) {
       return sendUnauthorized(res, 'Não autenticado');
-    }
-
-    if (!token || typeof token !== 'string') {
-      return sendError(res, 'Código é obrigatório');
     }
 
     const result = await twoFactorService.enableTwoFactor(userId, token);
@@ -110,16 +109,13 @@ router.post(
  */
 router.post(
   '/disable',
+  validateBody(twoFactorVerifySchema),
   asyncHandler(async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    const { token } = req.body;
+    const { token } = (req as ValidatedRequest<typeof twoFactorVerifySchema._type>).validatedBody;
 
     if (!userId) {
       return sendUnauthorized(res, 'Não autenticado');
-    }
-
-    if (!token || typeof token !== 'string') {
-      return sendError(res, 'Código é obrigatório');
     }
 
     const result = await twoFactorService.disableTwoFactor(userId, token);
@@ -138,9 +134,10 @@ router.post(
  */
 router.post(
   '/verify',
+  validateBody(twoFactorVerifySchema),
   asyncHandler(async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    const { token } = req.body;
+    const { token } = (req as ValidatedRequest<typeof twoFactorVerifySchema._type>).validatedBody;
 
     if (!userId) {
       return sendUnauthorized(res, 'Não autenticado');

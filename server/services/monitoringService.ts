@@ -8,6 +8,7 @@
  * Em produção, envia erros para Sentry. Em desenvolvimento, loga localmente.
  */
 
+import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
 /**
@@ -241,7 +242,7 @@ class MonitoringService {
    * Middleware Express para capturar métricas automaticamente
    */
   metricsMiddleware() {
-    return (req: any, res: any, next: any) => {
+    return (req: Request, res: Response, next: NextFunction) => {
       const start = Date.now();
 
       res.on('finish', () => {
@@ -262,12 +263,12 @@ class MonitoringService {
    * Middleware Express para capturar erros automaticamente
    */
   errorMiddleware() {
-    return (error: Error, req: any, _res: any, next: any) => {
+    return (error: Error, req: Request, _res: Response, next: NextFunction) => {
       this.captureError(error, {
         endpoint: req.path,
         method: req.method,
-        userId: req.userId,
-        requestId: req.correlationId,
+        userId: (req as Request & { userId?: number }).userId,
+        requestId: (req as Request & { correlationId?: string }).correlationId,
       });
       next(error);
     };

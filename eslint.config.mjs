@@ -92,11 +92,21 @@ export default tseslint.config(
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
       'no-unused-expressions': 'off',
       'no-case-declarations': 'off',
       'no-empty': 'off',
     },
+  },
+  {
+    files: ['tests/**', '**/*.test.ts', '**/*.spec.ts', '**/*.test.cjs', '**/*.spec.cjs'],
+    languageOptions: {
+      globals: {
+        ...globals.jest,
+      },
+    },
+    rules: {
+      'no-undef': 'off', // TypeScript handles this, and Jest globals sometimes conflict
+    }
   },
   {
     // Permitir console.log em todo o código - necessário para debug e logs

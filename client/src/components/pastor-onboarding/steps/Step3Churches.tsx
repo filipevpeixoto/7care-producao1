@@ -81,17 +81,19 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-8 md:p-10">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-10">
       {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-4">
-          <Sparkles className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-medium text-blue-700">Passo 3 de 6</span>
+      <div className="text-center mb-6 sm:mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100 mb-3 sm:mb-4">
+          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+          <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 3 de 6</span>
         </div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           Suas Igrejas
         </h2>
-        <p className="text-gray-500 mt-3 text-lg">Adicione as igrejas do seu distrito</p>
+        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+          Adicione as igrejas do seu distrito
+        </p>
       </div>
 
       {errors && (
@@ -106,7 +108,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
         className={`border-2 rounded-2xl p-5 cursor-pointer transition-all mb-6 ${
           willImportFromPowerBI
             ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-purple-50 shadow-lg'
-            : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+            : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/50'
         }`}
         onClick={() => setWillImportFromPowerBI(!willImportFromPowerBI)}
       >
@@ -138,8 +140,8 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
             <Database className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <p className="font-semibold text-gray-900">Irei importar a base de dados do PowerBI</p>
-            <p className="text-sm text-gray-500">As igrejas serão cadastradas automaticamente</p>
+            <p className="font-semibold text-blue-900">Irei importar a base de dados do PowerBI</p>
+            <p className="text-sm text-blue-600">As igrejas serão cadastradas automaticamente</p>
           </div>
         </div>
       </div>
@@ -151,10 +153,10 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
             {churches.map((church, index) => (
               <div
                 key={index}
-                className="border border-gray-200 rounded-2xl p-5 bg-gradient-to-r from-gray-50 to-white relative shadow-sm hover:shadow-md transition-shadow"
+                className="border-2 border-blue-100 rounded-2xl p-5 bg-gradient-to-r from-blue-50/50 to-white relative shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                  <h3 className="font-semibold text-blue-800 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
                       <Church className="w-4 h-4 text-blue-600" />
                     </div>
@@ -181,35 +183,35 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                 <div className="space-y-4">
                   {/* Seletor de Tipo */}
                   <div>
-                    <Label className="text-sm font-semibold mb-2 block text-gray-700">Tipo</Label>
-                    <div className="flex gap-2">
+                    <Label className="text-sm font-semibold mb-2 block text-blue-800">Tipo</Label>
+                    <div className="flex flex-col xs:flex-row gap-2">
                       <Button
                         type="button"
                         variant={church.type === 'igreja' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => updateChurch(index, 'type', 'igreja')}
-                        className={`flex-1 h-11 rounded-xl transition-all ${
+                        className={`flex-1 h-10 xs:h-11 text-sm rounded-xl transition-all ${
                           church.type === 'igreja'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                            : 'border-gray-200 hover:border-blue-300'
+                            : '!border-blue-200 !bg-blue-50 !text-blue-700 hover:!border-blue-400 hover:!bg-blue-100'
                         }`}
                       >
-                        <Building2 className="w-4 h-4 mr-2" />
-                        Igreja (i)
+                        <Building2 className="w-4 h-4 mr-1.5" />
+                        Igreja
                       </Button>
                       <Button
                         type="button"
                         variant={church.type === 'grupo' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => updateChurch(index, 'type', 'grupo')}
-                        className={`flex-1 h-11 rounded-xl transition-all ${
+                        className={`flex-1 h-10 xs:h-11 text-sm rounded-xl transition-all ${
                           church.type === 'grupo'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                            : 'border-gray-200 hover:border-blue-300'
+                            : '!border-blue-200 !bg-blue-50 !text-blue-700 hover:!border-blue-400 hover:!bg-blue-100'
                         }`}
                       >
-                        <Users className="w-4 h-4 mr-2" />
-                        Grupo Organizado (g)
+                        <Users className="w-4 h-4 mr-1.5" />
+                        Grupo Organizado
                       </Button>
                     </div>
                   </div>
@@ -217,7 +219,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                   <div>
                     <Label
                       htmlFor={`name-${index}`}
-                      className="text-sm font-semibold text-gray-700"
+                      className="text-sm font-semibold text-blue-800"
                     >
                       Nome <span className="text-red-500">*</span>
                     </Label>
@@ -230,25 +232,25 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                           ? 'Ex: Igreja Central'
                           : 'Ex: Grupo Jardim das Flores'
                       }
-                      className="h-12 rounded-xl border-gray-200 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 mt-1"
+                      className="h-12 rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 mt-1"
                     />
                   </div>
 
                   <div>
                     <Label
                       htmlFor={`address-${index}`}
-                      className="text-sm font-semibold text-gray-700"
+                      className="text-sm font-semibold text-blue-800"
                     >
                       Endereço
                     </Label>
                     <div className="relative mt-1">
-                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 w-4 h-4" />
                       <Input
                         id={`address-${index}`}
                         value={church.address}
                         onChange={e => updateChurch(index, 'address', e.target.value)}
                         placeholder="Rua, número, bairro"
-                        className="pl-11 h-12 rounded-xl border-gray-200 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                        className="pl-11 h-12 rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -261,7 +263,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
             type="button"
             onClick={addChurch}
             variant="outline"
-            className="w-full h-14 text-lg border-dashed border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 rounded-2xl mt-6 transition-all"
+            className="w-full h-12 sm:h-14 text-base sm:text-lg border-dashed border-2 !border-blue-400 !bg-blue-50 !text-blue-700 hover:!border-blue-500 hover:!bg-blue-100 rounded-2xl mt-6 transition-all font-medium"
           >
             <Plus className="w-5 h-5 mr-2" />
             Adicionar Nova Igreja ou Grupo
@@ -294,24 +296,23 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
       )}
 
       {/* Actions */}
-      <div className="flex justify-between mt-10 pt-6 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
         <Button
           type="button"
           onClick={onBack}
-          variant="outline"
           size="lg"
-          className="h-14 px-8 text-lg rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-2 sm:order-1"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
           Voltar
         </Button>
         <Button
           type="submit"
           size="lg"
-          className="h-14 px-8 text-lg rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+          className="h-10 xs:h-11 sm:h-14 px-3 xs:px-4 sm:px-8 text-xs xs:text-sm sm:text-lg rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 order-1 sm:order-2"
         >
           Próximo Passo
-          <ArrowRight className="w-5 h-5 ml-2" />
+          <ArrowRight className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
         </Button>
       </div>
     </form>

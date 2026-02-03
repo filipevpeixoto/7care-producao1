@@ -271,43 +271,48 @@ export default function ElectionDashboard() {
 
   return (
     <MobileLayout>
-      <div className="p-4 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="h-8 w-8 text-blue-600" />
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-3">
+            <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0 mt-1 sm:mt-0" />
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">Dashboard de Nomeações</h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <h1 className="text-xl sm:text-2xl font-bold">Dashboard de Nomeações</h1>
                 {configs.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="default" className="bg-green-600">
+                  <div className="flex gap-1 sm:gap-2 flex-wrap">
+                    <Badge variant="default" className="bg-green-600 text-xs sm:text-sm">
                       {configs.filter(c => c.status === 'active').length} Ativa(s)
                     </Badge>
-                    <Badge variant="outline" className="border-orange-400 text-orange-600">
+                    <Badge
+                      variant="outline"
+                      className="border-orange-400 text-orange-600 text-xs sm:text-sm"
+                    >
                       {configs.filter(c => c.status === 'paused').length} Pausada(s)
                     </Badge>
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs sm:text-sm">
                       {configs.filter(c => c.status === 'draft').length} Rascunho(s)
                     </Badge>
                   </div>
                 )}
               </div>
-              <p className="text-muted-foreground">Gerencie todas as nomeações da igreja</p>
+              <p className="text-sm text-muted-foreground">Gerencie todas as nomeações da igreja</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <Button variant="outline" size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? 'Pausar' : 'Atualizar'}
+              <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline ml-2">{autoRefresh ? 'Pausar' : 'Atualizar'}</span>
             </Button>
 
             <Button
+              size="sm"
               onClick={() => navigate('/election-config')}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Nomeação
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline ml-2">Nova Nomeação</span>
+              <span className="sm:hidden ml-1">Nova</span>
             </Button>
           </div>
         </div>

@@ -18,6 +18,18 @@ import {
   getEventsOffline,
   saveTasksOffline,
   getTasksOffline,
+  saveRelationshipsOffline,
+  getRelationshipsOffline,
+  savePrayersOffline,
+  getPrayersOffline,
+  saveMeetingsOffline,
+  getMeetingsOffline,
+  saveEmotionalCheckinsOffline,
+  getEmotionalCheckinsOffline,
+  saveDiscipleshipRequestsOffline,
+  getDiscipleshipRequestsOffline,
+  saveNotificationsOffline,
+  getNotificationsOffline,
   saveCurrentUserOffline,
   getCurrentUserOffline,
   addToSyncQueue,
@@ -84,6 +96,36 @@ const offlineHandlers: Record<string, CacheHandler> = {
   '/api/tasks': {
     save: saveTasksOffline as (data: unknown[]) => Promise<void>,
     get: getTasksOffline,
+    cacheDuration: CACHE_DURATION,
+  },
+  '/api/relationships': {
+    save: saveRelationshipsOffline as (data: unknown[]) => Promise<void>,
+    get: getRelationshipsOffline,
+    cacheDuration: CACHE_DURATION,
+  },
+  '/api/prayers': {
+    save: savePrayersOffline as (data: unknown[]) => Promise<void>,
+    get: getPrayersOffline,
+    cacheDuration: CACHE_DURATION,
+  },
+  '/api/meetings': {
+    save: saveMeetingsOffline as (data: unknown[]) => Promise<void>,
+    get: getMeetingsOffline,
+    cacheDuration: CACHE_DURATION,
+  },
+  '/api/emotional-checkin': {
+    save: saveEmotionalCheckinsOffline as (data: unknown[]) => Promise<void>,
+    get: getEmotionalCheckinsOffline,
+    cacheDuration: CACHE_DURATION,
+  },
+  '/api/discipleship-requests': {
+    save: saveDiscipleshipRequestsOffline as (data: unknown[]) => Promise<void>,
+    get: getDiscipleshipRequestsOffline,
+    cacheDuration: CACHE_DURATION,
+  },
+  '/api/notifications': {
+    save: saveNotificationsOffline as (data: unknown[]) => Promise<void>,
+    get: getNotificationsOffline,
     cacheDuration: CACHE_DURATION,
   },
 };
@@ -496,11 +538,30 @@ function getBaseUrl(url: string): string {
 /**
  * Extrai a entidade da URL
  */
-function getEntityFromUrl(url: string): 'users' | 'events' | 'tasks' | 'messages' | null {
+function getEntityFromUrl(
+  url: string
+):
+  | 'users'
+  | 'events'
+  | 'tasks'
+  | 'messages'
+  | 'relationships'
+  | 'prayers'
+  | 'meetings'
+  | 'emotional-checkins'
+  | 'discipleship-requests'
+  | 'notifications'
+  | null {
   if (url.includes('/users')) return 'users';
   if (url.includes('/events')) return 'events';
   if (url.includes('/tasks')) return 'tasks';
   if (url.includes('/messages')) return 'messages';
+  if (url.includes('/relationships')) return 'relationships';
+  if (url.includes('/prayers')) return 'prayers';
+  if (url.includes('/meetings')) return 'meetings';
+  if (url.includes('/emotional-checkin')) return 'emotional-checkins';
+  if (url.includes('/discipleship-requests')) return 'discipleship-requests';
+  if (url.includes('/notifications')) return 'notifications';
   return null;
 }
 
