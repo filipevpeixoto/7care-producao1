@@ -5697,7 +5697,7 @@ exports.handler = async (event, context) => {
     if (path.startsWith('/api/elections/vote-log/') && method === 'GET') {
       try {
         const electionId = path.split('/').pop();
-        const requestingUserId = headers['x-user-id'] ? parseInt(headers['x-user-id']) : null;
+        const requestingUserId = event.headers['x-user-id'] ? parseInt(event.headers['x-user-id']) : null;
         
         console.log(`🔍 Buscando log de votos para eleição: ${electionId}`);
         
