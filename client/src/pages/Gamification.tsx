@@ -94,7 +94,7 @@ export default function Gamification() {
           {/* Meu Progresso */}
           <TabsContent value="my-progress" className="space-y-6">
             {/* Resumo Atual */}
-            <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 dark:from-purple-900/30 dark:to-blue-900/30 dark:border-purple-600/50">
+            <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 dark:from-slate-800/80 dark:to-slate-900/80 dark:border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Mountain className="h-5 w-5 text-purple-600" />
@@ -158,7 +158,7 @@ export default function Gamification() {
         open={isIconModalOpen}
         onOpenChange={setIsIconModalOpen}
       >
-        <DialogContent className="max-w-5xl max-h-[90vh] sm:max-h-[95vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 dark:from-amber-900/30 dark:to-yellow-900/30 dark:border-amber-600/50 p-4 sm:p-6">
+        <DialogContent className="max-w-5xl max-h-[90vh] sm:max-h-[95vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 dark:from-slate-800 dark:to-slate-900 dark:border-slate-600 p-4 sm:p-6">
           <DialogHeader className="pb-4 sm:pb-6">
             <DialogTitle className="text-center text-xl sm:text-2xl lg:text-3xl font-bold text-amber-800 dark:text-amber-300">
               {getMountName(total)} - Detalhes da Conquista

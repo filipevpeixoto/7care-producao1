@@ -1092,21 +1092,21 @@ export const PointsBreakdown = ({
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Resumo dos Totais</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/40 dark:to-indigo-900/40 rounded-lg border dark:border-blue-700">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800/80 dark:to-slate-900/80 rounded-lg border dark:border-slate-600">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {totalCalculated}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Calculado</div>
                 </div>
 
-                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/40 rounded-lg border dark:border-green-700">
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-slate-800/80 dark:to-slate-900/80 rounded-lg border dark:border-slate-600">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {totalEscolaSabatina}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Escola Sabatina</div>
                 </div>
 
-                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/40 dark:to-pink-900/40 rounded-lg border dark:border-purple-700">
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-800/80 dark:to-slate-900/80 rounded-lg border dark:border-slate-600">
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                     {actualPoints}
                   </div>

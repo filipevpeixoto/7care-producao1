@@ -152,12 +152,12 @@ export const MountainJourney = ({
                 <Card
                   className={`h-32 md:h-40 transition-all duration-300 border-2 ${
                     isCurrentLevel
-                      ? 'ring-4 ring-orange-400 dark:ring-orange-500 border-orange-300 dark:border-orange-600 bg-gradient-to-b from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800/50 shadow-lg'
+                      ? 'ring-2 ring-orange-400/50 dark:ring-orange-500/30 border-orange-300 dark:border-slate-600 bg-gradient-to-b from-orange-50 to-orange-100 dark:from-slate-800 dark:to-slate-900 shadow-lg'
                       : isCompleted
-                        ? 'border-green-300 dark:border-green-600 bg-gradient-to-b from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800/50 shadow-md'
+                        ? 'border-green-300 dark:border-slate-600 bg-gradient-to-b from-green-50 to-green-100 dark:from-slate-800/90 dark:to-slate-900/90 shadow-md'
                         : isNext
-                          ? 'border-blue-300 dark:border-blue-600 bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 shadow-sm'
-                          : 'border-gray-200 dark:border-gray-600 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700'
+                          ? 'border-blue-300 dark:border-slate-600 bg-gradient-to-b from-blue-50 to-blue-100 dark:from-slate-800/80 dark:to-slate-900/80 shadow-sm'
+                          : 'border-gray-200 dark:border-slate-700 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-slate-800/70 dark:to-slate-900/70'
                   } hover:shadow-lg hover:scale-105`}
                 >
                   <CardContent className="p-2 md:p-3 h-full flex flex-col items-center justify-center">
@@ -231,7 +231,7 @@ export const MountainJourney = ({
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
       >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/40 border-amber-200 dark:border-amber-700">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-slate-800 dark:to-slate-900 border-amber-200 dark:border-slate-600">
           <DialogHeader className="pb-6">
             <DialogTitle className="text-center text-3xl font-bold text-amber-800 dark:text-amber-200">
               {selectedLevel?.mount} - Detalhes da Conquista
