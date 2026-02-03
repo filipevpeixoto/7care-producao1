@@ -597,12 +597,20 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
                     <label className="text-sm font-medium">Status</label>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    <Badge variant={user.status === 'approved' ? 'default' : 'secondary'}>
-                      {user.status === 'approved'
-                        ? 'Aprovado'
+                    <Badge
+                      variant={
+                        user.status === 'active' || user.status === 'approved'
+                          ? 'default'
+                          : 'secondary'
+                      }
+                    >
+                      {user.status === 'active' || user.status === 'approved'
+                        ? 'Ativo'
                         : user.status === 'pending'
                           ? 'Pendente'
-                          : 'Recusado'}
+                          : user.status === 'inactive'
+                            ? 'Inativo'
+                            : 'Rejeitado'}
                     </Badge>
                   </p>
                 </div>

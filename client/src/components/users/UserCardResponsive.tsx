@@ -604,18 +604,22 @@ export function UserCardResponsive({
                 <Badge
                   variant="outline"
                   className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 ${
-                    localUser.status === 'approved'
+                    localUser.status === 'active' || localUser.status === 'approved'
                       ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-600/50'
                       : localUser.status === 'pending'
                         ? 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-600/50'
-                        : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-600/50'
+                        : localUser.status === 'inactive'
+                          ? 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/50 dark:text-gray-300 dark:border-gray-600/50'
+                          : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-600/50'
                   }`}
                 >
-                  {localUser.status === 'approved'
-                    ? 'Aprovado'
+                  {localUser.status === 'active' || localUser.status === 'approved'
+                    ? 'Ativo'
                     : localUser.status === 'pending'
                       ? 'Pendente'
-                      : 'Rejeitado'}
+                      : localUser.status === 'inactive'
+                        ? 'Inativo'
+                        : 'Rejeitado'}
                 </Badge>
 
                 {/* Badge de autorização de discipulado - apenas para interessados com solicitação pendente */}
