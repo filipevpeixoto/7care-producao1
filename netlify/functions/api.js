@@ -5697,8 +5697,100 @@ exports.handler = async (event, context) => {
     if (path.startsWith('/api/elections/vote-log/') && method === 'GET') {
       try {
         const electionId = path.split('/').pop();
+        const requestingUserId = headers['x-user-id'] ? parseInt(headers['x-user-id']) : null;
         
         console.log(`🔍 Buscando log de votos para eleição: ${electionId}`);
+        
+        // Verificar autenticação
+        if (!requestingUserId) {
+          return {
+            statusCode: 401,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Usuário não autenticado' })
+          };
+        }
+
+        // Buscar dados do usuário que está fazendo a requisição
+        const userResult = await sql`
+          SELECT id, church, role, email, district_id FROM users WHERE id = ${requestingUserId}
+        `;
+        
+        if (userResult.length === 0) {
+          return {
+            statusCode: 401,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Usuário não encontrado' })
+          };
+        }
+
+        const requestingUser = userResult[0];
+        const isSuperAdminUser = 
+          requestingUser.role === 'super_admin' || 
+          requestingUser.role === 'superadmin' ||
+          requestingUser.email === 'admin@7care.com';
+
+        // Buscar informações da eleição e sua configuração
+        const electionInfo = await sql`
+          SELECT e.id, e.config_id, ec.church_name, ec.church_id
+          FROM elections e
+          JOIN election_configs ec ON e.config_id = ec.id
+          WHERE e.id = ${electionId}
+        `;
+
+        if (electionInfo.length === 0) {
+          return {
+            statusCode: 404,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Eleição não encontrada' })
+          };
+        }
+
+        const electionChurchName = electionInfo[0].church_name;
+
+        // Verificar permissão para pastores
+        if (!isSuperAdminUser && requestingUser.role === 'pastor') {
+          const districtId = requestingUser.district_id;
+          
+          if (!districtId) {
+            return {
+              statusCode: 403,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ error: 'Pastor sem distrito atribuído' })
+            };
+          }
+
+          // Verificar se a igreja da eleição pertence ao distrito do pastor
+          const districtChurches = await sql`
+            SELECT name FROM churches WHERE district_id = ${districtId}
+          `;
+          const districtChurchNames = districtChurches.map(ch => ch.name);
+
+          // Também verificar por users da igreja que pertencem ao distrito
+          const usersInDistrict = await sql`
+            SELECT DISTINCT church FROM users WHERE district_id = ${districtId} AND church IS NOT NULL
+          `;
+          const userChurchNames = usersInDistrict.map(u => u.church);
+
+          const allDistrictChurches = [...new Set([...districtChurchNames, ...userChurchNames])];
+
+          if (!allDistrictChurches.includes(electionChurchName)) {
+            console.warn(`⚠️ Acesso negado: Pastor ${requestingUserId} tentou acessar log de eleição de ${electionChurchName}`);
+            return {
+              statusCode: 403,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ error: 'Você não tem permissão para visualizar esta eleição' })
+            };
+          }
+        } else if (!isSuperAdminUser) {
+          // Usuário comum - verificar se pertence à mesma igreja
+          if (requestingUser.church !== electionChurchName) {
+            return {
+              statusCode: 403,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ error: 'Você não tem permissão para visualizar esta eleição' })
+            };
+          }
+        }
         
         // Buscar todos os votos E indicações da eleição com informações do votante e candidato
         const votes = await sql`
@@ -5718,7 +5810,7 @@ exports.handler = async (event, context) => {
           ORDER BY ev.voted_at DESC
         `;
         
-        console.log(`✅ Log encontrado: ${votes.length} registro(s) (votos + indicações)`);
+        console.log(`✅ Log encontrado: ${votes.length} registro(s) para usuário ${requestingUserId} (role: ${requestingUser.role})`);
         
         return {
           statusCode: 200,

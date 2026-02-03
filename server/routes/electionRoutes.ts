@@ -2413,8 +2413,83 @@ export const electionRoutes = (app: Express) => {
   app.get('/api/elections/vote-log/:electionId', async (req: Request, res: Response) => {
     try {
       const { electionId } = req.params;
+      const requestingUserId = parseHeaderUserId(req);
 
       logger.debug(` Buscando log de votos para eleição: ${electionId}`);
+
+      // Verificar autenticação
+      if (!requestingUserId) {
+        return res.status(401).json({ error: 'Usuário não autenticado' });
+      }
+
+      // Buscar dados do usuário que está fazendo a requisição
+      const userResult = await sql`
+        SELECT id, church, role, email, district_id FROM users WHERE id = ${requestingUserId}
+      `;
+
+      if (userResult.length === 0) {
+        return res.status(401).json({ error: 'Usuário não encontrado' });
+      }
+
+      const requestingUser = userResult[0];
+      const isSuperAdminUser =
+        requestingUser.role === 'super_admin' ||
+        requestingUser.role === 'superadmin' ||
+        requestingUser.email === 'admin@7care.com';
+
+      // Buscar informações da eleição e sua configuração
+      const electionInfo = await sql`
+        SELECT e.id, e.config_id, ec.church_name, ec.church_id
+        FROM elections e
+        JOIN election_configs ec ON e.config_id = ec.id
+        WHERE e.id = ${electionId}
+      `;
+
+      if (electionInfo.length === 0) {
+        return res.status(404).json({ error: 'Eleição não encontrada' });
+      }
+
+      const electionChurchName = electionInfo[0].church_name;
+
+      // Verificar permissão para pastores
+      if (!isSuperAdminUser && requestingUser.role === 'pastor') {
+        // Buscar igrejas do distrito do pastor
+        const districtId = requestingUser.district_id;
+
+        if (!districtId) {
+          return res.status(403).json({ error: 'Pastor sem distrito atribuído' });
+        }
+
+        // Verificar se a igreja da eleição pertence ao distrito do pastor
+        const districtChurches = await sql`
+          SELECT name FROM churches WHERE district_id = ${districtId}
+        `;
+        const districtChurchNames = districtChurches.map((ch: { name: string }) => ch.name);
+
+        // Também verificar por users da igreja que pertencem ao distrito
+        const usersInDistrict = await sql`
+          SELECT DISTINCT church FROM users WHERE district_id = ${districtId} AND church IS NOT NULL
+        `;
+        const userChurchNames = usersInDistrict.map((u: { church: string }) => u.church);
+
+        const allDistrictChurches = [...new Set([...districtChurchNames, ...userChurchNames])];
+
+        if (!allDistrictChurches.includes(electionChurchName)) {
+          logger.warn(
+            ` Acesso negado: Pastor ${requestingUserId} tentou acessar log de eleição de ${electionChurchName}`
+          );
+          return res
+            .status(403)
+            .json({ error: 'Você não tem permissão para visualizar esta eleição' });
+        }
+      } else if (!isSuperAdminUser) {
+        // Usuário comum - verificar se pertence à mesma igreja
+        if (requestingUser.church !== electionChurchName) {
+          return res
+            .status(403)
+            .json({ error: 'Você não tem permissão para visualizar esta eleição' });
+        }
+      }
 
       // Buscar todos os votos E indicações da eleição com informações do votante e candidato
       const votes = await sql`
@@ -2434,7 +2509,9 @@ export const electionRoutes = (app: Express) => {
         ORDER BY ev.voted_at DESC
       `;
 
-      logger.info(` Log encontrado: ${votes.length} registro(s) (votos + indicações)`);
+      logger.info(
+        ` Log encontrado: ${votes.length} registro(s) para usuário ${requestingUserId} (role: ${requestingUser.role})`
+      );
 
       return res.json(votes);
     } catch (error: unknown) {
