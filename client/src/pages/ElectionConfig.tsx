@@ -504,12 +504,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         const rawData = await response.json();
         // A API retorna { data: [...], pagination: {...} } ou array diretamente
         const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
-        // Filtrar apenas membros (incluindo status pending e approved)
+        // Filtrar apenas membros (incluindo status active, pending e approved)
         const membersOnly = (data || []).filter(
           (u: any) =>
             u.role &&
             u.role.includes('member') &&
-            (u.status === 'approved' || u.status === 'pending')
+            (u.status === 'active' || u.status === 'approved' || u.status === 'pending')
         );
         setMembers(membersOnly);
       } else {
@@ -939,7 +939,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           return (
             user.church === config.churchName &&
             (user.role?.includes('member') || isAdmin) &&
-            (user.status === 'approved' || user.status === 'pending')
+            (user.status === 'active' || user.status === 'approved' || user.status === 'pending')
           );
         });
 
@@ -1728,10 +1728,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                   {member.role}
                                 </Badge>
                                 <Badge
-                                  variant={member.status === 'approved' ? 'default' : 'outline'}
+                                  variant={
+                                    member.status === 'active' || member.status === 'approved'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
                                   className="text-xs"
                                 >
-                                  {member.status === 'approved' ? 'Ativo' : 'Pendente'}
+                                  {member.status === 'active' || member.status === 'approved'
+                                    ? 'Ativo'
+                                    : 'Pendente'}
                                 </Badge>
                                 <Badge variant="outline" className="text-xs">
                                   {member.church}
@@ -2714,10 +2720,14 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               <div className="flex items-center space-x-2">
                                 <Badge
                                   variant={
-                                    candidate.status === 'approved' ? 'default' : 'secondary'
+                                    candidate.status === 'active' || candidate.status === 'approved'
+                                      ? 'default'
+                                      : 'secondary'
                                   }
                                 >
-                                  {candidate.status === 'approved' ? 'Ativo' : 'Pendente'}
+                                  {candidate.status === 'active' || candidate.status === 'approved'
+                                    ? 'Ativo'
+                                    : 'Pendente'}
                                 </Badge>
                                 <Badge variant="outline">{candidate.role}</Badge>
                               </div>
@@ -2849,10 +2859,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                 <div className="flex items-center gap-2 mt-2">
                                   <Badge
                                     variant={
-                                      candidate.status === 'approved' ? 'default' : 'secondary'
+                                      candidate.status === 'active' ||
+                                      candidate.status === 'approved'
+                                        ? 'default'
+                                        : 'secondary'
                                     }
                                   >
-                                    {candidate.status === 'approved' ? 'Ativo' : 'Pendente'}
+                                    {candidate.status === 'active' ||
+                                    candidate.status === 'approved'
+                                      ? 'Ativo'
+                                      : 'Pendente'}
                                   </Badge>
                                   <Badge variant="outline">{candidate.role}</Badge>
                                 </div>
