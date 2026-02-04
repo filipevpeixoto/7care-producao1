@@ -65,6 +65,10 @@ export const useAuth = () => {
     isLoading: true,
   });
 
+  // Estado separado para o usuário real (não impersonado)
+  const [realUser, setRealUser] = useState<ExtendedUser | null>(null);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+
   useEffect(() => {
     authLogger.debug('Checking stored auth...');
 
@@ -84,18 +88,26 @@ export const useAuth = () => {
         const context = JSON.parse(impersonationContext);
         if (Date.now() - context.timestamp < IMPERSONATION_MAX_AGE_MS && context.isImpersonating) {
           impersonatingUser = context.impersonatingAs;
+          setIsImpersonating(true);
         } else {
           localStorage.removeItem(IMPERSONATION_KEY);
+          setIsImpersonating(false);
         }
       } catch {
         localStorage.removeItem(IMPERSONATION_KEY);
+        setIsImpersonating(false);
       }
+    } else {
+      setIsImpersonating(false);
     }
 
     if (storedAuth) {
       try {
         const user = JSON.parse(storedAuth);
         clearTimeout(timeoutId);
+
+        // SEMPRE manter o usuário real disponível
+        setRealUser(user);
 
         const finalUser = impersonatingUser
           ? { ...user, ...impersonatingUser, isImpersonating: true }
@@ -110,10 +122,12 @@ export const useAuth = () => {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         clearTimeout(timeoutId);
         setAuthState(prev => ({ ...prev, isLoading: false }));
+        setRealUser(null);
       }
     } else {
       clearTimeout(timeoutId);
       setAuthState(prev => ({ ...prev, isLoading: false }));
+      setRealUser(null);
     }
 
     return () => clearTimeout(timeoutId);
@@ -214,10 +228,12 @@ export const useAuth = () => {
 
   const stopImpersonating = useCallback(() => {
     localStorage.removeItem(IMPERSONATION_KEY);
+    setIsImpersonating(false);
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
     if (storedAuth) {
       try {
         const user = JSON.parse(storedAuth);
+        setRealUser(user);
         setAuthState({
           user,
           isAuthenticated: true,
@@ -271,6 +287,8 @@ export const useAuth = () => {
 
   return {
     ...authState,
+    realUser, // Usuário real (não impersonado) - usar para headers HTTP
+    isImpersonating, // Flag indicando se está impersonando
     login,
     logout,
     register,

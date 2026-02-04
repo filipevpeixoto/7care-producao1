@@ -85,7 +85,7 @@ const getUserExtraData = (userData: UserType): UserExtraData => {
 };
 
 export default function Users() {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth(); // realUser para headers HTTP
   useUserPoints();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -131,8 +131,8 @@ export default function Users() {
         // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
         const response = await fetch('/api/users?limit=500', {
           headers: {
-            'x-user-id': user?.id?.toString() || '',
-            'x-user-role': user?.role || '',
+            'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+            'x-user-role': realUser?.role || user?.role || '',
           },
         });
         if (!response.ok) {
@@ -213,8 +213,8 @@ export default function Users() {
     queryFn: async () => {
       const response = await fetch('/api/churches', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-role': realUser?.role || user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Erro ao buscar igrejas');

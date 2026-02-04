@@ -38,7 +38,7 @@ import type {
 } from '@/types/domain';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth(); // realUser para headers HTTP
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { shouldShowCheckIn: _shouldShowCheckIn, markCheckInComplete } = useSpiritualCheckIn();
@@ -54,8 +54,8 @@ const Dashboard = () => {
       console.log('🚀 Dashboard: Carregando dados unificados...');
       const response = await fetch('/api/dashboard/unified', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-role': realUser?.role || user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Failed to fetch unified dashboard');
@@ -80,8 +80,8 @@ const Dashboard = () => {
       // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
       const response = await fetch('/api/users?limit=500', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-role': realUser?.role || user?.role || '',
         },
       });
       if (!response.ok) {
