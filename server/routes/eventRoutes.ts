@@ -9,6 +9,7 @@ import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createEventSchema } from '../schemas';
 import { logger } from '../utils/logger';
+import { isPastor } from '../utils/permissions';
 
 export const eventRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -63,7 +64,24 @@ export const eventRoutes = (app: Express): void => {
     '/api/events',
     asyncHandler(async (req: Request, res: Response) => {
       const { church, startDate, endDate } = req.query;
+
+      // Obter usuário logado para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let requestingUser = null;
+      if (requestingUserId) {
+        requestingUser = await storage.getUserById(requestingUserId);
+      }
+
       let events = await storage.getAllEvents();
+
+      // Filtrar por distrito se for pastor (não superadmin)
+      if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
+        logger.info(`📆 Filtrando eventos por distrito: ${requestingUser.districtId}`);
+        events = events.filter(
+          (e: { districtId?: number }) =>
+            e.districtId === requestingUser!.districtId || e.districtId === null
+        );
+      }
 
       if (church) {
         events = events.filter((e: { church?: string }) => e.church === church);

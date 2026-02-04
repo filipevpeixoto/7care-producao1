@@ -246,9 +246,53 @@ export const dashboardRoutes = (app: Express): void => {
   app.get(
     '/api/dashboard/visits',
     asyncHandler(async (req: Request, res: Response) => {
+      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const user = userId ? await storage.getUserById(userId) : null;
+
       const allUsers = await storage.getAllUsers();
 
-      const targetUsers = allUsers.filter(
+      // Filtrar por distrito se for pastor
+      let filteredUsers: User[] = [];
+      if (isSuperAdmin(user)) {
+        if (user?.districtId) {
+          // Super admin com distrito vinculado
+          const districtChurches = await storage.getChurchesByDistrict(user.districtId);
+          const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
+          filteredUsers = allUsers.filter((u: User) => {
+            const churchName = u.church ?? '';
+            return (
+              u.email !== 'admin@7care.com' &&
+              (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
+            );
+          });
+        } else {
+          // Super admin sem distrito - ver todos
+          filteredUsers = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
+        }
+      } else if (isPastor(user) && user?.districtId) {
+        // Pastor - filtrar pelo distrito
+        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
+        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
+        filteredUsers = allUsers.filter((u: User) => {
+          const churchName = u.church ?? '';
+          return (
+            u.email !== 'admin@7care.com' &&
+            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
+          );
+        });
+      } else {
+        // Outros usuários - filtrar pela igreja
+        const userChurch = user?.church;
+        if (userChurch) {
+          filteredUsers = allUsers.filter(
+            (u: User) => u.email !== 'admin@7care.com' && u.church === userChurch
+          );
+        } else {
+          filteredUsers = [];
+        }
+      }
+
+      const targetUsers = filteredUsers.filter(
         user => user.role === 'member' || user.role === 'missionary'
       );
 

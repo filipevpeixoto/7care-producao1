@@ -70,6 +70,7 @@ import { useLastImportDate } from '@/hooks/useLastImportDate';
 import { useSystemLogo } from '@/hooks/useSystemLogo';
 import { ImportExcelModal } from '@/components/calendar/ImportExcelModal';
 import { GoogleDriveImportModal } from '@/components/calendar/GoogleDriveImportModal';
+import { GoogleCalendarConfigModal } from '@/components/calendar/GoogleCalendarConfigModal';
 import { EventPermissionsModal } from '@/components/calendar/EventPermissionsModal';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useQueryClient } from '@tanstack/react-query';
@@ -330,6 +331,7 @@ export default function Settings() {
   // Calendar modal states
   const [showImportExcelModal, setShowImportExcelModal] = useState(false);
   const [showGoogleDriveModal, setShowGoogleDriveModal] = useState(false);
+  const [showGoogleCalendarModal, setShowGoogleCalendarModal] = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [showUserDataImportModal, setShowUserDataImportModal] = useState(false);
   const [importingUserData, setImportingUserData] = useState(false);
@@ -3097,6 +3099,20 @@ export default function Settings() {
                             Sincronizar com planilha do Google Drive
                           </span>
                         </Button>
+
+                        <Button
+                          onClick={() => setShowGoogleCalendarModal(true)}
+                          variant="outline"
+                          className="h-auto p-4 flex flex-col items-start gap-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span className="font-medium">Google Calendar</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground text-left">
+                            Sincronizar eventos do Google Calendar
+                          </span>
+                        </Button>
                       </div>
                     </div>
 
@@ -3719,6 +3735,12 @@ export default function Settings() {
         isOpen={showGoogleDriveModal}
         onClose={() => setShowGoogleDriveModal(false)}
         onImportComplete={handleImportComplete}
+      />
+
+      <GoogleCalendarConfigModal
+        isOpen={showGoogleCalendarModal}
+        onClose={() => setShowGoogleCalendarModal(false)}
+        onSyncComplete={handleImportComplete}
       />
 
       <EventPermissionsModal

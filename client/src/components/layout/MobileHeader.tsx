@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAppTour } from '@/hooks/useAppTour';
+import { PageHelpModal } from '@/components/help/PageHelpModal';
 
 export const MobileHeader = () => {
   const { user, logout, stopImpersonating } = useAuth();
@@ -45,8 +46,11 @@ export const MobileHeader = () => {
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonationContext, setImpersonationContext] = useState<any>(null);
 
+  // State para o modal de ajuda
+  const [showHelpModal, setShowHelpModal] = useState(false);
+
   // Hook do tour interativo
-  const { startTour } = useAppTour();
+  const { startTour: _startTour } = useAppTour();
 
   // Verificar se está impersonando
   useEffect(() => {
@@ -248,13 +252,13 @@ export const MobileHeader = () => {
             {/* Offline Indicator */}
             <OfflineIndicator userRole={user?.role} compact />
 
-            {/* Botão de Tour Interativo - sempre visível */}
+            {/* Botão de Ajuda - abre modal índice */}
             <Button
               id="tour-help-button"
               variant="ghost"
               size="sm"
-              onClick={startTour}
-              title="Iniciar tour do app"
+              onClick={() => setShowHelpModal(true)}
+              title="Ajuda e funcionalidades desta página"
               className="bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200/50 hover:border-blue-300/50 transition-all duration-200 dark:from-blue-900/30 dark:to-cyan-900/30 dark:hover:from-blue-800/40 dark:hover:to-cyan-800/40 dark:border-blue-700/50"
             >
               <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -354,6 +358,9 @@ export const MobileHeader = () => {
           </div>
         </div>
       </header>
+
+      {/* Modal de Ajuda - Índice de Funcionalidades */}
+      <PageHelpModal open={showHelpModal} onOpenChange={setShowHelpModal} />
     </>
   );
 };

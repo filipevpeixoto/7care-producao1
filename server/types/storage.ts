@@ -381,6 +381,31 @@ export interface GoogleDriveConfig {
   updatedAt: string;
 }
 
+// Tipos para integração com Google Calendar
+export interface GoogleCalendarTokens {
+  userId: number;
+  districtId?: number;
+  accessToken: string; // Encrypted with AES-256-GCM
+  refreshToken: string; // Encrypted with AES-256-GCM
+  expiresAt: Date;
+  scope: string;
+}
+
+export interface GoogleCalendarConfig {
+  userId: number;
+  calendarId: string; // 'primary' ou ID específico do calendário
+  autoSync: boolean;
+  syncInterval: number; // minutos
+  lastSync?: string;
+}
+
+export interface SyncResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  errors?: string[];
+}
+
 // Tipos para configuração de eventos
 export interface EventPermissions {
   [key: string]: boolean | string[] | Record<string, boolean>;
@@ -573,6 +598,16 @@ export interface IStorage {
   clearSystemLogo(): Promise<void>;
   getGoogleDriveConfig(): Promise<GoogleDriveConfig | null>;
   saveGoogleDriveConfig(config: GoogleDriveConfig): Promise<void>;
+
+  // ===== GOOGLE CALENDAR =====
+  saveGoogleCalendarTokens(userId: number, tokens: GoogleCalendarTokens): Promise<void>;
+  getGoogleCalendarTokens(userId: number): Promise<GoogleCalendarTokens | null>;
+  updateGoogleCalendarTokens(userId: number, tokens: Partial<GoogleCalendarTokens>): Promise<void>;
+  deleteGoogleCalendarTokens(userId: number): Promise<void>;
+  saveGoogleCalendarConfig(userId: number, config: Partial<GoogleCalendarConfig>): Promise<void>;
+  getGoogleCalendarConfig(userId: number): Promise<GoogleCalendarConfig | null>;
+  getEventByGoogleId(googleCalendarEventId: string): Promise<Event | null>;
+  deleteSystemConfig(key: string): Promise<void>;
 
   // ===== UTILITÁRIOS =====
   clearAllData(): Promise<void>;

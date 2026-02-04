@@ -9,6 +9,7 @@ import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createPrayerSchema } from '../schemas';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
+import { isPastor } from '../utils/permissions';
 
 export const prayerRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -43,7 +44,24 @@ export const prayerRoutes = (app: Express): void => {
     '/api/prayers',
     asyncHandler(async (req: Request, res: Response) => {
       const { userId, isPublic, isAnswered } = req.query;
+
+      // Obter usuário logado para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let requestingUser = null;
+      if (requestingUserId) {
+        requestingUser = await storage.getUserById(requestingUserId);
+      }
+
       let prayers = await storage.getAllPrayers();
+
+      // Filtrar por distrito se for pastor (não superadmin)
+      if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
+        logger.info(`🙏 Filtrando orações por distrito: ${requestingUser.districtId}`);
+        prayers = prayers.filter(
+          (p: { districtId?: number }) =>
+            p.districtId === requestingUser!.districtId || p.districtId === null
+        );
+      }
 
       if (userId) {
         const id = parseInt(userId as string);

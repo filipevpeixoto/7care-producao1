@@ -1,10 +1,11 @@
 /**
  * Excel Utilities Module
- * Wrapper seguro para operações Excel usando exceljs
- * Substitui xlsx vulnerável por exceljs
+ * Suporta tanto .xlsx (ExcelJS) quanto .xls (SheetJS/xlsx)
+ * Wrapper seguro para operações Excel
  */
 
 import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 
 export interface ExcelRow {
   [key: string]: string | number | boolean | Date | null | undefined;
@@ -18,7 +19,79 @@ export interface ExcelSheetData {
 }
 
 /**
+ * Verifica se o arquivo é formato .xls (Excel 97-2003)
+ */
+function isXlsFile(file: File): boolean {
+  const fileName = file.name.toLowerCase();
+  return fileName.endsWith('.xls') && !fileName.endsWith('.xlsx');
+}
+
+/**
+ * Lê um arquivo Excel usando SheetJS (xlsx) - funciona com .xls e .xlsx
+ */
+async function readWithSheetJS(
+  file: File | ArrayBuffer,
+  sheetIndex: number = 0
+): Promise<ExcelSheetData> {
+  let arrayBuffer: ArrayBuffer;
+
+  if (file instanceof File) {
+    arrayBuffer = await file.arrayBuffer();
+  } else {
+    arrayBuffer = file;
+  }
+
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error('O arquivo está vazio. Por favor, selecione um arquivo válido.');
+  }
+
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error(
+      'O arquivo não contém nenhuma planilha. Verifique se o arquivo é um Excel válido.'
+    );
+  }
+
+  const sheetName = workbook.SheetNames[sheetIndex];
+  if (!sheetName) {
+    throw new Error(
+      `Planilha no índice ${sheetIndex} não encontrada. O arquivo tem ${workbook.SheetNames.length} planilha(s).`
+    );
+  }
+
+  const worksheet = workbook.Sheets[sheetName];
+
+  // Converter para JSON com headers
+  const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: null });
+
+  // Extrair headers
+  const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
+
+  // Converter para nosso formato ExcelRow
+  const data: ExcelRow[] = jsonData.map(row => {
+    const excelRow: ExcelRow = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (value instanceof Date) {
+        excelRow[key] = value;
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        excelRow[key] = value;
+      } else if (value === null || value === undefined) {
+        excelRow[key] = null;
+      } else {
+        excelRow[key] = String(value);
+      }
+    }
+    return excelRow;
+  });
+
+  return { sheetName, data, headers, rows: data };
+}
+
+/**
  * Lê um arquivo Excel e retorna os dados como array de objetos
+ * Suporta tanto .xlsx quanto .xls
+ * Usa SheetJS como biblioteca principal (mais compatível)
  * @param file - Arquivo Excel a ser lido
  * @param sheetIndex - Índice da planilha (padrão: 0)
  * @returns Promise com os dados da planilha
@@ -27,19 +100,58 @@ export async function readExcelFile(
   file: File | ArrayBuffer,
   sheetIndex: number = 0
 ): Promise<ExcelSheetData> {
-  const workbook = new ExcelJS.Workbook();
+  // Usar SheetJS para todos os arquivos (mais compatível)
+  try {
+    return await readWithSheetJS(file, sheetIndex);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
 
-  if (file instanceof File) {
-    const arrayBuffer = await file.arrayBuffer();
-    await workbook.xlsx.load(arrayBuffer);
-  } else {
-    await workbook.xlsx.load(file);
+    // Se for erro conhecido, repassar
+    if (errorMessage.includes('vazio') || errorMessage.includes('planilha')) {
+      throw err;
+    }
+
+    // Se SheetJS falhar com .xlsx, tentar ExcelJS como fallback
+    if (file instanceof File && !isXlsFile(file)) {
+      console.log('[Excel] SheetJS falhou, tentando ExcelJS como fallback...');
+      try {
+        return await readWithExcelJS(file, sheetIndex);
+      } catch (_excelJSErr) {
+        // Se ambos falharem, mostrar erro original
+        throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+      }
+    }
+
+    throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+  }
+}
+
+/**
+ * Lê um arquivo .xlsx usando ExcelJS (fallback)
+ */
+async function readWithExcelJS(file: File, sheetIndex: number = 0): Promise<ExcelSheetData> {
+  const workbook = new ExcelJS.Workbook();
+  const arrayBuffer = await file.arrayBuffer();
+
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error('O arquivo está vazio. Por favor, selecione um arquivo válido.');
+  }
+
+  await workbook.xlsx.load(arrayBuffer);
+
+  // Verificar se há planilhas no workbook
+  if (!workbook.worksheets || workbook.worksheets.length === 0) {
+    throw new Error(
+      'O arquivo não contém nenhuma planilha. Verifique se o arquivo é um Excel válido.'
+    );
   }
 
   const worksheet = workbook.worksheets[sheetIndex];
 
   if (!worksheet) {
-    throw new Error(`Planilha no índice ${sheetIndex} não encontrada`);
+    throw new Error(
+      `Planilha no índice ${sheetIndex} não encontrada. O arquivo tem ${workbook.worksheets.length} planilha(s).`
+    );
   }
 
   const sheetName = worksheet.name;
@@ -73,6 +185,8 @@ export async function readExcelFile(
 
 /**
  * Lê um arquivo Excel e retorna como array de arrays (formato raw)
+ * Suporta tanto .xlsx quanto .xls
+ * Usa SheetJS como biblioteca principal (mais compatível)
  * @param file - Arquivo Excel a ser lido
  * @param sheetIndex - Índice da planilha (padrão: 0)
  * @returns Promise com os dados em formato de array de arrays
@@ -81,19 +195,104 @@ export async function readExcelAsRawData(
   file: File | ArrayBuffer,
   sheetIndex: number = 0
 ): Promise<{ sheetName: string; data: (string | number | boolean | Date | null)[][] }> {
-  const workbook = new ExcelJS.Workbook();
+  // Usar SheetJS para todos os arquivos (mais compatível)
+  try {
+    return await readRawWithSheetJS(file, sheetIndex);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+
+    // Se for erro conhecido, repassar
+    if (errorMessage.includes('vazio') || errorMessage.includes('planilha')) {
+      throw err;
+    }
+
+    // Se SheetJS falhar com .xlsx, tentar ExcelJS como fallback
+    if (file instanceof File && !isXlsFile(file)) {
+      console.log('[Excel] SheetJS falhou para raw data, tentando ExcelJS como fallback...');
+      try {
+        return await readRawWithExcelJS(file, sheetIndex);
+      } catch {
+        throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+      }
+    }
+
+    throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+  }
+}
+
+/**
+ * Lê um arquivo Excel como raw data usando SheetJS
+ */
+async function readRawWithSheetJS(
+  file: File | ArrayBuffer,
+  sheetIndex: number = 0
+): Promise<{ sheetName: string; data: (string | number | boolean | Date | null)[][] }> {
+  let arrayBuffer: ArrayBuffer;
 
   if (file instanceof File) {
-    const arrayBuffer = await file.arrayBuffer();
-    await workbook.xlsx.load(arrayBuffer);
+    arrayBuffer = await file.arrayBuffer();
   } else {
-    await workbook.xlsx.load(file);
+    arrayBuffer = file;
+  }
+
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error('O arquivo está vazio. Por favor, selecione um arquivo válido.');
+  }
+
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error(
+      'O arquivo não contém nenhuma planilha. Verifique se o arquivo é um Excel válido.'
+    );
+  }
+
+  const sheetName = workbook.SheetNames[sheetIndex];
+  if (!sheetName) {
+    throw new Error(
+      `Planilha no índice ${sheetIndex} não encontrada. O arquivo tem ${workbook.SheetNames.length} planilha(s).`
+    );
+  }
+
+  const worksheet = workbook.Sheets[sheetName];
+
+  // Converter para array de arrays
+  const rawData = XLSX.utils.sheet_to_json<(string | number | boolean | Date | null)[]>(worksheet, {
+    header: 1,
+    defval: null,
+  });
+
+  return { sheetName, data: rawData };
+}
+
+/**
+ * Lê um arquivo .xlsx como raw data usando ExcelJS (fallback)
+ */
+async function readRawWithExcelJS(
+  file: File,
+  sheetIndex: number = 0
+): Promise<{ sheetName: string; data: (string | number | boolean | Date | null)[][] }> {
+  const workbook = new ExcelJS.Workbook();
+  const arrayBuffer = await file.arrayBuffer();
+
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error('O arquivo está vazio. Por favor, selecione um arquivo válido.');
+  }
+
+  await workbook.xlsx.load(arrayBuffer);
+
+  if (!workbook.worksheets || workbook.worksheets.length === 0) {
+    throw new Error(
+      'O arquivo não contém nenhuma planilha. Verifique se o arquivo é um Excel válido.'
+    );
   }
 
   const worksheet = workbook.worksheets[sheetIndex];
 
   if (!worksheet) {
-    throw new Error(`Planilha no índice ${sheetIndex} não encontrada`);
+    throw new Error(
+      `Planilha no índice ${sheetIndex} não encontrada. O arquivo tem ${workbook.worksheets.length} planilha(s).`
+    );
   }
 
   const sheetName = worksheet.name;

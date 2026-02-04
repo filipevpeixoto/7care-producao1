@@ -2709,59 +2709,125 @@ exports.handler = async (event, context) => {
         const userId = event.headers['x-user-id'];
         const userRole = event.headers['x-user-role'] || 'member';
         
+        // Buscar dados do usuário para filtrar por distrito
+        let currentUser = null;
+        let districtFilter = '';
+        let districtChurchNames = [];
+        
+        if (userId) {
+          const userResult = await sql`SELECT id, role, district_id, church FROM users WHERE id = ${userId}`;
+          if (userResult.length > 0) {
+            currentUser = userResult[0];
+            
+            // Se for pastor, filtrar pelo distrito
+            if (currentUser.role === 'pastor' && currentUser.district_id) {
+              const districtChurches = await sql`SELECT name FROM churches WHERE district_id = ${currentUser.district_id}`;
+              districtChurchNames = districtChurches.map(c => c.name);
+              console.log(`🏛️ Pastor do distrito ${currentUser.district_id}, igrejas: ${districtChurchNames.join(', ')}`);
+            }
+          }
+        }
+        
+        // Função para criar filtro de distrito
+        const isPastor = currentUser?.role === 'pastor' && currentUser?.district_id;
+        
         // Executar todas as queries em PARALELO para máxima performance
-        const [
-          // Stats básicos
-          usersResult,
-          eventsResult,
-          interestedResult,
-          membersResult,
-          adminsResult,
-          missionariesResult,
-          // Distritos e Pastores (só para superadmin)
-          districtsResult,
-          pastorsResult,
-          // Aniversariantes
-          birthdaysTodayResult,
-          birthdaysThisWeekResult,
-          // Eventos
-          eventsListResult,
-          // Relacionamentos
-          relationshipsResult,
-        ] = await Promise.all([
-          // Stats básicos
-          sql`SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com'`,
-          sql`SELECT COUNT(*) as count FROM events`,
-          sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com'`,
-          sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com'`,
-          sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com'`,
-          sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND email != 'admin@7care.com'`,
-          // Distritos e Pastores
-          sql`SELECT id, name FROM districts`,
-          sql`SELECT id, name FROM users WHERE role = 'pastor' AND email != 'admin@7care.com'`,
-          // Aniversariantes hoje
-          sql`SELECT id, name, birth_date, church FROM users 
-              WHERE birth_date IS NOT NULL 
-              AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-              AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
-              AND email != 'admin@7care.com'
-              LIMIT 10`,
-          // Aniversariantes esta semana
-          sql`SELECT id, name, birth_date, church FROM users 
-              WHERE birth_date IS NOT NULL 
-              AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-              AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW()) + 7
-              AND email != 'admin@7care.com'
-              LIMIT 20`,
-          // Próximos eventos (apenas os próximos 5)
-          sql`SELECT id, title, date, end_date, location, visibility 
-              FROM events 
-              WHERE date >= CURRENT_DATE 
-              ORDER BY date ASC 
-              LIMIT 5`,
-          // Relacionamentos ativos
-          sql`SELECT interested_id FROM relationships WHERE status = 'active'`,
-        ]);
+        let usersResult, eventsResult, interestedResult, membersResult, adminsResult, missionariesResult;
+        let districtsResult, pastorsResult, birthdaysTodayResult, birthdaysThisWeekResult;
+        let eventsListResult, relationshipsResult;
+        
+        if (isPastor && districtChurchNames.length > 0) {
+          // Queries filtradas por distrito para pastores
+          [
+            usersResult,
+            eventsResult,
+            interestedResult,
+            membersResult,
+            adminsResult,
+            missionariesResult,
+            districtsResult,
+            pastorsResult,
+            birthdaysTodayResult,
+            birthdaysThisWeekResult,
+            eventsListResult,
+            relationshipsResult,
+          ] = await Promise.all([
+            sql`SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
+            sql`SELECT COUNT(*) as count FROM events`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
+            sql`SELECT id, name FROM districts WHERE id = ${currentUser.district_id}`,
+            sql`SELECT id, name FROM users WHERE role = 'pastor' AND email != 'admin@7care.com' AND district_id = ${currentUser.district_id}`,
+            sql`SELECT id, name, birth_date, church FROM users 
+                WHERE birth_date IS NOT NULL 
+                AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+                AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
+                AND email != 'admin@7care.com'
+                AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))
+                LIMIT 10`,
+            sql`SELECT id, name, birth_date, church FROM users 
+                WHERE birth_date IS NOT NULL 
+                AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+                AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW()) + 7
+                AND email != 'admin@7care.com'
+                AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))
+                LIMIT 20`,
+            sql`SELECT id, title, date, end_date, location, visibility 
+                FROM events 
+                WHERE date >= CURRENT_DATE 
+                ORDER BY date ASC 
+                LIMIT 5`,
+            sql`SELECT r.interested_id FROM relationships r
+                JOIN users u ON r.interested_id = u.id
+                WHERE r.status = 'active'
+                AND (u.district_id = ${currentUser.district_id} OR u.church = ANY(${districtChurchNames}))`,
+          ]);
+        } else {
+          // Queries sem filtro (superadmin ou outros)
+          [
+            usersResult,
+            eventsResult,
+            interestedResult,
+            membersResult,
+            adminsResult,
+            missionariesResult,
+            districtsResult,
+            pastorsResult,
+            birthdaysTodayResult,
+            birthdaysThisWeekResult,
+            eventsListResult,
+            relationshipsResult,
+          ] = await Promise.all([
+            sql`SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com'`,
+            sql`SELECT COUNT(*) as count FROM events`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com'`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com'`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com'`,
+            sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND email != 'admin@7care.com'`,
+            sql`SELECT id, name FROM districts`,
+            sql`SELECT id, name FROM users WHERE role = 'pastor' AND email != 'admin@7care.com'`,
+            sql`SELECT id, name, birth_date, church FROM users 
+                WHERE birth_date IS NOT NULL 
+                AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+                AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
+                AND email != 'admin@7care.com'
+                LIMIT 10`,
+            sql`SELECT id, name, birth_date, church FROM users 
+                WHERE birth_date IS NOT NULL 
+                AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+                AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW()) + 7
+                AND email != 'admin@7care.com'
+                LIMIT 20`,
+            sql`SELECT id, title, date, end_date, location, visibility 
+                FROM events 
+                WHERE date >= CURRENT_DATE 
+                ORDER BY date ASC 
+                LIMIT 5`,
+            sql`SELECT interested_id FROM relationships WHERE status = 'active'`,
+          ]);
+        }
 
         // Calcular eventos deste mês
         const now = new Date();

@@ -28,6 +28,7 @@ import { messagingRoutes } from './messagingRoutes';
 import { notificationRoutes } from './notificationRoutes';
 import { prayerRoutes } from './prayerRoutes';
 import { calendarRoutes } from './calendarRoutes';
+import { googleCalendarRoutes } from './googleCalendarRoutes';
 import { taskRoutes } from './taskRoutes';
 import { debugRoutes } from './debugRoutes';
 import { analyticsRoutes } from './analyticsRoutes';
@@ -77,6 +78,7 @@ export const registerAllRoutes = async (app: Express): Promise<Server> => {
   notificationRoutes(app);
   prayerRoutes(app);
   calendarRoutes(app);
+  googleCalendarRoutes(app);
   taskRoutes(app);
   analyticsRoutes(app);
   reportsRoutes(app);

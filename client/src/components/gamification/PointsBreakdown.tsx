@@ -678,7 +678,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Engajamento'),
       icon: TrendingUp,
       color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/30',
+      bgColor: 'bg-blue-50 dark:bg-slate-800/60',
       description: 'Nível de participação e envolvimento',
     },
     {
@@ -686,7 +686,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Classificação'),
       icon: Users,
       color: 'text-green-600 dark:text-green-400',
-      bgColor: 'bg-green-50 dark:bg-green-900/30',
+      bgColor: 'bg-green-50 dark:bg-slate-800/60',
       description: 'Status de frequência na igreja',
     },
     {
@@ -694,7 +694,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Dizimista'),
       icon: Gift,
       color: 'text-purple-600 dark:text-purple-400',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+      bgColor: 'bg-purple-50 dark:bg-slate-800/60',
       description: 'Fidelidade regular com dízimo',
     },
     {
@@ -702,7 +702,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Ofertante'),
       icon: Heart,
       color: 'text-red-600 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-900/30',
+      bgColor: 'bg-red-50 dark:bg-slate-800/60',
       description: 'Contribuição com ofertas',
     },
     {
@@ -710,7 +710,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Tempo de Batismo'),
       icon: Calendar,
       color: 'text-orange-600 dark:text-orange-400',
-      bgColor: 'bg-orange-50 dark:bg-orange-900/30',
+      bgColor: 'bg-orange-50 dark:bg-slate-800/60',
       description: 'Anos desde o batismo',
     },
     {
@@ -718,7 +718,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Cargos'),
       icon: Award,
       color: 'text-indigo-600 dark:text-indigo-400',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-900/30',
+      bgColor: 'bg-indigo-50 dark:bg-slate-800/60',
       description: 'Funções na igreja',
     },
     {
@@ -726,7 +726,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Nome da Unidade'),
       icon: CheckCircle,
       color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
+      bgColor: 'bg-emerald-50 dark:bg-slate-800/60',
       description: 'Unidade cadastrada',
     },
     {
@@ -734,7 +734,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Tem Lição'),
       icon: Book,
       color: 'text-amber-600 dark:text-amber-400',
-      bgColor: 'bg-amber-50 dark:bg-amber-900/30',
+      bgColor: 'bg-amber-50 dark:bg-slate-800/60',
       description: 'Participação em estudos',
     },
     {
@@ -742,7 +742,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Total de Presença'),
       icon: Calendar,
       color: 'text-violet-600 dark:text-violet-400',
-      bgColor: 'bg-violet-50 dark:bg-violet-900/30',
+      bgColor: 'bg-violet-50 dark:bg-slate-800/60',
       description: 'Frequência nos cultos',
     },
     {
@@ -750,7 +750,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('CPF Válido'),
       icon: CheckCircle,
       color: 'text-sky-600 dark:text-sky-400',
-      bgColor: 'bg-sky-50 dark:bg-sky-900/30',
+      bgColor: 'bg-sky-50 dark:bg-slate-800/60',
       description: 'Documentação em dia',
     },
     {
@@ -758,7 +758,7 @@ export const PointsBreakdown = ({
       points: calculateCategoryPoints('Campos Vazios ACMS'),
       icon: Mountain,
       color: 'text-stone-600 dark:text-stone-400',
-      bgColor: 'bg-stone-50 dark:bg-stone-900/30',
+      bgColor: 'bg-stone-50 dark:bg-slate-800/60',
       description: 'Perfil completo no sistema',
     },
   ];
@@ -810,7 +810,7 @@ export const PointsBreakdown = ({
       points: calculateEscolaSabatinaPoints('comunhao'),
       icon: Users,
       color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/30',
+      bgColor: 'bg-blue-50 dark:bg-slate-800/60',
       description: 'Participação em comunhão',
     },
     {
@@ -818,7 +818,7 @@ export const PointsBreakdown = ({
       points: calculateEscolaSabatinaPoints('missao'),
       icon: Target,
       color: 'text-green-600 dark:text-green-400',
-      bgColor: 'bg-green-50 dark:bg-green-900/30',
+      bgColor: 'bg-green-50 dark:bg-slate-800/60',
       description: 'Atividades missionárias',
     },
     {
@@ -826,7 +826,7 @@ export const PointsBreakdown = ({
       points: calculateEscolaSabatinaPoints('estudoBiblico'),
       icon: Book,
       color: 'text-purple-600 dark:text-purple-400',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+      bgColor: 'bg-purple-50 dark:bg-slate-800/60',
       description: 'Estudos bíblicos realizados',
     },
     {
@@ -834,7 +834,7 @@ export const PointsBreakdown = ({
       points: calculateEscolaSabatinaPoints('batizouAlguem'),
       icon: Crown,
       color: 'text-yellow-600 dark:text-yellow-400',
-      bgColor: 'bg-yellow-50 dark:bg-yellow-900/30',
+      bgColor: 'bg-yellow-50 dark:bg-slate-800/60',
       description: 'Liderança em batismos',
     },
     {
@@ -842,7 +842,7 @@ export const PointsBreakdown = ({
       points: calculateEscolaSabatinaPoints('discipuladoPosBatismo'),
       icon: Star,
       color: 'text-orange-600 dark:text-orange-400',
-      bgColor: 'bg-orange-50 dark:bg-orange-900/30',
+      bgColor: 'bg-orange-50 dark:bg-slate-800/60',
       description: 'Acompanhamento pós-batismo',
     },
   ];

@@ -140,6 +140,11 @@ export const events = pgTable(
     recurrencePattern: text('recurrence_pattern'),
     createdBy: integer('created_by').references(() => users.id),
     churchId: integer('church_id').references(() => churches.id),
+    districtId: integer('district_id').references(() => districts.id),
+    // Campos para sincronização com Google Calendar
+    googleCalendarEventId: text('google_calendar_event_id'),
+    syncSource: text('sync_source'), // 'google_calendar' | 'manual' | 'google_drive'
+    lastSyncedAt: timestamp('last_synced_at'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
   },
@@ -148,6 +153,33 @@ export const events = pgTable(
     typeIdx: index('events_type_idx').on(table.type),
     churchIdx: index('events_church_idx').on(table.churchId),
     createdByIdx: index('events_created_by_idx').on(table.createdBy),
+    districtIdx: index('events_district_idx').on(table.districtId),
+    googleCalendarEventIdIdx: index('events_google_calendar_event_id_idx').on(
+      table.googleCalendarEventId
+    ),
+  })
+);
+
+// Tabela de tokens do Google Calendar
+export const googleCalendarTokens = pgTable(
+  'google_calendar_tokens',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .references(() => users.id)
+      .notNull(),
+    districtId: integer('district_id').references(() => districts.id),
+    accessToken: text('access_token').notNull(), // Encrypted with AES-256-GCM
+    refreshToken: text('refresh_token').notNull(), // Encrypted with AES-256-GCM
+    expiresAt: timestamp('expires_at').notNull(),
+    scope: text('scope').notNull(),
+    tokenType: text('token_type').default('Bearer'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  table => ({
+    userIdx: index('google_calendar_tokens_user_idx').on(table.userId),
+    districtIdx: index('google_calendar_tokens_district_idx').on(table.districtId),
   })
 );
 
@@ -223,11 +255,13 @@ export const conversations = pgTable(
     title: text('title'),
     type: text('type').default('private'),
     createdBy: integer('created_by').references(() => users.id),
+    districtId: integer('district_id').references(() => districts.id),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
   },
   table => ({
     createdByIdx: index('conversations_created_by_idx').on(table.createdBy),
+    districtIdx: index('conversations_district_idx').on(table.districtId),
   })
 );
 
@@ -510,6 +544,7 @@ export const prayers = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     requesterId: integer('requester_id').references(() => users.id),
+    districtId: integer('district_id').references(() => districts.id),
     status: text('status').default('active'),
     isPrivate: boolean('is_private').default(false),
     createdAt: timestamp('created_at').defaultNow(),
@@ -518,6 +553,7 @@ export const prayers = pgTable(
   table => ({
     requesterIdx: index('prayers_requester_idx').on(table.requesterId),
     statusIdx: index('prayers_status_idx').on(table.status),
+    districtIdx: index('prayers_district_idx').on(table.districtId),
   })
 );
 

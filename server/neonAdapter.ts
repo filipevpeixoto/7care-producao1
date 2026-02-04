@@ -69,6 +69,8 @@ import {
   PushSubscription,
   Activity,
   GoogleDriveConfig,
+  GoogleCalendarTokens,
+  GoogleCalendarConfig,
   Prayer,
 } from './types/storage';
 import {
@@ -571,6 +573,7 @@ export class NeonAdapter implements IStorage {
         color?: string | null;
         churchId?: number | null;
         time?: string;
+        districtId?: number | null;
       };
       const baseDate = new Date(eventExtras.date);
       if (eventExtras.time) {
@@ -583,6 +586,13 @@ export class NeonAdapter implements IStorage {
         if (!Number.isNaN(parsedMinutes)) {
           baseDate.setMinutes(parsedMinutes);
         }
+      }
+
+      // Buscar distrito do criador do evento
+      let districtId = eventExtras.districtId || null;
+      if (!districtId && eventExtras.organizerId) {
+        const user = await this.getUserById(eventExtras.organizerId);
+        districtId = user?.districtId || null;
       }
 
       const newEvent = {
@@ -598,6 +608,7 @@ export class NeonAdapter implements IStorage {
         recurrencePattern: eventExtras.recurrencePattern ?? null,
         createdBy: eventExtras.organizerId ?? null,
         churchId: eventExtras.churchId ?? null,
+        districtId: districtId,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -2239,12 +2250,20 @@ export class NeonAdapter implements IStorage {
 
   async createConversation(data: Partial<Conversation>): Promise<Conversation> {
     try {
+      // Buscar distrito do criador da conversa
+      let districtId = null;
+      if (data.createdBy) {
+        const user = await this.getUserById(data.createdBy);
+        districtId = user?.districtId || null;
+      }
+
       const [conversation] = await db
         .insert(schema.conversations)
         .values({
           title: data.title ?? null,
           type: data.type ?? 'private',
           createdBy: data.createdBy ?? null,
+          districtId: districtId,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
@@ -2936,9 +2955,17 @@ export class NeonAdapter implements IStorage {
     return this.getActivitiesFromConfig(stored);
   }
 
-  async createActivity(data: CreateActivityInput): Promise<Activity> {
+  async createActivity(data: CreateActivityInput & { createdBy?: number }): Promise<Activity> {
     const activities = await this.getAllActivities();
     const nextId = activities.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+
+    // Buscar distrito do criador da atividade
+    let districtId = null;
+    if (data.createdBy) {
+      const user = await this.getUserById(data.createdBy);
+      districtId = user?.districtId || null;
+    }
+
     const activity = {
       id: nextId,
       title: data.title,
@@ -2947,6 +2974,7 @@ export class NeonAdapter implements IStorage {
       date: data.date ?? null,
       active: data.active ?? true,
       order: data.order ?? activities.length,
+      districtId: districtId,
     };
     const updated = [...activities, activity];
     await this.saveSystemConfig('activities', updated);
@@ -2990,6 +3018,137 @@ export class NeonAdapter implements IStorage {
       return null;
     }
     return config as GoogleDriveConfig;
+  }
+
+  // ========== GOOGLE CALENDAR ==========
+  async saveGoogleCalendarTokens(userId: number, tokens: GoogleCalendarTokens): Promise<void> {
+    try {
+      // Delete existing tokens for this user
+      await db
+        .delete(schema.googleCalendarTokens)
+        .where(eq(schema.googleCalendarTokens.userId, userId));
+
+      // Insert new tokens
+      await db.insert(schema.googleCalendarTokens).values({
+        userId: tokens.userId,
+        districtId: tokens.districtId || null,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresAt,
+        scope: tokens.scope,
+        tokenType: 'Bearer',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      console.error('Error saving Google Calendar tokens:', error);
+      throw new Error(`Failed to save Google Calendar tokens: ${(error as Error).message}`);
+    }
+  }
+
+  async getGoogleCalendarTokens(userId: number): Promise<GoogleCalendarTokens | null> {
+    try {
+      const result = await db
+        .select()
+        .from(schema.googleCalendarTokens)
+        .where(eq(schema.googleCalendarTokens.userId, userId))
+        .limit(1);
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      const row = result[0];
+      return {
+        userId: row.userId,
+        districtId: row.districtId || undefined,
+        accessToken: row.accessToken,
+        refreshToken: row.refreshToken,
+        expiresAt: row.expiresAt,
+        scope: row.scope,
+      };
+    } catch (error) {
+      console.error('Error getting Google Calendar tokens:', error);
+      return null;
+    }
+  }
+
+  async updateGoogleCalendarTokens(
+    userId: number,
+    tokens: Partial<GoogleCalendarTokens>
+  ): Promise<void> {
+    try {
+      await db
+        .update(schema.googleCalendarTokens)
+        .set({
+          ...tokens,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.googleCalendarTokens.userId, userId));
+    } catch (error) {
+      console.error('Error updating Google Calendar tokens:', error);
+      throw new Error(`Failed to update Google Calendar tokens: ${(error as Error).message}`);
+    }
+  }
+
+  async deleteGoogleCalendarTokens(userId: number): Promise<void> {
+    try {
+      await db
+        .delete(schema.googleCalendarTokens)
+        .where(eq(schema.googleCalendarTokens.userId, userId));
+    } catch (error) {
+      console.error('Error deleting Google Calendar tokens:', error);
+      throw new Error(`Failed to delete Google Calendar tokens: ${(error as Error).message}`);
+    }
+  }
+
+  async saveGoogleCalendarConfig(
+    userId: number,
+    config: Partial<GoogleCalendarConfig>
+  ): Promise<void> {
+    const existingConfig = await this.getGoogleCalendarConfig(userId);
+    const newConfig = {
+      ...existingConfig,
+      ...config,
+      userId,
+    };
+    await this.saveSystemConfig(`google_calendar_config_${userId}`, newConfig);
+  }
+
+  async getGoogleCalendarConfig(userId: number): Promise<GoogleCalendarConfig | null> {
+    const config = await this.getSystemConfig(`google_calendar_config_${userId}`);
+    if (!config) {
+      return null;
+    }
+    return config as GoogleCalendarConfig;
+  }
+
+  async getEventByGoogleId(googleCalendarEventId: string): Promise<Event | null> {
+    try {
+      const result = await db
+        .select()
+        .from(schema.events)
+        .where(eq(schema.events.googleCalendarEventId, googleCalendarEventId))
+        .limit(1);
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      return result[0] as Event;
+    } catch (error) {
+      console.error('Error getting event by Google ID:', error);
+      return null;
+    }
+  }
+
+  async deleteSystemConfig(key: string): Promise<void> {
+    try {
+      await db.delete(schema.systemConfig).where(eq(schema.systemConfig.key, key));
+    } catch (error) {
+      console.error(`Error deleting system config ${key}:`, error);
+      throw new Error(`Failed to delete system config: ${(error as Error).message}`);
+    }
   }
 
   // ========== MEETINGS ==========
@@ -3065,6 +3224,13 @@ export class NeonAdapter implements IStorage {
 
   async createPrayer(data: CreatePrayerInput): Promise<Prayer> {
     try {
+      // Buscar distrito do usuário que está criando a oração
+      let districtId = null;
+      if (data.userId) {
+        const user = await this.getUserById(data.userId);
+        districtId = user?.districtId || null;
+      }
+
       const [prayer] = await db
         .insert(schema.prayers)
         .values({
@@ -3072,6 +3238,7 @@ export class NeonAdapter implements IStorage {
           title: data.title,
           description: data.description || '',
           isPrivate: data.isPublic === undefined ? false : !data.isPublic,
+          districtId: districtId,
           status: 'active',
           createdAt: new Date(),
           updatedAt: new Date(),

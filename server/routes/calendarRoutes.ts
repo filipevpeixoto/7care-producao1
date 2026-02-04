@@ -9,6 +9,7 @@ import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { googleDriveConfigSchema } from '../schemas';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
+import { isPastor } from '../utils/permissions';
 
 export const calendarRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -314,7 +315,24 @@ export const calendarRoutes = (app: Express): void => {
   app.get(
     '/api/activities',
     asyncHandler(async (req: Request, res: Response) => {
-      const activities = await storage.getAllActivities();
+      // Obter usuário logado para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let requestingUser = null;
+      if (requestingUserId) {
+        requestingUser = await storage.getUserById(requestingUserId);
+      }
+
+      let activities = await storage.getAllActivities();
+
+      // Filtrar por distrito se for pastor (não superadmin)
+      if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
+        logger.info(`📅 Filtrando atividades por distrito: ${requestingUser.districtId}`);
+        activities = activities.filter(
+          (a: { districtId?: number }) =>
+            a.districtId === requestingUser!.districtId || a.districtId === null
+        );
+      }
+
       sendSuccess(res, activities);
     })
   );
@@ -341,7 +359,8 @@ export const calendarRoutes = (app: Express): void => {
     '/api/activities',
     asyncHandler(async (req: Request, res: Response) => {
       const activityData = req.body;
-      const activity = await storage.createActivity(activityData);
+      const createdBy = parseInt((req.headers['x-user-id'] as string) || '0');
+      const activity = await storage.createActivity({ ...activityData, createdBy });
       sendSuccess(res, activity, 201, 'Atividade criada');
     })
   );

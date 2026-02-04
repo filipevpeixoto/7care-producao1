@@ -9,6 +9,8 @@ import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createEmotionalCheckInSchema } from '../schemas';
+import { isPastor } from '../utils/permissions';
+import { Church, User } from '../../shared/schema';
 
 export const spiritualRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -92,7 +94,38 @@ export const spiritualRoutes = (app: Express): void => {
   app.get(
     '/api/emotional-checkins/admin',
     asyncHandler(async (req: Request, res: Response) => {
-      const checkIns = await storage.getEmotionalCheckInsForAdmin();
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUser = requestingUserId ? await storage.getUserById(requestingUserId) : null;
+
+      let checkIns = await storage.getEmotionalCheckInsForAdmin();
+
+      // Filtrar por distrito se for pastor
+      if (isPastor(requestingUser) && requestingUser?.districtId) {
+        const districtChurches = await storage.getChurchesByDistrict(requestingUser.districtId);
+        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
+        const allUsers = await storage.getAllUsers();
+
+        // IDs de usuários do distrito
+        const districtUserIds = new Set(
+          allUsers
+            .filter((u: User) => {
+              const churchName = u.church ?? '';
+              return (
+                districtChurchNames.includes(churchName) ||
+                u.districtId === requestingUser.districtId
+              );
+            })
+            .map((u: User) => u.id)
+        );
+
+        checkIns = checkIns.filter(
+          (c: { userId?: number }) => c.userId && districtUserIds.has(c.userId)
+        );
+        logger.info(
+          `🏛️ Check-ins filtrados por distrito ${requestingUser.districtId}: ${checkIns.length} encontrados`
+        );
+      }
+
       res.json(checkIns);
     })
   );
@@ -110,7 +143,33 @@ export const spiritualRoutes = (app: Express): void => {
   app.get(
     '/api/spiritual-checkins/scores',
     asyncHandler(async (req: Request, res: Response) => {
-      const checkIns = await storage.getEmotionalCheckInsForAdmin();
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUser = requestingUserId ? await storage.getUserById(requestingUserId) : null;
+
+      let checkIns = await storage.getEmotionalCheckInsForAdmin();
+      let allUsers = await storage.getAllUsers();
+
+      // Filtrar por distrito se for pastor
+      if (isPastor(requestingUser) && requestingUser?.districtId) {
+        const districtChurches = await storage.getChurchesByDistrict(requestingUser.districtId);
+        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
+
+        // Filtrar usuários do distrito
+        allUsers = allUsers.filter((u: User) => {
+          const churchName = u.church ?? '';
+          return (
+            districtChurchNames.includes(churchName) || u.districtId === requestingUser.districtId
+          );
+        });
+
+        // IDs de usuários do distrito
+        const districtUserIds = new Set(allUsers.map((u: User) => u.id));
+
+        checkIns = checkIns.filter(
+          (c: { userId?: number }) => c.userId && districtUserIds.has(c.userId)
+        );
+        logger.info(`🏛️ Scores filtrados por distrito ${requestingUser.districtId}`);
+      }
 
       const scoreGroups = {
         '1': { count: 0, label: 'Distante', description: 'Muito distante de Deus' },
@@ -127,7 +186,6 @@ export const spiritualRoutes = (app: Express): void => {
         }
       });
 
-      const allUsers = await storage.getAllUsers();
       const usersWithCheckIn = new Set(checkIns.map(c => c.userId));
       const usersWithoutCheckIn = allUsers.filter(u => !usersWithCheckIn.has(u.id)).length;
 

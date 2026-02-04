@@ -9,6 +9,8 @@ import { asyncHandler, sendSuccess, sendNotFound } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createMeetingSchema } from '../schemas';
+import { isPastor } from '../utils/permissions';
+import { Church, User } from '../../shared/schema';
 
 export const meetingRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -39,7 +41,39 @@ export const meetingRoutes = (app: Express): void => {
     '/api/meetings',
     asyncHandler(async (req: Request, res: Response) => {
       const { userId, status } = req.query;
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUser = requestingUserId ? await storage.getUserById(requestingUserId) : null;
+
       let meetings = await storage.getAllMeetings();
+
+      // Filtrar por distrito se for pastor
+      if (isPastor(requestingUser) && requestingUser?.districtId) {
+        const districtChurches = await storage.getChurchesByDistrict(requestingUser.districtId);
+        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
+        const allUsers = await storage.getAllUsers();
+
+        // IDs de usuários do distrito
+        const districtUserIds = new Set(
+          allUsers
+            .filter((u: User) => {
+              const churchName = u.church ?? '';
+              return (
+                districtChurchNames.includes(churchName) ||
+                u.districtId === requestingUser.districtId
+              );
+            })
+            .map((u: User) => u.id)
+        );
+
+        meetings = meetings.filter(
+          m =>
+            districtUserIds.has(m.requesterId) ||
+            (m.assignedToId && districtUserIds.has(m.assignedToId))
+        );
+        logger.info(
+          `🏛️ Reuniões filtradas por distrito ${requestingUser.districtId}: ${meetings.length} encontradas`
+        );
+      }
 
       if (userId) {
         const id = parseInt(String(userId), 10);
