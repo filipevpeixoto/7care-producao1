@@ -54,7 +54,7 @@ interface ActiveElection {
 }
 
 export default function UnifiedElection() {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -89,7 +89,7 @@ export default function UnifiedElection() {
       const response = await fetch('/api/elections/configs', {
         headers: {
           'Cache-Control': 'no-cache',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (response.ok) {

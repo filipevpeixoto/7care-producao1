@@ -53,7 +53,7 @@ interface ElectionConfig {
 }
 
 export default function ElectionDashboard() {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -109,7 +109,7 @@ export default function ElectionDashboard() {
       const response = await fetch(`/api/elections/vote-log/${electionId}`, {
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (response.ok) {

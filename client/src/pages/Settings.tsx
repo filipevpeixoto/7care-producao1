@@ -133,7 +133,7 @@ const initialSettings: SettingsData = {
 };
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsData>(initialSettings);
   const [isLoading, setIsLoading] = useState(false);
@@ -381,7 +381,7 @@ export default function Settings() {
 
       const response = await fetch(churchesUrl, {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (response.ok) {
@@ -705,7 +705,7 @@ export default function Settings() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({ isActive: !church.active }),
       });
@@ -738,7 +738,7 @@ export default function Settings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({
           name: 'Nova Igreja',
@@ -768,7 +768,7 @@ export default function Settings() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({ [field]: value }),
       });
@@ -849,7 +849,7 @@ export default function Settings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
 

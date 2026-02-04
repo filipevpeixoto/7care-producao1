@@ -39,7 +39,7 @@ interface Pastor {
 }
 
 export default function Pastors() {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,7 +62,7 @@ export default function Pastors() {
     queryFn: async () => {
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) throw new Error('Erro ao buscar pastores');
@@ -77,7 +77,7 @@ export default function Pastors() {
     queryFn: async () => {
       const response = await fetch('/api/districts', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) return [];
@@ -93,7 +93,7 @@ export default function Pastors() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -129,7 +129,7 @@ export default function Pastors() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -165,7 +165,7 @@ export default function Pastors() {
       const response = await fetch(`/api/pastors/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) {

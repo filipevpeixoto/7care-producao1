@@ -2,8 +2,11 @@ import { QueryClient } from '@tanstack/react-query';
 import { PERFORMANCE_CONFIG } from './performance';
 
 // Helper para extrair o userId do localStorage
+// IMPORTANTE: Sempre retorna o ID do usuário REAL (não impersonado) para garantir
+// que as permissões corretas sejam aplicadas no backend
 function getUserId(): string {
   try {
+    // Sempre usar o usuário real para autorização no backend
     const auth = localStorage.getItem('7care_auth');
     if (auth) {
       const user = JSON.parse(auth);

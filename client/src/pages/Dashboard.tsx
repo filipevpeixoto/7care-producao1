@@ -38,7 +38,7 @@ import type {
 } from '@/types/domain';
 
 const Dashboard = () => {
-  const { user, realUser } = useAuth(); // realUser para headers HTTP
+  const { user, realUser } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { shouldShowCheckIn: _shouldShowCheckIn, markCheckInComplete } = useSpiritualCheckIn();
@@ -55,7 +55,7 @@ const Dashboard = () => {
       const response = await fetch('/api/dashboard/unified', {
         headers: {
           'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
-          'x-user-role': realUser?.role || user?.role || '',
+          'x-user-role': user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Failed to fetch unified dashboard');
@@ -81,7 +81,7 @@ const Dashboard = () => {
       const response = await fetch('/api/users?limit=500', {
         headers: {
           'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
-          'x-user-role': realUser?.role || user?.role || '',
+          'x-user-role': user?.role || '',
         },
       });
       if (!response.ok) {
@@ -219,7 +219,7 @@ const Dashboard = () => {
       }
       const response = await fetch('/api/dashboard/stats', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) throw new Error('Failed to fetch dashboard stats');
@@ -371,7 +371,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const response = await fetch('/api/dashboard/visits', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -400,7 +400,7 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Fetching relationships for missionary:', user.id);
       const response = await fetch(`/api/relationships/missionary/${user.id}`, {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -428,7 +428,7 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Fetching events for role:', user.role);
       const response = await fetch(`/api/events?role=${user.role}`, {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -452,7 +452,7 @@ const Dashboard = () => {
       if (!hasAdminAccess(user)) return [];
       const response = await fetch('/api/emotional-checkins/admin', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -481,7 +481,7 @@ const Dashboard = () => {
       }
       const response = await fetch('/api/districts', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) {
@@ -514,7 +514,7 @@ const Dashboard = () => {
       }
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) {
@@ -891,7 +891,7 @@ const Dashboard = () => {
       );
       const response = await fetch(`/api/relationships/missionary/${user.id}`, {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -930,7 +930,7 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Fetching points details for user:', user.id);
       const response = await fetch(`/api/users/${user.id}/points-details`, {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });

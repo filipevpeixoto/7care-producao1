@@ -85,7 +85,7 @@ const getUserExtraData = (userData: UserType): UserExtraData => {
 };
 
 export default function Users() {
-  const { user, realUser } = useAuth(); // realUser para headers HTTP
+  const { user, realUser } = useAuth();
   useUserPoints();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -132,7 +132,7 @@ export default function Users() {
         const response = await fetch('/api/users?limit=500', {
           headers: {
             'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
-            'x-user-role': realUser?.role || user?.role || '',
+            'x-user-role': user?.role || '',
           },
         });
         if (!response.ok) {
@@ -167,7 +167,7 @@ export default function Users() {
       try {
         const response = await fetch('/api/relationships', {
           headers: {
-            'x-user-id': user?.id?.toString() || '',
+            'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
             'x-user-role': user?.role || '',
           },
         });
@@ -197,7 +197,7 @@ export default function Users() {
     queryFn: async () => {
       const response = await fetch('/api/spiritual-checkins/scores', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -214,7 +214,7 @@ export default function Users() {
       const response = await fetch('/api/churches', {
         headers: {
           'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
-          'x-user-role': realUser?.role || user?.role || '',
+          'x-user-role': user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Erro ao buscar igrejas');
@@ -228,7 +228,7 @@ export default function Users() {
     queryFn: async () => {
       const response = await fetch('/api/discipleship-requests', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });

@@ -44,7 +44,7 @@ interface District {
 }
 
 export default function Districts() {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -152,7 +152,7 @@ export default function Districts() {
     queryFn: async () => {
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) return [];
@@ -167,7 +167,7 @@ export default function Districts() {
     queryFn: async () => {
       const response = await fetch('/api/churches/unassigned', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) return [];
@@ -183,7 +183,7 @@ export default function Districts() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -218,7 +218,7 @@ export default function Districts() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -253,7 +253,7 @@ export default function Districts() {
       const response = await fetch(`/api/districts/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
       });
       if (!response.ok) {
@@ -287,7 +287,7 @@ export default function Districts() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({ churchIds }),
       });
@@ -403,7 +403,7 @@ export default function Districts() {
       if (pastorId) {
         const response = await fetch(`/api/users/${pastorId}`, {
           headers: {
-            'x-user-id': user?.id?.toString() || '',
+            'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
           },
         });
 

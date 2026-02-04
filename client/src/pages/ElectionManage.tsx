@@ -58,7 +58,7 @@ type ElectionPhase = 'nomination' | 'oral_observations' | 'voting' | 'completed'
 
 export default function ElectionManage() {
   const { configId } = useParams<{ configId: string }>();
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -160,7 +160,7 @@ export default function ElectionManage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({
           configId: parseInt(configId!),
@@ -198,7 +198,7 @@ export default function ElectionManage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({
           configId: parseInt(configId!),
@@ -236,7 +236,7 @@ export default function ElectionManage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({
           configId: parseInt(configId!),
@@ -274,7 +274,7 @@ export default function ElectionManage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({
           configId: parseInt(configId!),
@@ -320,7 +320,7 @@ export default function ElectionManage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
+          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
         },
         body: JSON.stringify({
           configId: parseInt(configId!),
