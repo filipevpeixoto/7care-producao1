@@ -8,7 +8,7 @@ import { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createRelationshipSchema } from '../schemas';
-import { hasAdminAccess } from '../utils/permissions';
+import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 
 export const relationshipRoutes = (app: Express): void => {
@@ -250,6 +250,46 @@ export const relationshipRoutes = (app: Express): void => {
     '/api/relationships/missionary/:missionaryId',
     asyncHandler(async (req: Request, res: Response) => {
       const missionaryId = parseInt(req.params.missionaryId);
+      const requestingUserId = req.headers['x-user-id'];
+
+      // Verificar permissões de acesso
+      if (requestingUserId) {
+        const requestingUser = await storage.getUserById(parseInt(requestingUserId as string));
+        const missionary = await storage.getUserById(missionaryId);
+
+        if (!missionary) {
+          return sendNotFound(res, 'Missionário');
+        }
+
+        if (requestingUser && !isSuperAdmin(requestingUser)) {
+          // Usuário só pode ver seus próprios relacionamentos ou se for do mesmo distrito (pastor)
+          if (requestingUser.id !== missionaryId) {
+            // Se for pastor, verificar se o missionário pertence ao mesmo distrito
+            if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+              if (missionary.districtId !== requestingUser.districtId) {
+                logger.warn(
+                  `🚫 Pastor ${requestingUser.email} tentou acessar relacionamentos de missionário de outro distrito`
+                );
+                return res.status(403).json({
+                  error: 'Acesso negado',
+                  message:
+                    'Você não tem permissão para acessar relacionamentos de missionários de outros distritos',
+                });
+              }
+            } else {
+              // Se não for pastor/super admin, só pode ver seus próprios relacionamentos
+              logger.warn(
+                `🚫 Usuário ${requestingUser.email} tentou acessar relacionamentos de outro usuário`
+              );
+              return res.status(403).json({
+                error: 'Acesso negado',
+                message: 'Você não tem permissão para acessar relacionamentos de outros usuários',
+              });
+            }
+          }
+        }
+      }
+
       const relationships = await storage.getRelationshipsByMissionary(missionaryId);
       sendSuccess(res, relationships);
     })

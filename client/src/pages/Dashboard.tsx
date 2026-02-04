@@ -78,7 +78,12 @@ const Dashboard = () => {
     queryFn: async () => {
       console.log('🔄 Dashboard: Buscando usuários da API...');
       // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
-      const response = await fetch('/api/users?limit=500');
+      const response = await fetch('/api/users?limit=500', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         console.error('❌ Dashboard: Erro ao buscar usuários:', response.status);
         return [];
@@ -364,7 +369,12 @@ const Dashboard = () => {
   } = useQuery({
     queryKey: ['/api/dashboard/visits'],
     queryFn: async () => {
-      const response = await fetch('/api/dashboard/visits');
+      const response = await fetch('/api/dashboard/visits', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -388,7 +398,12 @@ const Dashboard = () => {
         return [];
       }
       console.log('🔍 Dashboard: Fetching relationships for missionary:', user.id);
-      const response = await fetch(`/api/relationships/missionary/${user.id}`);
+      const response = await fetch(`/api/relationships/missionary/${user.id}`, {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -411,7 +426,12 @@ const Dashboard = () => {
         return [];
       }
       console.log('🔍 Dashboard: Fetching events for role:', user.role);
-      const response = await fetch(`/api/events?role=${user.role}`);
+      const response = await fetch(`/api/events?role=${user.role}`, {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -430,7 +450,12 @@ const Dashboard = () => {
     queryKey: ['/api/emotional-checkins/admin'],
     queryFn: async () => {
       if (!hasAdminAccess(user)) return [];
-      const response = await fetch('/api/emotional-checkins/admin');
+      const response = await fetch('/api/emotional-checkins/admin', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -864,7 +889,12 @@ const Dashboard = () => {
         'Church:',
         user.church
       );
-      const response = await fetch(`/api/relationships/missionary/${user.id}`);
+      const response = await fetch(`/api/relationships/missionary/${user.id}`, {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       console.log(
         '🔍 Dashboard: Relationships response status:',
         response.status,
@@ -898,7 +928,12 @@ const Dashboard = () => {
         return null;
       }
       console.log('🔍 Dashboard: Fetching points details for user:', user.id);
-      const response = await fetch(`/api/users/${user.id}/points-details`);
+      const response = await fetch(`/api/users/${user.id}/points-details`, {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
