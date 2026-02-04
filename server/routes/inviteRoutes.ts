@@ -27,6 +27,8 @@ import {
   ChurchValidation,
 } from '../types/pastor-invite.types';
 import { extractChurchesFromExcel, validateExcelChurches } from '../utils/church-validation';
+import { isSuperAdmin } from '../utils/permissions';
+import { NeonAdapter } from '../neonAdapter';
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -144,16 +146,40 @@ export const inviteRoutes = (app: Express): void => {
    */
   app.get(
     '/api/churches/registered',
-    asyncHandler(async (_req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const allChurches = await db
+    asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const userId = req.headers['x-user-id'] as string;
+      const storage = new NeonAdapter();
+
+      let allChurches = await db
         .select({
           id: churches.id,
           name: churches.name,
           code: churches.code,
+          districtId: churches.districtId,
         })
         .from(churches);
 
-      res.json({ churches: allChurches });
+      // Filtrar por distrito se não for super admin
+      if (userId) {
+        const requestingUser = await storage.getUserById(parseInt(userId));
+
+        if (requestingUser && !isSuperAdmin(requestingUser)) {
+          // Se for pastor, filtrar pelo distrito
+          if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+            logger.debug(
+              `🏛️ Pastor detectado em churches/registered, filtrando por distrito: ${requestingUser.districtId}`
+            );
+            allChurches = allChurches.filter(c => c.districtId === requestingUser.districtId);
+          }
+          // Para outros usuários (não-pastores e não-superadmins), não filtra
+          // pois eles podem precisar ver todas as igrejas disponíveis
+        }
+      }
+
+      // Remover districtId da resposta (informação interna)
+      const churchesResponse = allChurches.map(({ districtId: _districtId, ...church }) => church);
+
+      res.json({ churches: churchesResponse });
     })
   );
 
@@ -645,27 +671,29 @@ export const inviteRoutes = (app: Express): void => {
 
               // 2. CLASSIFICAÇÃO
               const classificacao = (member.classificacao || '').toLowerCase();
-              if (classificacao === 'frequente')
+              if (classificacao === 'frequente') {
                 points += adjustedPointsConfig.classificacao.frequente;
-              else points += adjustedPointsConfig.classificacao.naoFrequente;
+              } else points += adjustedPointsConfig.classificacao.naoFrequente;
 
               // 3. DIZIMISTA
               const dizimista = (member.dizimistaType || '').toLowerCase();
-              if (dizimista.includes('recorrente'))
+              if (dizimista.includes('recorrente')) {
                 points += adjustedPointsConfig.dizimista.recorrente;
-              else if (dizimista.includes('sazonal'))
+              } else if (dizimista.includes('sazonal')) {
                 points += adjustedPointsConfig.dizimista.sazonal;
-              else if (dizimista.includes('pontual'))
+              } else if (dizimista.includes('pontual')) {
                 points += adjustedPointsConfig.dizimista.pontual;
+              }
 
               // 4. OFERTANTE
               const ofertante = (member.ofertanteType || '').toLowerCase();
-              if (ofertante.includes('recorrente'))
+              if (ofertante.includes('recorrente')) {
                 points += adjustedPointsConfig.ofertante.recorrente;
-              else if (ofertante.includes('sazonal'))
+              } else if (ofertante.includes('sazonal')) {
                 points += adjustedPointsConfig.ofertante.sazonal;
-              else if (ofertante.includes('pontual'))
+              } else if (ofertante.includes('pontual')) {
                 points += adjustedPointsConfig.ofertante.pontual;
+              }
 
               // 5. TEMPO DE BATISMO
               const tempoBatismo = member.tempoBatismoAnos || 0;
@@ -709,15 +737,17 @@ export const inviteRoutes = (app: Express): void => {
               points += estudoBiblico * adjustedPointsConfig.escolaSabatina.estudoBiblico;
 
               // 13. BATIZOU ALGUÉM
-              if (member.batizouAlguem === true)
+              if (member.batizouAlguem === true) {
                 points += adjustedPointsConfig.escolaSabatina.batizouAlguem;
+              }
 
               // 14. CPF VÁLIDO
               if (member.cpfValido === true) points += adjustedPointsConfig.cpfValido.valido;
 
               // 15. CAMPOS VAZIOS (se NÃO tem campos vazios, ganha pontos)
-              if (member.camposVazios === false)
+              if (member.camposVazios === false) {
                 points += adjustedPointsConfig.camposVaziosACMS.semCamposVazios;
+              }
 
               // Atualizar pontos do membro
               const roundedPoints = Math.round(points);
@@ -1164,27 +1194,29 @@ export const inviteRoutes = (app: Express): void => {
 
             // 2. CLASSIFICAÇÃO
             const classificacao = (member.classificacao || '').toLowerCase();
-            if (classificacao === 'frequente')
+            if (classificacao === 'frequente') {
               points += adjustedPointsConfig.classificacao.frequente;
-            else points += adjustedPointsConfig.classificacao.naoFrequente;
+            } else points += adjustedPointsConfig.classificacao.naoFrequente;
 
             // 3. DIZIMISTA
             const dizimista = (member.dizimistaType || '').toLowerCase();
-            if (dizimista.includes('recorrente'))
+            if (dizimista.includes('recorrente')) {
               points += adjustedPointsConfig.dizimista.recorrente;
-            else if (dizimista.includes('sazonal'))
+            } else if (dizimista.includes('sazonal')) {
               points += adjustedPointsConfig.dizimista.sazonal;
-            else if (dizimista.includes('pontual'))
+            } else if (dizimista.includes('pontual')) {
               points += adjustedPointsConfig.dizimista.pontual;
+            }
 
             // 4. OFERTANTE
             const ofertante = (member.ofertanteType || '').toLowerCase();
-            if (ofertante.includes('recorrente'))
+            if (ofertante.includes('recorrente')) {
               points += adjustedPointsConfig.ofertante.recorrente;
-            else if (ofertante.includes('sazonal'))
+            } else if (ofertante.includes('sazonal')) {
               points += adjustedPointsConfig.ofertante.sazonal;
-            else if (ofertante.includes('pontual'))
+            } else if (ofertante.includes('pontual')) {
               points += adjustedPointsConfig.ofertante.pontual;
+            }
 
             // 5. TEMPO DE BATISMO
             const tempoBatismo = member.tempoBatismoAnos || 0;
@@ -1228,15 +1260,17 @@ export const inviteRoutes = (app: Express): void => {
             points += estudoBiblico * adjustedPointsConfig.escolaSabatina.estudoBiblico;
 
             // 13. BATIZOU ALGUÉM
-            if (member.batizouAlguem === true)
+            if (member.batizouAlguem === true) {
               points += adjustedPointsConfig.escolaSabatina.batizouAlguem;
+            }
 
             // 14. CPF VÁLIDO
             if (member.cpfValido === true) points += adjustedPointsConfig.cpfValido.valido;
 
             // 15. CAMPOS VAZIOS (se NÃO tem campos vazios, ganha pontos)
-            if (member.camposVazios === false)
+            if (member.camposVazios === false) {
               points += adjustedPointsConfig.camposVaziosACMS.semCamposVazios;
+            }
 
             // Atualizar pontos do membro
             const roundedPoints = Math.round(points);

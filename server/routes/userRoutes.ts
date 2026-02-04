@@ -484,6 +484,38 @@ export const userRoutes = (app: Express): void => {
         return sendNotFound(res, 'Usuário');
       }
 
+      // Verificar permissões de acesso ao usuário
+      const requestingUserId = req.headers['x-user-id'];
+      if (requestingUserId) {
+        const requestingUser = await storage.getUserById(parseInt(requestingUserId as string));
+
+        if (requestingUser && !isSuperAdmin(requestingUser)) {
+          // Se for pastor, verificar se o usuário pertence ao mesmo distrito
+          if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+            if (user.districtId !== requestingUser.districtId) {
+              logger.warn(
+                `🚫 Pastor ${requestingUser.email} tentou acessar usuário de outro distrito`
+              );
+              return res.status(403).json({
+                error: 'Acesso negado',
+                message: 'Você não tem permissão para acessar usuários de outros distritos',
+              });
+            }
+          } else {
+            // Se não for pastor/super admin, verificar se pertence à mesma igreja
+            if (user.church !== requestingUser.church) {
+              logger.warn(
+                `🚫 Usuário ${requestingUser.email} tentou acessar usuário de outra igreja`
+              );
+              return res.status(403).json({
+                error: 'Acesso negado',
+                message: 'Você não tem permissão para acessar usuários de outras igrejas',
+              });
+            }
+          }
+        }
+      }
+
       const { password: _password, ...safeUser } = user;
       res.json(safeUser);
     })

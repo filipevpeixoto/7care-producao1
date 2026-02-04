@@ -51,12 +51,24 @@ export const discipleshipRoutes = (app: Express): void => {
         | undefined;
 
       let userChurch: string | null = null;
+      let userDistrict: number | null = null;
+      let isPastor = false;
 
-      // Se não for admin, filtrar por igreja do usuário
+      // Se não for admin, filtrar por distrito (pastor) ou igreja (outros usuários)
       if (!hasAdminAccess({ role: userRole }) && userId) {
         const currentUser = await storage.getUserById(parseInt(userId));
-        if (currentUser?.church) {
-          userChurch = currentUser.church;
+        if (currentUser) {
+          // Se for pastor, usar filtro por distrito
+          if (currentUser.role === 'pastor' && currentUser.districtId) {
+            userDistrict = currentUser.districtId;
+            isPastor = true;
+            logger.debug(
+              `🏛️ Pastor detectado em discipleship-requests, filtrando por distrito: ${userDistrict}`
+            );
+          } else if (currentUser.church) {
+            // Senão, usar filtro por igreja
+            userChurch = currentUser.church;
+          }
         }
       }
 
@@ -83,13 +95,25 @@ export const discipleshipRoutes = (app: Express): void => {
             missionaryName: missionary?.name || 'Desconhecido',
             interestedChurch: interested?.church || null,
             missionaryChurch: missionary?.church || null,
+            interestedDistrict: interested?.districtId || null,
+            missionaryDistrict: missionary?.districtId || null,
           };
         })
       );
 
-      // Filtrar por igreja se não for admin
+      // Filtrar por distrito (pastor) ou por igreja (outros usuários)
       let filteredRequests = enrichedRequests;
-      if (userChurch) {
+      if (isPastor && userDistrict !== null) {
+        // Para pastores, filtrar por distrito
+        filteredRequests = enrichedRequests.filter(
+          (req: unknown) =>
+            (req as { interestedDistrict?: number | null; missionaryDistrict?: number | null })
+              .interestedDistrict === userDistrict ||
+            (req as { interestedDistrict?: number | null; missionaryDistrict?: number | null })
+              .missionaryDistrict === userDistrict
+        );
+      } else if (userChurch) {
+        // Para outros usuários, filtrar por igreja
         filteredRequests = enrichedRequests.filter(
           (req: unknown) =>
             (req as { interestedChurch?: string; missionaryChurch?: string }).interestedChurch ===
