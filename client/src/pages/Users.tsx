@@ -129,7 +129,12 @@ export default function Users() {
       try {
         console.log('🔄 Buscando usuários da API...');
         // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
-        const response = await fetch('/api/users?limit=500');
+        const response = await fetch('/api/users?limit=500', {
+          headers: {
+            'x-user-id': user?.id?.toString() || '',
+            'x-user-role': user?.role || '',
+          },
+        });
         if (!response.ok) {
           throw new Error('Falha ao carregar usuários');
         }
@@ -160,7 +165,12 @@ export default function Users() {
     queryFn: async () => {
       console.log('🔍 Buscando relacionamentos via API...');
       try {
-        const response = await fetch('/api/relationships');
+        const response = await fetch('/api/relationships', {
+          headers: {
+            'x-user-id': user?.id?.toString() || '',
+            'x-user-role': user?.role || '',
+          },
+        });
         if (!response.ok) {
           console.log('❌ Erro ao buscar relacionamentos:', response.status);
           return [];
@@ -185,7 +195,12 @@ export default function Users() {
   useQuery({
     queryKey: ['/api/spiritual-checkins/scores'],
     queryFn: async () => {
-      const response = await fetch('/api/spiritual-checkins/scores');
+      const response = await fetch('/api/spiritual-checkins/scores', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) throw new Error('Failed to fetch spiritual check-ins');
       return response.json();
     },
@@ -196,7 +211,12 @@ export default function Users() {
   const { data: churches = [] } = useQuery<Church[]>({
     queryKey: ['churches'],
     queryFn: async () => {
-      const response = await fetch('/api/churches');
+      const response = await fetch('/api/churches', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) throw new Error('Erro ao buscar igrejas');
       return response.json();
     },
@@ -206,7 +226,12 @@ export default function Users() {
   const { data: discipleshipRequests = [] } = useQuery<DiscipleshipRequestWithAdminNotes[]>({
     queryKey: ['discipleship-requests'],
     queryFn: async () => {
-      const response = await fetch('/api/discipleship-requests');
+      const response = await fetch('/api/discipleship-requests', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) throw new Error('Erro ao buscar solicitações de discipulado');
       return response.json();
     },
