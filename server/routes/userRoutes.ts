@@ -325,6 +325,12 @@ export const userRoutes = (app: Express): void => {
       let requestingUser = null;
       if (requestingUserId) {
         requestingUser = await storage.getUserById(requestingUserId);
+        logger.info('🔍 requestingUser carregado:', {
+          id: requestingUser?.id,
+          name: requestingUser?.name,
+          role: requestingUser?.role,
+          districtId: requestingUser?.districtId,
+        });
       }
 
       let users = await storage.getAllUsers();
@@ -343,15 +349,24 @@ export const userRoutes = (app: Express): void => {
       } else if (requestingUser && !isSuperAdmin(requestingUser)) {
         // Se for pastor, filtrar pelo distrito
         if (requestingUser.role === 'pastor' && requestingUser.districtId) {
-          logger.debug(`🏛️ Pastor detectado, filtrando por distrito: ${requestingUser.districtId}`);
+          logger.info(
+            `🏛️ Pastor detectado, filtrando ${users.length} usuários por distrito: ${requestingUser.districtId}`
+          );
+          const beforeCount = users.length;
           users = users.filter(u => u.districtId === requestingUser.districtId);
+          logger.info(
+            `✅ Após filtro: ${users.length} usuários (removidos: ${beforeCount - users.length})`
+          );
         } else {
           // Se não for pastor/super admin, filtrar pela igreja do usuário
           const userChurch = requestingUser.church;
           if (userChurch) {
+            logger.info(`⛪ Filtrando por igreja: ${userChurch}`);
             users = users.filter(u => u.church === userChurch);
           }
         }
+      } else {
+        logger.info(`🌐 Super admin ou usuário não autenticado - sem filtro de distrito`);
       }
 
       const totalUsers = users.length;
