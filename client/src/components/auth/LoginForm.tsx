@@ -24,37 +24,25 @@ export const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Limpa localStorage para garantir fluxo correto de primeiro acesso
-    localStorage.removeItem('tutorial_completed');
-    localStorage.removeItem('tutorial_skipped');
-
     try {
-      console.log('🔍 Debug LoginForm - Attempting login...');
       const success = await login(email, password);
 
       if (success) {
-        console.log('🔍 Debug LoginForm - Login successful, showing toast...');
         toast({
           title: 'Login realizado com sucesso!',
           description: 'Bem-vindo!',
         });
-        // Verificar se precisa de primeiro acesso
+        // Verificar se precisa de primeiro acesso - usando chave específica do usuário
         const user = JSON.parse(localStorage.getItem('7care_auth') || '{}');
-        const tutorialCompleted = localStorage.getItem('tutorial_completed');
-        const tutorialSkipped = localStorage.getItem('tutorial_skipped');
+        const tutorialCompleted = user?.id ? localStorage.getItem(`tutorial_completed_${user.id}`) : null;
+        const tutorialSkipped = user?.id ? localStorage.getItem(`tutorial_skipped_${user.id}`) : null;
         // Pastores aprovados via convite também veem o tour geral na primeira vez
         const needsFirstAccess =
           !tutorialCompleted && !tutorialSkipped && (user.usingDefaultPassword || user.firstAccess);
 
-        console.log('🔍 Debug LoginForm - Login completed, checking redirect...');
-        console.log('  - user:', user);
-        console.log('  - needsFirstAccess:', needsFirstAccess);
-
         if (needsFirstAccess) {
-          console.log('🔍 Debug LoginForm - Redirecting to /first-access');
           navigate('/first-access');
         } else {
-          console.log('🔍 Debug LoginForm - Redirecting to /dashboard');
           // Prefetch dos dados do dashboard enquanto navega (reduz tempo de carregamento)
           prefetchRoute('/dashboard');
           prefetchDashboardData(user?.id, user?.role);

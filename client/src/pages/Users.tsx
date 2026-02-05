@@ -28,6 +28,7 @@ import { ScheduleVisitModal } from '@/components/users/ScheduleVisitModal';
 import { ResponsiveStatsBadges } from '@/components/users/ResponsiveStatsBadges';
 import { ExportMenu } from '@/components/users/ExportMenu';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -35,6 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DialogWithModalTracking,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,10 +93,14 @@ const getUserExtraData = (userData: UserType): UserExtraData => {
 };
 
 export default function Users() {
-  const { user, realUser } = useAuth();
+  const { user, realUser, isLoading: authLoading } = useAuth();
   useUserPoints();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Flag para verificar se auth está pronto (não está carregando E tem user)
+  const isAuthReady = !authLoading && !!user?.id;
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -101,6 +113,7 @@ export default function Users() {
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserType | null>(null);
@@ -113,6 +126,15 @@ export default function Users() {
   const [selectedRequest, setSelectedRequest] = useState<DiscipleshipRequest | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
 
+  const [createFormData, setCreateFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    church: '',
+    role: 'member',
+    password: '',
+  });
+
   // Estados para progresso de recálculo
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [recalculationProgress, setRecalculationProgress] = useState(0);
@@ -124,17 +146,27 @@ export default function Users() {
     isLoading,
     error,
   } = useQuery<UserType[]>({
-    queryKey: ['/api/users'],
+    // IMPORTANTE: Incluir user.id na queryKey para que cada usuário tenha cache separado
+    queryKey: ['/api/users', user?.id],
     queryFn: async () => {
       try {
+        // DEBUG: Mostrar informações do usuário logado
+        console.log('🔍 DEBUG - user do useAuth():', JSON.stringify({
+          id: user?.id,
+          name: user?.name,
+          role: user?.role,
+          districtId: user?.districtId
+        }));
         console.log('🔄 Buscando usuários da API...');
         // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
-        const response = await fetch('/api/users?limit=500', {
-          headers: {
-            'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
-            'x-user-role': user?.role || '',
-          },
-        });
+        // IMPORTANTE: Enviar o ID do usuário atual (user), não do admin (realUser)
+        // para que o filtro de distrito funcione corretamente durante impersonação
+        const headers = {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        };
+        console.log('📤 DEBUG - Headers enviados:', JSON.stringify(headers));
+        const response = await fetch('/api/users?limit=500', { headers });
         if (!response.ok) {
           throw new Error('Falha ao carregar usuários');
         }
@@ -149,9 +181,10 @@ export default function Users() {
         return [];
       }
     },
+    enabled: isAuthReady, // Só executar quando auth estiver pronto
     refetchOnWindowFocus: true, // Habilitar refetch ao focar janela
-    refetchOnMount: true,
-    staleTime: 1 * 60 * 1000, // 1 minuto - reduzido para atualizar mais rápido
+    refetchOnMount: 'always', // Sempre refetch ao montar componente
+    staleTime: 0, // Dados sempre considerados stale - força busca na API
     gcTime: 5 * 60 * 1000, // 5 minutos
     retry: 1, // Tentar apenas 1 vez se falhar
   });
@@ -161,13 +194,14 @@ export default function Users() {
 
   // Buscar todos os relacionamentos para mostrar badges duplos
   const { data: relationshipsData = [] } = useQuery<Relationship[]>({
-    queryKey: ['all-relationships'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['all-relationships', user?.id],
     queryFn: async () => {
       console.log('🔍 Buscando relacionamentos via API...');
       try {
         const response = await fetch('/api/relationships', {
           headers: {
-            'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+            'x-user-id': user?.id?.toString() || '',
             'x-user-role': user?.role || '',
           },
         });
@@ -185,7 +219,9 @@ export default function Users() {
         return [];
       }
     },
-    enabled: true, // Sempre executar para garantir que safeRelationshipsData sempre tenha valor
+    enabled: isAuthReady, // Só executar quando auth estiver pronto
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Garantir que relationshipsData seja sempre um array
@@ -193,48 +229,59 @@ export default function Users() {
 
   // Buscar dados dos check-ins espirituais para os filtros
   useQuery({
-    queryKey: ['/api/spiritual-checkins/scores'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/spiritual-checkins/scores', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/spiritual-checkins/scores', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Failed to fetch spiritual check-ins');
       return response.json();
     },
-    staleTime: 60000, // 1 minuto
+    enabled: isAuthReady,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Buscar igrejas disponíveis
   const { data: churches = [] } = useQuery<Church[]>({
-    queryKey: ['churches'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['churches', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/churches', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Erro ao buscar igrejas');
       return response.json();
     },
+    enabled: isAuthReady,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Buscar solicitações de discipulado
   const { data: discipleshipRequests = [] } = useQuery<DiscipleshipRequestWithAdminNotes[]>({
-    queryKey: ['discipleship-requests'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['discipleship-requests', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/discipleship-requests', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Erro ao buscar solicitações de discipulado');
       return response.json();
     },
+    enabled: isAuthReady,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Buscar usuários com perfil missionário ativo
@@ -636,9 +683,88 @@ export default function Users() {
     },
   });
 
+  const createUserMutation = useMutation({
+    mutationFn: async (data: {
+      name: string;
+      email: string;
+      role: string;
+      phone?: string;
+      church?: string;
+      password?: string;
+    }) => {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Erro ao criar usuário');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
+      toast({
+        title: '✅ Usuário criado',
+        description: 'O usuário foi criado com sucesso.',
+      });
+      setShowCreateModal(false);
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: '❌ Erro ao criar usuário',
+        description:
+          error instanceof Error ? error.message : 'Não foi possível criar o usuário.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleUpdateUser = (userId: number, data: Partial<UserType>) => {
     updateUserMutation.mutate({ userId, data });
     setSelectedUser((prev: UserType | null) => (prev ? { ...prev, ...data } : null));
+  };
+
+  const openCreateModal = () => {
+    const defaultRole = user?.role === 'superadmin' ? 'member' : 'member';
+    setCreateFormData({
+      name: '',
+      email: '',
+      phone: '',
+      church: user?.church || '',
+      role: defaultRole,
+      password: '',
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleCreateFormChange = (field: string, value: string) => {
+    setCreateFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateUserSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const payload: {
+      name: string;
+      email: string;
+      role: string;
+      phone?: string;
+      church?: string;
+      password?: string;
+    } = {
+      name: createFormData.name.trim(),
+      email: createFormData.email.trim(),
+      role: createFormData.role,
+    };
+    const phone = createFormData.phone.trim();
+    const church = createFormData.church.trim();
+    const password = createFormData.password.trim();
+    if (phone) payload.phone = phone;
+    if (church) payload.church = church;
+    if (password) payload.password = password;
+    createUserMutation.mutate(payload);
   };
 
   // Delete user mutation
@@ -1020,6 +1146,7 @@ export default function Users() {
                   size="sm"
                   className="bg-primary hover:bg-primary-dark text-[10px] sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
                   data-testid="button-new-user"
+                  onClick={openCreateModal}
                 >
                   <UserPlus className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline ml-1">Novo</span>
@@ -1954,6 +2081,115 @@ export default function Users() {
           onClose={() => setShowEditModal(false)}
           onUpdate={handleUpdateUser}
         />
+
+        <DialogWithModalTracking
+          modalId="create-user-modal"
+          open={showCreateModal}
+          onOpenChange={open => !open && setShowCreateModal(false)}
+        >
+          <DialogContent
+            className="max-w-lg w-[95vw]"
+            style={{ maxHeight: 'calc(100vh - 2rem)' }}
+            aria-describedby="create-user-modal-description"
+          >
+            <div id="create-user-modal-description" className="sr-only">
+              Formulário para criar novo usuário
+            </div>
+            <DialogHeader>
+              <DialogTitle>Novo Usuário</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateUserSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="create-name">Nome Completo *</Label>
+                  <Input
+                    id="create-name"
+                    value={createFormData.name}
+                    onChange={e => handleCreateFormChange('name', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-email">Email *</Label>
+                  <Input
+                    id="create-email"
+                    type="email"
+                    value={createFormData.email}
+                    onChange={e => handleCreateFormChange('email', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-phone">Telefone</Label>
+                  <Input
+                    id="create-phone"
+                    value={createFormData.phone}
+                    onChange={e => handleCreateFormChange('phone', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-church">Igreja</Label>
+                  <Input
+                    id="create-church"
+                    value={createFormData.church}
+                    onChange={e => handleCreateFormChange('church', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-role">Perfil</Label>
+                  <Select
+                    value={createFormData.role}
+                    onValueChange={value => handleCreateFormChange('role', value)}
+                  >
+                    <SelectTrigger id="create-role">
+                      <SelectValue placeholder="Selecione o perfil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {user?.role === 'superadmin' ? (
+                        <>
+                          <SelectItem value="superadmin">Super Admin</SelectItem>
+                          <SelectItem value="pastor">Pastor</SelectItem>
+                          <SelectItem value="member">Membro</SelectItem>
+                          <SelectItem value="missionary">Missionário</SelectItem>
+                          <SelectItem value="interested">Amigo</SelectItem>
+                          <SelectItem value="admin_readonly">Admin Leitura</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="member">Membro</SelectItem>
+                          <SelectItem value="missionary">Missionário</SelectItem>
+                          <SelectItem value="interested">Amigo</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-password">Senha (opcional)</Label>
+                  <Input
+                    id="create-password"
+                    type="password"
+                    minLength={6}
+                    value={createFormData.password}
+                    onChange={e => handleCreateFormChange('password', e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={createUserMutation.isPending}>
+                  {createUserMutation.isPending ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </DialogWithModalTracking>
 
         {/* Schedule Visit Modal */}
         <ScheduleVisitModal

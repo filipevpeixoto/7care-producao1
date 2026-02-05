@@ -3,7 +3,7 @@ import requests
 import json
 import time
 
-BASE_URL = "https://7careapp-2026.netlify.app"
+BASE_URL = "https://7careadv.netlify.app"
 
 print("=== LOGIN ===")
 r = requests.post(f"{BASE_URL}/api/auth/login", json={"email":"admin@7care.com","password":"meu7care"})

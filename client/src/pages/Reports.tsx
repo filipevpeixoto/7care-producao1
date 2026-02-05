@@ -165,54 +165,72 @@ export default function Reports() {
   const isPastorUser = isPastor(user);
   const hasAccess = isAdmin || isPastorUser;
 
-  // Queries
+  // Queries - IMPORTANTE: user?.id na queryKey para cache separado por usuário
   const {
     data: overviewData,
     isLoading: loadingOverview,
     refetch: refetchOverview,
   } = useQuery<OverviewData>({
-    queryKey: ['/api/reports/overview', selectedPeriod],
-    enabled: hasAccess,
+    queryKey: ['/api/reports/overview', selectedPeriod, user?.id],
+    enabled: !!user?.id && hasAccess,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: funnelData, isLoading: loadingFunnel } = useQuery<FunnelStage[]>({
-    queryKey: ['/api/reports/spiritual-funnel', selectedPeriod],
-    enabled: hasAccess && activeTab === 'funnel',
+    queryKey: ['/api/reports/spiritual-funnel', selectedPeriod, user?.id],
+    enabled: !!user?.id && hasAccess && activeTab === 'funnel',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: churchData, isLoading: loadingChurches } = useQuery<ChurchMetric[]>({
-    queryKey: ['/api/reports/church-comparison', selectedPeriod],
-    enabled: hasAccess && activeTab === 'churches',
+    queryKey: ['/api/reports/church-comparison', selectedPeriod, user?.id],
+    enabled: !!user?.id && hasAccess && activeTab === 'churches',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: engagementData, isLoading: loadingEngagement } = useQuery<EngagementData[]>({
-    queryKey: ['/api/reports/engagement-analysis', selectedPeriod],
-    enabled: hasAccess && activeTab === 'engagement',
+    queryKey: ['/api/reports/engagement-analysis', selectedPeriod, user?.id],
+    enabled: !!user?.id && hasAccess && activeTab === 'engagement',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: growthData, isLoading: loadingGrowth } = useQuery<GrowthTrend[]>({
-    queryKey: ['/api/reports/growth-trends', selectedPeriod],
-    enabled: hasAccess && activeTab === 'growth',
+    queryKey: ['/api/reports/growth-trends', selectedPeriod, user?.id],
+    enabled: !!user?.id && hasAccess && activeTab === 'growth',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: missionaryData, isLoading: loadingMissionary } = useQuery<MissionaryPerformance[]>({
-    queryKey: ['/api/reports/missionary-performance', selectedPeriod],
-    enabled: isPastorUser && activeTab === 'missionaries',
+    queryKey: ['/api/reports/missionary-performance', selectedPeriod, user?.id],
+    enabled: !!user?.id && isPastorUser && activeTab === 'missionaries',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: districtData, isLoading: loadingDistrict } = useQuery<DistrictData[]>({
-    queryKey: ['/api/reports/district-comparison', selectedPeriod],
-    enabled: isAdmin && activeTab === 'districts',
+    queryKey: ['/api/reports/district-comparison', selectedPeriod, user?.id],
+    enabled: !!user?.id && isAdmin && activeTab === 'districts',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: goalsData, isLoading: loadingGoals } = useQuery<Goal[]>({
-    queryKey: ['/api/reports/goals', selectedPeriod],
-    enabled: hasAccess && activeTab === 'goals',
+    queryKey: ['/api/reports/goals', selectedPeriod, user?.id],
+    enabled: !!user?.id && hasAccess && activeTab === 'goals',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: insightsData, isLoading: loadingInsights } = useQuery<Insight[]>({
-    queryKey: ['/api/reports/insights', selectedPeriod],
-    enabled: hasAccess && activeTab === 'insights',
+    queryKey: ['/api/reports/insights', selectedPeriod, user?.id],
+    enabled: !!user?.id && hasAccess && activeTab === 'insights',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   if (!hasAccess) {

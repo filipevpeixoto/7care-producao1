@@ -32,7 +32,7 @@ Automatizar o lançamento de notas fiscais de reembolso no sistema Dracma atrav�
 - Validações completas
 - Design moderno (glassmorphism)
 
-**Status:** ✅ Deploy em produção (https://7careapp-2026.netlify.app)
+**Status:** ✅ Deploy em produção (https://7careadv.netlify.app)
 
 ---
 

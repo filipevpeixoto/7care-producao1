@@ -185,18 +185,22 @@ export const ChatSidebar = ({
 
   useEffect(() => {
     if (mode === 'users') {
-      fetch('/api/users/chat-list')
+      const headers = {
+        'x-user-id': user?.id?.toString() || '',
+        'x-user-role': user?.role || '',
+      };
+      fetch('/api/users/chat-list', { headers })
         .then(r => r.json())
         .then((list: any[]) => setAllUsers(list))
         .catch(() => {
           // Fallback para API de usuários normal
-          fetch('/api/users')
+          fetch('/api/users', { headers })
             .then(r => r.json())
             .then((list: any[]) => setAllUsers(list))
             .catch(() => setAllUsers([]));
         });
     }
-  }, [mode]);
+  }, [mode, user?.id, user?.role]);
 
   const filteredConversations = conversations.filter(conversation => {
     const conversationName = conversation.name || conversation.title || '';

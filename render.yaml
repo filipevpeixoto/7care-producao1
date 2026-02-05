@@ -16,4 +16,4 @@ services:
       - key: VAPID_PRIVATE_KEY
         sync: false
       - key: ALLOWED_ORIGINS
-        value: https://7careapp-2026.netlify.app,http://localhost:5173,http://localhost:3065
+        value: https://7careadv.netlify.app,http://localhost:5173,http://localhost:3065

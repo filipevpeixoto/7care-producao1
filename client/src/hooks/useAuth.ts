@@ -27,6 +27,53 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, AuthState } from '@/types/auth';
 import { saveUsersOffline, canAccessFullOfflineData, clearEncryptionKey } from '@/lib/offline';
 
+/**
+ * Limpa o cache de API do Service Worker
+ * Importante para garantir que dados de outro usuário não sejam mostrados
+ */
+async function clearApiCache(): Promise<void> {
+  try {
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      const apiCaches = cacheNames.filter(name => 
+        name.includes('api') || name.includes('7care')
+      );
+      
+      for (const cacheName of apiCaches) {
+        await caches.delete(cacheName);
+      }
+      
+      console.log('[Auth] Cache de Service Worker limpo');
+    }
+  } catch (error) {
+    console.warn('[Auth] Erro ao limpar cache SW:', error);
+  }
+}
+
+/**
+ * Limpa o cache do React Query
+ * Importamos dinamicamente para evitar dependência circular
+ */
+async function clearReactQueryCache(): Promise<void> {
+  try {
+    const { queryClient } = await import('@/App');
+    queryClient.clear();
+    console.log('[Auth] Cache do React Query limpo');
+  } catch (error) {
+    console.warn('[Auth] Erro ao limpar cache RQ:', error);
+  }
+}
+
+/**
+ * Limpa todos os caches (Service Worker + React Query)
+ */
+async function clearAllCaches(): Promise<void> {
+  await Promise.all([
+    clearApiCache(),
+    clearReactQueryCache(),
+  ]);
+}
+
 /** User type com propriedades estendidas */
 type ExtendedUser = User;
 
@@ -142,6 +189,9 @@ export const useAuth = () => {
    */
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
+      // Limpar TODOS os caches antes do login para garantir dados frescos
+      await clearAllCaches();
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -212,7 +262,10 @@ export const useAuth = () => {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Limpar TODOS os caches no logout para segurança
+    await clearAllCaches();
+    
     localStorage.removeItem(AUTH_STORAGE_KEY);
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(IMPERSONATION_KEY);

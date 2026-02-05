@@ -77,12 +77,18 @@ function useOfflineAccess(): { hasAccess: boolean; userRole: string } {
  */
 export function useOfflineUsers(options?: OfflineQueryOptions<User[]>) {
   const { hasAccess, userRole } = useOfflineAccess();
+  const { user } = useAuth();
 
   return useQuery<User[], Error>({
-    queryKey: ['users'] as const,
+    queryKey: ['users', user?.id] as const,
     queryFn: async (): Promise<User[]> => {
       try {
-        const response = await fetch('/api/users');
+        const response = await fetch('/api/users', {
+          headers: {
+            'x-user-id': user?.id?.toString() || '',
+            'x-user-role': user?.role || '',
+          },
+        });
         if (!response.ok) {
           throw new Error(`Falha ao buscar usuários: ${response.status}`);
         }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 
 export interface PointsConfig {
@@ -132,6 +133,7 @@ export const usePointsConfig = () => {
   const [config, setConfig] = useState<PointsConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Carregar configurações do localStorage ou backend
   useEffect(() => {
@@ -304,7 +306,12 @@ export const usePointsConfig = () => {
   const getCurrentUserAverage = async () => {
     try {
       // WORKAROUND: Usar /api/users até resolver problema do /api/users/with-points
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error('Erro ao obter usuários');
       }

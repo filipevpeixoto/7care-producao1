@@ -110,6 +110,73 @@ export class UserRepository {
     }
   }
 
+  /**
+   * Busca usuários por distrito específico (query otimizada)
+   * PERFORMANCE: Evita carregar todos os usuários e filtrar na memória
+   */
+  async getUsersByDistrictId(districtId: number): Promise<User[]> {
+    try {
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.districtId, districtId))
+        .orderBy(asc(schema.users.id));
+      return result.map(user => this.toUser(user));
+    } catch (error) {
+      logger.error('Erro ao buscar usuários por distrito:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca usuários por distrito com filtros opcionais (query otimizada)
+   * PERFORMANCE: Evita carregar todos os usuários e filtrar na memória
+   */
+  async getUsersByDistrictIdWithFilters(
+    districtId: number,
+    filters?: { role?: string; status?: string; church?: string }
+  ): Promise<User[]> {
+    try {
+      const conditions = [eq(schema.users.districtId, districtId)];
+
+      if (filters?.role) {
+        conditions.push(eq(schema.users.role, filters.role));
+      }
+      if (filters?.status) {
+        conditions.push(eq(schema.users.status, filters.status));
+      }
+      if (filters?.church) {
+        conditions.push(eq(schema.users.church, filters.church));
+      }
+
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(and(...conditions))
+        .orderBy(asc(schema.users.id));
+      return result.map(user => this.toUser(user));
+    } catch (error) {
+      logger.error('Erro ao buscar usuários por distrito com filtros:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Conta usuários por distrito (query otimizada para stats)
+   */
+  async countUsersByDistrictId(districtId: number): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: drizzleSql<number>`count(*)::int` })
+        .from(schema.users)
+        .where(eq(schema.users.districtId, districtId));
+      return result[0]?.count ?? 0;
+    } catch (error) {
+      logger.error('Erro ao contar usuários por distrito:', error);
+      return 0;
+    }
+  }
+
   async getVisitedUsers(): Promise<User[]> {
     try {
       const result = await db

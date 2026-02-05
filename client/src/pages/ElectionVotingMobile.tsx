@@ -81,7 +81,7 @@ export default function ElectionVotingMobile() {
     try {
       const response = await fetch('/api/elections/active', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
         },
@@ -136,7 +136,7 @@ export default function ElectionVotingMobile() {
       const timestamp = Date.now();
       const response = await fetch(`/api/elections/voting/${targetConfigId}?t=${timestamp}`, {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           Pragma: 'no-cache',
           Expires: '0',
@@ -360,7 +360,7 @@ export default function ElectionVotingMobile() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           configId: configId,

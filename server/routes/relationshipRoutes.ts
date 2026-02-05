@@ -48,9 +48,11 @@ export const relationshipRoutes = (app: Express): void => {
         if (currentUser) {
           userChurch = currentUser.church || null;
           userDistrictId = currentUser.districtId || null;
-          
+
           // Log para debug
-          logger.info(`🔍 Usuário ${currentUser.name} (${currentUser.role}): distrito ${userDistrictId}, igreja ${userChurch}`);
+          logger.info(
+            `🔍 Usuário ${currentUser.name} (${currentUser.role}): distrito ${userDistrictId}, igreja ${userChurch}`
+          );
         }
       }
 
@@ -77,9 +79,11 @@ export const relationshipRoutes = (app: Express): void => {
       // Filtrar por distrito se for pastor (não superadmin)
       let filteredRelationships = enrichedRelationships;
       if (userRole === 'pastor' && userDistrictId && !isSuperAdmin({ role: userRole })) {
-        logger.info(`🏛️ Pastor detectado, filtrando ${enrichedRelationships.length} relationships por distrito: ${userDistrictId}`);
+        logger.info(
+          `🏛️ Pastor detectado, filtrando ${enrichedRelationships.length} relationships por distrito: ${userDistrictId}`
+        );
         const beforeCount = enrichedRelationships.length;
-        
+
         filteredRelationships = enrichedRelationships.filter((rel: unknown) => {
           const r = rel as {
             interestedDistrictId?: number | null;
@@ -87,12 +91,13 @@ export const relationshipRoutes = (app: Express): void => {
           };
           // Incluir relacionamentos onde interessado OU missionário pertencem ao distrito do pastor
           return (
-            r.interestedDistrictId === userDistrictId ||
-            r.missionaryDistrictId === userDistrictId
+            r.interestedDistrictId === userDistrictId || r.missionaryDistrictId === userDistrictId
           );
         });
-        
-        logger.info(`✅ Após filtro de distrito: ${filteredRelationships.length} relationships (removidos: ${beforeCount - filteredRelationships.length})`);
+
+        logger.info(
+          `✅ Após filtro de distrito: ${filteredRelationships.length} relationships (removidos: ${beforeCount - filteredRelationships.length})`
+        );
       }
       // Se não for pastor, filtrar por igreja se não for admin
       // MAS: sempre permitir que o usuário veja seus PRÓPRIOS relacionamentos (como missionário)

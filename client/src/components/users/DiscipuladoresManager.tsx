@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/command';
 import { X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 
 interface DiscipuladoresManagerProps {
@@ -38,12 +39,18 @@ export function DiscipuladoresManager({
   const [isAdding, setIsAdding] = useState(false);
   const [isRemoving, setIsRemoving] = useState<number | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Buscar todos os usuários com cache (React Query)
   const { data: allUsersRaw, isLoading: loading } = useQuery<any>({
-    queryKey: ['users'],
+    queryKey: ['users', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error('Erro ao carregar usuários');
       }
@@ -51,6 +58,7 @@ export function DiscipuladoresManager({
     },
     staleTime: 5 * 60 * 1000, // Cache por 5 minutos
     gcTime: 10 * 60 * 1000, // Manter em cache por 10 minutos
+    enabled: !!user?.id,
   });
 
   // Normalizar dados - API pode retornar {data: [], pagination: {}} ou array direto

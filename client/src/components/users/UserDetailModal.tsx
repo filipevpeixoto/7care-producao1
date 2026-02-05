@@ -636,7 +636,7 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
                   <label className="text-sm font-medium">Dizimista</label>
                   <div className="text-sm text-muted-foreground mt-1">
                     <Badge variant={user.is_donor || user.isDonor ? 'default' : 'secondary'}>
-                      {user.dizimista_type || (user.is_donor || user.isDonor ? 'Sim' : 'Não')}
+                      {extraData.dizimistaOriginal || user.dizimista_type || (user.is_donor || user.isDonor ? 'Sim' : 'Não')}
                     </Badge>
                   </div>
                 </div>
@@ -690,7 +690,7 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
                   <label className="text-sm font-medium">Ofertante</label>
                   <div className="text-sm text-muted-foreground mt-1">
                     <Badge variant={user.isOffering ? 'default' : 'secondary'}>
-                      {user.ofertante_type || (user.isOffering ? 'Sim' : 'Não')}
+                      {extraData.ofertanteOriginal || user.ofertante_type || (user.isOffering ? 'Sim' : 'Não')}
                     </Badge>
                   </div>
                 </div>

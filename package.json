@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "npx vite build",
+    "deploy": "npm run build && netlify deploy --prod --dir=dist",
+    "deploy:quick": "netlify deploy --prod --dir=dist",
     "build:server": "esbuild server/index.prod.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist-server/index.cjs",
     "start:server": "NODE_ENV=production node dist-server/index.js",
     "build:full": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",

@@ -42,6 +42,7 @@ export interface ExcelRow {
   cargo?: string;
   codigo?: string;
   tipo?: string;
+  distrital?: string;
 
   // Dados pessoais
   dataNascimento?: string;

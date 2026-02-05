@@ -37,20 +37,10 @@ export const Login = () => {
     );
   }
 
-  if (isAuthenticated) {
-    // Check for first access and tutorial completion
-    const tutorialCompleted = localStorage.getItem('tutorial_completed');
-    const tutorialSkipped = localStorage.getItem('tutorial_skipped');
-
-    // Debug logs
-    console.log('🔍 Debug Login.tsx:');
-    console.log('  - isAuthenticated:', isAuthenticated);
-    console.log('  - user:', user);
-    console.log('  - tutorialCompleted:', tutorialCompleted);
-    console.log('  - tutorialSkipped:', tutorialSkipped);
-    console.log('  - user?.firstAccess:', user?.firstAccess);
-    console.log('  - user?.status:', user?.status);
-    console.log('  - user?.usingDefaultPassword:', user?.usingDefaultPassword);
+  if (isAuthenticated && user?.id) {
+    // Check for first access and tutorial completion - usando chave específica do usuário
+    const tutorialCompleted = localStorage.getItem(`tutorial_completed_${user.id}`);
+    const tutorialSkipped = localStorage.getItem(`tutorial_skipped_${user.id}`);
 
     // Check if user needs first access (firstAccess flag, or using default password)
     // But only if they haven't completed the tutorial yet
@@ -58,19 +48,15 @@ export const Login = () => {
     const needsFirstAccess =
       !tutorialCompleted && !tutorialSkipped && (user?.firstAccess || user?.usingDefaultPassword);
 
-    console.log('  - needsFirstAccess:', needsFirstAccess);
-    console.log('  - Conditions breakdown:');
-    console.log('    - !tutorialCompleted:', !tutorialCompleted);
-    console.log('    - !tutorialSkipped:', !tutorialSkipped);
-    console.log('    - user?.firstAccess:', user?.firstAccess);
-    console.log('    - user?.usingDefaultPassword:', user?.usingDefaultPassword);
-
     if (needsFirstAccess) {
-      console.log('  - Redirecionando para /first-access');
       return <Navigate to="/first-access" replace />;
     }
 
-    console.log('  - Redirecionando para /dashboard');
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isAuthenticated) {
+    // User authenticated but no id yet, redirect to dashboard
     return <Navigate to="/dashboard" replace />;
   }
 

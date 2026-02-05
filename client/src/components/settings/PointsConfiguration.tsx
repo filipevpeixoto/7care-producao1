@@ -33,17 +33,20 @@ import { useQueryClient } from '@tanstack/react-query';
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('7care_token');
   let userId = '';
+  let userRole = '';
   try {
     const auth = localStorage.getItem('7care_auth');
     if (auth) {
       const user = JSON.parse(auth);
       userId = user?.id?.toString() || '';
+      userRole = user?.role || '';
     }
   } catch {}
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(userId ? { 'x-user-id': userId } : {}),
+    ...(userRole ? { 'x-user-role': userRole } : {}),
   };
 }
 
@@ -368,7 +371,9 @@ export const PointsConfiguration = () => {
 
     try {
       // Buscar média atual dos usuários
-      const usersResponse = await fetch('/api/users');
+      const usersResponse = await fetch('/api/users', {
+        headers: getAuthHeaders(),
+      });
       if (!usersResponse.ok) {
         throw new Error('Erro ao buscar usuários');
       }

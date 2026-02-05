@@ -148,32 +148,38 @@ export default function Districts() {
 
   // Buscar pastores (para seleção)
   const { data: pastors = [] } = useQuery({
-    queryKey: ['/api/pastors'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/pastors', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: isSuperAdmin(user),
+    enabled: !!user?.id && isSuperAdmin(user),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Buscar igrejas sem distrito
   const { data: unassignedChurches = [], refetch: refetchUnassignedChurches } = useQuery({
-    queryKey: ['/api/churches/unassigned'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/churches/unassigned', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/churches/unassigned', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: isSuperAdmin(user),
+    enabled: !!user?.id && isSuperAdmin(user),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Criar distrito
@@ -183,7 +189,7 @@ export default function Districts() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -218,7 +224,7 @@ export default function Districts() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -253,7 +259,7 @@ export default function Districts() {
       const response = await fetch(`/api/districts/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) {
@@ -287,7 +293,7 @@ export default function Districts() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({ churchIds }),
       });
@@ -403,7 +409,7 @@ export default function Districts() {
       if (pastorId) {
         const response = await fetch(`/api/users/${pastorId}`, {
           headers: {
-            'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+            'x-user-id': user?.id?.toString() || '',
           },
         });
 

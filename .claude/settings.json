@@ -1,5 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(lsof:*)"]
+    "allow": [
+      "Bash(lsof:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/filipevpeixoto/Downloads/7care-producao-sem-offline-main - cópia/client/src/lib",
+      "/Users/filipevpeixoto/Downloads/7care-producao-sem-offline-main - cópia/client/src/lib"
+    ]
   }
 }

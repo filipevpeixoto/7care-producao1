@@ -86,6 +86,29 @@ function hasAdminAccess(user) {
   return user.role === 'superadmin' || user.role === 'pastor';
 }
 
+async function resolveCurrentUser(event, sql) {
+  const headerUserId = event.headers['x-user-id'];
+  if (!headerUserId) return null;
+  const userId = parseInt(headerUserId);
+  if (Number.isNaN(userId)) return null;
+  const users = await sql`SELECT id, name, email, role, church, district_id FROM users WHERE id = ${userId} LIMIT 1`;
+  if (users.length === 0) return null;
+  const user = users[0];
+  if (user.role === 'pastor' && !user.district_id) {
+    const district = await sql`SELECT id FROM districts WHERE pastor_id = ${userId} LIMIT 1`;
+    if (district.length > 0) {
+      return { ...user, district_id: district[0].id };
+    }
+  }
+  return user;
+}
+
+async function getDistrictChurchNames(sql, districtId) {
+  if (!districtId) return [];
+  const churches = await sql`SELECT name FROM churches WHERE district_id = ${districtId}`;
+  return churches.map(church => church.name);
+}
+
 // Função para verificar acesso read-only
 async function checkReadOnlyAccess(userId, sql) {
   if (!userId) return false;
@@ -1154,7 +1177,21 @@ exports.handler = async (event, context) => {
         console.log('🔄 Rota /api/users/with-points chamada');
         
         // Buscar usuários diretamente do banco (já com pontos calculados)
-        let users = await sql`SELECT *, extra_data as extraData FROM users ORDER BY points DESC`;
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        let users;
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            users = await sql`SELECT *, extra_data as extraData FROM users WHERE district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames}) ORDER BY points DESC`;
+          } else {
+            users = await sql`SELECT *, extra_data as extraData FROM users WHERE district_id = ${currentUserDistrictId} ORDER BY points DESC`;
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          users = await sql`SELECT *, extra_data as extraData FROM users WHERE church = ${currentUser.church} ORDER BY points DESC`;
+        } else {
+          users = await sql`SELECT *, extra_data as extraData FROM users ORDER BY points DESC`;
+        }
         console.log(`📊 Usuários carregados: ${users.length}`);
         
         // Garantir que users seja sempre um array
@@ -1164,15 +1201,17 @@ exports.handler = async (event, context) => {
         }
         
         // Buscar dados de visitas
-        const visitsData = await sql`
+        const userIds = users.map(user => user.id).filter(id => id != null);
+        const visitsData = userIds.length > 0 ? await sql`
           SELECT 
             user_id, 
             COUNT(*) as visit_count, 
             MAX(visit_date) as last_visit_date, 
             MIN(visit_date) as first_visit_date
           FROM visits 
+          WHERE user_id = ANY(${userIds})
           GROUP BY user_id
-        `;
+        ` : [];
         
         // Criar mapa de visitas
         const visitsMap = new Map();
@@ -1412,32 +1451,77 @@ exports.handler = async (event, context) => {
     if (path === '/api/users' && method === 'GET') {
       try {
         console.log('🔍 Users route hit - buscando usuários do banco');
-        
+        console.log('📋 Headers recebidos:', JSON.stringify({
+          'x-user-id': event.headers['x-user-id'],
+          'x-user-role': event.headers['x-user-role'],
+        }));
+
         // Verificar parâmetros de query
         const url = new URL(event.rawUrl || `https://example.com${path}`);
         const role = url.searchParams.get('role');
-        
+
         console.log('🔍 Role filter:', role);
-        
+
         // Buscar usuários com filtro opcional por role
+        const currentUser = await resolveCurrentUser(event, sql);
+        console.log('👤 currentUser resolvido:', JSON.stringify(currentUser ? {
+          id: currentUser.id,
+          name: currentUser.name,
+          role: currentUser.role,
+          district_id: currentUser.district_id
+        } : null));
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        console.log('🏛️ District ID:', currentUserDistrictId, '| Igrejas:', districtChurchNames.length);
         let users;
-        if (role) {
-          users = await sql`SELECT *, extra_data as extraData FROM users WHERE role = ${role} ORDER BY name ASC`;
+        const isPastorUser = currentUser && isPastor(currentUser);
+        console.log('🔒 Verificação: isPastor=', isPastorUser, '| districtId=', currentUserDistrictId);
+
+        if (currentUser && isPastorUser && currentUserDistrictId) {
+          console.log('✅ BRANCH: Pastor com distrito - aplicando filtro');
+          if (districtChurchNames.length > 0) {
+            if (role) {
+              users = await sql`SELECT *, extra_data as extraData FROM users WHERE role = ${role} AND (district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames})) ORDER BY name ASC`;
+            } else {
+              users = await sql`SELECT *, extra_data as extraData FROM users WHERE district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames}) ORDER BY name ASC`;
+            }
+          } else {
+            if (role) {
+              users = await sql`SELECT *, extra_data as extraData FROM users WHERE role = ${role} AND district_id = ${currentUserDistrictId} ORDER BY name ASC`;
+            } else {
+              users = await sql`SELECT *, extra_data as extraData FROM users WHERE district_id = ${currentUserDistrictId} ORDER BY name ASC`;
+            }
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          console.log('⚠️ BRANCH: Usuário com igreja - filtro por igreja');
+          if (role) {
+            users = await sql`SELECT *, extra_data as extraData FROM users WHERE role = ${role} AND church = ${currentUser.church} ORDER BY name ASC`;
+          } else {
+            users = await sql`SELECT *, extra_data as extraData FROM users WHERE church = ${currentUser.church} ORDER BY name ASC`;
+          }
         } else {
-          users = await sql`SELECT *, extra_data as extraData FROM users ORDER BY name ASC`;
+          console.log('❌ BRANCH: Sem filtro - retornando TODOS os usuários! currentUser=', currentUser ? 'existe' : 'null');
+          if (role) {
+            users = await sql`SELECT *, extra_data as extraData FROM users WHERE role = ${role} ORDER BY name ASC`;
+          } else {
+            users = await sql`SELECT *, extra_data as extraData FROM users ORDER BY name ASC`;
+          }
         }
         console.log(`📊 Usuários carregados: ${users.length} (filtro role: ${role || 'nenhum'})`);
         
         // Buscar dados de visitas
-        const visitsData = await sql`
+        const userIds = users.map(user => user.id).filter(id => id != null);
+        const visitsData = userIds.length > 0 ? await sql`
           SELECT 
             user_id, 
             COUNT(*) as visit_count, 
             MAX(visit_date) as last_visit_date, 
             MIN(visit_date) as first_visit_date
           FROM visits 
+          WHERE user_id = ANY(${userIds})
           GROUP BY user_id
-        `;
+        ` : [];
         
         // Criar mapa de visitas
         const visitsMap = new Map();
@@ -1525,8 +1609,29 @@ exports.handler = async (event, context) => {
           };
         }
         
-        // Processar extraData para garantir que visitas sejam exibidas corretamente
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
         const user = users[0];
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          const isInDistrict = user.district_id === currentUserDistrictId;
+          const isInDistrictChurch = user.church && districtChurchNames.includes(user.church);
+          if (!isInDistrict && !isInDistrictChurch) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Acesso negado' })
+            };
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church && user.church !== currentUser.church) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
+        
+        // Processar extraData para garantir que visitas sejam exibidas corretamente
         let extraData = {};
         const rawData = user.extra_data || user.extraData;
         if (rawData) {
@@ -1894,19 +1999,68 @@ exports.handler = async (event, context) => {
 
     // Rota para listar check-ins
     if (path === '/api/emotional-checkins/admin' && method === 'GET') {
-      const checkIns = await sql`
-        SELECT ec.*, u.name as user_name, u.email 
-        FROM emotional_checkins ec
-        JOIN users u ON ec.user_id = u.id
-        ORDER BY ec.created_at DESC
-        LIMIT 50
-      `;
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(checkIns)
-      };
+      try {
+        // Resolver usuário atual para aplicar filtro de distrito se for pastor
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const isPastorUser = currentUser && isPastor(currentUser);
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        
+        console.log('👤 Check-ins Admin - currentUser:', currentUser?.name, '| isPastor:', isPastorUser, '| districtId:', currentUserDistrictId);
+        
+        let checkIns;
+        
+        // Se for pastor com distrito, filtrar apenas check-ins do distrito
+        if (isPastorUser && currentUserDistrictId) {
+          console.log('✅ Check-ins: Aplicando filtro de distrito para pastor');
+          
+          if (districtChurchNames.length > 0) {
+            checkIns = await sql`
+              SELECT ec.*, u.name as user_name, u.email 
+              FROM emotional_checkins ec
+              JOIN users u ON ec.user_id = u.id
+              WHERE u.district_id = ${currentUserDistrictId} OR u.church = ANY(${districtChurchNames})
+              ORDER BY ec.created_at DESC
+              LIMIT 50
+            `;
+          } else {
+            checkIns = await sql`
+              SELECT ec.*, u.name as user_name, u.email 
+              FROM emotional_checkins ec
+              JOIN users u ON ec.user_id = u.id
+              WHERE u.district_id = ${currentUserDistrictId}
+              ORDER BY ec.created_at DESC
+              LIMIT 50
+            `;
+          }
+        } else {
+          // Para admin/superadmin, mostrar todos
+          console.log('📊 Check-ins: Sem filtro - mostrando todos');
+          
+          checkIns = await sql`
+            SELECT ec.*, u.name as user_name, u.email 
+            FROM emotional_checkins ec
+            JOIN users u ON ec.user_id = u.id
+            ORDER BY ec.created_at DESC
+            LIMIT 50
+          `;
+        }
+        
+        console.log(`📊 Check-ins encontrados: ${checkIns.length}`);
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(checkIns)
+        };
+      } catch (error) {
+        console.error('❌ Erro ao buscar check-ins:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao buscar check-ins' })
+        };
+      }
     }
 
     // Rota para buscar check-ins de um usuário específico
@@ -2579,76 +2733,107 @@ exports.handler = async (event, context) => {
       try {
         console.log('🎂 Endpoint de aniversários chamado');
         
-        // Usar data local para evitar problemas de fuso horário
-      const today = new Date();
-        const currentMonth = today.getMonth();
-        const currentDay = today.getDate();
+        // Usar data local do Brasil (UTC-3) para evitar problemas de fuso horário
+        const now = new Date();
+        // Ajustar para fuso horário do Brasil (UTC-3)
+        const brazilOffset = -3 * 60; // -3 horas em minutos
+        const utcOffset = now.getTimezoneOffset(); // offset local em minutos
+        const brazilTime = new Date(now.getTime() + (utcOffset + brazilOffset) * 60 * 1000);
         
-        console.log(`🎂 Mês atual: ${currentMonth + 1}, Dia atual: ${currentDay}`);
+        const currentMonth = brazilTime.getMonth(); // 0-indexed (Janeiro = 0)
+        const currentDay = brazilTime.getDate();
         
-        // Obter ID do usuário do header (se fornecido)
-        const userId = event.headers['x-user-id'];
-        let userChurch = null;
-        let userData = null;
+        console.log(`🎂 Data Brasil: ${brazilTime.toISOString()}, Mês: ${currentMonth + 1}, Dia: ${currentDay}`);
         
-        // Se userId fornecido, buscar igreja do usuário
-        if (userId) {
-          userData = await sql`SELECT church, role FROM users WHERE id = ${userId} LIMIT 1`;
-          if (userData.length > 0) {
-            userChurch = userData[0].church;
-            const userRole = userData[0].role;
-            console.log(`🎂 Aniversários para usuário ${userId} (${userRole}) da igreja: ${userChurch}`);
-          }
-        }
-
-        // Buscar usuários com datas de nascimento válidas (filtrar por igreja se necessário)
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        
+        // Usar EXTRACT no SQL para pegar mês e dia diretamente do banco (evita problemas de fuso)
         let users;
-        if (userChurch && userChurch !== 'Sistema' && !(userData && userData.length > 0 && hasAdminAccess(userData[0]))) {
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            users = await sql`
+              SELECT id, name, birth_date, church, district_id,
+                     EXTRACT(MONTH FROM birth_date)::int as birth_month,
+                     EXTRACT(DAY FROM birth_date)::int as birth_day
+              FROM users 
+              WHERE birth_date IS NOT NULL 
+                AND (district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames}))
+              ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
+            `;
+          } else {
+            users = await sql`
+              SELECT id, name, birth_date, church, district_id,
+                     EXTRACT(MONTH FROM birth_date)::int as birth_month,
+                     EXTRACT(DAY FROM birth_date)::int as birth_day
+              FROM users 
+              WHERE birth_date IS NOT NULL 
+                AND district_id = ${currentUserDistrictId}
+              ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
+            `;
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church && currentUser.church !== 'Sistema') {
           users = await sql`
-          SELECT id, name, birth_date, church
-          FROM users 
-          WHERE birth_date IS NOT NULL 
-            AND church = ${userChurch}
-          ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
-        `;
+            SELECT id, name, birth_date, church,
+                   EXTRACT(MONTH FROM birth_date)::int as birth_month,
+                   EXTRACT(DAY FROM birth_date)::int as birth_day
+            FROM users 
+            WHERE birth_date IS NOT NULL 
+              AND church = ${currentUser.church}
+            ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
+          `;
         } else {
           users = await sql`
-            SELECT id, name, birth_date, church
+            SELECT id, name, birth_date, church,
+                   EXTRACT(MONTH FROM birth_date)::int as birth_month,
+                   EXTRACT(DAY FROM birth_date)::int as birth_day
             FROM users 
             WHERE birth_date IS NOT NULL 
             ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
           `;
         }
         
-        console.log(`🎂 Usuários encontrados: ${users.length}${userChurch ? ` da igreja ${userChurch}` : ' (todas as igrejas)'}`);
+        console.log(`🎂 Usuários encontrados: ${users.length}`);
         
-        // Filtrar aniversariantes de hoje
+        // Filtrar aniversariantes de hoje usando birth_month e birth_day do SQL
+        // IMPORTANTE: birth_month do SQL é 1-indexed, currentMonth é 0-indexed
         const birthdaysToday = users.filter(user => {
-          const birthDate = new Date(user.birth_date);
-          return birthDate.getMonth() === currentMonth && birthDate.getDate() === currentDay;
+          return user.birth_month === (currentMonth + 1) && user.birth_day === currentDay;
         });
         
         // Filtrar aniversariantes do mês atual (exceto hoje)
         const birthdaysThisMonth = users.filter(user => {
-          const birthDate = new Date(user.birth_date);
-          return birthDate.getMonth() === currentMonth && birthDate.getDate() !== currentDay;
+          return user.birth_month === (currentMonth + 1) && user.birth_day !== currentDay;
         });
         
         console.log(`🎂 Aniversariantes hoje: ${birthdaysToday.length}`);
         console.log(`🎂 Aniversariantes do mês: ${birthdaysThisMonth.length}`);
+        if (birthdaysThisMonth.length > 0) {
+          console.log(`🎂 Primeiros 3 do mês:`, birthdaysThisMonth.slice(0, 3).map(u => ({ name: u.name, birth_month: u.birth_month, birth_day: u.birth_day })));
+        }
         
         // Formatar dados dos aniversariantes
         const formatBirthdayUser = (user) => {
           let birthDate = null;
           if (user.birth_date) {
             try {
-              // Converter para Date object e depois para YYYY-MM-DD
-              const date = new Date(user.birth_date);
-              if (!isNaN(date.getTime())) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
+              // Usar birth_month e birth_day do SQL para evitar problemas de fuso
+              if (user.birth_month && user.birth_day) {
+                const date = new Date(user.birth_date);
+                const year = date.getUTCFullYear();
+                const month = String(user.birth_month).padStart(2, '0');
+                const day = String(user.birth_day).padStart(2, '0');
                 birthDate = `${year}-${month}-${day}`;
+              } else {
+                // Fallback: usar UTC para evitar problemas de fuso
+                const date = new Date(user.birth_date);
+                if (!isNaN(date.getTime())) {
+                  const year = date.getUTCFullYear();
+                  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                  const day = String(date.getUTCDate()).padStart(2, '0');
+                  birthDate = `${year}-${month}-${day}`;
+                }
               }
             } catch (error) {
               console.error('Erro ao formatar data:', error);
@@ -2669,18 +2854,18 @@ exports.handler = async (event, context) => {
           thisMonth: birthdaysThisMonth.map(formatBirthdayUser),
           all: users.map(formatBirthdayUser),
           timestamp: new Date().toISOString(),
-          userChurch: userChurch, // Adicionar igreja do usuário
+          userChurch: currentUser?.church || null,
           debug: {
             currentMonth: currentMonth + 1,
             currentDay: currentDay,
             totalUsers: users.length,
             thisMonthCount: birthdaysThisMonth.length,
             todayCount: birthdaysToday.length,
-            filteredByChurch: !!userChurch
+            filteredByChurch: !!(currentUser?.church)
           }
         };
         
-        console.log('🎂 Resultado final:', JSON.stringify(result, null, 2));
+        console.log('🎂 Resultado final:', JSON.stringify(result.debug, null, 2));
       
       return {
         statusCode: 200,
@@ -2899,29 +3084,92 @@ exports.handler = async (event, context) => {
       try {
         console.log('🔍 Buscando dados do visitômetro...');
         
-        // Buscar TODOS os usuários do sistema (não apenas member/missionary)
-        const allUsers = await sql`
-          SELECT id, name, email, role
-          FROM users 
-          ORDER BY name ASC
-        `;
+        // Resolver usuário atual para aplicar filtro de distrito se for pastor
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const isPastorUser = currentUser && isPastor(currentUser);
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
         
-        console.log(`👥 Total de usuários no sistema: ${allUsers.length}`);
+        console.log('👤 Visitômetro - currentUser:', currentUser?.name, '| isPastor:', isPastorUser, '| districtId:', currentUserDistrictId);
         
-        // Buscar dados de visitas de TODOS os usuários
-        const visitsData = await sql`
-          SELECT 
-            v.user_id, 
-            u.name, 
-            u.role,
-            COUNT(v.id) as visit_count, 
-            MAX(v.visit_date) as last_visit_date, 
-            MIN(v.visit_date) as first_visit_date
-          FROM visits v 
-          JOIN users u ON v.user_id = u.id
-          GROUP BY v.user_id, u.name, u.role
-          ORDER BY u.name ASC
-        `;
+        let allUsers;
+        let visitsData;
+        
+        // Se for pastor com distrito, filtrar apenas usuários do distrito
+        if (isPastorUser && currentUserDistrictId) {
+          console.log('✅ Visitômetro: Aplicando filtro de distrito para pastor');
+          
+          if (districtChurchNames.length > 0) {
+            allUsers = await sql`
+              SELECT id, name, email, role
+              FROM users 
+              WHERE district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames})
+              ORDER BY name ASC
+            `;
+            
+            visitsData = await sql`
+              SELECT 
+                v.user_id, 
+                u.name, 
+                u.role,
+                COUNT(v.id) as visit_count, 
+                MAX(v.visit_date) as last_visit_date, 
+                MIN(v.visit_date) as first_visit_date
+              FROM visits v 
+              JOIN users u ON v.user_id = u.id
+              WHERE u.district_id = ${currentUserDistrictId} OR u.church = ANY(${districtChurchNames})
+              GROUP BY v.user_id, u.name, u.role
+              ORDER BY u.name ASC
+            `;
+          } else {
+            allUsers = await sql`
+              SELECT id, name, email, role
+              FROM users 
+              WHERE district_id = ${currentUserDistrictId}
+              ORDER BY name ASC
+            `;
+            
+            visitsData = await sql`
+              SELECT 
+                v.user_id, 
+                u.name, 
+                u.role,
+                COUNT(v.id) as visit_count, 
+                MAX(v.visit_date) as last_visit_date, 
+                MIN(v.visit_date) as first_visit_date
+              FROM visits v 
+              JOIN users u ON v.user_id = u.id
+              WHERE u.district_id = ${currentUserDistrictId}
+              GROUP BY v.user_id, u.name, u.role
+              ORDER BY u.name ASC
+            `;
+          }
+        } else {
+          // Para admin/superadmin, mostrar todos
+          console.log('📊 Visitômetro: Sem filtro - mostrando todos os usuários');
+          
+          allUsers = await sql`
+            SELECT id, name, email, role
+            FROM users 
+            ORDER BY name ASC
+          `;
+          
+          visitsData = await sql`
+            SELECT 
+              v.user_id, 
+              u.name, 
+              u.role,
+              COUNT(v.id) as visit_count, 
+              MAX(v.visit_date) as last_visit_date, 
+              MIN(v.visit_date) as first_visit_date
+            FROM visits v 
+            JOIN users u ON v.user_id = u.id
+            GROUP BY v.user_id, u.name, u.role
+            ORDER BY u.name ASC
+          `;
+        }
+        
+        console.log(`👥 Total de usuários ${isPastorUser ? 'do distrito' : 'no sistema'}: ${allUsers.length}`);
         
         console.log(`📊 Visitas encontradas: ${visitsData.length}`);
         
@@ -3051,13 +3299,42 @@ exports.handler = async (event, context) => {
       console.log('🔍 Get users for chat list - V2 - ROTA ENCONTRADA');
       
       try {
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        let users;
         // Buscar todos usuários aprovados
-        const users = await sql`
-          SELECT id, name, email, profile_photo 
-          FROM users 
-          WHERE status = 'approved'
-          LIMIT 500
-        `;
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            users = await sql`
+              SELECT id, name, email, profile_photo, church, district_id 
+              FROM users 
+              WHERE status = 'approved' AND (district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames}))
+              LIMIT 500
+            `;
+          } else {
+            users = await sql`
+              SELECT id, name, email, profile_photo, church, district_id 
+              FROM users 
+              WHERE status = 'approved' AND district_id = ${currentUserDistrictId}
+              LIMIT 500
+            `;
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          users = await sql`
+            SELECT id, name, email, profile_photo, church 
+            FROM users 
+            WHERE status = 'approved' AND church = ${currentUser.church}
+            LIMIT 500
+          `;
+        } else {
+          users = await sql`
+            SELECT id, name, email, profile_photo 
+            FROM users 
+            WHERE status = 'approved'
+            LIMIT 500
+          `;
+        }
         
         console.log('✅ Found', users.length, 'users for chat');
         
@@ -3099,11 +3376,33 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ error: 'Usuário não encontrado' })
           };
         }
+        
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        const targetUser = user[0];
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          const isInDistrict = targetUser.district_id === currentUserDistrictId;
+          const isInDistrictChurch = targetUser.church && districtChurchNames.includes(targetUser.church);
+          if (!isInDistrict && !isInDistrictChurch) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Acesso negado' })
+            };
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church && targetUser.church !== currentUser.church) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
 
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify(user[0])
+          body: JSON.stringify(targetUser)
         };
       } catch (error) {
         console.error('❌ Get user error:', error);
@@ -3129,6 +3428,11 @@ exports.handler = async (event, context) => {
           ORDER BY date ASC 
           LIMIT 100
         `;
+        
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (currentUser && isPastor(currentUser) && currentUser.district_id) {
+          events = events.filter(eventItem => eventItem.district_id === currentUser.district_id || eventItem.district_id == null);
+        }
         
         // Aplicar filtros baseados no role
         if (role && role !== 'admin') {
@@ -3194,7 +3498,16 @@ exports.handler = async (event, context) => {
     // Rota para igrejas
     if (path === '/api/churches' && method === 'GET') {
       try {
-        const churches = await sql`SELECT * FROM churches ORDER BY name`;
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        let churches;
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          churches = await sql`SELECT * FROM churches WHERE district_id = ${currentUserDistrictId} ORDER BY name`;
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          churches = await sql`SELECT * FROM churches WHERE name = ${currentUser.church} ORDER BY name`;
+        } else {
+          churches = await sql`SELECT * FROM churches ORDER BY name`;
+        }
         
         // Converter para camelCase para compatibilidade com frontend
         const formattedChurches = churches.map(c => ({
@@ -3453,22 +3766,89 @@ exports.handler = async (event, context) => {
         }
         
         // Buscar relacionamentos com nomes dos usuários
-        const relationships = await sql`
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        let relationships;
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            relationships = await sql`
+              SELECT 
+                r.id,
+                r.interested_id as "interestedId",
+                r.missionary_id as "missionaryId",
+                r.status,
+                r.notes,
+                r.created_at as "createdAt",
+                r.updated_at as "updatedAt",
+                COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+                COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+              FROM relationships r
+              LEFT JOIN users ui ON r.interested_id = ui.id
+              LEFT JOIN users um ON r.missionary_id = um.id
+              WHERE (
+                ui.district_id = ${currentUserDistrictId}
+                OR ui.church = ANY(${districtChurchNames})
+                OR um.district_id = ${currentUserDistrictId}
+                OR um.church = ANY(${districtChurchNames})
+              )
+              ORDER BY r.created_at DESC
+            `;
+          } else {
+            relationships = await sql`
+              SELECT 
+                r.id,
+                r.interested_id as "interestedId",
+                r.missionary_id as "missionaryId",
+                r.status,
+                r.notes,
+                r.created_at as "createdAt",
+                r.updated_at as "updatedAt",
+                COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+                COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+              FROM relationships r
+              LEFT JOIN users ui ON r.interested_id = ui.id
+              LEFT JOIN users um ON r.missionary_id = um.id
+              WHERE (ui.district_id = ${currentUserDistrictId} OR um.district_id = ${currentUserDistrictId})
+              ORDER BY r.created_at DESC
+            `;
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          relationships = await sql`
             SELECT 
               r.id,
-            r.interested_id as "interestedId",
-            r.missionary_id as "missionaryId",
+              r.interested_id as "interestedId",
+              r.missionary_id as "missionaryId",
               r.status,
-            r.notes,
-            r.created_at as "createdAt",
-            r.updated_at as "updatedAt",
-            COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
-            COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+              r.notes,
+              r.created_at as "createdAt",
+              r.updated_at as "updatedAt",
+              COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+              COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
             FROM relationships r
-          LEFT JOIN users ui ON r.interested_id = ui.id
-          LEFT JOIN users um ON r.missionary_id = um.id
+            LEFT JOIN users ui ON r.interested_id = ui.id
+            LEFT JOIN users um ON r.missionary_id = um.id
+            WHERE (ui.church = ${currentUser.church} OR um.church = ${currentUser.church})
             ORDER BY r.created_at DESC
           `;
+        } else {
+          relationships = await sql`
+            SELECT 
+              r.id,
+              r.interested_id as "interestedId",
+              r.missionary_id as "missionaryId",
+              r.status,
+              r.notes,
+              r.created_at as "createdAt",
+              r.updated_at as "updatedAt",
+              COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+              COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+            FROM relationships r
+            LEFT JOIN users ui ON r.interested_id = ui.id
+            LEFT JOIN users um ON r.missionary_id = um.id
+            ORDER BY r.created_at DESC
+          `;
+        }
         
         console.log('✅ [NETLIFY] Relacionamentos retornados:', relationships.length);
         return {
@@ -3518,24 +3898,93 @@ exports.handler = async (event, context) => {
           };
         }
         
-        // Buscar relacionamentos do missionário
-        const relationships = await sql`
-          SELECT 
-            r.id,
-            r.interested_id as "interestedId",
-            r.missionary_id as "missionaryId",
-            r.status,
-            r.notes,
-            r.created_at as "createdAt",
-            r.updated_at as "updatedAt",
-            COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
-            COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
-          FROM relationships r
-          LEFT JOIN users ui ON r.interested_id = ui.id
-          LEFT JOIN users um ON r.missionary_id = um.id
-          WHERE r.missionary_id = ${missionaryId}
-          ORDER BY r.created_at DESC
-        `;
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        let relationships;
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            relationships = await sql`
+              SELECT 
+                r.id,
+                r.interested_id as "interestedId",
+                r.missionary_id as "missionaryId",
+                r.status,
+                r.notes,
+                r.created_at as "createdAt",
+                r.updated_at as "updatedAt",
+                COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+                COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+              FROM relationships r
+              LEFT JOIN users ui ON r.interested_id = ui.id
+              LEFT JOIN users um ON r.missionary_id = um.id
+              WHERE r.missionary_id = ${missionaryId}
+                AND (
+                  ui.district_id = ${currentUserDistrictId}
+                  OR ui.church = ANY(${districtChurchNames})
+                  OR um.district_id = ${currentUserDistrictId}
+                  OR um.church = ANY(${districtChurchNames})
+                )
+              ORDER BY r.created_at DESC
+            `;
+          } else {
+            relationships = await sql`
+              SELECT 
+                r.id,
+                r.interested_id as "interestedId",
+                r.missionary_id as "missionaryId",
+                r.status,
+                r.notes,
+                r.created_at as "createdAt",
+                r.updated_at as "updatedAt",
+                COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+                COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+              FROM relationships r
+              LEFT JOIN users ui ON r.interested_id = ui.id
+              LEFT JOIN users um ON r.missionary_id = um.id
+              WHERE r.missionary_id = ${missionaryId}
+                AND (ui.district_id = ${currentUserDistrictId} OR um.district_id = ${currentUserDistrictId})
+              ORDER BY r.created_at DESC
+            `;
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          relationships = await sql`
+            SELECT 
+              r.id,
+              r.interested_id as "interestedId",
+              r.missionary_id as "missionaryId",
+              r.status,
+              r.notes,
+              r.created_at as "createdAt",
+              r.updated_at as "updatedAt",
+              COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+              COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+            FROM relationships r
+            LEFT JOIN users ui ON r.interested_id = ui.id
+            LEFT JOIN users um ON r.missionary_id = um.id
+            WHERE r.missionary_id = ${missionaryId}
+              AND (ui.church = ${currentUser.church} OR um.church = ${currentUser.church})
+            ORDER BY r.created_at DESC
+          `;
+        } else {
+          relationships = await sql`
+            SELECT 
+              r.id,
+              r.interested_id as "interestedId",
+              r.missionary_id as "missionaryId",
+              r.status,
+              r.notes,
+              r.created_at as "createdAt",
+              r.updated_at as "updatedAt",
+              COALESCE(ui.name, 'Usuário não encontrado') as "interestedName",
+              COALESCE(um.name, 'Usuário não encontrado') as "missionaryName"
+            FROM relationships r
+            LEFT JOIN users ui ON r.interested_id = ui.id
+            LEFT JOIN users um ON r.missionary_id = um.id
+            WHERE r.missionary_id = ${missionaryId}
+            ORDER BY r.created_at DESC
+          `;
+        }
         
         console.log(`✅ [NETLIFY] Relacionamentos encontrados para missionário ${missionaryId}:`, relationships.length);
         return {
@@ -5253,6 +5702,38 @@ exports.handler = async (event, context) => {
 
       } catch (error) {
         console.error('❌ Erro ao excluir configuração:', error);
+        return {
+          statusCode: 500,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Erro interno do servidor', details: error.message })
+        };
+      }
+    }
+
+    // DELETE /api/elections/clear-nominations - Limpar apenas as nomeações (mantém configurações)
+    if (path === '/api/elections/clear-nominations' && method === 'DELETE') {
+      try {
+        console.log('🗑️ Limpando todas as nomeações...');
+        
+        // Deletar votos de nomeação
+        const deletedVotes = await sql`DELETE FROM election_votes WHERE vote_type = 'nomination' RETURNING id`;
+        console.log(`🗑️ ${deletedVotes.length} votos de nomeação deletados`);
+        
+        // Resetar contador de nomeações nos candidatos
+        await sql`UPDATE election_candidates SET nominations = 0`;
+        console.log('🗑️ Contador de nomeações resetado');
+
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: 'Todas as nomeações foram limpas',
+            deletedVotes: deletedVotes.length
+          })
+        };
+
+      } catch (error) {
+        console.error('❌ Erro ao limpar nomeações:', error);
         return {
           statusCode: 500,
           headers: { 'Content-Type': 'application/json' },
@@ -7379,25 +7860,101 @@ exports.handler = async (event, context) => {
           `;
         }
         
-        const requests = await sql`
-          SELECT 
-            dr.id,
-            dr.interested_id as "interestedId",
-            dr.missionary_id as "missionaryId",
-            dr.status,
-            dr.notes,
-            dr.created_at as "createdAt",
-            dr.updated_at as "updatedAt",
-            ui.name as "interestedName",
-            ui.email as "interestedEmail",
-            um.name as "missionaryName",
-            um.email as "missionaryEmail"
-          FROM discipleship_requests dr
-          LEFT JOIN users ui ON dr.interested_id = ui.id
-          LEFT JOIN users um ON dr.missionary_id = um.id
-          ORDER BY dr.created_at DESC 
-          LIMIT 50
-        `;
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        let requests;
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            requests = await sql`
+              SELECT 
+                dr.id,
+                dr.interested_id as "interestedId",
+                dr.missionary_id as "missionaryId",
+                dr.status,
+                dr.notes,
+                dr.created_at as "createdAt",
+                dr.updated_at as "updatedAt",
+                ui.name as "interestedName",
+                ui.email as "interestedEmail",
+                um.name as "missionaryName",
+                um.email as "missionaryEmail"
+              FROM discipleship_requests dr
+              LEFT JOIN users ui ON dr.interested_id = ui.id
+              LEFT JOIN users um ON dr.missionary_id = um.id
+              WHERE (
+                ui.district_id = ${currentUserDistrictId}
+                OR ui.church = ANY(${districtChurchNames})
+                OR um.district_id = ${currentUserDistrictId}
+                OR um.church = ANY(${districtChurchNames})
+              )
+              ORDER BY dr.created_at DESC 
+              LIMIT 50
+            `;
+          } else {
+            requests = await sql`
+              SELECT 
+                dr.id,
+                dr.interested_id as "interestedId",
+                dr.missionary_id as "missionaryId",
+                dr.status,
+                dr.notes,
+                dr.created_at as "createdAt",
+                dr.updated_at as "updatedAt",
+                ui.name as "interestedName",
+                ui.email as "interestedEmail",
+                um.name as "missionaryName",
+                um.email as "missionaryEmail"
+              FROM discipleship_requests dr
+              LEFT JOIN users ui ON dr.interested_id = ui.id
+              LEFT JOIN users um ON dr.missionary_id = um.id
+              WHERE (ui.district_id = ${currentUserDistrictId} OR um.district_id = ${currentUserDistrictId})
+              ORDER BY dr.created_at DESC 
+              LIMIT 50
+            `;
+          }
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          requests = await sql`
+            SELECT 
+              dr.id,
+              dr.interested_id as "interestedId",
+              dr.missionary_id as "missionaryId",
+              dr.status,
+              dr.notes,
+              dr.created_at as "createdAt",
+              dr.updated_at as "updatedAt",
+              ui.name as "interestedName",
+              ui.email as "interestedEmail",
+              um.name as "missionaryName",
+              um.email as "missionaryEmail"
+            FROM discipleship_requests dr
+            LEFT JOIN users ui ON dr.interested_id = ui.id
+            LEFT JOIN users um ON dr.missionary_id = um.id
+            WHERE (ui.church = ${currentUser.church} OR um.church = ${currentUser.church})
+            ORDER BY dr.created_at DESC 
+            LIMIT 50
+          `;
+        } else {
+          requests = await sql`
+            SELECT 
+              dr.id,
+              dr.interested_id as "interestedId",
+              dr.missionary_id as "missionaryId",
+              dr.status,
+              dr.notes,
+              dr.created_at as "createdAt",
+              dr.updated_at as "updatedAt",
+              ui.name as "interestedName",
+              ui.email as "interestedEmail",
+              um.name as "missionaryName",
+              um.email as "missionaryEmail"
+            FROM discipleship_requests dr
+            LEFT JOIN users ui ON dr.interested_id = ui.id
+            LEFT JOIN users um ON dr.missionary_id = um.id
+            ORDER BY dr.created_at DESC 
+            LIMIT 50
+          `;
+        }
         
         console.log(`📊 Encontrados ${requests.length} pedidos de discipulado`);
         
@@ -7731,7 +8288,61 @@ exports.handler = async (event, context) => {
     // Rota para reuniões
     if (path === '/api/meetings' && method === 'GET') {
       try {
-        const meetings = await sql`SELECT * FROM meetings ORDER BY date DESC LIMIT 50`;
+        // Resolver usuário atual para aplicar filtro de distrito se for pastor
+        const currentUser = await resolveCurrentUser(event, sql);
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const isPastorUser = currentUser && isPastor(currentUser);
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        
+        console.log('👤 Meetings - currentUser:', currentUser?.name, '| isPastor:', isPastorUser, '| districtId:', currentUserDistrictId);
+        
+        let meetings;
+        
+        // Se for pastor com distrito, filtrar apenas reuniões do distrito
+        if (isPastorUser && currentUserDistrictId) {
+          console.log('✅ Meetings: Aplicando filtro de distrito para pastor');
+          
+          // Buscar IDs das igrejas do distrito
+          const districtChurchIds = await sql`SELECT id FROM churches WHERE district_id = ${currentUserDistrictId}`;
+          const churchIds = districtChurchIds.map(c => c.id);
+          
+          if (churchIds.length > 0) {
+            // Filtrar por church_id ou pelos usuários envolvidos (requester_id, assigned_to_id)
+            meetings = await sql`
+              SELECT m.* 
+              FROM meetings m
+              LEFT JOIN users req ON m.requester_id = req.id
+              LEFT JOIN users assigned ON m.assigned_to_id = assigned.id
+              WHERE m.church_id = ANY(${churchIds})
+                 OR req.district_id = ${currentUserDistrictId} 
+                 OR req.church = ANY(${districtChurchNames})
+                 OR assigned.district_id = ${currentUserDistrictId}
+                 OR assigned.church = ANY(${districtChurchNames})
+              ORDER BY m.date DESC 
+              LIMIT 50
+            `;
+          } else {
+            // Se não há igrejas, filtrar apenas pelos usuários envolvidos
+            meetings = await sql`
+              SELECT m.* 
+              FROM meetings m
+              LEFT JOIN users req ON m.requester_id = req.id
+              LEFT JOIN users assigned ON m.assigned_to_id = assigned.id
+              WHERE req.district_id = ${currentUserDistrictId}
+                 OR assigned.district_id = ${currentUserDistrictId}
+              ORDER BY m.date DESC 
+              LIMIT 50
+            `;
+          }
+        } else {
+          // Para admin/superadmin, mostrar todos
+          console.log('📊 Meetings: Sem filtro - mostrando todas');
+          
+          meetings = await sql`SELECT * FROM meetings ORDER BY date DESC LIMIT 50`;
+        }
+        
+        console.log(`📊 Reuniões encontradas: ${meetings.length}`);
+        
         return {
           statusCode: 200,
           headers,
@@ -9358,11 +9969,28 @@ exports.handler = async (event, context) => {
             const userStartTime = Date.now();
             
             // Validar dados obrigatórios
-            if (!userData.name || !userData.email) {
+            if (!userData.name) {
               errors++;
-              errorDetails.push(`Usuário sem nome ou email: ${JSON.stringify(userData)}`);
+              errorDetails.push(`Usuário sem nome: ${JSON.stringify(userData)}`);
               continue;
             }
+            
+            // Gerar email único se não fornecido ou se for email fake
+            let userEmail = userData.email;
+            const isValidEmail = (email) => {
+              if (!email || typeof email !== 'string') return false;
+              const emailStr = email.trim().toLowerCase();
+              if (emailStr.includes('@igreja.com') || emailStr.includes('@importado.local') || emailStr.includes('@naotem.email')) return false;
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              return emailRegex.test(emailStr);
+            };
+            
+            if (!isValidEmail(userEmail)) {
+              const randomSuffix = Math.random().toString(36).substring(2, 8);
+              userEmail = `sem.email.${randomSuffix}@naotem.email`;
+              console.log(`📧 Email gerado para ${userData.name}: ${userEmail}`);
+            }
+            userData.email = userEmail;
             
             // Verificar se usuário já existe
             const existingUser = await sql`SELECT id FROM users WHERE email = ${userData.email} LIMIT 1`;
@@ -16695,6 +17323,174 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // DELETE /api/districts/:id/data - Limpar dados do distrito (manter estrutura)
+    if (path.match(/^\/api\/districts\/\d+\/data$/) && method === 'DELETE') {
+      try {
+        const districtId = parseInt(path.split('/')[3]);
+        const userId = parseInt(event.headers['x-user-id'] || '0');
+        let user = null;
+        
+        if (userId) {
+          const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
+          if (userResult.length > 0) {
+            user = userResult[0];
+          }
+        }
+
+        // Verificar se distrito existe
+        const existing = await sql`SELECT * FROM districts WHERE id = ${districtId}`;
+        if (existing.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: "Distrito não encontrado" })
+          };
+        }
+
+        // Verificar permissões: superadmin ou pastor do distrito
+        const isPastorOfDistrict = user && user.role === 'pastor' && 
+          (user.district_id === districtId || existing[0].pastor_id === user.id);
+        
+        if (!isSuperAdmin(user) && !isPastorOfDistrict) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: "Sem permissão para limpar dados deste distrito" })
+          };
+        }
+
+        // Buscar IDs de usuários do distrito (exceto superadmin/pastor/admin)
+        const districtUsers = await sql`
+          SELECT id FROM users 
+          WHERE district_id = ${districtId} 
+          AND role NOT IN ('superadmin', 'pastor', 'admin')
+        `;
+        const userIds = districtUsers.map(u => u.id);
+
+        let deletedCounts = {
+          relationships: 0,
+          discipleshipRequests: 0,
+          events: 0,
+          tasks: 0,
+          prayerRequests: 0,
+          messages: 0,
+          notifications: 0,
+          users: 0
+        };
+
+        console.log(`[District ${districtId}] Iniciando limpeza. Usuários encontrados: ${userIds.length}`);
+
+        if (userIds.length > 0) {
+          // Deletar relacionamentos
+          try {
+            const relResult = await sql`
+              DELETE FROM relationships 
+              WHERE mentor_id = ANY(${userIds}) OR mentee_id = ANY(${userIds})
+            `;
+            deletedCounts.relationships = relResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Tabela relationships não existe ou erro:', e.message);
+          }
+
+          // Deletar solicitações de discipulado
+          try {
+            const discResult = await sql`
+              DELETE FROM discipleship_requests 
+              WHERE mentor_id = ANY(${userIds}) OR mentee_id = ANY(${userIds})
+            `;
+            deletedCounts.discipleshipRequests = discResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Tabela discipleship_requests não existe ou erro:', e.message);
+          }
+
+          // Deletar eventos
+          try {
+            const eventsResult = await sql`
+              DELETE FROM events 
+              WHERE created_by = ANY(${userIds})
+            `;
+            deletedCounts.events = eventsResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Tabela events não existe ou erro:', e.message);
+          }
+
+          // Deletar tarefas
+          try {
+            const tasksResult = await sql`
+              DELETE FROM tasks 
+              WHERE assigned_to = ANY(${userIds}) OR created_by = ANY(${userIds})
+            `;
+            deletedCounts.tasks = tasksResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Tabela tasks não existe ou erro:', e.message);
+          }
+
+          // Deletar pedidos de oração
+          try {
+            const prayerResult = await sql`
+              DELETE FROM prayer_requests 
+              WHERE user_id = ANY(${userIds})
+            `;
+            deletedCounts.prayerRequests = prayerResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Tabela prayer_requests não existe ou erro:', e.message);
+          }
+
+          // Deletar mensagens
+          try {
+            const messagesResult = await sql`
+              DELETE FROM messages 
+              WHERE sender_id = ANY(${userIds}) OR receiver_id = ANY(${userIds})
+            `;
+            deletedCounts.messages = messagesResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Tabela messages não existe ou erro:', e.message);
+          }
+
+          // Deletar notificações
+          try {
+            const notifResult = await sql`
+              DELETE FROM notifications 
+              WHERE user_id = ANY(${userIds})
+            `;
+            deletedCounts.notifications = notifResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Tabela notifications não existe ou erro:', e.message);
+          }
+
+          // Deletar usuários (por último)
+          try {
+            const usersResult = await sql`
+              DELETE FROM users 
+              WHERE id = ANY(${userIds})
+            `;
+            deletedCounts.users = usersResult.count || 0;
+          } catch (e) {
+            console.log('[District clear] Erro ao deletar usuários:', e.message);
+          }
+        }
+
+        console.log(`[District ${districtId}] Dados limpos:`, deletedCounts);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            success: true, 
+            message: "Dados do distrito limpos com sucesso",
+            deleted: deletedCounts
+          })
+        };
+      } catch (error) {
+        console.error("Erro ao limpar dados do distrito:", error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: "Internal server error: " + error.message })
+        };
+      }
+    }
+
     // GET /api/districts/:id/churches - Listar igrejas de um distrito
     if (path.match(/^\/api\/districts\/\d+\/churches$/) && method === 'GET') {
       try {
@@ -17299,7 +18095,7 @@ exports.handler = async (event, context) => {
           RETURNING *
         `;
 
-        const APP_URL = process.env.APP_URL || 'https://7careapp-2026.netlify.app';
+        const APP_URL = process.env.APP_URL || 'https://7careadv.netlify.app';
         const link = `${APP_URL}/convite-pastor.html?token=${token}`;
         const directLink = `${APP_URL}/pastor-onboarding/${token}`;
 
@@ -17997,6 +18793,17 @@ exports.handler = async (event, context) => {
           let counter = 0;
           const baseTime = Date.now();
           
+          // Função para validar email
+          const isValidEmail = (email) => {
+            if (!email || typeof email !== 'string') return false;
+            const emailStr = email.trim().toLowerCase();
+            // Rejeitar emails falsos gerados pelo frontend
+            if (emailStr.includes('@igreja.com') || emailStr.includes('@importado.local') || emailStr.includes('@naotem.email')) return false;
+            // Validar formato básico de email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(emailStr);
+          };
+          
           for (const member of membersToImport) {
             const memberName = member.nome || member.Nome || member.name || member.Name;
             if (!memberName || memberName.trim() === '') {
@@ -18004,8 +18811,11 @@ exports.handler = async (event, context) => {
               continue;
             }
             
-            // Email único
-            const memberEmail = `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${baseTime}.${counter++}@importado.local`;
+            // Email: usar o da planilha se válido, senão gerar um único curto
+            const emailFromSheet = member.email || member.Email || member['E-mail'] || member['e-mail'];
+            const memberEmail = isValidEmail(emailFromSheet) 
+              ? emailFromSheet.trim().toLowerCase()
+              : `sem.email.${counter++}@naotem.email`;
             
             // Igreja
             const memberChurchRaw = member.igreja || member.Igreja || member.church || member.Church;
@@ -18027,6 +18837,13 @@ exports.handler = async (event, context) => {
             const dizimistaResult = parseDizimistaField(member.dizimista || member.Dizimista);
             const ofertanteResult = parseOfertanteField(member.ofertante || member.Ofertante);
             
+            // CPF
+            const cpf = member.cpf || member.CPF || null;
+            
+            // Religião anterior e instrutor bíblico
+            const previousReligion = member.religiaoAnterior || member['Religião anterior'] || member['religiao anterior'] || null;
+            const biblicalInstructor = member.instrutorBiblico || member['Instrutor bíblico'] || member['Batizado por'] || null;
+            
             // Tempo de batismo
             let tempoBatismoAnos = parseNumber(member.tempoBatismoAnos || member['Tempo de batismo - anos']);
             if (tempoBatismoAnos === 0 && baptismDate) {
@@ -18047,8 +18864,9 @@ exports.handler = async (event, context) => {
             const missao = parseNumber(member.missao || member.Missão || member['Missão']);
             const estudoBiblico = parseNumber(member.estudoBiblico || member['Estudo bíblico']);
             const batizouAlguem = parseBool(member.batizouAlguem || member['Batizou alguém']);
-            const cpfValido = parseBool(member.valid || member['CPF válido']);
+            const cpfValido = parseBool(member.cpfValido || member.valid || member['CPF válido']);
             const departamentosCargos = member.departamentosCargos || member['Departamentos e cargos'] || null;
+            const observacoes = member.observacoes || member.observations || null;
             
             // Verificar campos vazios
             const camposObrigatorios = [member.cpf, member.telefone, member.endereco, member.dataNascimento];
@@ -18085,7 +18903,10 @@ exports.handler = async (event, context) => {
               batizou_alguem: batizouAlguem,
               cpf_valido: cpfValido,
               campos_vazios: camposVazios,
-              departamentos_cargos: departamentosCargos
+              departamentos_cargos: departamentosCargos,
+              previous_religion: previousReligion,
+              biblical_instructor: biblicalInstructor,
+              observations: observacoes
             });
           }
           
@@ -18106,7 +18927,8 @@ exports.handler = async (event, context) => {
                   district_id, engajamento, classificacao, tempo_batismo_anos, 
                   dizimista_type, ofertante_type, nome_unidade, tem_licao,
                   total_presenca, comunhao, missao, estudo_biblico, batizou_alguem,
-                  cpf_valido, campos_vazios, departamentos_cargos
+                  cpf_valido, campos_vazios, departamentos_cargos,
+                  previous_religion, biblical_instructor, observations
                 ) VALUES (
                   ${m.name}, ${m.email}, ${m.password}, ${m.role}, ${m.church}, ${m.church_code}, ${m.phone},
                   ${m.birth_date}, ${m.civil_status}, ${m.occupation}, ${m.education}, ${m.address},
@@ -18114,7 +18936,8 @@ exports.handler = async (event, context) => {
                   ${m.district_id}, ${m.engajamento}, ${m.classificacao}, ${m.tempo_batismo_anos},
                   ${m.dizimista_type}, ${m.ofertante_type}, ${m.nome_unidade}, ${m.tem_licao},
                   ${m.total_presenca}, ${m.comunhao}, ${m.missao}, ${m.estudo_biblico}, ${m.batizou_alguem},
-                  ${m.cpf_valido}, ${m.campos_vazios}, ${m.departamentos_cargos}
+                  ${m.cpf_valido}, ${m.campos_vazios}, ${m.departamentos_cargos},
+                  ${m.previous_religion}, ${m.biblical_instructor}, ${m.observations}
                 )
               `.catch(err => {
                 console.error(`❌ ${m.name}: ${err.message}`);
@@ -18803,8 +19626,9 @@ exports.handler = async (event, context) => {
                 continue;
               }
               
-              // Gerar email único
-              const memberEmail = `${memberName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2, 4)}@importado.local`;
+              // Gerar email único curto
+              const randomSuffix = Math.random().toString(36).substr(2, 6);
+              const memberEmail = `sem.email.${randomSuffix}@naotem.email`;
               
               // Igreja - mapeamento completo
               const memberChurchRaw = member.igreja || member.Igreja || member.church || member.Church || member['Igreja'];
@@ -19169,7 +19993,8 @@ exports.handler = async (event, context) => {
             const name = (member.nome || member.Nome || member.name || '').trim();
             if (!name) { membersSkipped++; continue; }
 
-            const email = `${name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')}.${Date.now()}.${Math.random().toString(36).substr(2,4)}@importado.local`;
+            const randomSuffix = Math.random().toString(36).substr(2, 6);
+            const email = `sem.email.${randomSuffix}@naotem.email`;
             
             // Igreja com mapeamento completo
             const churchNameRaw = member.igreja || member.Igreja || member.church || onboardingData.churches?.[0]?.name || null;
@@ -19301,6 +20126,65 @@ exports.handler = async (event, context) => {
           statusCode: 500,
           headers,
           body: JSON.stringify({ error: 'Erro ao rejeitar convite' })
+        };
+      }
+    }
+
+    // ========== ROTA ADMIN: RESETAR SENHAS ==========
+    // POST /api/admin/reset-all-passwords - Reseta todas as senhas para "meu7care"
+    if (path === '/api/admin/reset-all-passwords' && method === 'POST') {
+      try {
+        console.log('🔐 [ADMIN] Iniciando reset de senhas para todos os usuários...');
+        
+        // Verificar se é superadmin
+        const userId = parseInt(event.headers['x-user-id'] || '0');
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autorizado' })
+          };
+        }
+        
+        const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
+        if (userResult.length === 0 || userResult[0].role !== 'superadmin') {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Apenas superadmin pode executar esta ação' })
+          };
+        }
+        
+        // Gerar hash da nova senha padrão
+        const newPassword = 'meu7care';
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        // Atualizar todos os usuários (exceto o próprio superadmin que está executando)
+        const result = await sql`
+          UPDATE users 
+          SET password = ${hashedPassword}, 
+              first_access = true,
+              updated_at = NOW()
+          WHERE email != 'admin@7care.com'
+        `;
+        
+        console.log('✅ [ADMIN] Senhas resetadas com sucesso!');
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            success: true,
+            message: 'Todas as senhas foram resetadas para "meu7care"',
+            note: 'Os usuários serão solicitados a trocar a senha no primeiro acesso'
+          })
+        };
+      } catch (error) {
+        console.error('❌ [ADMIN] Erro ao resetar senhas:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao resetar senhas', details: error.message })
         };
       }
     }

@@ -9,7 +9,7 @@ import json
 import time
 from datetime import datetime
 
-BASE_URL = "https://7careapp-2026.netlify.app"
+BASE_URL = "https://7careadv.netlify.app"
 # BASE_URL = "http://localhost:5000"
 
 # Credenciais do superadmin (necessário para criar convite)

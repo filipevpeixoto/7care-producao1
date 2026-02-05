@@ -76,7 +76,12 @@ export default function PushNotifications() {
 
   const loadUsers = async () => {
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!res.ok) return;
       const data = await res.json();
       // A API pode retornar { data: [], pagination: {} }, { users: [] } ou array diretamente

@@ -58,7 +58,12 @@ export function PushNotificationSettings() {
 
   const loadUsers = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setAllUsers(data);

@@ -158,13 +158,16 @@ export default function PastorInvites() {
 
   // Buscar convites
   const { data: invites = [], isLoading } = useQuery<PastorInvite[]>({
-    queryKey: ['/api/invites'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/invites', user?.id],
     queryFn: async () => {
       const response = await fetchWithAuth('/api/invites');
       if (!response.ok) throw new Error('Erro ao buscar convites');
       return response.json();
     },
-    enabled: isSuperAdmin(user),
+    enabled: !!user?.id && isSuperAdmin(user),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Criar convite

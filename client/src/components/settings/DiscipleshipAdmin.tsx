@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
@@ -46,6 +47,7 @@ export function DiscipleshipAdmin() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Buscar todas as solicitações de discipulado
@@ -60,12 +62,18 @@ export function DiscipleshipAdmin() {
 
   // Buscar usuários para mostrar nomes
   const { data: users = [] } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       return response.json();
     },
+    enabled: !!user?.id,
   });
 
   // Mutation para aprovar/rejeitar solicitação

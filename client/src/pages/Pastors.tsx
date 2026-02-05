@@ -58,32 +58,38 @@ export default function Pastors() {
 
   // Buscar pastores
   const { data: pastors = [], isLoading } = useQuery<Pastor[]>({
-    queryKey: ['/api/pastors'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/pastors', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) throw new Error('Erro ao buscar pastores');
       return response.json();
     },
-    enabled: canManagePastors(user),
+    enabled: !!user?.id && canManagePastors(user),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Buscar distritos (para seleção)
   const { data: districts = [] } = useQuery({
-    queryKey: ['/api/districts'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/districts', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/districts', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: canManagePastors(user),
+    enabled: !!user?.id && canManagePastors(user),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Criar pastor
@@ -93,7 +99,7 @@ export default function Pastors() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -129,7 +135,7 @@ export default function Pastors() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify(data),
       });
@@ -165,7 +171,7 @@ export default function Pastors() {
       const response = await fetch(`/api/pastors/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) {

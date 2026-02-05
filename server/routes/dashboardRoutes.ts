@@ -53,46 +53,40 @@ export const dashboardRoutes = (app: Express): void => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
       const user = userId ? await storage.getUserById(userId) : null;
 
-      const allUsers = await storage.getAllUsers();
       const allEvents = await storage.getAllEvents();
 
       let usersToInclude: User[] = [];
       let eventsToInclude: Event[] = [];
       let churchesToInclude: Church[] = [];
 
-      if (isSuperAdmin(user)) {
+      // PERFORMANCE & ISOLATION FIX: Usar query direta por distrito
+      if (isPastor(user) && user?.districtId) {
+        // Pastor: query otimizada direto do banco
+        logger.info(`🏛️ PASTOR no Dashboard - Query direta por distrito: ${user.districtId}`);
+        usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+        usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
+        logger.info(`✅ Dashboard: ${usersToInclude.length} usuários carregados diretamente`);
+        eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
+        churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
+      } else if (isSuperAdmin(user)) {
         if (user?.districtId) {
-          const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-          const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-          usersToInclude = allUsers.filter((u: User) => {
-            const churchName = u.church ?? '';
-            return (
-              u.email !== 'admin@7care.com' &&
-              (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-            );
-          });
-          eventsToInclude = allEvents;
-          churchesToInclude = districtChurches;
+          // Superadmin com distrito específico
+          usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+          usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
+          eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
+          churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
         } else {
+          // Superadmin sem distrito (vê tudo)
+          const allUsers = await storage.getAllUsers();
           usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
           eventsToInclude = allEvents;
           churchesToInclude = await storage.getAllChurches();
         }
-      } else if (isPastor(user) && user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-        eventsToInclude = allEvents;
-        churchesToInclude = districtChurches;
       } else {
+        // Usuário comum: filtrar por igreja
         const userChurch = user?.church;
         if (userChurch) {
+          const allUsers = await storage.getAllUsers();
           usersToInclude = allUsers.filter(
             (u: User) => u.email !== 'admin@7care.com' && u.church === userChurch
           );

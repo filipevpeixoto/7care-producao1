@@ -15,6 +15,44 @@ export const reportsRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
 
   /**
+   * Helper function para buscar usuários com isolamento de distrito
+   * PERFORMANCE & ISOLATION FIX: Usa query direta por distrito quando aplicável
+   */
+  const getUsersForReport = async (
+    user: User | null
+  ): Promise<{ users: User[]; churches: Church[]; events: Event[] }> => {
+    const allEvents = await storage.getAllEvents();
+    
+    if (isPastor(user) && user?.districtId) {
+      // Pastor: query otimizada direto do banco por district_id
+      logger.info(`🏛️ Reports Helper - Query direta por distrito: ${user.districtId}`);
+      const users = await storage.getUsersByDistrictId(user.districtId);
+      const filteredUsers = users.filter((u: User) => u.email !== 'admin@7care.com');
+      const churches = await storage.getChurchesByDistrict(user.districtId);
+      const events = allEvents.filter((e: Event) => e.districtId === user.districtId);
+      return { users: filteredUsers, churches, events };
+    } else if (isSuperAdmin(user)) {
+      if (user?.districtId) {
+        // Superadmin com distrito específico
+        const users = await storage.getUsersByDistrictId(user.districtId);
+        const filteredUsers = users.filter((u: User) => u.email !== 'admin@7care.com');
+        const churches = await storage.getChurchesByDistrict(user.districtId);
+        const events = allEvents.filter((e: Event) => e.districtId === user.districtId);
+        return { users: filteredUsers, churches, events };
+      } else {
+        // Superadmin sem distrito (vê tudo)
+        const allUsers = await storage.getAllUsers();
+        const filteredUsers = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
+        const allChurches = await storage.getAllChurches();
+        return { users: filteredUsers, churches: allChurches, events: allEvents };
+      }
+    }
+    
+    // Fallback: sem acesso
+    return { users: [], churches: [], events: [] };
+  };
+
+  /**
    * Helper function to calculate engagement level
    */
   const getEngagementScore = (user: User): number => {
@@ -76,7 +114,6 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
       const allChurches = await storage.getAllChurches();
       const allEvents = await storage.getAllEvents();
       const allDistricts = await sql`SELECT * FROM districts`;
@@ -85,40 +122,29 @@ export const reportsRoutes = (app: Express): void => {
       let churchesToInclude: Church[] = [];
       let eventsToInclude: Event[] = [];
 
-      if (isSuperAdmin(user)) {
+      // PERFORMANCE & ISOLATION FIX: Usar query direta por distrito
+      if (isPastor(user) && user?.districtId) {
+        // Pastor: query otimizada direto do banco por district_id
+        logger.info(`🏛️ PASTOR em Reports - Query direta por distrito: ${user.districtId}`);
+        usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+        usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
+        logger.info(`✅ Reports: ${usersToInclude.length} usuários carregados diretamente`);
+        churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
+        eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
+      } else if (isSuperAdmin(user)) {
         if (user?.districtId) {
-          const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-          const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-          usersToInclude = allUsers.filter((u: User) => {
-            const churchName = u.church ?? '';
-            return (
-              u.email !== 'admin@7care.com' &&
-              (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-            );
-          });
-          churchesToInclude = districtChurches;
-          eventsToInclude = allEvents.filter((e: Event) =>
-            districtChurchNames.includes(e.church || '')
-          );
+          // Superadmin com distrito específico
+          usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+          usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
+          churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
+          eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
         } else {
+          // Superadmin sem distrito (vê tudo)
+          const allUsers = await storage.getAllUsers();
           usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
           churchesToInclude = allChurches;
           eventsToInclude = allEvents;
         }
-      } else if (isPastor(user) && user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-        churchesToInclude = districtChurches;
-        eventsToInclude = allEvents.filter((e: Event) =>
-          districtChurchNames.includes(e.church || '')
-        );
       }
 
       // Calculate metrics
@@ -247,22 +273,8 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
-      let usersToInclude: User[] = [];
-
-      if (isSuperAdmin(user) && !user?.districtId) {
-        usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-      } else if (user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-      }
+      // PERFORMANCE FIX: Usar helper otimizado
+      const { users: usersToInclude } = await getUsersForReport(user);
 
       // Calculate funnel stages
       const interested = usersToInclude.filter(u => u.role === 'interested');
@@ -329,19 +341,13 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
-      let churchesToInclude: Church[] = [];
-
-      if (isSuperAdmin(user) && !user?.districtId) {
-        churchesToInclude = await storage.getAllChurches();
-      } else if (user?.districtId) {
-        churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
-      }
+      // PERFORMANCE FIX: Usar helper otimizado
+      const { users: allUsersFiltered, churches: churchesToInclude } = await getUsersForReport(user);
 
       const churchStats = churchesToInclude
         .map(church => {
-          const churchUsers = allUsers.filter(
-            (u: User) => u.church === church.name && u.email !== 'admin@7care.com'
+          const churchUsers = allUsersFiltered.filter(
+            (u: User) => u.church === church.name
           );
 
           const interested = churchUsers.filter(u => u.role === 'interested').length;
@@ -411,22 +417,8 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
-      let usersToInclude: User[] = [];
-
-      if (isSuperAdmin(user) && !user?.districtId) {
-        usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-      } else if (user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-      }
+      // PERFORMANCE FIX: Usar helper otimizado
+      const { users: usersToInclude } = await getUsersForReport(user);
 
       // Engagement by category
       const engagementCategories = {
@@ -525,22 +517,8 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
-      let usersToInclude: User[] = [];
-
-      if (isSuperAdmin(user) && !user?.districtId) {
-        usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-      } else if (user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-      }
+      // PERFORMANCE FIX: Usar helper otimizado
+      const { users: usersToInclude } = await getUsersForReport(user);
 
       // Last 6 months data
       const now = new Date();
@@ -648,23 +626,9 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
+      // PERFORMANCE FIX: Usar helper otimizado
+      const { users: usersToInclude } = await getUsersForReport(user);
       const allRelationships = await storage.getAllRelationships();
-      let usersToInclude: User[] = [];
-
-      if (isSuperAdmin(user) && !user?.districtId) {
-        usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-      } else if (user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-      }
 
       // Get missionaries
       const missionaries = usersToInclude.filter(u => u.role === 'missionary');
@@ -852,22 +816,8 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
-      let usersToInclude: User[] = [];
-
-      if (user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-      } else {
-        usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-      }
+      // PERFORMANCE FIX: Usar helper otimizado
+      const { users: usersToInclude } = await getUsersForReport(user);
 
       // Calculate current values
       const totalMembers = usersToInclude.filter(
@@ -970,22 +920,8 @@ export const reportsRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
-      let usersToInclude: User[] = [];
-
-      if (user?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        usersToInclude = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
-          );
-        });
-      } else {
-        usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-      }
+      // PERFORMANCE FIX: Usar helper otimizado
+      const { users: usersToInclude } = await getUsersForReport(user);
 
       const insights: Array<{
         id: number;

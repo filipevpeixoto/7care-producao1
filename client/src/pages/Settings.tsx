@@ -32,6 +32,17 @@ import {
 } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Settings as SettingsIcon,
   Users,
   Bell,
@@ -205,7 +216,12 @@ export default function Settings() {
   // Funções para gerenciar notificações personalizadas
   const loadUsers = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setUsersList(data.users || []);
@@ -323,6 +339,7 @@ export default function Settings() {
   const [clearDataCallback, setClearDataCallback] = useState<((value: boolean) => void) | null>(
     null
   );
+  const [isClearingDistrict, setIsClearingDistrict] = useState(false);
 
   // Logo management states
   const [currentLogo, setCurrentLogo] = useState<string>('');
@@ -362,7 +379,7 @@ export default function Settings() {
               const districtInfoResponse = await fetch(`/api/districts/${districtData.districtId}`);
               if (districtInfoResponse.ok) {
                 const districtInfo = await districtInfoResponse.json();
-                setUserDistrictName(districtInfo.name || `Distrito ${districtData.districtId}`);
+                setUserDistrictName(districtInfo.name || 'Meu Distrito');
               }
             }
           }
@@ -381,7 +398,7 @@ export default function Settings() {
 
       const response = await fetch(churchesUrl, {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (response.ok) {
@@ -484,6 +501,21 @@ export default function Settings() {
       loadDefaultChurch();
     }
   }, [user]);
+
+  // Inicializar userDistrictId a partir do user autenticado
+  useEffect(() => {
+    if (user?.districtId && !userDistrictId) {
+      setUserDistrictId(user.districtId);
+      // Buscar nome do distrito
+      fetch(`/api/districts/${user.districtId}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.name) setUserDistrictName(data.name);
+          else setUserDistrictName('Meu Distrito');
+        })
+        .catch(() => setUserDistrictName('Meu Distrito'));
+    }
+  }, [user?.districtId]);
 
   // Load current system logo from localStorage
   useEffect(() => {
@@ -705,7 +737,7 @@ export default function Settings() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({ isActive: !church.active }),
       });
@@ -738,7 +770,7 @@ export default function Settings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           name: 'Nova Igreja',
@@ -768,7 +800,7 @@ export default function Settings() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({ [field]: value }),
       });
@@ -824,6 +856,37 @@ export default function Settings() {
     }
   };
 
+  const handleClearDistrictData = async () => {
+    if (!userDistrictId) return;
+    setIsClearingDistrict(true);
+    try {
+      const response = await fetch(`/api/districts/${userDistrictId}/data`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Erro ao limpar dados');
+
+      queryClient.clear();
+
+      toast({
+        title: 'Dados limpos',
+        description: data.message || 'Dados do distrito removidos com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao limpar dados',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsClearingDistrict(false);
+    }
+  };
+
   const handleClearAllData = async () => {
     const confirmed = await new Promise<boolean>(resolve => {
       setShowClearDataDialog(true);
@@ -849,7 +912,7 @@ export default function Settings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
 
@@ -1273,10 +1336,8 @@ export default function Settings() {
           return {
             // Campos básicos
             name: row.Nome || row.nome || row.name || 'Usuário Importado',
-            email:
-              row.Email ||
-              row.email ||
-              `${(row.Nome || row.nome || 'usuario').toLowerCase().replace(/\s+/g, '.')}@igreja.com`,
+            // Email: usar apenas email válido da planilha, backend gera único se necessário
+            email: row.Email || row.email || undefined,
             password: '123456', // Default password
             role: getRole(row.Tipo || row.tipo || row.role),
 
@@ -3258,7 +3319,7 @@ export default function Settings() {
                       Importar Dados
                     </Button>
 
-                    {/* Limpar dados - Apenas superadmin */}
+                    {/* Limpar dados - Superadmin: sistema inteiro */}
                     {user?.role === 'superadmin' && (
                       <Button
                         variant="destructive"
@@ -3270,18 +3331,47 @@ export default function Settings() {
                         Limpar Dados
                       </Button>
                     )}
-                  </div>
 
-                  {/* Aviso para pastores */}
-                  {user?.role !== 'superadmin' && (
-                    <Alert>
-                      <Shield className="h-4 w-4" />
-                      <AlertDescription>
-                        Por segurança, a limpeza completa de dados só pode ser realizada pelo
-                        superadmin. Você pode exportar e importar dados do seu distrito.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                    {/* Limpar dados - Pastor: apenas seu distrito */}
+                    {user?.role === 'pastor' && userDistrictId && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            className="flex-1"
+                            disabled={isClearingDistrict}
+                          >
+                            {isClearingDistrict ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 mr-2" />
+                            )}
+                            Limpar Dados do Distrito
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acao vai remover permanentemente todos os membros,
+                              relacionamentos, eventos, pedidos de oracao e demais dados do distrito{' '}
+                              <strong>{userDistrictName}</strong>. Seu usuario de pastor e o distrito
+                              nao serao afetados. Esta acao nao pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleClearDistrictData}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Sim, limpar tudo
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

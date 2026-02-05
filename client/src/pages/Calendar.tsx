@@ -96,12 +96,14 @@ export default function Calendar() {
     isLoading: _eventsLoading,
     refetch,
   } = useQuery<any[]>({
-    queryKey: ['events'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['events', user?.id],
     queryFn: async () => {
       console.log('📡 [API] Buscando eventos do servidor...');
       const response = await fetch('/api/calendar/events', {
         headers: {
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
         },
       });
       if (!response.ok) throw new Error('Erro ao buscar eventos');
@@ -123,11 +125,11 @@ export default function Calendar() {
 
       return uniqueEvents;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutos - cache inteligente
+    enabled: !!user?.id,
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 5 * 60 * 1000, // 5 minutos - manter em cache
-    refetchInterval: 10 * 60 * 1000, // 10 minutos - refresh automático
-    refetchOnMount: false, // Usar cache se disponível
-    refetchOnWindowFocus: false, // Não refazer ao focar janela
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Normalizar eventos (converter date/end_date para startDate/endDate)

@@ -54,19 +54,25 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            // Cache de API - Network First com fallback
+            // NUNCA cachear rotas que dependem do usuário logado
+            // Estas rotas retornam dados diferentes por usuário/pastor
+            urlPattern: /^https?:\/\/.*\/api\/(users|meetings|activities|prayer-requests|testimonies|members|visits|transfers|districts|churches|dashboard)/i,
+            handler: 'NetworkOnly', // Sempre buscar da rede, nunca cachear
+          },
+          {
+            // Cache de API pública/estática - Network First com fallback
             urlPattern: /^https?:\/\/.*\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: '7care-api-cache',
               expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24, // 1 dia apenas
               },
               cacheableResponse: {
                 statuses: [0, 200],
               },
-              networkTimeoutSeconds: 10,
+              networkTimeoutSeconds: 5,
             },
           },
           {

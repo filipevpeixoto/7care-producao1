@@ -89,7 +89,7 @@ export default function UnifiedElection() {
       const response = await fetch('/api/elections/configs', {
         headers: {
           'Cache-Control': 'no-cache',
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (response.ok) {

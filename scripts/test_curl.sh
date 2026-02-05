@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASE_URL="https://7careapp-2026.netlify.app"
+BASE_URL="https://7careadv.netlify.app"
 EMAIL="pastor.test.$(date +%s)@7care.com"
 
 echo "=== 1. LOGIN ==="

@@ -454,7 +454,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
     try {
       const response = await fetch('/api/churches', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache',
         },
       });
@@ -496,7 +496,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       // Buscar todos os membros sem limite de paginação
       const response = await fetch('/api/users?limit=500', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache',
         },
       });
@@ -689,7 +689,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
       try {
         const response = await fetch('/api/elections/configs', {
           headers: {
-            'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+            'x-user-id': user?.id?.toString() || '',
             'Cache-Control': 'no-cache',
             Pragma: 'no-cache',
           },
@@ -924,7 +924,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
     try {
       const response = await fetch('/api/users?limit=500', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
 

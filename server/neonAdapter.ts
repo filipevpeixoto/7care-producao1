@@ -445,6 +445,31 @@ export class NeonAdapter implements IStorage {
     return userRepository.getAllUsers();
   }
 
+  /**
+   * Busca usuários por distrito específico (query otimizada)
+   * PERFORMANCE: Evita carregar todos os usuários e filtrar na memória
+   */
+  async getUsersByDistrictId(districtId: number): Promise<User[]> {
+    return userRepository.getUsersByDistrictId(districtId);
+  }
+
+  /**
+   * Busca usuários por distrito com filtros opcionais (query otimizada)
+   */
+  async getUsersByDistrictIdWithFilters(
+    districtId: number,
+    filters?: { role?: string; status?: string; church?: string }
+  ): Promise<User[]> {
+    return userRepository.getUsersByDistrictIdWithFilters(districtId, filters);
+  }
+
+  /**
+   * Conta usuários por distrito (query otimizada para stats)
+   */
+  async countUsersByDistrictId(districtId: number): Promise<number> {
+    return userRepository.countUsersByDistrictId(districtId);
+  }
+
   async getVisitedUsers(): Promise<User[]> {
     return userRepository.getVisitedUsers();
   }

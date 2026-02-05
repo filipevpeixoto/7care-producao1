@@ -31,13 +31,15 @@ const Menu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // Fazer logout primeiro para limpar estado de autenticação
+    await logout();
     toast({
       title: 'Logout realizado',
       description: 'Você foi desconectado com sucesso',
     });
-    navigate('/');
+    // Navegar para login depois do logout completo
+    navigate('/login');
   };
 
   const menuItems: Record<

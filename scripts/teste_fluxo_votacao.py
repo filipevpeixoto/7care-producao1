@@ -14,7 +14,7 @@ Este script testa todo o ciclo de uma eleição:
 Uso: 
   python3 scripts/teste_fluxo_votacao.py
   python3 scripts/teste_fluxo_votacao.py --email admin@teste.com --senha teste123
-  python3 scripts/teste_fluxo_votacao.py --url https://7careapp-2026.netlify.app
+  python3 scripts/teste_fluxo_votacao.py --url https://7careadv.netlify.app
 """
 
 import requests
@@ -26,7 +26,7 @@ from datetime import datetime
 
 # Configuração padrão
 DEFAULT_URL = "http://localhost:3065"
-# DEFAULT_URL = "https://7careapp-2026.netlify.app"  # Para produção
+# DEFAULT_URL = "https://7careadv.netlify.app"  # Para produção
 
 # Credenciais padrão - usar admin para garantir acesso
 DEFAULT_EMAIL = "admin@7care.com"
@@ -434,7 +434,7 @@ def simular_votacao_completa():
             for r in results[:10]:
                 print(f"   - {r.get('position', '?')}: {r.get('candidate_name', '?')} ({r.get('votes', 0)} votos)")
     
-    print(f"\n💡 Acesse o dashboard em: {BASE_URL.replace('localhost:3065', '7careapp-2026.netlify.app')}/election-dashboard?config={config_id}")
+    print(f"\n💡 Acesse o dashboard em: {BASE_URL.replace('localhost:3065', '7careadv.netlify.app')}/election-dashboard?config={config_id}")
     
     return True
 

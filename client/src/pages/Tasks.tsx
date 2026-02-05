@@ -162,7 +162,8 @@ export default function Tasks() {
     isLoading: tasksLoading,
     refetch,
   } = useQuery({
-    queryKey: ['tasks'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['tasks', user?.id],
     queryFn: async () => {
       console.log('📖 [TASKS] Buscando tarefas DO GOOGLE SHEETS (fonte da verdade)...');
 
@@ -171,7 +172,7 @@ export default function Tasks() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           action: 'getTasks',
@@ -692,14 +693,18 @@ export default function Tasks() {
 
   // Buscar usuários
   const { data: usersData } = useQuery({
-    queryKey: ['tasks-users'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['tasks-users', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/tasks/users', {
-        headers: { 'x-user-id': '1' },
+        headers: { 'x-user-id': user?.id?.toString() || '' },
       });
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       return response.json();
     },
+    enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const users = usersData?.users || [];

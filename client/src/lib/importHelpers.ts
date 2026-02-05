@@ -31,7 +31,7 @@ export const parseDate = (dateValue: unknown): Date | null => {
     // Limpa a string (remove espaços, aspas)
     const dateStr = String(dateValue).trim().replace(/['"]/g, '');
 
-    // 1. Detecção de Números do Excel (serial dates)
+    // 1. Detecção de Números do Excel (serial dates) - tipo number
     if (typeof dateValue === 'number') {
       // Excel armazena datas como número de dias desde 1/1/1900
       const excelEpoch = new Date(1900, 0, 1);
@@ -40,6 +40,22 @@ export const parseDate = (dateValue: unknown): Date | null => {
 
       if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
         return date;
+      }
+    }
+
+    // 1b. Detecção de serial dates como string numérica (ex: "34195", "41089")
+    // Serial dates do Excel geralmente estão entre 1 (01/01/1900) e 60000+ (anos 2060+)
+    if (/^\d{4,6}$/.test(dateStr)) {
+      const serialNum = parseInt(dateStr, 10);
+      // Validar faixa razoável: 1 a 60000 (1900 a ~2064)
+      if (serialNum >= 1 && serialNum <= 60000) {
+        const excelEpoch = new Date(1900, 0, 1);
+        const daysSinceEpoch = serialNum - 2;
+        const date = new Date(excelEpoch.getTime() + daysSinceEpoch * 24 * 60 * 60 * 1000);
+
+        if (!isNaN(date.getTime()) && date.getFullYear() >= 1900 && date.getFullYear() <= 2100) {
+          return date;
+        }
       }
     }
 
@@ -257,7 +273,9 @@ export const parseBooleanField = (value: unknown): boolean => {
 /**
  * Parse campo dizimista com tipo
  */
-export const parseDizimistaField = (value: unknown): { isDonor: boolean; dizimistaType: string } => {
+export const parseDizimistaField = (
+  value: unknown
+): { isDonor: boolean; dizimistaType: string } => {
   if (!value) return { isDonor: false, dizimistaType: 'Não Dizimista' };
 
   const str = String(value).trim();
@@ -299,7 +317,9 @@ export const parseDizimistaField = (value: unknown): { isDonor: boolean; dizimis
 /**
  * Parse campo ofertante com tipo
  */
-export const parseOfertanteField = (value: unknown): { isOffering: boolean; ofertanteType: string } => {
+export const parseOfertanteField = (
+  value: unknown
+): { isOffering: boolean; ofertanteType: string } => {
   if (!value) return { isOffering: false, ofertanteType: 'Não Ofertante' };
 
   const str = String(value).trim();
@@ -480,8 +500,9 @@ export const toStr = (val: unknown): string | undefined => {
     lowerStr === '#ref!' ||
     lowerStr === '#value!' ||
     str === ''
-  )
+  ) {
     return undefined;
+  }
   return str;
 };
 
@@ -505,8 +526,9 @@ export const cleanEmail = (val: unknown): string | undefined => {
   if (!str) return undefined;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(str)) return undefined;
-  if (str.includes('example.com') || str.includes('teste@') || str.includes('test@'))
+  if (str.includes('example.com') || str.includes('teste@') || str.includes('test@')) {
     return undefined;
+  }
   return str.toLowerCase();
 };
 
@@ -518,8 +540,9 @@ export const cleanPhone = (val: unknown): string | undefined => {
   if (!str) return undefined;
   const digits = str.replace(/\D/g, '');
   if (digits.length < 8 || digits.length > 15) return undefined;
-  if (/^0+$/.test(digits) || /^1234567890/.test(digits) || /^9999999999/.test(digits))
+  if (/^0+$/.test(digits) || /^1234567890/.test(digits) || /^9999999999/.test(digits)) {
     return undefined;
+  }
   return str;
 };
 
@@ -602,6 +625,9 @@ export interface ImportedMemberData {
   // Departamentos
   departments?: string;
 
+  // Observações
+  observations?: string | null;
+
   // Dados extras
   extraData?: string;
 }
@@ -628,7 +654,7 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
     row['full name'] ||
     row.Membro ||
     row.membro;
-  
+
   const nome = toStr(rawNome);
   if (!nome || nome.length < 2 || nome.includes('@') || /^\d+$/.test(nome)) {
     return null;
@@ -672,10 +698,9 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
     igreja = String(rawIgreja);
   }
 
-  // EMAIL
+  // EMAIL - Usar apenas email válido da planilha, NÃO gerar emails fake
   const emailRaw = row.Email || row.email || row['E-mail'] || row['e-mail'];
-  const email = cleanEmail(emailRaw) || 
-    `${nome.toLowerCase().replace(/\s+/g, '.')}@igreja.com`;
+  const email = cleanEmail(emailRaw) || undefined; // Backend vai gerar email único se necessário
 
   // TIPO/ROLE
   const tipo = toStr(row.Tipo || row.tipo || row.role || row.Role);
@@ -691,13 +716,31 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
   const address = toStr(row.Endereço || row.endereco || row.address || row.Address);
 
   // DATAS
-  const birthDate = parseDate(row.Nascimento || row.nascimento || row.birthDate || row['Data de Nascimento'] || row['data de nascimento']);
-  const baptismDate = parseDate(row.Batismo || row.batismo || row.baptismDate || row['Data de Batismo'] || row['data de batismo']);
+  const birthDate = parseDate(
+    row.Nascimento ||
+      row.nascimento ||
+      row.birthDate ||
+      row['Data de Nascimento'] ||
+      row['data de nascimento']
+  );
+  const baptismDate = parseDate(
+    row.Batismo ||
+      row.batismo ||
+      row.baptismDate ||
+      row['Data de Batismo'] ||
+      row['data de batismo']
+  );
 
   // INFORMAÇÕES PESSOAIS
-  const civilStatus = toStr(row['Estado civil'] || row.estadoCivil || row.civilStatus || row['Estado Civil']);
-  const occupation = toStr(row.Ocupação || row.ocupacao || row.profissao || row.Profissão || row.occupation);
-  const education = toStr(row['Grau de educação'] || row.educacao || row.education || row.Escolaridade || row.escolaridade);
+  const civilStatus = toStr(
+    row['Estado civil'] || row.estadoCivil || row.civilStatus || row['Estado Civil']
+  );
+  const occupation = toStr(
+    row.Ocupação || row.ocupacao || row.profissao || row.Profissão || row.occupation
+  );
+  const education = toStr(
+    row['Grau de educação'] || row.educacao || row.education || row.Escolaridade || row.escolaridade
+  );
 
   // ENGAJAMENTO E CLASSIFICAÇÃO
   const engajamento = toStr(row.Engajamento || row.engajamento);
@@ -724,21 +767,30 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
 
   // DEPARTAMENTOS E CARGOS
   const departamentosCargos = toStr(
-    row['Departamentos e cargos'] || row.departamentosCargos || row.departamentos || row.Departamentos
+    row['Departamentos e cargos'] ||
+      row.departamentosCargos ||
+      row.departamentos ||
+      row.Departamentos
   );
 
   // UNIDADE ES
-  const nomeUnidade = toStr(row['Nome da unidade'] || row.nomeUnidade || row.Unidade || row.unidade);
+  const nomeUnidade = toStr(
+    row['Nome da unidade'] || row.nomeUnidade || row.Unidade || row.unidade
+  );
 
   // CAMPOS DE PONTUAÇÃO
   const temLicao = parseBooleanField(row['Tem lição'] || row.temLicao);
   const totalPresenca = parseNumber(
-    row['Total de presença'] || row.totalPresenca || row.presencaTotal || row.Presença || row.presença
+    row['Total de presença'] ||
+      row.totalPresenca ||
+      row.presencaTotal ||
+      row.Presença ||
+      row.presença
   );
   const comunhao = parseNumber(row.Comunhão || row.comunhao);
   const missao = parseNumber(row.Missão || row.missao);
   const estudoBiblico = parseNumber(row['Estudo bíblico'] || row.estudoBiblico);
-  
+
   const batizouAlguem = (() => {
     const valor = row['Batizou alguém'] || row.batizouAlguem;
     if (typeof valor === 'number') return valor > 0;
@@ -747,7 +799,7 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
 
   const discPosBatismal = parseNumber(row['Disc. pós batismal'] || row.discPosBatismal);
   const cpfValido = parseBooleanField(row['CPF válido'] || row.cpfValido);
-  
+
   const camposVazios = (() => {
     const valor = row['Campos vazios/inválidos'] || row.camposVazios;
     if (typeof valor === 'number') return valor > 0;
@@ -765,6 +817,16 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
 
   // DEPARTAMENTOS
   const departments = departamentosCargos;
+
+  // OBSERVAÇÕES (combinação de campos informativos - igual ao Settings.tsx)
+  const observations = [
+    row['Como estudou a Bíblia'] && `Como estudou: ${row['Como estudou a Bíblia']}`,
+    row['Teve participação'] && `Participação: ${row['Teve participação']}`,
+    row['Campos vazios/inválidos'] && `Campos vazios: ${row['Campos vazios/inválidos']}`,
+    row['Tempo de batismo'] && `Tempo de batismo: ${row['Tempo de batismo']}`,
+    row['Engajamento'] && `Engajamento: ${row['Engajamento']}`,
+    row['Classificação'] && `Classificação: ${row['Classificação']}`,
+  ].filter(Boolean).join(' | ') || null;
 
   // DADOS EXTRAS (extraData)
   const extraData = JSON.stringify({
@@ -790,25 +852,31 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
         ? parseNumber(row['Batizou alguém'] || row.batizouAlguem)
         : 0,
 
-    // Dízimos
+    // Dízimos - VALORES ORIGINAIS DA PLANILHA (para o backend processar)
+    dizimistaOriginal: toStr(row.Dizimista || row.dizimista),
     dizimos12m: toStr(row['Dízimos - 12m'] || row.dizimos12m),
-    ultimoDizimo: toStr(row['Último dízimo - 12m'] || row.ultimoDizimo),
+    ultimoDizimo: formatDateToISO(parseDate(row['Último dízimo - 12m'] || row.ultimoDizimo)),
     valorDizimo: toStr(row['Valor dízimo - 12m'] || row.valorDizimo),
     numeroMesesSemDizimar: toStr(row['Número de meses s/ dizimar'] || row.numeroMesesSemDizimar),
-    dizimistaAntesUltimoDizimo: toStr(row['Dizimista antes do últ. dízimo'] || row.dizimistaAntesUltimoDizimo),
+    dizimistaAntesUltimoDizimo: toStr(
+      row['Dizimista antes do últ. dízimo'] || row.dizimistaAntesUltimoDizimo
+    ),
     dizimistaType: dizimistaResult.dizimistaType,
 
-    // Ofertas
+    // Ofertas - VALORES ORIGINAIS DA PLANILHA (para o backend processar)
+    ofertanteOriginal: toStr(row.Ofertante || row.ofertante),
     ofertas12m: toStr(row['Ofertas - 12m'] || row.ofertas12m),
-    ultimaOferta: toStr(row['Última oferta - 12m'] || row.ultimaOferta),
+    ultimaOferta: formatDateToISO(parseDate(row['Última oferta - 12m'] || row.ultimaOferta)),
     valorOferta: toStr(row['Valor oferta - 12m'] || row.valorOferta),
     numeroMesesSemOfertar: toStr(row['Número de meses s/ ofertar'] || row.numeroMesesSemOfertar),
-    ofertanteAntesUltimaOferta: toStr(row['Ofertante antes da últ. oferta'] || row.ofertanteAntesUltimaOferta),
+    ofertanteAntesUltimaOferta: toStr(
+      row['Ofertante antes da últ. oferta'] || row.ofertanteAntesUltimaOferta
+    ),
     ofertanteType: ofertanteResult.ofertanteType,
 
     // Movimentos
     ultimoMovimento: toStr(row['Último movimento'] || row.ultimoMovimento),
-    dataUltimoMovimento: toStr(row['Data do último movimento'] || row.dataUltimoMovimento),
+    dataUltimoMovimento: formatDateToISO(parseDate(row['Data do último movimento'] || row.dataUltimoMovimento)),
     tipoEntrada: toStr(row['Tipo de entrada'] || row.tipoEntrada),
 
     // Batismo
@@ -835,7 +903,9 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
     // Presença
     presencaCartao: parseNumber(row['Total presença no cartão'] || row.presencaCartao),
     presencaQuizLocal: parseNumber(row['Presença no quiz local'] || row.presencaQuizLocal),
-    presencaQuizOutra: parseNumber(row['Presença no quiz outra unidade'] || row.presencaQuizOutraUnidade),
+    presencaQuizOutra: parseNumber(
+      row['Presença no quiz outra unidade'] || row.presencaQuizOutraUnidade
+    ),
     presencaQuizOnline: parseNumber(row['Presença no quiz online'] || row.presencaQuizOnline),
     teveParticipacao: toStr(row['Teve participação'] || row.teveParticipacao),
     matriculadoES: isEnrolledES,
@@ -843,8 +913,17 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
     // Colaboração
     campoColaborador: toStr(row['Campo - colaborador'] || row.campoColaborador),
     areaColaborador: toStr(row['Área - colaborador'] || row.areaColaborador),
-    estabelecimentoColaborador: toStr(row['Estabelecimento - colaborador'] || row.estabelecimentoColaborador),
+    estabelecimentoColaborador: toStr(
+      row['Estabelecimento - colaborador'] || row.estabelecimentoColaborador
+    ),
     funcaoColaborador: toStr(row['Função - colaborador'] || row.funcaoColaborador),
+    
+    // Educação Adventista
+    alunoEducacao: toStr(row['Aluno educação Adv.'] || row.alunoEducacao),
+    parentesco: toStr(row['Parentesco p/ c/ aluno'] || row.parentesco),
+    
+    // Validação ACMS
+    nomeCamposVazios: toStr(row['Nome dos campos vazios no ACMS'] || row.nomeCamposVazios),
   });
 
   return {
@@ -886,6 +965,7 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
     previousReligion,
     biblicalInstructor,
     departments,
+    observations,
     extraData,
   };
 }

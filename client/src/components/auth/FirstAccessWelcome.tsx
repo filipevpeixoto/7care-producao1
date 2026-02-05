@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -86,6 +87,15 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 export const FirstAccessWelcome = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Verificar se o tutorial já foi pulado ou completado - redirecionar para dashboard
+  const tutorialCompleted = user?.id ? localStorage.getItem(`tutorial_completed_${user.id}`) : null;
+  const tutorialSkipped = user?.id ? localStorage.getItem(`tutorial_skipped_${user.id}`) : null;
+  
+  if (tutorialCompleted || tutorialSkipped) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState(TUTORIAL_STEPS);
   const [showWelcome, setShowWelcome] = useState(true);
@@ -99,9 +109,10 @@ export const FirstAccessWelcome = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Load progress from localStorage
+  // Load progress from localStorage - usando chave específica do usuário
   useEffect(() => {
-    const savedProgress = localStorage.getItem('tutorial_progress');
+    if (!user?.id) return;
+    const savedProgress = localStorage.getItem(`tutorial_progress_${user.id}`);
     if (savedProgress) {
       const progress = JSON.parse(savedProgress);
       setSteps(prevSteps =>
@@ -112,14 +123,15 @@ export const FirstAccessWelcome = () => {
       );
       setCurrentStep(progress.length);
     }
-  }, []);
+  }, [user?.id]);
 
-  // Save progress to localStorage
+  // Save progress to localStorage - usando chave específica do usuário
   const saveProgress = (stepId: number) => {
-    const currentProgress = JSON.parse(localStorage.getItem('tutorial_progress') || '[]');
+    if (!user?.id) return;
+    const currentProgress = JSON.parse(localStorage.getItem(`tutorial_progress_${user.id}`) || '[]');
     if (!currentProgress.includes(stepId)) {
       currentProgress.push(stepId);
-      localStorage.setItem('tutorial_progress', JSON.stringify(currentProgress));
+      localStorage.setItem(`tutorial_progress_${user.id}`, JSON.stringify(currentProgress));
     }
   };
 
@@ -157,12 +169,16 @@ export const FirstAccessWelcome = () => {
       return;
     }
 
-    localStorage.setItem('tutorial_completed', 'true');
+    if (user?.id) {
+      localStorage.setItem(`tutorial_completed_${user.id}`, 'true');
+    }
     window.location.href = '/dashboard';
   };
 
   const skipTutorial = () => {
-    localStorage.setItem('tutorial_skipped', 'true');
+    if (user?.id) {
+      localStorage.setItem(`tutorial_skipped_${user.id}`, 'true');
+    }
     window.location.href = '/dashboard';
   };
 
@@ -220,8 +236,10 @@ export const FirstAccessWelcome = () => {
         // Update local auth state with the updated user data from server
         localStorage.setItem('7care_auth', JSON.stringify(data.user));
 
-        // Mark tutorial as completed and redirect to dashboard
-        localStorage.setItem('tutorial_completed', 'true');
+        // Mark tutorial as completed and redirect to dashboard - usando chave específica do usuário
+        if (user?.id) {
+          localStorage.setItem(`tutorial_completed_${user.id}`, 'true');
+        }
 
         // Redirect to dashboard after password change
         window.location.href = '/dashboard';

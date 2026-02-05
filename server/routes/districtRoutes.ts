@@ -775,4 +775,138 @@ export const districtRoutes = (app: Express): void => {
       return res.status(500).json({ error: 'Internal server error' });
     }
   });
+
+  // Limpar dados (membros) de um distrito - apenas pastor do distrito ou superadmin
+  app.delete(
+    '/api/districts/:id/data',
+    invalidateCacheMiddleware('users'),
+    async (req: Request, res: Response) => {
+      try {
+        const districtId = parseInt(req.params.id);
+        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const user = userId ? await storage.getUserById(userId) : null;
+
+        // Verificar se o distrito existe
+        const district = await sql`SELECT id, name FROM districts WHERE id = ${districtId}`;
+        if (district.length === 0) {
+          return res.status(404).json({ error: 'Distrito não encontrado' });
+        }
+
+        // Verificar permissão: superadmin pode limpar qualquer distrito, pastor apenas o seu
+        if (!isSuperAdmin(user) && !(isPastor(user) && user?.districtId === districtId)) {
+          return res.status(403).json({ error: 'Sem permissão para limpar dados deste distrito' });
+        }
+
+        // Buscar igrejas do distrito
+        const churches = await sql`
+          SELECT id FROM churches WHERE district_id = ${districtId}
+        `;
+        const churchIds = churches.map((c: { id: number }) => c.id);
+
+        if (churchIds.length === 0) {
+          return res.json({
+            success: true,
+            message: 'Nenhuma igreja encontrada no distrito. Nenhum dado para limpar.',
+            deleted: { users: 0, relationships: 0, events: 0 },
+          });
+        }
+
+        let deletedUsers = 0;
+        let deletedRelationships = 0;
+        let deletedEvents = 0;
+
+        // 1. Deletar relacionamentos de membros das igrejas do distrito
+        const relResult = await sql`
+          DELETE FROM relationships
+          WHERE missionary_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          ) OR interested_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          )
+        `;
+        deletedRelationships = relResult.count || 0;
+
+        // 2. Deletar solicitações de discipulado
+        await sql`
+          DELETE FROM discipleship_requests
+          WHERE missionary_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          ) OR interested_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          )
+        `;
+
+        // 3. Deletar eventos das igrejas
+        const eventResult = await sql`
+          DELETE FROM events
+          WHERE church_id = ANY(${churchIds})
+        `;
+        deletedEvents = eventResult.count || 0;
+
+        // 4. Deletar tarefas das igrejas/membros
+        await sql`
+          DELETE FROM tasks
+          WHERE created_by IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          ) OR assigned_to IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          )
+        `;
+
+        // 5. Deletar orações
+        await sql`
+          DELETE FROM prayer_requests
+          WHERE user_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          )
+        `;
+
+        // 6. Deletar mensagens
+        await sql`
+          DELETE FROM messages
+          WHERE sender_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          ) OR receiver_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          )
+        `;
+
+        // 7. Deletar notificações
+        await sql`
+          DELETE FROM notifications
+          WHERE user_id IN (
+            SELECT id FROM users WHERE church_id = ANY(${churchIds})
+          )
+        `;
+
+        // 8. Deletar usuários (exceto pastores e admins)
+        const userResult = await sql`
+          DELETE FROM users
+          WHERE church_id = ANY(${churchIds})
+            AND role NOT IN ('superadmin', 'pastor', 'admin')
+            AND id != ${userId}
+        `;
+        deletedUsers = userResult.count || 0;
+
+        logger.info(`Dados do distrito ${districtId} limpos por usuário ${userId}:`, {
+          deletedUsers,
+          deletedRelationships,
+          deletedEvents,
+        });
+
+        return res.json({
+          success: true,
+          message: `Dados do distrito "${district[0].name}" limpos com sucesso`,
+          deleted: {
+            users: deletedUsers,
+            relationships: deletedRelationships,
+            events: deletedEvents,
+          },
+        });
+      } catch (error) {
+        logger.error('Erro ao limpar dados do distrito:', error);
+        return res.status(500).json({ error: 'Erro ao limpar dados do distrito' });
+      }
+    }
+  );
 };

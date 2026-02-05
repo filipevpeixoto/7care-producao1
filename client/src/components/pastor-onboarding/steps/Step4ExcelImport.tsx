@@ -6,7 +6,7 @@
  * Importado do módulo compartilhado importHelpers.ts
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -107,47 +107,128 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
         }
 
         return {
+          // Campos obrigatórios
           nome: processed.name,
           igreja: processed.church,
-          distrital: toStr(extraDataParsed.distrital),
+          
+          // Campos básicos
           telefone: processed.phone || undefined,
           email: processed.email,
           cargo: toStr(extraDataParsed.cargo),
           codigo: processed.churchCode,
           tipo: processed.role,
-          sexo: cleanSexo(extraDataParsed.sexo),
-          idade: parseNumber(extraDataParsed.idade) || undefined,
+          distrital: toStr(extraDataParsed.distrital),
+          
+          // Dados pessoais
           dataNascimento: processed.birthDate ? formatDateToISO(processed.birthDate) : undefined,
-          cpf: processed.cpf,
-          cpfValido: processed.cpfValido,
           estadoCivil: processed.civilStatus,
           profissao: processed.occupation,
           escolaridade: processed.education,
           endereco: processed.address,
+          sexo: cleanSexo(extraDataParsed.sexo),
+          cpf: processed.cpf,
+          idade: extraDataParsed.idade !== undefined ? parseNumber(extraDataParsed.idade) : undefined,
           bairro: toStr(extraDataParsed.bairro),
           cidadeEstado: toStr(extraDataParsed.cidadeEstado),
+          cidadeNascimento: toStr(extraDataParsed.cidadeNascimento),
+          estadoNascimento: toStr(extraDataParsed.estadoNascimento),
+          
+          // Dados religiosos
           dataBatismo: processed.baptismDate ? formatDateToISO(processed.baptismDate) : undefined,
-          tempoBatismoAnos: processed.tempoBatismoAnos,
-          dizimista: processed.dizimistaType,
-          ofertante: processed.ofertanteType,
+          // Usar valores ORIGINAIS da planilha para dizimista/ofertante (assim como Settings.tsx)
+          dizimista: toStr(extraDataParsed.dizimistaOriginal) || processed.dizimistaType,
+          ofertante: toStr(extraDataParsed.ofertanteOriginal) || processed.ofertanteType,
+          religiaoAnterior: processed.previousReligion,
+          instrutorBiblico: processed.biblicalInstructor,
+          
+          // Engajamento e Classificação
           engajamento: processed.engajamento || undefined,
           classificacao: processed.classificacao || undefined,
+          
+          // Campos de pontuação
+          tempoBatismoAnos: processed.tempoBatismoAnos,
           departamentosCargos: processed.departamentosCargos || undefined,
           nomeUnidade: processed.nomeUnidade || undefined,
           temLicao: processed.temLicao,
-          matriculadoES: processed.isEnrolledES,
           totalPresenca: processed.totalPresenca,
           comunhao: processed.comunhao,
           missao: processed.missao,
           estudoBiblico: processed.estudoBiblico,
           batizouAlguem: processed.batizouAlguem,
           discPosBatismal: processed.discPosBatismal,
-          religiaoAnterior: processed.previousReligion,
-          instrutorBiblico: processed.biblicalInstructor,
+          cpfValido: processed.cpfValido,
+          camposVazios: processed.camposVazios,
+          
+          // Escola Sabatina
+          matriculadoES: processed.isEnrolledES,
+          periodoES: processed.esPeriod || undefined,
+          
+          // Dízimos (12 meses)
+          dizimos12m: toStr(extraDataParsed.dizimos12m),
+          ultimoDizimo: toStr(extraDataParsed.ultimoDizimo),
+          valorDizimo: toStr(extraDataParsed.valorDizimo),
+          numeroMesesSemDizimar: extraDataParsed.numeroMesesSemDizimar !== undefined ? parseNumber(extraDataParsed.numeroMesesSemDizimar) : undefined,
+          dizimistaAntesUltimoDizimo: toStr(extraDataParsed.dizimistaAntesUltimoDizimo),
+          dizimistaType: processed.dizimistaType || toStr(extraDataParsed.dizimistaType),
+          
+          // Ofertas (12 meses)
+          ofertas12m: toStr(extraDataParsed.ofertas12m),
+          ultimaOferta: toStr(extraDataParsed.ultimaOferta),
+          valorOferta: toStr(extraDataParsed.valorOferta),
+          numeroMesesSemOfertar: extraDataParsed.numeroMesesSemOfertar !== undefined ? parseNumber(extraDataParsed.numeroMesesSemOfertar) : undefined,
+          ofertanteAntesUltimaOferta: toStr(extraDataParsed.ofertanteAntesUltimaOferta),
+          ofertanteType: processed.ofertanteType || toStr(extraDataParsed.ofertanteType),
+          
+          // Movimentos
+          ultimoMovimento: toStr(extraDataParsed.ultimoMovimento),
+          dataUltimoMovimento: toStr(extraDataParsed.dataUltimoMovimento),
+          tipoEntrada: toStr(extraDataParsed.tipoEntrada),
+          
+          // Batismo detalhado
+          tempoBatismo: toStr(extraDataParsed.tempoBatismo),
+          localidadeBatismo: toStr(extraDataParsed.localidadeBatismo),
+          batizadoPor: toStr(extraDataParsed.batizadoPor),
+          idadeBatismo: toStr(extraDataParsed.idadeBatismo),
+          
+          // Conversão
+          comoConheceu: toStr(extraDataParsed.comoConheceu),
+          fatorDecisivo: toStr(extraDataParsed.fatorDecisivo),
+          comoEstudou: toStr(extraDataParsed.comoEstudou),
+          instrutorBiblico2: toStr(extraDataParsed.instrutorBiblico2),
+          
+          // Cargos
+          temCargo: toStr(extraDataParsed.temCargo),
+          teen: toStr(extraDataParsed.teen),
+          
+          // Família
           nomeMae: toStr(extraDataParsed.nomeMae),
           nomePai: toStr(extraDataParsed.nomePai),
-          camposVazios: processed.camposVazios,
-          observacoes: toStr(extraDataParsed.observacoes),
+          dataCasamento: toStr(extraDataParsed.dataCasamento),
+          
+          // Presença detalhada
+          presencaCartao: extraDataParsed.presencaCartao !== undefined ? parseNumber(extraDataParsed.presencaCartao) : undefined,
+          presencaQuizLocal: extraDataParsed.presencaQuizLocal !== undefined ? parseNumber(extraDataParsed.presencaQuizLocal) : undefined,
+          presencaQuizOutra: extraDataParsed.presencaQuizOutra !== undefined ? parseNumber(extraDataParsed.presencaQuizOutra) : undefined,
+          presencaQuizOnline: extraDataParsed.presencaQuizOnline !== undefined ? parseNumber(extraDataParsed.presencaQuizOnline) : undefined,
+          teveParticipacao: toStr(extraDataParsed.teveParticipacao),
+          
+          // Colaboração
+          campoColaborador: toStr(extraDataParsed.campoColaborador),
+          areaColaborador: toStr(extraDataParsed.areaColaborador),
+          estabelecimentoColaborador: toStr(extraDataParsed.estabelecimentoColaborador),
+          funcaoColaborador: toStr(extraDataParsed.funcaoColaborador),
+          
+          // Educação (novos campos)
+          alunoEducacao: toStr(extraDataParsed.alunoEducacao),
+          parentesco: toStr(extraDataParsed.parentesco),
+          
+          // Validação
+          nomeCamposVazios: toStr(extraDataParsed.nomeCamposVazios),
+          
+          // Observações
+          observacoes: processed.observations || toStr(extraDataParsed.observacoes),
+          
+          // Flag de validação interna
           valid: true,
         } as ExcelRow;
       })
@@ -285,13 +366,31 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
   // Contar registros válidos
   const validCount = previewData.filter(r => r.valid !== false).length;
 
-  // Contar campos detectados (campos com pelo menos 1 valor nos dados)
-  const detectedFieldsCount =
-    previewData.length > 0
-      ? Object.entries(previewData[0]).filter(
-          ([key, val]) => key !== 'valid' && key !== 'validationError' && val !== undefined && val !== null && val !== ''
-        ).length
-      : 0;
+  // Contar campos detectados (campos com pelo menos 1 valor em QUALQUER linha)
+  const detectedFieldsCount = useMemo(() => {
+    if (previewData.length === 0) return 0;
+    
+    // Pegar todas as chaves do ExcelRow
+    const allKeys = new Set<string>();
+    previewData.forEach(row => {
+      Object.keys(row).forEach(key => allKeys.add(key));
+    });
+    
+    // Verificar quais campos têm pelo menos um valor preenchido
+    let count = 0;
+    allKeys.forEach(key => {
+      if (key === 'valid' || key === 'validationError') return;
+      
+      const hasValue = previewData.some(row => {
+        const val = row[key as keyof typeof row];
+        return val !== undefined && val !== null && val !== '' && val !== false;
+      });
+      
+      if (hasValue) count++;
+    });
+    
+    return count;
+  }, [previewData]);
 
   return (
     <div className="p-4 sm:p-6 md:p-10">
@@ -792,8 +891,8 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
           <Alert className="mt-4 rounded-xl">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Formatos aceitos:</strong> Telefone (qualquer formato), Email (com @),
-              Datas (DD/MM/AAAA ou outros formatos), Valores Sim/Não para campos booleanos
+              <strong>Formatos aceitos:</strong> Telefone (qualquer formato), Email (com @), Datas
+              (DD/MM/AAAA ou outros formatos), Valores Sim/Não para campos booleanos
             </AlertDescription>
           </Alert>
         </div>

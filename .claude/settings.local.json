@@ -46,7 +46,8 @@
       "Bash(netlify env:list:*)",
       "Bash(netlify env:get:*)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_enihr4YBSDm8@ep-still-glade-ac5u1r48-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require\" npm run migrate-google-calendar:prod:*)",
-      "WebFetch(domain:7careapp-2026.netlify.app)"
+      "WebFetch(domain:7careadv.netlify.app)",
+      "Bash(python3:*)"
     ]
   }
 }

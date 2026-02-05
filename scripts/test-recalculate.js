@@ -91,7 +91,7 @@ async function calculateUserPoints(user) {
     console.log('\n🌐 Testando chamada HTTP real ao endpoint...');
 
     const response = await fetch(
-      'https://7careapp-2026.netlify.app/api/users/recalculate-all-points',
+      'https://7careadv.netlify.app/api/users/recalculate-all-points',
       {
         method: 'POST',
         headers: {

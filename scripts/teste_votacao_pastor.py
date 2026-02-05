@@ -241,10 +241,10 @@ def testar_fluxo_pastor():
     print("=" * 70)
     print(f"\n💡 Acesse o dashboard:")
     print(f"   Local: http://localhost:5173/election-dashboard?config={config_id}")
-    print(f"   Prod:  https://7careapp-2026.netlify.app/election-dashboard?config={config_id}")
+    print(f"   Prod:  https://7careadv.netlify.app/election-dashboard?config={config_id}")
     print(f"\n💡 Para votar:")
     print(f"   Local: http://localhost:5173/vote?config={config_id}")
-    print(f"   Prod:  https://7careapp-2026.netlify.app/vote?config={config_id}")
+    print(f"   Prod:  https://7careadv.netlify.app/vote?config={config_id}")
     
     return True
 

@@ -38,12 +38,15 @@ import type {
 } from '@/types/domain';
 
 const Dashboard = () => {
-  const { user, realUser } = useAuth();
+  const { user, realUser, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { shouldShowCheckIn: _shouldShowCheckIn, markCheckInComplete } = useSpiritualCheckIn();
   const { toast: _toast } = useToast();
   const [showCheckIn, setShowCheckIn] = useState(false);
+
+  // Flag para verificar se auth está pronto (não está carregando E tem user)
+  const isAuthReady = !authLoading && !!user?.id;
 
   // ============================================
   // QUERY UNIFICADA - Carrega tudo de uma vez (mais rápido para superadmin)
@@ -54,7 +57,7 @@ const Dashboard = () => {
       console.log('🚀 Dashboard: Carregando dados unificados...');
       const response = await fetch('/api/dashboard/unified', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -63,24 +66,24 @@ const Dashboard = () => {
       console.log(`✅ Dashboard: Dados unificados carregados em ${data.loadTimeMs}ms`);
       return data;
     },
-    enabled: !!user?.id && isSuperAdmin(user),
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    gcTime: 10 * 60 * 1000, // Manter em cache por 10 minutos
-    refetchInterval: 5 * 60 * 1000, // 5 minutos
-    refetchOnWindowFocus: false,
-    // Mostrar dados em cache imediatamente enquanto busca novos
-    placeholderData: previousData => previousData,
+    // Só executar quando auth estiver pronto E for superadmin
+    enabled: isAuthReady && isSuperAdmin(user),
+    staleTime: 0, // Sempre buscar dados frescos
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // BUSCAR dados de usuários da mesma query da página Users (fallback para não-superadmin)
   const { data: usersDataRaw } = useQuery({
-    queryKey: ['/api/users'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/users', user?.id],
     queryFn: async () => {
       console.log('🔄 Dashboard: Buscando usuários da API...');
       // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
       const response = await fetch('/api/users?limit=500', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -95,9 +98,11 @@ const Dashboard = () => {
       console.log(`✅ Dashboard: ${users.length} usuários carregados (total: ${total})`);
       return users;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    refetchInterval: 5 * 60 * 1000, // 5 minutos
-    refetchOnWindowFocus: false,
+    // Só executar quando auth estiver pronto
+    enabled: isAuthReady,
+    staleTime: 0, // Sempre buscar dados frescos
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Garantir que usersData é sempre um array (proteção contra cache antiga)
@@ -204,7 +209,7 @@ const Dashboard = () => {
     refetchInterval: 5 * 60 * 1000, // 5 minutos - menos frequente
     refetchOnWindowFocus: false, // Não refetch a cada foco
     // Desabilitar para superadmin (usa dados unificados)
-    enabled: !isSuperAdmin(user),
+    enabled: isAuthReady && !isSuperAdmin(user),
   });
 
   // Fetch real dashboard statistics from API with optimized caching
@@ -219,19 +224,17 @@ const Dashboard = () => {
       }
       const response = await fetch('/api/dashboard/stats', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) throw new Error('Failed to fetch dashboard stats');
       return response.json();
     },
     // Configurações otimizadas para performance
-    staleTime: 2 * 60 * 1000, // 2 minutos - dados não mudam tão frequentemente
-    refetchInterval: 5 * 60 * 1000, // 5 minutos - menos frequente
-    refetchOnWindowFocus: false, // Não refetch a cada foco
-    refetchOnMount: true, // Atualizar quando o componente é montado
-    refetchOnReconnect: true, // Atualizar quando reconecta
-    enabled: !!user?.id, // Só executar se tiver usuário
+    staleTime: 0, // Sempre buscar dados frescos
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    enabled: isAuthReady, // Só executar quando auth estiver pronto
     // Usar dados unificados como initialData para superadmin
     initialData: unifiedData?.stats,
   });
@@ -354,11 +357,12 @@ const Dashboard = () => {
       }
       return response.json();
     },
-    enabled: !!user,
+    enabled: isAuthReady,
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Fetch visit data for visitometer with optimized caching
@@ -367,11 +371,12 @@ const Dashboard = () => {
     refetch: refetchVisits,
     isLoading: visitsLoading,
   } = useQuery({
-    queryKey: ['/api/dashboard/visits'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/dashboard/visits', user?.id],
     queryFn: async () => {
       const response = await fetch('/api/dashboard/visits', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -381,9 +386,11 @@ const Dashboard = () => {
       const data = await response.json();
       return data;
     },
-    refetchInterval: 300000, // Refresh every 5 minutes instead of every minute
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    enabled: isAuthReady,
+    refetchInterval: 300000, // Refresh every 5 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: 'always',
   });
 
   // Fetch missionary relationships for interested count
@@ -400,7 +407,7 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Fetching relationships for missionary:', user.id);
       const response = await fetch(`/api/relationships/missionary/${user.id}`, {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -411,15 +418,17 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Relationships data:', data);
       return data;
     },
-    enabled: !!user?.id && user.role.includes('missionary'),
+    enabled: isAuthReady && user?.role?.includes('missionary'),
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 15 minutes
+    refetchOnMount: 'always',
   });
 
   // Fetch events filtered by user role for dashboard cards
   const { data: userEvents, isLoading: userEventsLoading } = useQuery({
-    queryKey: ['/api/events', user?.role],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/events', user?.id, user?.role],
     queryFn: async () => {
       if (!user?.role) {
         console.log('🔍 Dashboard: No user role available');
@@ -428,7 +437,7 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Fetching events for role:', user.role);
       const response = await fetch(`/api/events?role=${user.role}`, {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -439,20 +448,22 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Events data for role', user.role, ':', data.length, 'events');
       return data;
     },
-    enabled: !!user?.role,
+    enabled: isAuthReady && !!user?.role,
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: 'always',
   });
 
   // Fetch spiritual check-ins for admin dashboard
   const { data: spiritualCheckIns, isLoading: spiritualCheckInsLoading } = useQuery({
-    queryKey: ['/api/emotional-checkins/admin'],
+    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+    queryKey: ['/api/emotional-checkins/admin', user?.id],
     queryFn: async () => {
       if (!hasAdminAccess(user)) return [];
       const response = await fetch('/api/emotional-checkins/admin', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -461,10 +472,11 @@ const Dashboard = () => {
       }
       return response.json();
     },
-    enabled: hasAdminAccess(user),
+    enabled: isAuthReady && hasAdminAccess(user),
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: 'always',
   });
 
   // Fetch districts count for superadmin (usa dados unificados se disponível)
@@ -481,7 +493,7 @@ const Dashboard = () => {
       }
       const response = await fetch('/api/districts', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) {
@@ -493,9 +505,9 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Distritos encontrados:', count);
       return count;
     },
-    enabled: isSuperAdmin(user) && !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    enabled: isAuthReady && isSuperAdmin(user),
+    staleTime: 0, // Sempre buscar dados frescos
+    refetchOnMount: 'always',
     // Usar initialData dos dados unificados para carregamento instantâneo
     initialData: unifiedData?.districtsCount,
   });
@@ -514,7 +526,7 @@ const Dashboard = () => {
       }
       const response = await fetch('/api/pastors', {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (!response.ok) {
@@ -526,9 +538,9 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Pastores encontrados:', count);
       return count;
     },
-    enabled: isSuperAdmin(user) && !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    enabled: isAuthReady && isSuperAdmin(user),
+    staleTime: 0, // Sempre buscar dados frescos
+    refetchOnMount: 'always',
     // Usar initialData dos dados unificados para carregamento instantâneo
     initialData: unifiedData?.pastorsCount,
   });
@@ -862,10 +874,11 @@ const Dashboard = () => {
       });
       return data;
     },
-    enabled: !!user?.id && (user.role === 'member' || user.role === 'missionary'),
+    enabled: isAuthReady && (user?.role === 'member' || user?.role === 'missionary'),
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 15 minutes
+    refetchOnMount: 'always',
   });
 
   // Fetch user relationships for members - usando a mesma query key da página MyInterested
@@ -891,7 +904,7 @@ const Dashboard = () => {
       );
       const response = await fetch(`/api/relationships/missionary/${user.id}`, {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -913,10 +926,11 @@ const Dashboard = () => {
       });
       return data;
     },
-    enabled: !!user?.id && (user.role === 'member' || user.role === 'missionary'),
+    enabled: isAuthReady && (user?.role === 'member' || user?.role === 'missionary'),
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 15 minutes
+    refetchOnMount: 'always',
   });
 
   // Fetch user detailed data for gamification
@@ -930,7 +944,7 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: Fetching points details for user:', user.id);
       const response = await fetch(`/api/users/${user.id}/points-details`, {
         headers: {
-          'x-user-id': realUser?.id?.toString() || user?.id?.toString() || '',
+          'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
@@ -941,11 +955,12 @@ const Dashboard = () => {
       console.log('🔍 Dashboard: User points details data:', data);
       return data;
     },
-    enabled: !!user?.id,
+    enabled: isAuthReady,
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // 4 minutes
+    staleTime: 0, // Sempre buscar dados frescos
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: true, // Atualizar quando voltar para a aba
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Usar dados reais das páginas correspondentes
@@ -1137,8 +1152,18 @@ const Dashboard = () => {
     const birthdaysThisYear = birthdays.all
       .filter((user: BirthdayUser) => user && typeof user === 'object' && user.birthDate)
       .map((user: BirthdayUser) => {
-        const birthDate = new Date(user.birthDate);
-        const birthdayThisYear = new Date(currentYear, birthDate.getMonth(), birthDate.getDate());
+        // Extrair mês e dia diretamente da string para evitar problemas de fuso horário
+        let datePart = user.birthDate;
+        if (user.birthDate.includes('T')) {
+          datePart = user.birthDate.split('T')[0]; // Remove parte do horário se existir
+        }
+        
+        const [_year, month, day] = datePart.split('-');
+        const birthMonth = parseInt(month) - 1; // Mês começa em 0
+        const birthDay = parseInt(day);
+        
+        // Criar data usando componentes locais para evitar problemas de fuso
+        const birthdayThisYear = new Date(currentYear, birthMonth, birthDay);
 
         // Se o aniversário já passou este ano, considerar para o próximo ano
         if (birthdayThisYear < today) {

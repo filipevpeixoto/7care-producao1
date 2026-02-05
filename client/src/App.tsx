@@ -86,8 +86,8 @@ const PrefetchManager = () => {
   return null;
 };
 
-// Create optimized query client
-const queryClient = createQueryClient();
+// Create optimized query client - exportado para uso global (ex: limpar cache no login/logout)
+export const queryClient = createQueryClient();
 
 // Wrapper para sincronização do role do usuário com o sistema offline
 function OfflineUserSync() {

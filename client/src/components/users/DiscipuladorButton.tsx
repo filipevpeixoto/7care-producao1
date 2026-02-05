@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/command';
 import { UserPlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DiscipuladorButtonProps {
   interestedId: number;
@@ -35,6 +36,7 @@ export function DiscipuladorButton({
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Carregar membros disponíveis quando o modal abrir
   useEffect(() => {
@@ -46,7 +48,12 @@ export function DiscipuladorButton({
   const loadPotentialMissionaries = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) {
         throw new Error('Erro ao carregar usuários');
       }

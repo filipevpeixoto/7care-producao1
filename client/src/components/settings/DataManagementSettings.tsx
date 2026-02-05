@@ -9,6 +9,17 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Database,
   Upload,
   Download,
@@ -16,8 +27,10 @@ import {
   Cloud,
   Loader2,
   CheckCircle,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { useLastImportDate } from '@/hooks/useLastImportDate';
 import { ImportExcelModal } from '@/components/calendar/ImportExcelModal';
 import { GoogleDriveImportModal } from '@/components/calendar/GoogleDriveImportModal';
@@ -29,17 +42,26 @@ interface DataManagementProps {
 
 export function DataManagementSettings({ onImportComplete }: DataManagementProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { lastImportDate, updateLastImportDate } = useLastImportDate();
 
   const [isExporting, setIsExporting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showDriveModal, setShowDriveModal] = useState(false);
   const [importProgress, _setImportProgress] = useState(0);
 
+  const isPastor = user?.role === 'pastor' && user?.districtId;
+
   const exportData = async (format: 'json' | 'xlsx') => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (!response.ok) throw new Error('Erro ao buscar dados');
 
       const users = await response.json();
@@ -81,6 +103,36 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
 
   const getDateString = () => {
     return new Date().toISOString().split('T')[0];
+  };
+
+  const clearDistrictData = async () => {
+    if (!user?.districtId) return;
+    setIsClearing(true);
+    try {
+      const response = await fetch(`/api/districts/${user.districtId}/data`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Erro ao limpar dados');
+
+      toast({
+        title: 'Dados limpos',
+        description: data.message || 'Dados do distrito removidos com sucesso.',
+      });
+      onImportComplete?.();
+    } catch (error) {
+      toast({
+        title: 'Erro ao limpar dados',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   const handleImportSuccess = () => {
@@ -175,6 +227,51 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
               </Button>
             </div>
           </div>
+
+          {/* Limpar dados do distrito (apenas pastores) */}
+          {isPastor && (
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2 text-destructive">
+                <Trash2 className="h-4 w-4" />
+                Limpar Dados do Distrito
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Remove todos os dados do seu distrito: membros, relacionamentos, eventos, pedidos
+                de oracao e demais registros. Seu acesso de pastor e o distrito permanecem intactos.
+              </p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={isClearing}>
+                    {isClearing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Limpar todos os dados do distrito
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acao vai remover permanentemente todos os membros, relacionamentos,
+                      eventos, pedidos de oracao e demais dados do seu distrito. Seu usuario de
+                      pastor e o distrito nao serao afetados. Esta acao nao pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={clearDistrictData}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Sim, limpar tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
 
           {/* Progresso de importação */}
           {importProgress > 0 && importProgress < 100 && (

@@ -1,28 +1,46 @@
 import { QueryClient } from '@tanstack/react-query';
 import { PERFORMANCE_CONFIG } from './performance';
 
-// Helper para extrair o userId do localStorage
-// IMPORTANTE: Sempre retorna o ID do usuário REAL (não impersonado) para garantir
-// que as permissões corretas sejam aplicadas no backend
-function getUserId(): string {
+// Helper para extrair os dados do usuário atual do localStorage
+// IMPORTANTE: Se houver impersonação ativa, retorna o usuário impersonado
+// para que os filtros de distrito funcionem corretamente
+function getCurrentUser(): { id: string; role: string } {
   try {
-    // Sempre usar o usuário real para autorização no backend
+    // Verificar se há impersonação ativa
+    const impersonationContext = localStorage.getItem('7care_impersonation');
+    if (impersonationContext) {
+      const context = JSON.parse(impersonationContext);
+      // Verificar se a impersonação ainda é válida (24 horas)
+      const IMPERSONATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+      if (Date.now() - context.timestamp < IMPERSONATION_MAX_AGE_MS && context.isImpersonating && context.impersonatingAs) {
+        return {
+          id: context.impersonatingAs.id?.toString() || '',
+          role: context.impersonatingAs.role || '',
+        };
+      }
+    }
+
+    // Se não há impersonação, usar o usuário normal
     const auth = localStorage.getItem('7care_auth');
     if (auth) {
       const user = JSON.parse(auth);
-      return user?.id?.toString() || '';
+      return {
+        id: user?.id?.toString() || '',
+        role: user?.role || '',
+      };
     }
   } catch {}
-  return '';
+  return { id: '', role: '' };
 }
 
-// Helper para adicionar JWT token e x-user-id nas requisições
+// Helper para adicionar JWT token, x-user-id e x-user-role nas requisições
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('7care_token');
-  const userId = getUserId();
+  const { id: userId, role: userRole } = getCurrentUser();
   return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(userId ? { 'x-user-id': userId } : {}),
+    ...(userRole ? { 'x-user-role': userRole } : {}),
   };
 }
 
@@ -175,6 +193,12 @@ export const cleanupOldCache = (queryClient: QueryClient) => {
         queryClient.removeQueries({ queryKey: query.queryKey });
       }
     });
+};
+
+// Função para limpar TODO o cache do React Query (usar no login/logout)
+export const clearAllQueryCache = (queryClient: QueryClient) => {
+  queryClient.clear();
+  console.log('[QueryClient] Cache limpo completamente');
 };
 
 // Função para configurar listeners de performance

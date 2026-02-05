@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -52,6 +53,7 @@ export function NotificationsSettings({
   userId,
 }: NotificationsSettingsProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { isSupported, isSubscribed, requestPermission, subscribe, unsubscribe } =
     usePushNotifications();
 
@@ -125,7 +127,12 @@ export function NotificationsSettings({
 
   const loadUsers = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-user-id': user?.id?.toString() || '',
+          'x-user-role': user?.role || '',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setUsersList(data.users || []);

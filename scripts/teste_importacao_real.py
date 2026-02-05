@@ -9,7 +9,7 @@ import time
 import pandas as pd
 import math
 
-BASE_URL = "https://7careapp-2026.netlify.app"
+BASE_URL = "https://7careadv.netlify.app"
 SUPERADMIN_EMAIL = "admin@7care.com"
 SUPERADMIN_PASSWORD = "meu7care"
 EXCEL_FILE = "/Users/filipevpeixoto/Downloads/data (5).xlsx"
