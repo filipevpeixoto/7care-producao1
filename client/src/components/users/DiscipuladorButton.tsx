@@ -19,6 +19,7 @@ import {
 import { UserPlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { formatEmailDisplay } from '@/lib/utils';
 
 interface DiscipuladorButtonProps {
   interestedId: number;
@@ -201,7 +202,7 @@ export function DiscipuladorButton({
                           <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="font-medium truncate text-sm">{member.name}</div>
                             <div className="text-xs text-muted-foreground truncate">
-                              {member.email}
+                              {formatEmailDisplay(member.email)}
                             </div>
                           </div>
                         </div>

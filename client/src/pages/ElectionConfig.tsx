@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
+import { formatEmailDisplay } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1720,7 +1721,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               <div className="flex flex-col min-w-0 flex-1">
                                 <span className="font-medium text-sm truncate">{member.name}</span>
                                 <span className="text-xs text-muted-foreground truncate">
-                                  {member.email}
+                                  {formatEmailDisplay(member.email)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2 ml-2">
@@ -2713,7 +2714,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                                 </div>
                                 <div>
                                   <h4 className="font-medium">{candidate.name}</h4>
-                                  <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                                  <p className="text-sm text-muted-foreground">{formatEmailDisplay(candidate.email)}</p>
                                 </div>
                               </div>
 
@@ -2855,7 +2856,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <h4 className="font-medium text-orange-800">{candidate.name}</h4>
-                                <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                                <p className="text-sm text-muted-foreground">{formatEmailDisplay(candidate.email)}</p>
                                 <div className="flex items-center gap-2 mt-2">
                                   <Badge
                                     variant={
@@ -3013,7 +3014,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-medium text-red-800">{candidate.name}</h4>
-                                  <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                                  <p className="text-sm text-muted-foreground">{formatEmailDisplay(candidate.email)}</p>
                                   <div className="flex items-center gap-2 mt-2">
                                     <Badge
                                       variant="outline"

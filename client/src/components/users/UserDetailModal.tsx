@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getRoleDisplayName } from '@/lib/permissions';
+import { formatEmailDisplay } from '@/lib/utils';
 import {
   User,
   Phone,
@@ -164,7 +165,9 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
             <Edit className="h-3 w-3" />
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">{value || 'Não informado'}</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {field === 'email' ? formatEmailDisplay(value) : (value || 'Não informado')}
+        </p>
       </div>
     );
   };
@@ -509,7 +512,7 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
               </Avatar>
               <div>
                 <div className="text-xl font-bold">{user.name}</div>
-                <div className="text-sm text-muted-foreground">{user.email}</div>
+                <div className="text-sm text-muted-foreground">{formatEmailDisplay(user.email)}</div>
               </div>
               <Badge variant="outline" className="ml-2">
                 {getRoleLabel(user.role)}

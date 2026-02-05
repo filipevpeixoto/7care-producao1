@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatEmailDisplay } from '@/lib/utils';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -297,7 +298,7 @@ export function DiscipuladoresManager({
                           <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="font-medium truncate text-sm">{member.name}</div>
                             <div className="text-xs text-muted-foreground truncate">
-                              {member.email}
+                              {formatEmailDisplay(member.email)}
                               {member.church && (
                                 <span className="ml-2 text-blue-600">• {member.church}</span>
                               )}

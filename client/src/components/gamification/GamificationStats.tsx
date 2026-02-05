@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { formatEmailDisplay } from '@/lib/utils';
 import { 
   Trophy, 
   Users, 
@@ -142,7 +143,7 @@ export const GamificationStats = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">{user.name}</div>
-                    <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                    <div className="text-sm text-muted-foreground truncate">{formatEmailDisplay(user.email)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

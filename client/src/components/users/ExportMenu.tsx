@@ -20,6 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { FileDown, FileSpreadsheet, FileText, Search, ArrowLeft, ArrowRight } from 'lucide-react';
 import { exportToExcel } from '@/lib/excel';
+import { formatEmailDisplay } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -332,7 +333,7 @@ export function ExportMenu({ data }: ExportMenuProps) {
                                 {user.name}
                               </Label>
                               <span className="text-xs text-muted-foreground">
-                                {user.email} • {translateRole(user.role)}
+                                {formatEmailDisplay(user.email)} • {translateRole(user.role)}
                               </span>
                             </div>
                           </div>

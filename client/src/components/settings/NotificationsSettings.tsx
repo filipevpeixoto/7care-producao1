@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { formatEmailDisplay } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -417,7 +418,7 @@ export function NotificationsSettings({
                   <SelectItem value="all">Todos os usuários</SelectItem>
                   {usersList.map(user => (
                     <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.name} ({user.email})
+                      {user.name} ({formatEmailDisplay(user.email)})
                     </SelectItem>
                   ))}
                 </SelectContent>

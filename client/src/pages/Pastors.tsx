@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { formatEmailDisplay } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -307,7 +308,7 @@ export default function Pastors() {
                       </CardTitle>
                       <CardDescription className="mt-1 flex items-center gap-2">
                         <Mail className="h-4 w-4" />
-                        {pastor.email}
+                        {formatEmailDisplay(pastor.email)}
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
