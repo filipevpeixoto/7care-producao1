@@ -2,7 +2,8 @@
  * Step 4: Importação de Planilha Excel
  * Upload e preview de membros existentes
  * Design elegante e moderno com etapas de mapeamento e validação
- * Alinhado com funcionalidade do Gestão de Dados
+ * Usa EXATAMENTE a mesma lógica de detecção do Gestão de Dados (Settings.tsx)
+ * Importado do módulo compartilhado importHelpers.ts
  */
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -42,6 +43,13 @@ import {
 } from 'lucide-react';
 import { ExcelData, ExcelRow } from '@/types/pastor-invite';
 import { readExcelFile } from '@/lib/excel';
+import {
+  processExcelRow,
+  formatDateToISO,
+  toStr,
+  cleanSexo,
+  parseNumber,
+} from '@/lib/importHelpers';
 
 type ImportStep = 'upload' | 'preview' | 'mapping' | 'validation' | 'complete';
 
@@ -53,347 +61,98 @@ interface Step4ExcelImportProps {
   token?: string;
 }
 
-// Campos disponíveis para mapeamento
-const AVAILABLE_FIELDS = [
+// Campos-chave exibidos no passo de mapeamento (mesmo padrão do Gestão de Dados)
+const DISPLAY_FIELDS = [
   { field: 'nome', label: 'Nome', required: true },
-  { field: 'igreja', label: 'Igreja', required: true },
   { field: 'email', label: 'Email', required: false },
   { field: 'telefone', label: 'Telefone', required: false },
-  { field: 'cargo', label: 'Cargo/Função', required: false },
-  { field: 'codigo', label: 'Código', required: false },
   { field: 'tipo', label: 'Tipo de Usuário', required: false },
-  { field: 'sexo', label: 'Sexo', required: false },
-  { field: 'idade', label: 'Idade', required: false },
+  { field: 'igreja', label: 'Igreja', required: true },
   { field: 'dataNascimento', label: 'Data de Nascimento', required: false },
-  { field: 'cpf', label: 'CPF', required: false },
-  { field: 'estadoCivil', label: 'Estado Civil', required: false },
-  { field: 'profissao', label: 'Profissão/Ocupação', required: false },
-  { field: 'escolaridade', label: 'Escolaridade', required: false },
-  { field: 'endereco', label: 'Endereço', required: false },
-  { field: 'bairro', label: 'Bairro', required: false },
-  { field: 'cidadeEstado', label: 'Cidade/Estado', required: false },
-  { field: 'dataBatismo', label: 'Data de Batismo', required: false },
-  { field: 'dizimista', label: 'Dizimista', required: false },
-  { field: 'ofertante', label: 'Ofertante', required: false },
-  { field: 'engajamento', label: 'Engajamento', required: false },
-  { field: 'classificacao', label: 'Classificação', required: false },
-  { field: 'departamentosCargos', label: 'Departamentos e Cargos', required: false },
-  { field: 'nomeUnidade', label: 'Nome da Unidade', required: false },
-  { field: 'temLicao', label: 'Tem Lição', required: false },
-  { field: 'matriculadoES', label: 'Matriculado na ES', required: false },
-  { field: 'totalPresenca', label: 'Total de Presença', required: false },
-  { field: 'comunhao', label: 'Comunhão', required: false },
-  { field: 'missao', label: 'Missão', required: false },
-  { field: 'estudoBiblico', label: 'Estudo Bíblico', required: false },
-  { field: 'batizouAlguem', label: 'Batizou Alguém', required: false },
-  { field: 'religiaoAnterior', label: 'Religião Anterior', required: false },
-  { field: 'instrutorBiblico', label: 'Instrutor Bíblico', required: false },
-  { field: 'nomeMae', label: 'Nome da Mãe', required: false },
-  { field: 'nomePai', label: 'Nome do Pai', required: false },
-  { field: 'observacoes', label: 'Observações', required: false },
 ];
-
-// Mapeamento de variações de nomes de colunas para campos
-const COLUMN_MAPPINGS: Record<string, string> = {
-  // Nome
-  nome: 'nome',
-  name: 'nome',
-  'nome completo': 'nome',
-  'full name': 'nome',
-  membro: 'nome',
-
-  // Igreja
-  igreja: 'igreja',
-  church: 'igreja',
-  congregacao: 'igreja',
-  congregação: 'igreja',
-  comunidade: 'igreja',
-
-  // Email
-  email: 'email',
-  'e-mail': 'email',
-  mail: 'email',
-  correio: 'email',
-
-  // Telefone
-  telefone: 'telefone',
-  celular: 'telefone',
-  phone: 'telefone',
-  cel: 'telefone',
-  fone: 'telefone',
-  whatsapp: 'telefone',
-
-  // Cargo
-  cargo: 'cargo',
-  funcao: 'cargo',
-  função: 'cargo',
-  role: 'cargo',
-  ministerio: 'cargo',
-  ministério: 'cargo',
-
-  // Código
-  codigo: 'codigo',
-  código: 'codigo',
-  code: 'codigo',
-
-  // Tipo
-  tipo: 'tipo',
-  type: 'tipo',
-  categoria: 'tipo',
-
-  // Sexo
-  sexo: 'sexo',
-  genero: 'sexo',
-  gênero: 'sexo',
-  gender: 'sexo',
-
-  // Idade
-  idade: 'idade',
-  age: 'idade',
-
-  // Data Nascimento
-  nascimento: 'dataNascimento',
-  'data nascimento': 'dataNascimento',
-  'data de nascimento': 'dataNascimento',
-  'dt nascimento': 'dataNascimento',
-  'dt. nascimento': 'dataNascimento',
-  birthdate: 'dataNascimento',
-  'birth date': 'dataNascimento',
-
-  // CPF
-  cpf: 'cpf',
-
-  // Estado Civil
-  'estado civil': 'estadoCivil',
-  'civil status': 'estadoCivil',
-
-  // Profissão
-  profissao: 'profissao',
-  profissão: 'profissao',
-  ocupacao: 'profissao',
-  ocupação: 'profissao',
-  occupation: 'profissao',
-
-  // Escolaridade
-  escolaridade: 'escolaridade',
-  'grau de educação': 'escolaridade',
-  educacao: 'escolaridade',
-  educação: 'escolaridade',
-  education: 'escolaridade',
-
-  // Endereço
-  endereco: 'endereco',
-  endereço: 'endereco',
-  address: 'endereco',
-
-  // Bairro
-  bairro: 'bairro',
-  neighborhood: 'bairro',
-
-  // Cidade/Estado
-  cidade: 'cidadeEstado',
-  'cidade e estado': 'cidadeEstado',
-  city: 'cidadeEstado',
-
-  // Data Batismo
-  batismo: 'dataBatismo',
-  'data batismo': 'dataBatismo',
-  'data de batismo': 'dataBatismo',
-  'dt batismo': 'dataBatismo',
-  'dt. batismo': 'dataBatismo',
-  baptism: 'dataBatismo',
-  'baptism date': 'dataBatismo',
-
-  // Dizimista
-  dizimista: 'dizimista',
-  'é dizimista': 'dizimista',
-  tither: 'dizimista',
-  dizimo: 'dizimista',
-  dízimo: 'dizimista',
-
-  // Ofertante
-  ofertante: 'ofertante',
-  'é ofertante': 'ofertante',
-  oferta: 'ofertante',
-  offering: 'ofertante',
-
-  // Engajamento
-  engajamento: 'engajamento',
-  engagement: 'engajamento',
-
-  // Classificação
-  classificacao: 'classificacao',
-  classificação: 'classificacao',
-  classification: 'classificacao',
-
-  // Departamentos
-  departamentos: 'departamentosCargos',
-  'departamentos e cargos': 'departamentosCargos',
-  departments: 'departamentosCargos',
-
-  // Unidade ES
-  unidade: 'nomeUnidade',
-  'nome da unidade': 'nomeUnidade',
-  'unidade es': 'nomeUnidade',
-
-  // Tem Lição
-  licao: 'temLicao',
-  lição: 'temLicao',
-  'tem lição': 'temLicao',
-  'tem licao': 'temLicao',
-
-  // Matriculado ES
-  'matriculado es': 'matriculadoES',
-  'matriculado na es': 'matriculadoES',
-  'escola sabatina': 'matriculadoES',
-
-  // Presença
-  presenca: 'totalPresenca',
-  presença: 'totalPresenca',
-  'total presença': 'totalPresenca',
-  'total de presença': 'totalPresenca',
-
-  // Comunhão
-  comunhao: 'comunhao',
-  comunhão: 'comunhao',
-
-  // Missão
-  missao: 'missao',
-  missão: 'missao',
-
-  // Estudo Bíblico
-  'estudo biblico': 'estudoBiblico',
-  'estudo bíblico': 'estudoBiblico',
-
-  // Batizou alguém
-  'batizou alguem': 'batizouAlguem',
-  'batizou alguém': 'batizouAlguem',
-
-  // Religião anterior
-  'religiao anterior': 'religiaoAnterior',
-  'religião anterior': 'religiaoAnterior',
-
-  // Instrutor bíblico
-  'instrutor biblico': 'instrutorBiblico',
-  'instrutor bíblico': 'instrutorBiblico',
-
-  // Nome da mãe
-  'nome da mae': 'nomeMae',
-  'nome da mãe': 'nomeMae',
-  mae: 'nomeMae',
-  mãe: 'nomeMae',
-
-  // Nome do pai
-  'nome do pai': 'nomePai',
-  pai: 'nomePai',
-
-  // Observações
-  observacoes: 'observacoes',
-  observações: 'observacoes',
-  obs: 'observacoes',
-  notas: 'observacoes',
-  notes: 'observacoes',
-};
 
 export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelImportProps) {
   const [importStep, setImportStep] = useState<ImportStep>('upload');
   const [importProgress, setImportProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
+  const [_rawData, setRawData] = useState<Record<string, unknown>[]>([]);
   const [previewData, setPreviewData] = useState<ExcelRow[]>(data?.data || []);
-  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [duplicates, setDuplicates] = useState<string[]>([]);
   const [fileName, setFileName] = useState<string>(data?.fileName || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Detectar mapeamento automático de colunas
-  const autoDetectMapping = useCallback((columns: string[]): Record<string, string> => {
-    const mapping: Record<string, string> = {};
+  // ============================================================
+  // Processamento de dados brutos usando importHelpers
+  // (EXATAMENTE a mesma lógica do Gestão de Dados - Settings.tsx)
+  // ============================================================
+  const processRawData = useCallback((raw: Record<string, unknown>[]): ExcelRow[] => {
+    return raw
+      .map(row => {
+        // Usar exatamente a mesma função do Gestão de Dados
+        const processed = processExcelRow(row);
+        if (!processed) return null;
 
-    columns.forEach(col => {
-      const normalizedCol = col.toLowerCase().trim();
-      if (COLUMN_MAPPINGS[normalizedCol]) {
-        mapping[col] = COLUMN_MAPPINGS[normalizedCol];
-      }
-    });
+        // Converter ImportedMemberData para ExcelRow
+        // Extrair dados extras do JSON para campos individuais
+        let extraDataParsed: Record<string, unknown> = {};
+        try {
+          if (processed.extraData) {
+            extraDataParsed = JSON.parse(processed.extraData);
+          }
+        } catch {
+          // Ignore parse errors
+        }
 
-    return mapping;
+        return {
+          nome: processed.name,
+          igreja: processed.church,
+          distrital: toStr(extraDataParsed.distrital),
+          telefone: processed.phone || undefined,
+          email: processed.email,
+          cargo: toStr(extraDataParsed.cargo),
+          codigo: processed.churchCode,
+          tipo: processed.role,
+          sexo: cleanSexo(extraDataParsed.sexo),
+          idade: parseNumber(extraDataParsed.idade) || undefined,
+          dataNascimento: processed.birthDate ? formatDateToISO(processed.birthDate) : undefined,
+          cpf: processed.cpf,
+          cpfValido: processed.cpfValido,
+          estadoCivil: processed.civilStatus,
+          profissao: processed.occupation,
+          escolaridade: processed.education,
+          endereco: processed.address,
+          bairro: toStr(extraDataParsed.bairro),
+          cidadeEstado: toStr(extraDataParsed.cidadeEstado),
+          dataBatismo: processed.baptismDate ? formatDateToISO(processed.baptismDate) : undefined,
+          tempoBatismoAnos: processed.tempoBatismoAnos,
+          dizimista: processed.dizimistaType,
+          ofertante: processed.ofertanteType,
+          engajamento: processed.engajamento || undefined,
+          classificacao: processed.classificacao || undefined,
+          departamentosCargos: processed.departamentosCargos || undefined,
+          nomeUnidade: processed.nomeUnidade || undefined,
+          temLicao: processed.temLicao,
+          matriculadoES: processed.isEnrolledES,
+          totalPresenca: processed.totalPresenca,
+          comunhao: processed.comunhao,
+          missao: processed.missao,
+          estudoBiblico: processed.estudoBiblico,
+          batizouAlguem: processed.batizouAlguem,
+          discPosBatismal: processed.discPosBatismal,
+          religiaoAnterior: processed.previousReligion,
+          instrutorBiblico: processed.biblicalInstructor,
+          nomeMae: toStr(extraDataParsed.nomeMae),
+          nomePai: toStr(extraDataParsed.nomePai),
+          camposVazios: processed.camposVazios,
+          observacoes: toStr(extraDataParsed.observacoes),
+          valid: true,
+        } as ExcelRow;
+      })
+      .filter((row): row is ExcelRow => row !== null);
   }, []);
-
-  // Processar dados brutos para ExcelRow usando o mapeamento
-  const processDataWithMapping = useCallback(
-    (raw: Record<string, unknown>[], mapping: Record<string, string>): ExcelRow[] => {
-      return raw
-        .map(row => {
-          const processed: Record<string, unknown> = {};
-
-          // Aplicar mapeamento
-          Object.entries(row).forEach(([col, value]) => {
-            const targetField = mapping[col];
-            if (targetField && value !== undefined && value !== null && value !== '') {
-              processed[targetField] = String(value).trim();
-            }
-          });
-
-          // Extrair campos obrigatórios
-          const nome = String(processed.nome || '').trim();
-          const igreja = String(processed.igreja || '').trim();
-
-          if (!nome) return null;
-
-          return {
-            nome,
-            igreja,
-            telefone: processed.telefone as string,
-            email: processed.email as string,
-            cargo: processed.cargo as string,
-            codigo: processed.codigo as string,
-            tipo: processed.tipo as string,
-            sexo: processed.sexo as string,
-            idade: processed.idade ? parseInt(String(processed.idade)) : undefined,
-            dataNascimento: processed.dataNascimento as string,
-            cpf: processed.cpf as string,
-            estadoCivil: processed.estadoCivil as string,
-            profissao: processed.profissao as string,
-            escolaridade: processed.escolaridade as string,
-            endereco: processed.endereco as string,
-            bairro: processed.bairro as string,
-            cidadeEstado: processed.cidadeEstado as string,
-            dataBatismo: processed.dataBatismo as string,
-            dizimista: processed.dizimista as string,
-            ofertante: processed.ofertante as string,
-            engajamento: processed.engajamento as string,
-            classificacao: processed.classificacao as string,
-            departamentosCargos: processed.departamentosCargos as string,
-            nomeUnidade: processed.nomeUnidade as string,
-            temLicao: (processed.temLicao as string) === 'true' || processed.temLicao === 'Sim',
-            matriculadoES:
-              (processed.matriculadoES as string) === 'true' || processed.matriculadoES === 'Sim',
-            totalPresenca: processed.totalPresenca
-              ? parseInt(String(processed.totalPresenca))
-              : undefined,
-            comunhao: processed.comunhao ? parseInt(String(processed.comunhao)) : undefined,
-            missao: processed.missao ? parseInt(String(processed.missao)) : undefined,
-            estudoBiblico: processed.estudoBiblico
-              ? parseInt(String(processed.estudoBiblico))
-              : undefined,
-            batizouAlguem:
-              (processed.batizouAlguem as string) === 'true' || processed.batizouAlguem === 'Sim',
-            religiaoAnterior: processed.religiaoAnterior as string,
-            instrutorBiblico: processed.instrutorBiblico as string,
-            nomeMae: processed.nomeMae as string,
-            nomePai: processed.nomePai as string,
-            observacoes: processed.observacoes as string,
-            valid: true,
-          } as ExcelRow;
-        })
-        .filter((row): row is ExcelRow => row !== null);
-    },
-    []
-  );
 
   // Validar dados importados
   const validateData = useCallback((rows: ExcelRow[]) => {
@@ -464,19 +223,15 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
         throw new Error('Nenhum dado encontrado no arquivo');
       }
 
-      // Detectar colunas
+      // Detectar colunas (para exibição)
       const columns = Object.keys(result.data[0] || {});
       setDetectedColumns(columns);
-
-      // Auto-detectar mapeamento
-      const autoMapping = autoDetectMapping(columns);
-      setColumnMapping(autoMapping);
 
       // Armazenar dados brutos
       setRawData(result.data);
 
-      // Processar preview
-      const processed = processDataWithMapping(result.data, autoMapping);
+      // Processar dados com OR chains (padrão Gestão de Dados)
+      const processed = processRawData(result.data);
       setPreviewData(processed);
 
       // Avançar para preview
@@ -489,24 +244,9 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
     }
   };
 
-  const handleMappingChange = (column: string, field: string) => {
-    const newMapping = { ...columnMapping };
-    if (field === 'none') {
-      delete newMapping[column];
-    } else {
-      newMapping[column] = field;
-    }
-    setColumnMapping(newMapping);
-
-    // Reprocessar dados com novo mapeamento
-    const processed = processDataWithMapping(rawData, newMapping);
-    setPreviewData(processed);
-  };
-
   const handleRemoveFile = () => {
     setPreviewData([]);
     setRawData([]);
-    setColumnMapping({});
     setDetectedColumns([]);
     setValidationErrors([]);
     setDuplicates([]);
@@ -544,6 +284,14 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
 
   // Contar registros válidos
   const validCount = previewData.filter(r => r.valid !== false).length;
+
+  // Contar campos detectados (campos com pelo menos 1 valor nos dados)
+  const detectedFieldsCount =
+    previewData.length > 0
+      ? Object.entries(previewData[0]).filter(
+          ([key, val]) => key !== 'valid' && key !== 'validationError' && val !== undefined && val !== null && val !== ''
+        ).length
+      : 0;
 
   return (
     <div className="p-4 sm:p-6 md:p-10">
@@ -671,10 +419,10 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 <div className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl">
                   <div className="flex items-center gap-2 text-purple-700 mb-2">
                     <FileSpreadsheet className="w-5 h-5" />
-                    <span className="font-semibold">Colunas Mapeadas</span>
+                    <span className="font-semibold">Campos Detectados</span>
                   </div>
                   <p className="text-3xl font-bold text-purple-900">
-                    {Object.keys(columnMapping).length}/{detectedColumns.length}
+                    {detectedFieldsCount}/{detectedColumns.length}
                   </p>
                 </div>
               </div>
@@ -771,7 +519,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
         </div>
       )}
 
-      {/* Mapping Step */}
+      {/* Mapping Step (mesmo padrão do Gestão de Dados) */}
       {importStep === 'mapping' && (
         <div className="space-y-6">
           <div className="border-2 border-blue-200 rounded-2xl p-6 !bg-blue-50/50">
@@ -780,30 +528,22 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
               Confirme o mapeamento automático das colunas ou ajuste conforme necessário
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-              {detectedColumns.map(col => (
-                <div key={col} className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {DISPLAY_FIELDS.map(mapping => (
+                <div key={mapping.field} className="space-y-2">
                   <Label className="text-sm text-blue-800">
-                    {col}
-                    {AVAILABLE_FIELDS.find(f => f.field === columnMapping[col])?.required && (
-                      <span className="text-red-500 ml-1">*</span>
-                    )}
+                    {mapping.label}
+                    {mapping.required && <span className="text-red-500 ml-1">*</span>}
                   </Label>
-                  <Select
-                    value={columnMapping[col] || 'none'}
-                    onValueChange={value => handleMappingChange(col, value)}
-                  >
+                  <Select defaultValue={mapping.field}>
                     <SelectTrigger className="rounded-xl !bg-white !border-blue-200 focus:!border-blue-400">
-                      <SelectValue placeholder="Não mapear" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value={mapping.field}>
+                        {mapping.field.charAt(0).toUpperCase() + mapping.field.slice(1)}
+                      </SelectItem>
                       <SelectItem value="none">Não mapear</SelectItem>
-                      {AVAILABLE_FIELDS.map(f => (
-                        <SelectItem key={f.field} value={f.field}>
-                          {f.label}
-                          {f.required && ' *'}
-                        </SelectItem>
-                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -811,12 +551,12 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
             </div>
           </div>
 
-          {/* Alerta sobre campos obrigatórios */}
-          {!columnMapping['nome'] && (
+          {/* Alerta se não encontrou membros válidos */}
+          {previewData.length === 0 && (
             <Alert variant="destructive" className="rounded-xl">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                O campo "Nome" é obrigatório. Mapeie uma coluna para ele.
+                Nenhum membro válido encontrado. Verifique se a planilha contém uma coluna "Nome".
               </AlertDescription>
             </Alert>
           )}
@@ -839,7 +579,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 setImportStep('validation');
                 setImportProgress(75);
               }}
-              disabled={!Object.values(columnMapping).includes('nome')}
+              disabled={previewData.length === 0}
               className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500"
             >
               Continuar para Validação
@@ -1016,7 +756,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       {/* Instrução sobre formato (apenas na tela de upload) */}
       {importStep === 'upload' && (
         <div className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-2xl p-6 mt-6">
-          <h4 className="font-semibold text-gray-800 mb-3">📋 Colunas reconhecidas:</h4>
+          <h4 className="font-semibold text-gray-800 mb-3">Colunas reconhecidas:</h4>
           <p className="text-sm text-gray-600 mb-3">
             O sistema reconhece automaticamente diversas colunas do ACMS e outros sistemas:
           </p>
@@ -1049,6 +789,13 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
               + muitos outros
             </span>
           </div>
+          <Alert className="mt-4 rounded-xl">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Formatos aceitos:</strong> Telefone (qualquer formato), Email (com @),
+              Datas (DD/MM/AAAA ou outros formatos), Valores Sim/Não para campos booleanos
+            </AlertDescription>
+          </Alert>
         </div>
       )}
 
