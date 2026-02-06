@@ -9,7 +9,17 @@ import { sql } from '../neonConfig';
 import { logger } from '../utils/logger';
 import { isSuperAdmin, isPastor } from '../utils/permissions';
 import { User, Church, Event, District } from '../../shared/schema';
-import { asyncHandler, sendError } from '../utils';
+import { asyncHandler } from '../utils';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const reportsRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -218,7 +228,7 @@ export const reportsRoutes = (app: Express): void => {
             ? 100
             : 0;
 
-      res.json({
+      sendSuccess(res, {
         // Basic counts
         totalUsers: regularUsers.length,
         totalChurches: churchesToInclude.length,
@@ -300,7 +310,7 @@ export const reportsRoutes = (app: Express): void => {
       const conversionAtoBaptism =
         classificacaoA > 0 ? Math.round((baptized / (classificacaoA + baptized)) * 100) : 0;
 
-      res.json({
+      sendSuccess(res, {
         funnel: [
           { stage: 'Interessado C', count: classificacaoC, color: '#94a3b8' },
           { stage: 'Interessado B', count: classificacaoB, color: '#60a5fa' },
@@ -379,7 +389,7 @@ export const reportsRoutes = (app: Express): void => {
         })
         .sort((a, b) => b.totalUsers - a.totalUsers);
 
-      res.json({
+      sendSuccess(res, {
         churches: churchStats,
         summary: {
           totalChurches: churchStats.length,
@@ -488,7 +498,7 @@ export const reportsRoutes = (app: Express): void => {
         }))
         .slice(0, 10);
 
-      res.json({
+      sendSuccess(res, {
         categories: engagementCategories,
         distribution,
         topEngaged,
@@ -596,7 +606,7 @@ export const reportsRoutes = (app: Express): void => {
             ? 100
             : 0;
 
-      res.json({
+      sendSuccess(res, {
         months,
         summary: {
           totalNewUsers: months.reduce((sum, m) => sum + m.newUsers, 0),
@@ -673,7 +683,7 @@ export const reportsRoutes = (app: Express): void => {
         })
         .sort((a, b) => b.activeRelationships - a.activeRelationships);
 
-      res.json({
+      sendSuccess(res, {
         missionaries: missionaryStats,
         summary: {
           totalMissionaries: missionaries.length,
@@ -778,7 +788,7 @@ export const reportsRoutes = (app: Express): void => {
       // Sort by total users
       districtStats.sort((a, b) => b.totalUsers - a.totalUsers);
 
-      res.json({
+      sendSuccess(res, {
         districts: districtStats,
         summary: {
           totalDistricts: districtStats.length,
@@ -891,7 +901,7 @@ export const reportsRoutes = (app: Express): void => {
         },
       ];
 
-      res.json({
+      sendSuccess(res, {
         goals,
         summary: {
           totalGoals: goals.length,
@@ -1019,7 +1029,7 @@ export const reportsRoutes = (app: Express): void => {
         });
       }
 
-      res.json({
+      sendSuccess(res, {
         insights: insights.sort((a, b) => {
           const priorityOrder = { high: 0, medium: 1, low: 2 };
           return priorityOrder[a.priority] - priorityOrder[b.priority];

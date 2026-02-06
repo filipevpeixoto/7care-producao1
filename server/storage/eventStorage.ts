@@ -7,6 +7,7 @@ import { schema } from '../schema';
 import { eq, desc } from 'drizzle-orm';
 import type { Event } from '../../shared/schema';
 import type { CreateEventInput, UpdateEventInput, EventPermissions } from '../types/storage';
+import { logger } from '../utils/logger';
 
 export async function getAllEvents(): Promise<Event[]> {
   try {
@@ -30,7 +31,7 @@ export async function getAllEvents(): Promise<Event[]> {
     
     return result as unknown as Event[];
   } catch (error) {
-    console.error('Erro ao buscar eventos:', error);
+    logger.error('Erro ao buscar eventos:', error);
     return [];
   }
 }
@@ -40,7 +41,7 @@ export async function getEventById(id: number): Promise<Event | null> {
     const result = await db.select().from(schema.events).where(eq(schema.events.id, id)).limit(1);
     return (result[0] || null) as unknown as Event | null;
   } catch (error) {
-    console.error('Erro ao buscar evento por ID:', error);
+    logger.error('Erro ao buscar evento por ID:', error);
     return null;
   }
 }
@@ -90,7 +91,7 @@ export async function createEvent(eventData: CreateEventInput): Promise<Event> {
     const result = await db.insert(schema.events).values(newEvent as typeof schema.events.$inferInsert).returning();
     return result[0] as unknown as Event;
   } catch (error) {
-    console.error('Erro ao criar evento:', error);
+    logger.error('Erro ao criar evento:', error);
     throw error;
   }
 }
@@ -147,7 +148,7 @@ export async function updateEvent(id: number, updates: UpdateEventInput): Promis
 
     return (result[0] || null) as unknown as Event | null;
   } catch (error) {
-    console.error('Erro ao atualizar evento:', error);
+    logger.error('Erro ao atualizar evento:', error);
     return null;
   }
 }
@@ -157,7 +158,7 @@ export async function deleteEvent(id: number): Promise<boolean> {
     await db.delete(schema.events).where(eq(schema.events.id, id));
     return true;
   } catch (error) {
-    console.error('Erro ao deletar evento:', error);
+    logger.error('Erro ao deletar evento:', error);
     return false;
   }
 }
@@ -167,7 +168,7 @@ export async function clearAllEvents(): Promise<boolean> {
     await db.delete(schema.events);
     return true;
   } catch (error) {
-    console.error('Erro ao limpar eventos:', error);
+    logger.error('Erro ao limpar eventos:', error);
     return false;
   }
 }

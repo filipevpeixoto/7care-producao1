@@ -7,9 +7,19 @@
 
 import { Express, Request, Response } from 'express';
 import { logger } from '../utils/logger';
-import { asyncHandler, sendSuccess, sendNotFound } from '../utils';
+import { asyncHandler } from '../utils';
 import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
 import { createTaskSchema, updateTaskSchema, idParamSchema } from '../schemas';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 // Interface para tarefa
 interface Task {
@@ -48,7 +58,7 @@ export function taskRoutes(app: Express): void {
     asyncHandler(async (req: Request, res: Response) => {
       logger.info('📋 GET /api/tasks - Retornando cache de tarefas');
 
-      res.json({
+      sendSuccess(res, {
         tasks: tasksCache,
         source: 'local-cache',
         lastUpdate: lastCacheUpdate,
@@ -96,7 +106,7 @@ export function taskRoutes(app: Express): void {
       lastCacheUpdate = new Date();
 
       logger.info(`✅ Tarefa criada localmente: ${newTask.id}`);
-      res.status(201).json(newTask);
+      sendCreated(res, newTask);
     })
   );
 
@@ -127,7 +137,7 @@ export function taskRoutes(app: Express): void {
       lastCacheUpdate = new Date();
 
       logger.info(`✅ Tarefa atualizada: ${taskId}`);
-      res.json(tasksCache[taskIndex]);
+      sendSuccess(res, tasksCache[taskIndex]);
     })
   );
 
@@ -185,7 +195,7 @@ export function taskRoutes(app: Express): void {
     '/api/tasks/users',
     asyncHandler(async (req: Request, res: Response) => {
       // Retorna lista vazia - frontend deve buscar de /api/users
-      res.json([]);
+      sendSuccess(res, []);
     })
   );
 

@@ -12,7 +12,17 @@ import { logger } from '../utils/logger';
 import { Church } from '../../shared/schema';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
-import { asyncHandler, sendNotFound, sendError } from '../utils';
+import { asyncHandler } from '../utils';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const churchRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -61,7 +71,7 @@ export const churchRoutes = (app: Express): void => {
         }
       }
 
-      res.json(churches);
+      sendSuccess(res, churches);
     })
   );
 
@@ -102,7 +112,7 @@ export const churchRoutes = (app: Express): void => {
 
       const church = await storage.getOrCreateChurch(name.trim());
 
-      res.json(church);
+      sendSuccess(res, church);
     })
   );
 
@@ -164,7 +174,7 @@ export const churchRoutes = (app: Express): void => {
           }
         }
 
-        res.json(updatedChurch);
+        sendSuccess(res, updatedChurch);
       } else {
         sendNotFound(res, 'Igreja');
       }
@@ -224,7 +234,7 @@ export const churchRoutes = (app: Express): void => {
         }
       }
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         church: churchName || 'Igreja não disponível',
         userId: id,

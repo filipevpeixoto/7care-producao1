@@ -213,6 +213,39 @@ export class ChurchRepository {
   }
 
   /**
+   * Busca igreja padrao (primeira igreja ordenada por ID)
+   */
+  async getDefaultChurch(): Promise<Church | null> {
+    try {
+      const [church] = await db
+        .select()
+        .from(schema.churches)
+        .orderBy(schema.churches.id)
+        .limit(1);
+      return church ? this.mapChurchRecord(church) : null;
+    } catch (error) {
+      logger.error('Erro ao buscar igreja padrao', error);
+      return null;
+    }
+  }
+
+  /**
+   * Define igreja padrao (atualiza timestamp)
+   */
+  async setDefaultChurch(churchId: number): Promise<boolean> {
+    try {
+      await db
+        .update(schema.churches)
+        .set({ updatedAt: new Date() })
+        .where(eq(schema.churches.id, churchId));
+      return true;
+    } catch (error) {
+      logger.error('Erro ao definir igreja padrao', error);
+      return false;
+    }
+  }
+
+  /**
    * Mapeia registro do banco para tipo Church
    */
   private mapChurchRecord(record: Record<string, unknown>): Church {

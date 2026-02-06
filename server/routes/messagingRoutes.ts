@@ -8,7 +8,17 @@ import { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createMessageSchema } from '../schemas';
-import { asyncHandler, sendError } from '../utils';
+import { asyncHandler } from '../utils';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const messagingRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -86,7 +96,7 @@ export const messagingRoutes = (app: Express): void => {
         })
       );
 
-      res.json(enrichedConversations);
+      sendSuccess(res, enrichedConversations);
     })
   );
 
@@ -126,7 +136,7 @@ export const messagingRoutes = (app: Express): void => {
       }
 
       const conversation = await storage.getOrCreateDirectConversation(userId1, userId2);
-      res.json(conversation);
+      sendSuccess(res, conversation);
     })
   );
 
@@ -161,7 +171,7 @@ export const messagingRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const conversationId = parseInt(req.params.id);
       const messages = await storage.getMessagesByConversation(conversationId);
-      res.json(messages);
+      sendSuccess(res, messages);
     })
   );
 
@@ -208,7 +218,7 @@ export const messagingRoutes = (app: Express): void => {
         ...messageData,
         isRead: false,
       } as Parameters<typeof storage.createMessage>[0]);
-      res.status(201).json(message);
+      sendCreated(res, message);
     })
   );
 };

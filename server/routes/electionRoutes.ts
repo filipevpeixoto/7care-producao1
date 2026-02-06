@@ -3,6 +3,16 @@ import { NeonAdapter } from '../neonAdapter';
 import { hasAdminAccess } from '../utils/permissions';
 import { Express, Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 type SqlRow = Record<string, unknown>;
 type ElectionConfigRow = SqlRow & {
@@ -168,6 +178,49 @@ const parseExtraData = (extraData: unknown): Record<string, unknown> => {
   return {};
 };
 
+// Helper para obter igrejas do distrito do usuário (para isolamento de pastor)
+type DistrictFilterResult = {
+  hasDistrictFilter: boolean;
+  districtId: number | null;
+  churchNames: string[];
+};
+
+const getDistrictFilterForUser = async (
+  userId: number | null,
+  storage: NeonAdapter
+): Promise<DistrictFilterResult> => {
+  if (!userId) {
+    return { hasDistrictFilter: false, districtId: null, churchNames: [] };
+  }
+
+  try {
+    const user = await storage.getUserById(userId);
+
+    // Se não é pastor ou não tem distrito, não filtra
+    if (!user || user.role !== 'pastor' || !user.districtId) {
+      return { hasDistrictFilter: false, districtId: null, churchNames: [] };
+    }
+
+    // Buscar igrejas do distrito
+    const churches = await sql`
+      SELECT name FROM churches WHERE district_id = ${user.districtId}
+    `;
+
+    const churchNames = churches.map((c: { name: string }) => c.name);
+
+    logger.debug(`🏛️ Filtro de distrito aplicado: districtId=${user.districtId}, igrejas=${churchNames.length}`);
+
+    return {
+      hasDistrictFilter: true,
+      districtId: user.districtId,
+      churchNames,
+    };
+  } catch (error) {
+    logger.error('Erro ao obter filtro de distrito:', error);
+    return { hasDistrictFilter: false, districtId: null, churchNames: [] };
+  }
+};
+
 export const electionRoutes = (app: Express) => {
   const storage = new NeonAdapter();
 
@@ -272,10 +325,10 @@ export const electionRoutes = (app: Express) => {
 
       logger.info(' Configuração de eleição salva:', result[0].id);
 
-      return res.status(200).json(result[0]);
+      return sendSuccess(res, result[0]);
     } catch (error: unknown) {
       logger.error('❌ Erro ao salvar configuração:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -285,7 +338,7 @@ export const electionRoutes = (app: Express) => {
       const configId = parseInt(req.params.id, 10);
 
       if (!configId) {
-        return res.status(400).json({ error: 'ID da configuração inválido' });
+        return sendValidationError(res, { message: 'ID da configuração inválido' });
       }
 
       const body = req.body || {};
@@ -358,18 +411,18 @@ export const electionRoutes = (app: Express) => {
       );
 
       if (updatedConfig.length === 0) {
-        return res.status(404).json({ error: 'Configuração não encontrada' });
+        return sendNotFound(res, 'Configuração não encontrada');
       }
 
       logger.info(' Configuração de eleição atualizada:', configId);
 
-      return res.status(200).json({
+      return sendSuccess(res, {
         message: 'Configuração atualizada com sucesso',
         config: updatedConfig[0],
       });
     } catch (error: unknown) {
       logger.error('❌ Erro ao atualizar configuração:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -377,6 +430,10 @@ export const electionRoutes = (app: Express) => {
   app.get('/api/elections/config/:id', async (req: Request, res: Response) => {
     try {
       const configId = parseInt(req.params.id, 10);
+      const userId = parseHeaderUserId(req);
+
+      // Verificar filtro de distrito para pastores
+      const districtFilter = await getDistrictFilterForUser(userId, storage);
 
       const config = await sql`
         SELECT ec.*, e.status as election_status, e.created_at as election_created_at
@@ -391,11 +448,19 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (config.length === 0) {
-        return res.status(404).json({ error: 'Configuração não encontrada' });
+        return sendNotFound(res, 'Configuração não encontrada');
+      }
+
+      // Se pastor com distrito, verificar se a config é de uma igreja do distrito
+      const configData = config[0] as ElectionConfigRow;
+      if (districtFilter.hasDistrictFilter) {
+        const churchName = configData.church_name as string | null;
+        if (churchName && !districtFilter.churchNames.includes(churchName)) {
+          return sendForbidden(res, 'Acesso não autorizado a esta configuração');
+        }
       }
 
       // Garantir que removed_candidates está parseado corretamente
-      const configData = config[0];
       if (configData.removed_candidates) {
         if (typeof configData.removed_candidates === 'string') {
           try {
@@ -430,10 +495,10 @@ export const electionRoutes = (app: Express) => {
         configData.current_leaders
       );
 
-      return res.json(configData);
+      return sendSuccess(res, configData);
     } catch (error: unknown) {
       logger.error('❌ Erro ao buscar configuração:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -473,7 +538,7 @@ export const electionRoutes = (app: Express) => {
         `;
 
         if (config.length === 0) {
-          return res.status(404).json({ error: 'Configuração não encontrada' });
+          return sendNotFound(res, 'Configuração não encontrada');
         }
 
         const configData = parseRemovedCandidates(config[0]);
@@ -483,7 +548,7 @@ export const electionRoutes = (app: Express) => {
           'removed_candidates:',
           configData.removed_candidates
         );
-        return res.json(configData);
+        return sendSuccess(res, configData);
       } else {
         // Buscar última configuração criada
         const config = await sql`
@@ -499,15 +564,15 @@ export const electionRoutes = (app: Express) => {
         `;
 
         if (config.length === 0) {
-          return res.status(404).json({ error: 'Nenhuma configuração encontrada' });
+          return sendNotFound(res, 'Nenhuma configuração encontrada');
         }
 
         const configData = parseRemovedCandidates(config[0]);
-        return res.json(configData);
+        return sendSuccess(res, configData);
       }
     } catch (error: unknown) {
       logger.error('❌ Erro ao buscar configuração:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -522,7 +587,7 @@ export const electionRoutes = (app: Express) => {
 
       if (requestingUserId) {
         const userResult = await sql`
-          SELECT id, church, role, email FROM users WHERE id = ${requestingUserId}
+          SELECT id, church, role, email, district_id FROM users WHERE id = ${requestingUserId}
         `;
         if (userResult.length > 0) {
           requestingUser = userResult[0];
@@ -535,14 +600,20 @@ export const electionRoutes = (app: Express) => {
         requestingUser &&
         (requestingUser.role === 'super_admin' || requestingUser.email === 'admin@7care.com');
 
+      // Verificar se é pastor com distrito (para filtro por distrito)
+      const isPastorWithDistrict =
+        requestingUser &&
+        requestingUser.role === 'pastor' &&
+        requestingUser.district_id;
+
       let configs;
 
       if (isSuperAdminUser || !userChurch) {
         // Super admin vê todas as configurações
         configs = await sql`
-          SELECT DISTINCT ON (ec.id) 
-            ec.*, 
-            e.status as election_status, 
+          SELECT DISTINCT ON (ec.id)
+            ec.*,
+            e.status as election_status,
             e.created_at as election_created_at
           FROM election_configs ec
           LEFT JOIN (
@@ -552,12 +623,37 @@ export const electionRoutes = (app: Express) => {
           ) e ON ec.id = e.config_id
           ORDER BY ec.id, ec.created_at DESC
         `;
+      } else if (isPastorWithDistrict) {
+        // Pastor vê configurações das igrejas do seu distrito
+        const districtChurches = await sql`
+          SELECT name FROM churches WHERE district_id = ${requestingUser.district_id}
+        `;
+        const churchNames = districtChurches.map((c: { name: string }) => c.name);
+
+        if (churchNames.length > 0) {
+          configs = await sql`
+            SELECT DISTINCT ON (ec.id)
+              ec.*,
+              e.status as election_status,
+              e.created_at as election_created_at
+            FROM election_configs ec
+            LEFT JOIN (
+              SELECT DISTINCT ON (config_id) config_id, status, created_at
+              FROM elections
+              ORDER BY config_id, created_at DESC
+            ) e ON ec.id = e.config_id
+            WHERE ec.church_name = ANY(${churchNames})
+            ORDER BY ec.id, ec.created_at DESC
+          `;
+        } else {
+          configs = [];
+        }
       } else {
         // Usuário normal vê apenas configurações da sua igreja
         configs = await sql`
-          SELECT DISTINCT ON (ec.id) 
-            ec.*, 
-            e.status as election_status, 
+          SELECT DISTINCT ON (ec.id)
+            ec.*,
+            e.status as election_status,
             e.created_at as election_created_at
           FROM election_configs ec
           LEFT JOIN (
@@ -571,13 +667,13 @@ export const electionRoutes = (app: Express) => {
       }
 
       logger.debug(
-        ` [GET CONFIGS] Retornando ${configs.length} configurações para usuário ${requestingUserId} (igreja: ${userChurch || 'todas'})`
+        ` [GET CONFIGS] Retornando ${configs.length} configurações para usuário ${requestingUserId} (igreja: ${userChurch || 'todas'}, pastor: ${isPastorWithDistrict ? 'sim' : 'não'})`
       );
 
-      return res.status(200).json(configs);
+      return sendSuccess(res, configs);
     } catch (error: unknown) {
       logger.error('❌ Erro ao buscar configurações:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -602,7 +698,7 @@ export const electionRoutes = (app: Express) => {
       }
 
       if (config.length === 0) {
-        return res.status(404).json({ error: 'Configuração não encontrada' });
+        return sendNotFound(res, 'Configuração não encontrada');
       }
 
       // Desativar eleições ativas da MESMA configuração
@@ -782,7 +878,7 @@ export const electionRoutes = (app: Express) => {
 
       if (!positions || positions.length === 0) {
         logger.warn(' Nenhuma posição configurada na eleição');
-        return res.status(400).json({ error: 'Configuração inválida: nenhuma posição encontrada' });
+        return sendValidationError(res, { message: 'Configuração inválida: nenhuma posição encontrada' });
       }
 
       // Inserir candidatos para cada posição
@@ -948,7 +1044,7 @@ export const electionRoutes = (app: Express) => {
 
       logger.info(' Nomeação pronta:', currentElection.id);
 
-      return res.status(200).json({
+      return sendSuccess(res, {
         electionId: currentElection.id,
         message: 'Nomeação iniciada com sucesso',
       });
@@ -982,7 +1078,7 @@ export const electionRoutes = (app: Express) => {
         // Validação do configId
         if (isNaN(configId) || configId <= 0) {
           logger.error(`❌ [TOGGLE-STATUS] configId inválido:`, configId);
-          return res.status(400).json({ error: 'ID da configuração inválido' });
+          return sendValidationError(res, { message: 'ID da configuração inválido' });
         }
 
         // Garantir que colunas essenciais existam para instalações antigas
@@ -1022,7 +1118,7 @@ export const electionRoutes = (app: Express) => {
 
         if (config.length === 0) {
           logger.error(`❌ [TOGGLE-STATUS] Config ${configId} não encontrada`);
-          return res.status(404).json({ error: 'Configuração não encontrada' });
+          return sendNotFound(res, 'Configuração não encontrada');
         }
 
         // Garantir tabelas necessárias (independente do status)
@@ -1139,7 +1235,7 @@ export const electionRoutes = (app: Express) => {
 
         logger.info(` [TOGGLE-STATUS] Processo concluído com sucesso para config ${configId}`);
 
-        return res.status(200).json({
+        return sendSuccess(res, {
           message:
             newStatus === 'active'
               ? 'Nomeação retomada com sucesso'
@@ -1185,7 +1281,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (election.length === 0) {
-        return res.status(404).json({ error: 'Nenhuma eleição ativa para esta configuração' });
+        return sendNotFound(res, 'Nenhuma eleição ativa para esta configuração');
       }
 
       // Garantir que voters seja um array
@@ -1302,10 +1398,10 @@ export const electionRoutes = (app: Express) => {
         positions,
       };
 
-      return res.status(200).json(response);
+      return sendSuccess(res, response);
     } catch (error: unknown) {
       logger.error('❌ Erro ao buscar dashboard com configId:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -1320,7 +1416,7 @@ export const electionRoutes = (app: Express) => {
         const adminId = parseHeaderUserId(req);
 
         if (adminId === null) {
-          return res.status(401).json({ error: 'Usuário não autenticado' });
+          return sendUnauthorized(res, 'Usuário não autenticado');
         }
 
         // Verificar se é admin
@@ -1344,7 +1440,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
         if (election.length === 0) {
-          return res.status(404).json({ error: 'Nenhuma eleição ativa para esta configuração' });
+          return sendNotFound(res, 'Nenhuma eleição ativa para esta configuração');
         }
 
         logger.debug(` Atualizando fase da eleição ${election[0].id} para: ${phase}`);
@@ -1380,7 +1476,7 @@ export const electionRoutes = (app: Express) => {
 
         logger.info(` Fase da eleição ${election[0].id} avançada para: ${phase}`);
 
-        return res.status(200).json({
+        return sendSuccess(res, {
           message: `Fase avançada para: ${phase}`,
           phase: phase,
           electionId: election[0].id,
@@ -1405,7 +1501,7 @@ export const electionRoutes = (app: Express) => {
         const adminId = parseHeaderUserId(req);
 
         if (adminId === null) {
-          return res.status(401).json({ error: 'Usuário não autenticado' });
+          return sendUnauthorized(res, 'Usuário não autenticado');
         }
 
         // Verificar se é admin
@@ -1429,7 +1525,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
         if (election.length === 0) {
-          return res.status(404).json({ error: 'Nenhuma eleição ativa para esta configuração' });
+          return sendNotFound(res, 'Nenhuma eleição ativa para esta configuração');
         }
 
         // Atualizar posição atual da eleição e resetar fase para nomination
@@ -1444,7 +1540,7 @@ export const electionRoutes = (app: Express) => {
 
         logger.info(` Posição avançada para ${position} e fase resetada para nomination`);
 
-        return res.status(200).json({
+        return sendSuccess(res, {
           message: `Posição avançada para: ${position}`,
           currentPosition: position,
           currentPhase: 'nomination',
@@ -1465,7 +1561,7 @@ export const electionRoutes = (app: Express) => {
       const adminId = parseHeaderUserId(req);
 
       if (adminId === null) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       const admin = await sql`
@@ -1492,7 +1588,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (election.length === 0) {
-        return res.status(404).json({ error: 'Nenhuma eleição ativa para esta configuração' });
+        return sendNotFound(res, 'Nenhuma eleição ativa para esta configuração');
       }
 
       const config = await sql`
@@ -1502,7 +1598,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (config.length === 0) {
-        return res.status(404).json({ error: 'Configuração não encontrada' });
+        return sendNotFound(res, 'Configuração não encontrada');
       }
 
       const positions: string[] = Array.isArray(config[0].positions)
@@ -1510,12 +1606,12 @@ export const electionRoutes = (app: Express) => {
         : JSON.parse(String(config[0].positions || '[]'));
 
       if (!positions || positions.length === 0) {
-        return res.status(400).json({ error: 'Nenhuma posição configurada nesta eleição' });
+        return sendValidationError(res, { message: 'Nenhuma posição configurada nesta eleição' });
       }
 
       const currentPositionIndex = toNumber(election[0].current_position);
       if (currentPositionIndex >= positions.length) {
-        return res.status(400).json({ error: 'Posição atual inválida' });
+        return sendValidationError(res, { message: 'Posição atual inválida' });
       }
 
       const currentPositionName: string = String(positions[currentPositionIndex] || '');
@@ -1565,7 +1661,7 @@ export const electionRoutes = (app: Express) => {
         WHERE id = ${election[0].id}
       `;
 
-      return res.status(200).json({
+      return sendSuccess(res, {
         message: 'Resultado divulgado com sucesso',
         position: currentPositionName,
         winner: winnerInfo,
@@ -1586,7 +1682,7 @@ export const electionRoutes = (app: Express) => {
       const adminId = parseHeaderUserId(req);
 
       if (adminId === null) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       // Verificar se é admin
@@ -1612,7 +1708,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (election.length === 0) {
-        return res.status(404).json({ error: 'Nenhuma eleição ativa para esta configuração' });
+        return sendNotFound(res, 'Nenhuma eleição ativa para esta configuração');
       }
 
       // Garantir que positions seja um array
@@ -1622,7 +1718,7 @@ export const electionRoutes = (app: Express) => {
 
       const currentPositionIndex = toNumber(election[0].current_position);
       if (currentPositionIndex >= positions.length) {
-        return res.status(400).json({ error: 'Posição atual inválida' });
+        return sendValidationError(res, { message: 'Posição atual inválida' });
       }
 
       const currentPositionName: string = String(positions[currentPositionIndex] || '');
@@ -1648,7 +1744,7 @@ export const electionRoutes = (app: Express) => {
 
       logger.info(` Votação resetada para a posição: ${currentPositionName}`);
 
-      return res.status(200).json({
+      return sendSuccess(res, {
         message: `Votação repetida com sucesso para: ${currentPositionName}`,
         currentPosition: currentPositionName,
         currentPhase: 'voting',
@@ -1668,7 +1764,7 @@ export const electionRoutes = (app: Express) => {
       const adminId = parseHeaderUserId(req);
 
       if (adminId === null) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       // Verificar se é admin
@@ -1683,7 +1779,7 @@ export const electionRoutes = (app: Express) => {
       }
 
       if (!maxNominations || maxNominations < 1) {
-        return res.status(400).json({ error: 'Número de indicações deve ser maior que 0' });
+        return sendValidationError(res, { message: 'Número de indicações deve ser maior que 0' });
       }
 
       // Criar coluna se não existir
@@ -1708,7 +1804,7 @@ export const electionRoutes = (app: Express) => {
 
       logger.info(` Máximo de indicações atualizado para ${maxNominations} na eleição ${configId}`);
 
-      return res.status(200).json({
+      return sendSuccess(res, {
         message: `Máximo de indicações atualizado para ${maxNominations}`,
         maxNominations,
       });
@@ -1728,7 +1824,7 @@ export const electionRoutes = (app: Express) => {
       const voterId = parseHeaderUserId(req);
 
       if (voterId === null) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       // Verificar se a eleição está ativa
@@ -1739,7 +1835,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (election.length === 0) {
-        return res.status(404).json({ error: 'Eleição não encontrada ou inativa' });
+        return sendNotFound(res, 'Eleição não encontrada ou inativa');
       }
 
       // Verificar se o usuário já indicou para esta posição
@@ -1752,7 +1848,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (existingNomination.length > 0) {
-        return res.status(400).json({ error: 'Você já indicou um candidato para esta posição' });
+        return sendValidationError(res, { message: 'Você já indicou um candidato para esta posição' });
       }
 
       // Registrar indicação
@@ -1770,10 +1866,10 @@ export const electionRoutes = (app: Express) => {
         AND candidate_id = ${candidateId}
       `;
 
-      return res.status(200).json({ message: 'Indicação registrada com sucesso' });
+      return sendSuccess(res, { message: 'Indicação registrada com sucesso' });
     } catch (error: unknown) {
       logger.error('❌ Erro ao registrar indicação:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -1787,7 +1883,7 @@ export const electionRoutes = (app: Express) => {
         const adminId = parseHeaderUserId(req);
 
         if (adminId === null) {
-          return res.status(401).json({ error: 'Usuário não autenticado' });
+          return sendUnauthorized(res, 'Usuário não autenticado');
         }
 
         // Verificar se é admin
@@ -1807,7 +1903,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
         if (config.length === 0) {
-          return res.status(404).json({ error: 'Configuração não encontrada' });
+          return sendNotFound(res, 'Configuração não encontrada');
         }
 
         // Finalizar eleições ativas primeiro
@@ -1827,10 +1923,10 @@ export const electionRoutes = (app: Express) => {
 
         logger.info(` Configuração ${configId} excluída com sucesso`);
 
-        return res.status(200).json({ message: 'Configuração excluída com sucesso' });
+        return sendSuccess(res, { message: 'Configuração excluída com sucesso' });
       } catch (error: unknown) {
         logger.error('❌ Erro ao excluir configuração:', error);
-        return res.status(500).json({ error: 'Erro interno do servidor' });
+        return sendInternalError(res, 'Erro interno do servidor');
       }
     }
   );
@@ -1841,7 +1937,7 @@ export const electionRoutes = (app: Express) => {
       const adminId = parseHeaderUserId(req);
 
       if (adminId === null) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       // Verificar se é admin
@@ -1872,13 +1968,13 @@ export const electionRoutes = (app: Express) => {
       const approvedCount = parseCount(totalApproved[0]);
       logger.info(` ${approvedCount} membros aprovados no total!`);
 
-      return res.json({
+      return sendSuccess(res, {
         message: `Todos os membros foram aprovados! Total: ${approvedCount} membros aprovados.`,
         approved_count: approvedCount,
       });
     } catch (error: unknown) {
       logger.error('❌ Erro ao aprovar membros:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -1902,7 +1998,7 @@ export const electionRoutes = (app: Express) => {
 
       logger.info(' Limpeza concluída com sucesso!');
 
-      return res.status(200).json({
+      return sendSuccess(res, {
         message: 'Todas as votações foram limpas com sucesso',
         cleaned: {
           election_votes: true,
@@ -1913,7 +2009,7 @@ export const electionRoutes = (app: Express) => {
       });
     } catch (error: unknown) {
       logger.error('❌ Erro na limpeza:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -1923,7 +2019,7 @@ export const electionRoutes = (app: Express) => {
       const voterId = parseHeaderUserId(req);
 
       if (voterId === null) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       // Buscar dados do usuário para verificar sua igreja
@@ -1932,7 +2028,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (userResult.length === 0) {
-        return res.status(404).json({ error: 'Usuário não encontrado' });
+        return sendNotFound(res, 'Usuário não encontrado');
       }
 
       const userChurch = userResult[0].church;
@@ -1962,11 +2058,11 @@ export const electionRoutes = (app: Express) => {
       logger.debug(` Eleições ativas encontradas: ${activeElections.length}`);
 
       if (activeElections.length === 0) {
-        return res.status(404).json({ error: 'Nenhuma eleição ativa encontrada' });
+        return sendNotFound(res, 'Nenhuma eleição ativa encontrada');
       }
 
       // Retornar a primeira eleição ativa (pode haver apenas uma)
-      return res.json({
+      return sendSuccess(res, {
         elections: activeElections.map(election => ({
           election_id: election.election_id,
           config_id: election.config_id,
@@ -1983,7 +2079,7 @@ export const electionRoutes = (app: Express) => {
       });
     } catch (error: unknown) {
       logger.error('❌ Erro ao buscar eleições ativas:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -2034,7 +2130,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (config.length === 0) {
-        return res.status(404).json({ error: 'Configuração de eleição não encontrada' });
+        return sendNotFound(res, 'Configuração de eleição não encontrada');
       }
 
       // Log detalhado do removed_candidates
@@ -2052,14 +2148,14 @@ export const electionRoutes = (app: Express) => {
 
       if (!positions || positions.length === 0) {
         logger.warn(' Nenhuma posição configurada na eleição');
-        return res.status(400).json({ error: 'Configuração inválida: nenhuma posição encontrada' });
+        return sendValidationError(res, { message: 'Configuração inválida: nenhuma posição encontrada' });
       }
 
       const currentPositionIndex = toNumber(election[0].current_position);
 
       if (currentPositionIndex >= positions.length) {
         logger.warn(' Posição atual inválida:', currentPositionIndex, 'de', positions.length);
-        return res.status(400).json({ error: 'Posição atual inválida na eleição' });
+        return sendValidationError(res, { message: 'Posição atual inválida na eleição' });
       }
 
       const currentPositionName: string = String(positions[currentPositionIndex] || '');
@@ -2402,10 +2498,10 @@ export const electionRoutes = (app: Express) => {
         ` Interface de votação carregada: ${normalizedCandidates.length} candidatos com nomes reais`
       );
 
-      return res.json(response);
+      return sendSuccess(res, response);
     } catch (error: unknown) {
       logger.error('❌ Erro na interface de votação:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -2419,7 +2515,7 @@ export const electionRoutes = (app: Express) => {
 
       // Verificar autenticação
       if (!requestingUserId) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       // Buscar dados do usuário que está fazendo a requisição
@@ -2428,7 +2524,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (userResult.length === 0) {
-        return res.status(401).json({ error: 'Usuário não encontrado' });
+        return sendUnauthorized(res, 'Usuário não encontrado');
       }
 
       const requestingUser = userResult[0];
@@ -2446,7 +2542,7 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (electionInfo.length === 0) {
-        return res.status(404).json({ error: 'Eleição não encontrada' });
+        return sendNotFound(res, 'Eleição não encontrada');
       }
 
       const electionChurchName = electionInfo[0].church_name;
@@ -2457,7 +2553,7 @@ export const electionRoutes = (app: Express) => {
         const districtId = requestingUser.district_id;
 
         if (!districtId) {
-          return res.status(403).json({ error: 'Pastor sem distrito atribuído' });
+          return sendForbidden(res, 'Pastor sem distrito atribuído');
         }
 
         // Verificar se a igreja da eleição pertence ao distrito do pastor
@@ -2513,10 +2609,10 @@ export const electionRoutes = (app: Express) => {
         ` Log encontrado: ${votes.length} registro(s) para usuário ${requestingUserId} (role: ${requestingUser.role})`
       );
 
-      return res.json(votes);
+      return sendSuccess(res, votes);
     } catch (error: unknown) {
       logger.error('❌ Erro ao buscar log de votos:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -2537,7 +2633,7 @@ export const electionRoutes = (app: Express) => {
         ORDER BY position_id, voter_id
       `;
 
-      return res.status(200).json({
+      return sendSuccess(res, {
         electionId,
         candidates,
         votes,
@@ -2546,7 +2642,7 @@ export const electionRoutes = (app: Express) => {
       });
     } catch (error: unknown) {
       logger.error('❌ Erro no debug:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return sendInternalError(res, 'Erro interno do servidor');
     }
   });
 
@@ -2561,7 +2657,7 @@ export const electionRoutes = (app: Express) => {
 
       if (voterId === null) {
         logger.warn(' Usuário não autenticado');
-        return res.status(401).json({ error: 'Usuário não autenticado' });
+        return sendUnauthorized(res, 'Usuário não autenticado');
       }
 
       let election: ElectionRow[] = [];
@@ -2598,7 +2694,7 @@ export const electionRoutes = (app: Express) => {
 
         if (election.length === 0) {
           logger.warn(' Eleição não encontrada');
-          return res.status(404).json({ error: 'Eleição não encontrada ou inativa' });
+          return sendNotFound(res, 'Eleição não encontrada ou inativa');
         }
 
         // Garantir que positions seja um array
@@ -2616,7 +2712,7 @@ export const electionRoutes = (app: Express) => {
         const currentPos = election[0].current_position || 0;
         if (currentPos >= positions.length) {
           logger.warn(' Posição atual inválida:', currentPos, 'de', positions.length);
-          return res.status(400).json({ error: 'Posição atual inválida na eleição' });
+          return sendValidationError(res, { message: 'Posição atual inválida na eleição' });
         }
 
         currentPositionName = positions[currentPos];
@@ -2664,7 +2760,7 @@ export const electionRoutes = (app: Express) => {
 
           if (existingVote.length > 0) {
             logger.warn(' Já votou para esta posição');
-            return res.status(400).json({ error: 'Você já votou para esta posição' });
+            return sendValidationError(res, { message: 'Você já votou para esta posição' });
           }
         }
 
@@ -2734,7 +2830,7 @@ export const electionRoutes = (app: Express) => {
         `;
 
         if (election.length === 0) {
-          return res.status(404).json({ error: 'Eleição não encontrada ou inativa' });
+          return sendNotFound(res, 'Eleição não encontrada ou inativa');
         }
 
         // Verificar se o usuário já votou para esta posição
@@ -2747,7 +2843,7 @@ export const electionRoutes = (app: Express) => {
         `;
 
         if (existingVote.length > 0) {
-          return res.status(400).json({ error: 'Você já votou para esta posição' });
+          return sendValidationError(res, { message: 'Você já votou para esta posição' });
         }
 
         // Registrar voto
@@ -2767,7 +2863,7 @@ export const electionRoutes = (app: Express) => {
       }
 
       logger.info(' Retornando sucesso');
-      return res.status(200).json({ message: 'Voto registrado com sucesso' });
+      return sendSuccess(res, { message: 'Voto registrado com sucesso' });
     } catch (error: unknown) {
       logger.error('❌ Erro ao registrar voto:', error);
       logger.error('❌ Stack trace:', getErrorStack(error));

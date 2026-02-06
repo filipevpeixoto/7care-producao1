@@ -5,8 +5,18 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { asyncHandler, sendSuccess, sendError } from '../utils';
+import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 // Variáveis de controle do cleanup automático
 let autoCleanupInterval: NodeJS.Timeout | null = null;
@@ -133,7 +143,7 @@ export const systemRoutes = (app: Express): void => {
         }
       }
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         message: `Limpeza automática concluída`,
         cleanedCount,
@@ -170,7 +180,7 @@ export const systemRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const { scheduleType, interval } = req.body;
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         message: `Limpeza automática agendada para ${scheduleType}`,
         scheduleType,
@@ -212,7 +222,7 @@ export const systemRoutes = (app: Express): void => {
 
       startAutoCleanup(intervalMinutes);
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         message: `Limpeza automática iniciada a cada ${intervalMinutes} minutos`,
         intervalMinutes,

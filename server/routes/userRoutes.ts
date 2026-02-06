@@ -23,7 +23,17 @@ import { idParamSchema } from '../utils/paramValidation';
 import { logger } from '../utils/logger';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
-import { asyncHandler, sendSuccess, sendNotFound, sendError } from '../utils';
+import { asyncHandler } from '../utils';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 // Tipo para dados extras do usuário (para cálculo de pontos)
 interface UserExtraData {
@@ -301,7 +311,7 @@ export const userRoutes = (app: Express): void => {
         profilePhoto: u.profilePhoto,
       }));
 
-      res.json(chatList);
+      sendSuccess(res, chatList);
     })
   );
 
@@ -434,7 +444,7 @@ export const userRoutes = (app: Express): void => {
           const paginatedUsers = finalUsers.slice(offset, offset + limit);
 
           const safeUsers = paginatedUsers.map(({ password: _password, ...user }) => user);
-          res.json({
+          sendSuccess(res, {
             data: safeUsers,
             pagination: {
               page,
@@ -458,7 +468,7 @@ export const userRoutes = (app: Express): void => {
       const safeUsers = usersWithPoints.map(({ password: _password, ...user }) => user);
       logger.debug(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
 
-      res.json({
+      sendSuccess(res, {
         data: safeUsers,
         pagination: {
           page,
@@ -501,38 +511,53 @@ export const userRoutes = (app: Express): void => {
 
       // Verificar permissões de acesso ao usuário
       const requestingUserId = req.headers['x-user-id'];
-      if (requestingUserId) {
-        const requestingUser = await storage.getUserById(parseInt(requestingUserId as string));
 
-        if (requestingUser && !isSuperAdmin(requestingUser)) {
-          // Se for pastor, verificar se o usuário pertence ao mesmo distrito
-          if (requestingUser.role === 'pastor' && requestingUser.districtId) {
-            if (user.districtId !== requestingUser.districtId) {
-              logger.warn(
-                `🚫 Pastor ${requestingUser.email} tentou acessar usuário de outro distrito`
-              );
-              return res.status(403).json({
-                error: 'Acesso negado',
-                message: 'Você não tem permissão para acessar usuários de outros distritos',
-              });
-            }
-          } else {
-            // Se não for pastor/super admin, verificar se pertence à mesma igreja
-            if (user.church !== requestingUser.church) {
-              logger.warn(
-                `🚫 Usuário ${requestingUser.email} tentou acessar usuário de outra igreja`
-              );
-              return res.status(403).json({
-                error: 'Acesso negado',
-                message: 'Você não tem permissão para acessar usuários de outras igrejas',
-              });
-            }
+      // Requer autenticação para acessar dados de usuário
+      if (!requestingUserId) {
+        return res.status(401).json({
+          error: 'Não autenticado',
+          message: 'É necessário estar autenticado para acessar dados de usuários',
+        });
+      }
+
+      const requestingUser = await storage.getUserById(parseInt(requestingUserId as string));
+
+      if (!requestingUser) {
+        return res.status(401).json({
+          error: 'Usuário não encontrado',
+          message: 'Usuário da requisição não encontrado',
+        });
+      }
+
+      // Usuário pode sempre ver seus próprios dados
+      if (requestingUser.id !== user.id && !isSuperAdmin(requestingUser)) {
+        // Se for pastor, verificar se o usuário pertence ao mesmo distrito
+        if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+          if (user.districtId !== requestingUser.districtId) {
+            logger.warn(
+              `🚫 Pastor ${requestingUser.email} tentou acessar usuário de outro distrito`
+            );
+            return res.status(403).json({
+              error: 'Acesso negado',
+              message: 'Você não tem permissão para acessar usuários de outros distritos',
+            });
+          }
+        } else {
+          // Se não for pastor/super admin, verificar se pertence à mesma igreja
+          if (user.church !== requestingUser.church) {
+            logger.warn(
+              `🚫 Usuário ${requestingUser.email} tentou acessar usuário de outra igreja`
+            );
+            return res.status(403).json({
+              error: 'Acesso negado',
+              message: 'Você não tem permissão para acessar usuários de outras igrejas',
+            });
           }
         }
       }
 
       const { password: _password, ...safeUser } = user;
-      res.json(safeUser);
+      sendSuccess(res, safeUser);
     })
   );
 
@@ -595,7 +620,7 @@ export const userRoutes = (app: Express): void => {
         biblicalInstructor: processedUserData.biblicalInstructor ?? null,
       } as Parameters<typeof storage.createUser>[0]);
 
-      res.status(201).json(newUser);
+      sendCreated(res, newUser);
     })
   );
 
@@ -651,7 +676,7 @@ export const userRoutes = (app: Express): void => {
       }
 
       const { password: _password2, ...safeUser } = user;
-      res.json(safeUser);
+      sendSuccess(res, safeUser);
     })
   );
 
@@ -733,7 +758,7 @@ export const userRoutes = (app: Express): void => {
       }
 
       const { password: _password3, ...safeUser } = user;
-      res.json(safeUser);
+      sendSuccess(res, safeUser);
     })
   );
 
@@ -767,7 +792,7 @@ export const userRoutes = (app: Express): void => {
       }
 
       const { password: _password4, ...safeUser } = user;
-      res.json(safeUser);
+      sendSuccess(res, safeUser);
     })
   );
 
@@ -795,7 +820,7 @@ export const userRoutes = (app: Express): void => {
       const result = await storage.calculateUserPoints(userId);
 
       if (result && result.success) {
-        res.json(result);
+        sendSuccess(res, result);
       } else {
         sendNotFound(res, 'Usuário');
       }
@@ -831,7 +856,7 @@ export const userRoutes = (app: Express): void => {
       const result = await storage.calculateUserPoints(userId);
 
       if (result && result.success) {
-        res.json({
+        sendSuccess(res, {
           success: true,
           userId: user.id,
           userName: user.name,
@@ -843,7 +868,7 @@ export const userRoutes = (app: Express): void => {
           userData: result.userData || {},
         });
       } else {
-        res.json({
+        sendSuccess(res, {
           success: false,
           userId: user.id,
           userName: user.name,
@@ -938,7 +963,7 @@ export const userRoutes = (app: Express): void => {
         return dateA.getDate() - dateB.getDate();
       });
 
-      res.json({
+      sendSuccess(res, {
         today: birthdaysToday.map(formatBirthdayUser),
         thisMonth: birthdaysThisMonth.map(formatBirthdayUser),
         all: allBirthdays.map(formatBirthdayUser),
@@ -1019,7 +1044,7 @@ export const userRoutes = (app: Express): void => {
       });
 
       const safeUsers = processedUsers.map(({ password: _password5, ...user }) => user);
-      res.json(safeUsers);
+      sendSuccess(res, safeUsers);
     })
   );
 
@@ -1191,7 +1216,7 @@ export const userRoutes = (app: Express): void => {
         }
       }
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         message: `Successfully processed ${processedUsers.length} users`,
         users: processedUsers,
@@ -1330,18 +1355,31 @@ export const userRoutes = (app: Express): void => {
         }
       }
 
+      // Obter usuário que está fazendo a requisição para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let districtFilter: number | null = null;
+
+      if (requestingUserId) {
+        const requestingUser = await storage.getUserById(requestingUserId);
+        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
+          districtFilter = requestingUser.districtId;
+          logger.info(`🏛️ Recálculo pós-PowerBI filtrado por distrito: ${districtFilter}`);
+        }
+      }
+
       try {
-        await storage.calculateAdvancedUserPoints();
+        await storage.calculateAdvancedUserPoints(districtFilter);
       } catch (error) {
         logger.error('Erro ao recalcular pontos:', error);
       }
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         message: `${updatedCount} usuários atualizados com sucesso`,
         updated: updatedCount,
         notFound: notFoundCount,
         errors: errors.length > 0 ? errors : undefined,
+        districtFiltered: districtFilter !== null,
       });
     })
   );

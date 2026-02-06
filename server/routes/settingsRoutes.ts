@@ -5,11 +5,21 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { asyncHandler, sendSuccess, sendError } from '../utils';
+import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { setDefaultChurchSchema } from '../schemas';
 import multer from 'multer';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const settingsRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -28,7 +38,7 @@ export const settingsRoutes = (app: Express): void => {
     '/api/settings/default-church',
     asyncHandler(async (req: Request, res: Response) => {
       const defaultChurch = await storage.getDefaultChurch();
-      res.json({ defaultChurch });
+      sendSuccess(res, { defaultChurch });
     })
   );
 
@@ -142,7 +152,7 @@ export const settingsRoutes = (app: Express): void => {
           return;
         }
 
-        res.json({
+        sendSuccess(res, {
           success: true,
           message: 'Logo uploaded and saved successfully',
           logoUrl: logoUrl,
@@ -168,13 +178,13 @@ export const settingsRoutes = (app: Express): void => {
       const logoData = await storage.getSystemLogo();
 
       if (logoData) {
-        res.json({
+        sendSuccess(res, {
           success: true,
           logoUrl: logoData,
           filename: logoData,
         });
       } else {
-        res.json({
+        sendSuccess(res, {
           success: true,
           logoUrl: null,
           filename: null,
@@ -217,7 +227,146 @@ export const settingsRoutes = (app: Express): void => {
     '/api/meeting-types',
     asyncHandler(async (req: Request, res: Response) => {
       const meetingTypes = await storage.getMeetingTypes();
-      res.json(meetingTypes);
+      sendSuccess(res, meetingTypes);
+    })
+  );
+
+  /**
+   * @swagger
+   * /api/settings/my-district/points-config:
+   *   get:
+   *     summary: Obtém configuração de pontos do distrito do usuário
+   *     tags: [Settings, Points]
+   *     security:
+   *       - userId: []
+   *     responses:
+   *       200:
+   *         description: Configuração de pontos do distrito
+   */
+  app.get(
+    '/api/settings/my-district/points-config',
+    asyncHandler(async (req: Request, res: Response) => {
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await storage.getUserById(requestingUserId);
+
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 404);
+      }
+
+      // Verificar se o usuário é pastor e tem distrito
+      const districtId = requestingUser.districtId;
+
+      // Buscar configuração global (a mesma para todos, mas retornar info do distrito)
+      const config = await storage.getPointsConfiguration();
+
+      sendSuccess(res, {
+        districtId: districtId || null,
+        isGlobal: true, // Por enquanto, config é global
+        config: config || {},
+      });
+    })
+  );
+
+  /**
+   * @swagger
+   * /api/settings/my-district/points-config:
+   *   post:
+   *     summary: Salva configuração de pontos do distrito do usuário
+   *     tags: [Settings, Points]
+   *     security:
+   *       - userId: []
+   *     responses:
+   *       200:
+   *         description: Configuração salva
+   */
+  app.post(
+    '/api/settings/my-district/points-config',
+    asyncHandler(async (req: Request, res: Response) => {
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await storage.getUserById(requestingUserId);
+
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 404);
+      }
+
+      const { config } = req.body;
+      const districtId = requestingUser.districtId;
+
+      // Salvar configuração global
+      await storage.savePointsConfiguration(config);
+
+      // Recalcular pontos apenas do distrito se for pastor
+      let districtFilter: number | null = null;
+      if (requestingUser.role === 'pastor' && districtId) {
+        districtFilter = districtId;
+        logger.info(`🏛️ Salvando config e recalculando pontos do distrito: ${districtFilter}`);
+      }
+
+      const result = await storage.calculateAdvancedUserPoints(districtFilter);
+
+      sendSuccess(res, {
+        success: true,
+        message: `Configuração salva! ${result.updatedUsers || 0} usuários atualizados.`,
+        updatedUsers: result.updatedUsers || 0,
+        districtId: districtId || null,
+      });
+    })
+  );
+
+  /**
+   * @swagger
+   * /api/settings/my-district/points-config/reset:
+   *   post:
+   *     summary: Reseta configuração de pontos do distrito
+   *     tags: [Settings, Points]
+   *     security:
+   *       - userId: []
+   *     responses:
+   *       200:
+   *         description: Configuração resetada
+   */
+  app.post(
+    '/api/settings/my-district/points-config/reset',
+    asyncHandler(async (req: Request, res: Response) => {
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await storage.getUserById(requestingUserId);
+
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 404);
+      }
+
+      const districtId = requestingUser.districtId;
+
+      // Recalcular pontos apenas do distrito se for pastor
+      let districtFilter: number | null = null;
+      if (requestingUser.role === 'pastor' && districtId) {
+        districtFilter = districtId;
+        logger.info(`🏛️ Reset e recálculo de pontos do distrito: ${districtFilter}`);
+      }
+
+      const result = await storage.calculateAdvancedUserPoints(districtFilter);
+
+      sendSuccess(res, {
+        success: true,
+        message: `Configuração resetada! ${result.updatedUsers || 0} usuários atualizados.`,
+        updatedUsers: result.updatedUsers || 0,
+        districtId: districtId || null,
+      });
     })
   );
 };

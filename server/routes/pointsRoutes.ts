@@ -13,7 +13,17 @@ import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { pointsConfigSchema } from '../schemas';
 import { User } from '../../shared/schema';
 import { PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
-import { asyncHandler, sendSuccess, sendError } from '../utils';
+import { asyncHandler } from '../utils';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 // Tipo para dados extras do usuário
 interface UserExtraData {
@@ -436,7 +446,7 @@ export const pointsRoutes = (app: Express): void => {
     '/api/system/points-config',
     asyncHandler(async (req: Request, res: Response) => {
       const config = await storage.getPointsConfiguration();
-      res.json(config);
+      sendSuccess(res, config);
     })
   );
 
@@ -464,19 +474,32 @@ export const pointsRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const config = (req as ValidatedRequest<typeof pointsConfigSchema._type>).validatedBody;
 
+      // Obter usuário que está fazendo a requisição para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let districtFilter: number | null = null;
+
+      if (requestingUserId) {
+        const requestingUser = await storage.getUserById(requestingUserId);
+        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
+          districtFilter = requestingUser.districtId;
+          logger.info(`🏛️ Salvando config e recalculando pontos filtrado por distrito: ${districtFilter}`);
+        }
+      }
+
       await storage.savePointsConfiguration(
         config as unknown as Parameters<typeof storage.savePointsConfiguration>[0]
       );
 
-      const result = await storage.calculateAdvancedUserPoints();
+      const result = await storage.calculateAdvancedUserPoints(districtFilter);
 
       if (result.success) {
-        res.json({
+        sendSuccess(res, {
           success: true,
           message: `Configuração salva e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
           updatedUsers: result.updatedUsers || 0,
           errors: result.errors || 0,
           details: result.message,
+          districtFiltered: districtFilter !== null,
         });
       } else {
         return sendError(res, 'Erro ao recalcular pontos automaticamente', 500);
@@ -499,17 +522,30 @@ export const pointsRoutes = (app: Express): void => {
   app.post(
     '/api/system/points-config/reset',
     asyncHandler(async (req: Request, res: Response) => {
+      // Obter usuário que está fazendo a requisição para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let districtFilter: number | null = null;
+
+      if (requestingUserId) {
+        const requestingUser = await storage.getUserById(requestingUserId);
+        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
+          districtFilter = requestingUser.districtId;
+          logger.info(`🏛️ Reset de config e recálculo filtrado por distrito: ${districtFilter}`);
+        }
+      }
+
       await db.delete(schema.pointConfigs);
 
-      const result = await storage.calculateAdvancedUserPoints();
+      const result = await storage.calculateAdvancedUserPoints(districtFilter);
 
       if (result.success) {
-        res.json({
+        sendSuccess(res, {
           success: true,
           message: `Configuração resetada e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
           updatedUsers: result.updatedUsers || 0,
           errors: result.errors || 0,
           details: result.message,
+          districtFiltered: districtFilter !== null,
         });
       } else {
         return sendError(res, 'Erro ao recalcular pontos automaticamente após reset', 500);
@@ -521,7 +557,7 @@ export const pointsRoutes = (app: Express): void => {
    * @swagger
    * /api/users/recalculate-all-points:
    *   post:
-   *     summary: Recalcula pontos de todos os usuários
+   *     summary: Recalcula pontos dos usuários (filtrado por distrito para pastores)
    *     tags: [Points, Users]
    *     security:
    *       - userId: []
@@ -532,7 +568,29 @@ export const pointsRoutes = (app: Express): void => {
   app.post(
     '/api/users/recalculate-all-points',
     asyncHandler(async (req: Request, res: Response) => {
-      const users = await storage.getAllUsers();
+      // Obter usuário que está fazendo a requisição
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let requestingUser = null;
+      let districtFilter: number | null = null;
+
+      if (requestingUserId) {
+        requestingUser = await storage.getUserById(requestingUserId);
+
+        // Se for pastor, filtrar por distrito
+        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
+          districtFilter = requestingUser.districtId;
+          logger.info(`🏛️ Recálculo de pontos filtrado por distrito: ${districtFilter}`);
+        }
+      }
+
+      let users = await storage.getAllUsers();
+
+      // Aplicar filtro de distrito se necessário
+      if (districtFilter !== null) {
+        const beforeCount = users.length;
+        users = users.filter(u => u.districtId === districtFilter);
+        logger.info(`✅ Filtro aplicado: ${users.length} usuários (de ${beforeCount} total)`);
+      }
 
       let updatedCount = 0;
       let errorCount = 0;
@@ -572,12 +630,17 @@ export const pointsRoutes = (app: Express): void => {
         }
       }
 
-      res.json({
+      const scopeMessage = districtFilter !== null
+        ? `do distrito`
+        : `do sistema`;
+
+      sendSuccess(res, {
         success: true,
-        message: `Pontos recalculados para ${users.length} usuários. ${updatedCount} atualizados.`,
+        message: `Pontos recalculados para ${users.length} usuários ${scopeMessage}. ${updatedCount} atualizados.`,
         updatedCount,
         totalUsers: users.length,
         errors: errorCount,
+        districtFiltered: districtFilter !== null,
         results,
       });
     })
@@ -599,7 +662,7 @@ export const pointsRoutes = (app: Express): void => {
       const currentConfig = await storage.getPointsConfiguration();
       const currentAverage = calculateParameterAverage(currentConfig);
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         currentAverage: currentAverage.toFixed(2),
         message: `Média atual dos parâmetros: ${currentAverage.toFixed(2)}`,
@@ -639,8 +702,27 @@ export const pointsRoutes = (app: Express): void => {
         return sendError(res, 'Média desejada é obrigatória e deve ser um número', 400);
       }
 
+      // Obter usuário que está fazendo a requisição para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let districtFilter: number | null = null;
+      let requestingUser = null;
+
+      if (requestingUserId) {
+        requestingUser = await storage.getUserById(requestingUserId);
+        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
+          districtFilter = requestingUser.districtId;
+          logger.info(`🏛️ Ajuste de média filtrado por distrito: ${districtFilter}`);
+        }
+      }
+
       const currentConfig = await storage.getPointsConfiguration();
-      const allUsers = await storage.getAllUsers();
+      let allUsers = await storage.getAllUsers();
+
+      // Aplicar filtro de distrito se necessário
+      if (districtFilter !== null) {
+        allUsers = allUsers.filter(u => u.districtId === districtFilter);
+      }
+
       const regularUsers = allUsers.filter(user => user.email !== 'admin@7care.com');
 
       if (regularUsers.length === 0) {
@@ -660,13 +742,13 @@ export const pointsRoutes = (app: Express): void => {
 
       await storage.savePointsConfiguration(mergedConfig);
 
-      const result = await storage.calculateAdvancedUserPoints();
+      const result = await storage.calculateAdvancedUserPoints(districtFilter);
 
       if (!result.success) {
         throw new Error(`Erro no recálculo automático: ${result.message}`);
       }
 
-      res.json({
+      sendSuccess(res, {
         success: true,
         currentUserAverage: currentUserAverage.toFixed(2),
         targetAverage,
@@ -675,6 +757,7 @@ export const pointsRoutes = (app: Express): void => {
         errors: result.errors || 0,
         message: `Configuração ajustada e pontos recalculados automaticamente! ${result.updatedUsers || 0} usuários atualizados.`,
         details: result.message,
+        districtFiltered: districtFilter !== null,
       });
     })
   );

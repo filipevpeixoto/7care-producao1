@@ -13,7 +13,7 @@ import { pastorInvites, users, districts, churches } from '../schema';
 import { requireAuth } from '../middleware';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
-import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
+import { asyncHandler } from '../utils';
 import { readExcelFile, cleanupTempFile } from '../utils/excelUtils';
 import {
   CreateInviteDTO,
@@ -29,6 +29,16 @@ import {
 import { extractChurchesFromExcel, validateExcelChurches } from '../utils/church-validation';
 import { isSuperAdmin } from '../utils/permissions';
 import { NeonAdapter } from '../neonAdapter';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -94,7 +104,7 @@ export const inviteRoutes = (app: Express): void => {
         expiresAt: invite.expiresAt.toISOString(),
       };
 
-      res.json(response);
+      sendSuccess(res, response);
     })
   );
 
@@ -137,7 +147,7 @@ export const inviteRoutes = (app: Express): void => {
         expiresAt: invite.expiresAt.toISOString(),
       };
 
-      res.json(response);
+      sendSuccess(res, response);
     })
   );
 
@@ -179,7 +189,7 @@ export const inviteRoutes = (app: Express): void => {
       // Remover districtId da resposta (informação interna)
       const churchesResponse = allChurches.map(({ districtId: _districtId, ...church }) => church);
 
-      res.json({ churches: churchesResponse });
+      sendSuccess(res, { churches: churchesResponse });
     })
   );
 
@@ -261,7 +271,7 @@ export const inviteRoutes = (app: Express): void => {
       // Limpar arquivo temporário
       cleanupTempFile(req.file.path);
 
-      res.json(response);
+      sendSuccess(res, response);
     })
   );
 
@@ -309,7 +319,7 @@ export const inviteRoutes = (app: Express): void => {
 
       logger.info(`Validação de igrejas para convite ${token}: ${validations.length} igrejas`);
 
-      res.json({ validations });
+      sendSuccess(res, { validations });
     })
   );
 
@@ -778,7 +788,7 @@ export const inviteRoutes = (app: Express): void => {
           `🎉 Onboarding completo e aprovado automaticamente: ${invite.email} -> user ${user.id}, district ${district.id}`
         );
 
-        res.json({
+        sendSuccess(res, {
           success: true,
           message: 'Cadastro concluído com sucesso! Você já pode fazer login.',
           userId: user.id,
@@ -838,7 +848,7 @@ export const inviteRoutes = (app: Express): void => {
         invitesList = await db.select().from(pastorInvites).orderBy(desc(pastorInvites.createdAt));
       }
 
-      res.json({ invites: invitesList });
+      sendSuccess(res, { invites: invitesList });
     })
   );
 
@@ -869,7 +879,7 @@ export const inviteRoutes = (app: Express): void => {
         return;
       }
 
-      res.json({ invite });
+      sendSuccess(res, { invite });
     })
   );
 
@@ -1304,7 +1314,7 @@ export const inviteRoutes = (app: Express): void => {
         districtId: district.id,
       };
 
-      res.json(response);
+      sendSuccess(res, response);
     })
   );
 

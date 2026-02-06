@@ -5,8 +5,18 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { asyncHandler, sendSuccess } from '../utils';
+import { asyncHandler } from '../utils';
 import { User } from '../../shared/schema';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const debugRoutes = (app: Express): void => {
   // Só registra rotas de debug em ambiente de desenvolvimento
@@ -32,7 +42,7 @@ export const debugRoutes = (app: Express): void => {
       const users = await storage.getAllUsers();
       const visitedUsers = users.filter(u => 'lastVisitDate' in u && u.lastVisitDate);
 
-      res.json({
+      sendSuccess(res, {
         total: users.length,
         visited: visitedUsers.length,
         users: visitedUsers.map(u => ({
@@ -58,7 +68,7 @@ export const debugRoutes = (app: Express): void => {
     '/api/debug/events',
     asyncHandler(async (req: Request, res: Response) => {
       const events = await storage.getAllEvents();
-      res.json({
+      sendSuccess(res, {
         total: events.length,
         events,
       });
@@ -113,7 +123,7 @@ export const debugRoutes = (app: Express): void => {
     '/api/debug/check-churches',
     asyncHandler(async (req: Request, res: Response) => {
       const churches = await storage.getAllChurches();
-      res.json({
+      sendSuccess(res, {
         total: churches.length,
         churches,
       });
@@ -141,7 +151,7 @@ export const debugRoutes = (app: Express): void => {
         roleCount[role] = (roleCount[role] || 0) + 1;
       });
 
-      res.json({
+      sendSuccess(res, {
         total: users.length,
         byRole: roleCount,
       });
@@ -169,7 +179,7 @@ export const debugRoutes = (app: Express): void => {
         typeCount[type] = (typeCount[type] || 0) + 1;
       });
 
-      res.json({
+      sendSuccess(res, {
         total: events.length,
         byType: typeCount,
       });
@@ -199,7 +209,7 @@ export const debugRoutes = (app: Express): void => {
         typeCount[type] = (typeCount[type] || 0) + 1;
       });
 
-      res.json({
+      sendSuccess(res, {
         total: notifications.length,
         unread: unread.length,
         byType: typeCount,
@@ -257,7 +267,7 @@ export const debugRoutes = (app: Express): void => {
       const users = await storage.getAllUsers();
       const missionaries = users.filter((u: { role?: string }) => u.role === 'missionary');
 
-      res.json({
+      sendSuccess(res, {
         total: missionaries.length,
         missionaries: missionaries.map(
           (m: { id: number; name: string; status?: string; isApproved?: boolean }) => ({
@@ -288,7 +298,7 @@ export const debugRoutes = (app: Express): void => {
       const churches = await storage.getAllChurches();
       const events = await storage.getAllEvents();
 
-      res.json({
+      sendSuccess(res, {
         users: users.length,
         churches: churches.length,
         events: events.length,

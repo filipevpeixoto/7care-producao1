@@ -5,6 +5,11 @@ import { notificationRepository } from './repositories/notificationRepository';
 import { prayerRepository } from './repositories/prayerRepository';
 import { relationshipRepository } from './repositories/relationshipRepository';
 import { pushSubscriptionRepository } from './repositories/pushSubscriptionRepository';
+// Services desabilitados temporariamente - schema não corresponde
+// TODO: Ajustar services para usar raw SQL como os repositories
+// import { gamificationService } from './services/gamificationService';
+// import { electionService } from './services/electionService';
+// import { reportService } from './services/reportService';
 /**
  * Neon Database Adapter
  * @module server/neonAdapter
@@ -1658,11 +1663,18 @@ export class NeonAdapter implements IStorage {
     return pointsMap;
   }
 
-  // Método para recalcular pontos de todos os usuários
-  async calculateAdvancedUserPoints(): Promise<PointsRecalculationResult> {
+  // Método para recalcular pontos dos usuários (opcionalmente filtrado por distrito)
+  async calculateAdvancedUserPoints(districtId?: number | null): Promise<PointsRecalculationResult> {
     try {
       // Buscar todos os usuários
-      const users = await this.getAllUsers();
+      let users = await this.getAllUsers();
+
+      // Aplicar filtro de distrito se fornecido
+      if (districtId !== undefined && districtId !== null) {
+        const beforeCount = users.length;
+        users = users.filter(u => u.districtId === districtId);
+        logger.info(`🏛️ Recálculo filtrado por distrito ${districtId}: ${users.length} usuários (de ${beforeCount} total)`);
+      }
 
       let updatedCount = 0;
       let errorCount = 0;
@@ -1704,9 +1716,13 @@ export class NeonAdapter implements IStorage {
         }
       }
 
+      const scopeMessage = districtId !== undefined && districtId !== null
+        ? `do distrito`
+        : `do sistema`;
+
       return {
         success: true,
-        message: `Pontos recalculados para ${users.length} usuários. ${updatedCount} atualizados.`,
+        message: `Pontos recalculados para ${users.length} usuários ${scopeMessage}. ${updatedCount} atualizados.`,
         updatedUsers: updatedCount,
         totalUsers: users.length,
         errors: errorCount,

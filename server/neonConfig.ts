@@ -175,7 +175,7 @@ export async function checkDatabaseHealth(): Promise<{
 export const poolConfig = POOL_CONFIG;
 export const retryConfig = RETRY_CONFIG;
 
-console.log('🔗 Neon Database configurado com pooling e retry:', {
+logger.info('🔗 Neon Database configurado com pooling e retry:', {
   environment: process.env.NODE_ENV,
   hasConnectionString: !!process.env.DATABASE_URL,
   isDevelopment,

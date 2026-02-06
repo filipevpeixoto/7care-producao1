@@ -5,12 +5,22 @@
 
 import { Express, Request, Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { asyncHandler, sendSuccess, sendError } from '../utils';
+import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createEmotionalCheckInSchema } from '../schemas';
 import { isPastor } from '../utils/permissions';
 import { Church, User } from '../../shared/schema';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const spiritualRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -126,7 +136,7 @@ export const spiritualRoutes = (app: Express): void => {
         );
       }
 
-      res.json(checkIns);
+      sendSuccess(res, checkIns);
     })
   );
 
@@ -189,7 +199,7 @@ export const spiritualRoutes = (app: Express): void => {
       const usersWithCheckIn = new Set(checkIns.map(c => c.userId));
       const usersWithoutCheckIn = allUsers.filter(u => !usersWithCheckIn.has(u.id)).length;
 
-      res.json({
+      sendSuccess(res, {
         scoreGroups,
         usersWithoutCheckIn,
         total: allUsers.length,
@@ -222,7 +232,7 @@ export const spiritualRoutes = (app: Express): void => {
       }
 
       const checkIns = await storage.getEmotionalCheckInsByUser(userId);
-      res.json(checkIns);
+      sendSuccess(res, checkIns);
     })
   );
 
@@ -242,7 +252,7 @@ export const spiritualRoutes = (app: Express): void => {
     '/api/system/update-profiles-by-bible-study',
     asyncHandler(async (req: Request, res: Response) => {
       const result = { success: true, message: 'Funcionalidade não implementada' };
-      res.json({
+      sendSuccess(res, {
         success: true,
         message: 'Perfis atualizados com sucesso baseado no estudo bíblico',
         result,

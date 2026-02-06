@@ -9,7 +9,17 @@ import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createDiscipleshipRequestSchema } from '../schemas';
 import { hasAdminAccess } from '../utils/permissions';
-import { asyncHandler, sendSuccess, sendNotFound, sendError } from '../utils';
+import { asyncHandler } from '../utils';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const discipleshipRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -123,7 +133,7 @@ export const discipleshipRoutes = (app: Express): void => {
         );
       }
 
-      res.json(filteredRequests);
+      sendSuccess(res, filteredRequests);
     })
   );
 
@@ -204,7 +214,7 @@ export const discipleshipRoutes = (app: Express): void => {
         notes: notes ?? undefined,
       });
 
-      res.status(201).json(request);
+      sendCreated(res, request);
     })
   );
 
@@ -262,7 +272,7 @@ export const discipleshipRoutes = (app: Express): void => {
         });
       }
 
-      res.json(request);
+      sendSuccess(res, request);
     })
   );
 
@@ -350,7 +360,7 @@ export const discipleshipRoutes = (app: Express): void => {
         notes: 'Vínculo criado diretamente',
       });
 
-      res.status(201).json(relationship);
+      sendCreated(res, relationship);
     })
   );
 };

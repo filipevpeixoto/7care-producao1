@@ -8,6 +8,7 @@
 import { google, calendar_v3 } from 'googleapis';
 import crypto from 'crypto';
 import type { NeonAdapter } from '../neonAdapter';
+import { logger } from '../utils/logger';
 
 // ============================================
 // TYPES & INTERFACES
@@ -172,14 +173,17 @@ export class GoogleCalendarService {
       throw new Error('Invalid state token');
     }
 
-    const savedState = await this.storage.getSystemConfig(`google_oauth_state_${userId}`);
+    const savedState = await this.storage.getSystemConfig(`google_oauth_state_${userId}`) as {
+      state?: string;
+      expiresAt?: string;
+    } | null;
 
     if (!savedState || savedState.state !== stateToken) {
       throw new Error('Invalid or expired state token (CSRF protection)');
     }
 
     // Check expiration
-    if (new Date(savedState.expiresAt) < new Date()) {
+    if (savedState.expiresAt && new Date(savedState.expiresAt) < new Date()) {
       throw new Error('State token expired');
     }
 
@@ -252,7 +256,7 @@ export class GoogleCalendarService {
         });
         await this.oauth2Client.revokeToken(decrypt(tokens.accessToken));
       } catch (error) {
-        console.error('Error revoking Google token:', error);
+        logger.error('Error revoking Google token:', error);
         // Continue anyway to clean up local tokens
       }
     }
@@ -372,7 +376,7 @@ export class GoogleCalendarService {
 
       for (const googleEvent of events) {
         try {
-          await this.syncSingleEvent(googleEvent, userId, user.churchId, user.districtId);
+          await this.syncSingleEvent(googleEvent, userId, user.churchId ?? undefined, user.districtId ?? undefined);
 
           // Check if it's new or updated
           const existing = await this.storage.getEventByGoogleId(googleEvent.id || '');

@@ -10,7 +10,17 @@ import { isSuperAdmin, isPastor } from '../utils/permissions';
 import { Church, Event, Relationship, User } from '../../shared/schema';
 import { cacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
-import { asyncHandler, sendNotFound, sendError } from '../utils';
+import { asyncHandler } from '../utils';
+import {
+  sendSuccess,
+  sendCreated,
+  sendError,
+  sendNotFound,
+  sendUnauthorized,
+  sendForbidden,
+  sendValidationError,
+  sendInternalError,
+} from '../utils/apiResponse';
 
 export const dashboardRoutes = (app: Express): void => {
   const storage = new NeonAdapter();
@@ -210,7 +220,7 @@ export const dashboardRoutes = (app: Express): void => {
         approvedUsers: regularUsers.filter(user => user.status === 'approved').length,
       };
 
-      res.json(stats);
+      sendSuccess(res, stats);
     })
   );
 
@@ -333,7 +343,7 @@ export const dashboardRoutes = (app: Express): void => {
       const percentage =
         expectedVisits > 0 ? Math.round((visitedPeople / expectedVisits) * 100) : 0;
 
-      res.json({
+      sendSuccess(res, {
         completed: visitedPeople,
         expected: expectedVisits,
         totalVisits: totalVisits,
@@ -424,7 +434,7 @@ export const dashboardRoutes = (app: Express): void => {
         extraData: extraData,
       };
 
-      res.json(responseUser);
+      sendSuccess(res, responseUser);
     })
   );
 };
