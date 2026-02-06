@@ -60,3 +60,6 @@ client/public/mountain-*.png
 *.tmp
 *.bak
 *.orig
+
+# Auto Claude data directory
+.auto-claude/
