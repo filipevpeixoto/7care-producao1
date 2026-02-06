@@ -20,6 +20,7 @@ credentials/
 dist/
 dist-server/
 build/
+.cache/
 
 # Test outputs
 coverage/
@@ -30,16 +31,20 @@ test-results/
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-*
 
 # Uploads
 uploads/*
@@ -47,3 +52,11 @@ uploads/*
 
 # Local Netlify folder
 .netlify
+
+# Imagens duplicadas em public (já existem em src/assets)
+client/public/mountain-*.png
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.orig
