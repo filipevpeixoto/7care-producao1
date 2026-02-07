@@ -39,13 +39,5 @@
       "minimumSystemVersion": "10.13"
     }
   },
-  "plugins": {
-    "http": {
-      "scope": {
-        "allow": [
-          { "url": "https://7careadv.netlify.app/**" }
-        ]
-      }
-    }
-  }
+  "plugins": {}
 }

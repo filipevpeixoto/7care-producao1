@@ -1902,6 +1902,213 @@
                 padding: 15px 28px;
             }
         }
+
+        /* ========================================
+           Download Section
+           ======================================== */
+        .download {
+            padding: var(--space-3xl) 0;
+            background: linear-gradient(180deg, var(--gray-50) 0%, var(--white) 100%);
+        }
+
+        .download__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--space-lg);
+            margin-top: var(--space-2xl);
+        }
+
+        .download__card {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition-normal);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-sm);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .download__card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-light);
+        }
+
+        .download__card--featured {
+            border: 2px solid var(--primary);
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.04) 0%, var(--white) 100%);
+        }
+
+        .download__card-badge {
+            position: absolute;
+            top: -10px;
+            right: 16px;
+            background: var(--gradient-primary);
+            color: var(--white);
+            font-size: 0.6875rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            letter-spacing: 0.03em;
+        }
+
+        .download__card-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--space-xs);
+        }
+
+        .download__card-platform {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .download__card-format {
+            font-size: 0.8125rem;
+            color: var(--gray-500);
+        }
+
+        .download__card-btn {
+            margin-top: var(--space-sm);
+            padding: var(--space-sm) var(--space-lg);
+            background: var(--gradient-primary);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .download__card-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md), var(--shadow-glow);
+        }
+
+        .download__card-btn--outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+        }
+
+        .download__card-btn--outline:hover {
+            background: var(--primary);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .download__pwa-section {
+            margin-top: var(--space-2xl);
+            padding: var(--space-xl);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: var(--radius-xl);
+            text-align: center;
+            color: var(--white);
+        }
+
+        .download__pwa-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+        }
+
+        .download__pwa-description {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.9375rem;
+            margin-bottom: var(--space-lg);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .download__pwa-steps {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .download__pwa-step {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .download__pwa-step-num {
+            width: 28px;
+            height: 28px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            flex-shrink: 0;
+        }
+
+        .download__pwa-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-md) var(--space-xl);
+            background: var(--white);
+            color: var(--primary-dark);
+            border: none;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            text-decoration: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        .download__pwa-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg), 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .download__pwa-note {
+            margin-top: var(--space-md);
+            font-size: 0.8125rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .download__grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .download__pwa-steps {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .download__grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1935,8 +2142,8 @@
                                 <span>Aceitar Convite</span>
                                 <span aria-hidden="true">→</span>
                             </a>
-                            <a href="#beneficios" class="btn btn--secondary">
-                                <span>Conhecer Recursos</span>
+                            <a href="#download" class="btn btn--secondary">
+                                <span>Baixar App</span>
                             </a>
                         </div>
                     </div>
@@ -2494,6 +2701,90 @@
             </div>
         </section>
 
+        <!-- Download Section -->
+        <section class="download" id="download">
+            <div class="container">
+                <header class="section__header reveal">
+                    <span class="section__badge">Instale o App</span>
+                    <h2 class="section__title">Baixe o 7Care no seu dispositivo</h2>
+                    <p class="section__description">
+                        Instale o app nativo para ter a melhor experiencia. Disponivel para todas as plataformas.
+                    </p>
+                </header>
+
+                <div class="download__grid">
+                    <div class="download__card download__card--featured reveal">
+                        <span class="download__card-badge">Popular</span>
+                        <span class="download__card-icon">🤖</span>
+                        <span class="download__card-platform">Android</span>
+                        <span class="download__card-format">Arquivo .apk</span>
+                        <a href="#" class="download__card-btn" id="downloadAndroid" onclick="handleDownload(event, 'android')">
+                            Baixar APK
+                        </a>
+                    </div>
+
+                    <div class="download__card reveal">
+                        <span class="download__card-icon">🪟</span>
+                        <span class="download__card-platform">Windows</span>
+                        <span class="download__card-format">Instalador .exe</span>
+                        <a href="#" class="download__card-btn" id="downloadWindows" onclick="handleDownload(event, 'windows')">
+                            Baixar .exe
+                        </a>
+                    </div>
+
+                    <div class="download__card reveal">
+                        <span class="download__card-icon">🍎</span>
+                        <span class="download__card-platform">macOS</span>
+                        <span class="download__card-format">Instalador .dmg</span>
+                        <a href="#" class="download__card-btn" id="downloadMac" onclick="handleDownload(event, 'macos')">
+                            Baixar .dmg
+                        </a>
+                    </div>
+
+                    <div class="download__card reveal">
+                        <span class="download__card-icon">🐧</span>
+                        <span class="download__card-platform">Linux</span>
+                        <span class="download__card-format">AppImage / .deb</span>
+                        <a href="#" class="download__card-btn" id="downloadLinux" onclick="handleDownload(event, 'linux')">
+                            Baixar
+                        </a>
+                    </div>
+                </div>
+
+                <!-- PWA Install -->
+                <div class="download__pwa-section reveal">
+                    <div class="download__pwa-title">
+                        <span>📱</span>
+                        <span>iPhone / iPad / Qualquer navegador</span>
+                    </div>
+                    <p class="download__pwa-description">
+                        No iPhone e iPad, instale diretamente pelo navegador Safari.
+                        O app fica na tela inicial como um app nativo, funciona offline e recebe atualizacoes automaticas.
+                    </p>
+                    <div class="download__pwa-steps">
+                        <div class="download__pwa-step">
+                            <span class="download__pwa-step-num">1</span>
+                            <span>Abra no <strong>Safari</strong></span>
+                        </div>
+                        <div class="download__pwa-step">
+                            <span class="download__pwa-step-num">2</span>
+                            <span>Toque em <strong>Compartilhar</strong> (↑)</span>
+                        </div>
+                        <div class="download__pwa-step">
+                            <span class="download__pwa-step-num">3</span>
+                            <span>Toque em <strong>"Adicionar a Tela de Inicio"</strong></span>
+                        </div>
+                    </div>
+                    <a href="https://7careadv.netlify.app" class="download__pwa-btn" target="_blank">
+                        Abrir 7Care no Navegador
+                    </a>
+                    <p class="download__pwa-note">
+                        Tambem funciona no Chrome, Edge e Firefox em qualquer dispositivo
+                    </p>
+                </div>
+            </div>
+        </section>
+
         <!-- CTA Section -->
         <section class="cta" id="comecar">
             <div class="container">
@@ -2501,7 +2792,7 @@
                     <div class="cta__icon">🙌</div>
                     <h2 class="cta__title">"Ide por todo o mundo e pregai o evangelho"</h2>
                     <p class="cta__description">
-                        O 7Care foi criado para apoiar pastores e líderes na missão sagrada de fazer discípulos. 
+                        O 7Care foi criado para apoiar pastores e líderes na missão sagrada de fazer discípulos.
                         Aceite este convite e tenha mais tempo para o que realmente importa: cuidar das almas.
                     </p>
                     <a href="#" class="cta__button" id="ctaButton" onclick="handleCTA(event)">
@@ -2512,7 +2803,7 @@
                         ✓ Gratuito &nbsp; ✓ Feito por adventistas &nbsp; ✓ Suporte incluso
                     </p>
                     <p class="cta__invite-note" id="inviteNote" style="display: none; margin-top: var(--space-lg); padding: var(--space-md); background: var(--gray-100); border-radius: var(--radius-lg); color: var(--gray-700); font-size: 0.9375rem;">
-                        💡 <strong>Como funciona:</strong> Você precisa de um link de convite personalizado enviado pelo administrador do sistema. 
+                        💡 <strong>Como funciona:</strong> Você precisa de um link de convite personalizado enviado pelo administrador do sistema.
                         Se você ainda não recebeu, entre em contato com a administração da sua associação/missão.
                     </p>
                 </div>
@@ -2689,6 +2980,56 @@
         window.addEventListener('scroll', updateFloatingButton);
         window.addEventListener('load', updateFloatingButton);
         window.addEventListener('resize', updateFloatingButton);
+
+        // ========================================
+        // Download Buttons
+        // ========================================
+
+        // URLs dos instaladores — atualize quando gerar os builds
+        const DOWNLOAD_URLS = {
+            android: '', // Ex: https://github.com/seu-repo/releases/download/v1.0.0/7care.apk
+            windows: '', // Ex: https://github.com/seu-repo/releases/download/v1.0.0/7Care_1.0.0_x64-setup.exe
+            macos: '',   // Ex: https://github.com/seu-repo/releases/download/v1.0.0/7Care_1.0.0_aarch64.dmg
+            linux: '',   // Ex: https://github.com/seu-repo/releases/download/v1.0.0/7Care_1.0.0_amd64.AppImage
+        };
+
+        function handleDownload(event, platform) {
+            event.preventDefault();
+            const url = DOWNLOAD_URLS[platform];
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                alert('O instalador para ' + platform.charAt(0).toUpperCase() + platform.slice(1) + ' estara disponivel em breve! Por enquanto, use a versao web (PWA).');
+            }
+        }
+
+        // Detectar plataforma do usuario e destacar o botao correspondente
+        function detectPlatform() {
+            const ua = navigator.userAgent.toLowerCase();
+            const platform = navigator.platform?.toLowerCase() || '';
+
+            if (/android/.test(ua)) return 'android';
+            if (/win/.test(platform) || /windows/.test(ua)) return 'windows';
+            if (/mac/.test(platform) || /macintosh/.test(ua)) return 'macos';
+            if (/linux/.test(platform) || /linux/.test(ua)) return 'linux';
+            if (/iphone|ipad/.test(ua)) return 'ios';
+            return null;
+        }
+
+        const userPlatform = detectPlatform();
+        if (userPlatform && userPlatform !== 'ios') {
+            const platformMap = { android: 'downloadAndroid', windows: 'downloadWindows', macos: 'downloadMac', linux: 'downloadLinux' };
+            const btn = document.getElementById(platformMap[userPlatform]);
+            if (btn) {
+                btn.parentElement.classList.add('download__card--featured');
+                if (!btn.parentElement.querySelector('.download__card-badge')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'download__card-badge';
+                    badge.textContent = 'Seu sistema';
+                    btn.parentElement.appendChild(badge);
+                }
+            }
+        }
     </script>
 </body>
 </html>
