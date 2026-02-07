@@ -164,21 +164,15 @@ const PrefetchManager = () => {
 };
 
 /**
- * RoutesWrapper — Componente que usa useLocation para key={} no Suspense.
+ * RoutesWrapper — Componente que envolve Routes com ErrorBoundary e transição.
  *
- * key={location.pathname} força React a desmontar o Suspense antigo e montar
- * um novo a cada navegação. Isso resolve o problema onde React Router v7 usa
- * startTransition e mantém conteúdo "stale" (antigo) quando a nova rota
- * ainda está carregando o chunk lazy.
- *
- * Sem o key, o React mantém a página antiga visível indefinidamente quando
- * startTransition não consegue completar (chunk loading error, etc).
+ * A navegação SPA funciona sem problemas porque useTransitionNavigate
+ * usa { flushSync: true }, que impede o React Router v7 de usar
+ * startTransition (que mantinha conteúdo stale de rotas lazy-loaded).
  */
 const RoutesWrapper = () => {
-  const location = useLocation();
-
   return (
-    <RouteErrorBoundary key={location.pathname}>
+    <RouteErrorBoundary>
       <Suspense fallback={<PageLoader />}>
         <div className="route-transition-wrapper">
           <Routes>

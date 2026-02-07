@@ -1,28 +1,27 @@
 /**
- * useTransitionNavigate - Navegação SPA sem recarregamento
+ * useTransitionNavigate - Navegação SPA suave sem conteúdo stale
  *
- * Wrapper simples sobre useNavigate() do React Router.
- * Garante navegação SPA (sem page reload) para transições suaves.
+ * Wrapper sobre useNavigate() que adiciona { flushSync: true }.
  *
- * Nota: View Transitions API (startViewTransition) foi removida
- * porque causa bloqueio de navegação com rotas lazy-loaded + Suspense:
- * quando a transição aborta, o browser restaura o DOM antigo mas o
- * React Router já atualizou a URL, resultando em URL nova + conteúdo antigo.
+ * PROBLEMA: React Router v7 envolve navigate() em React.startTransition().
+ * Com rotas lazy-loaded, o React mantém o conteúdo ANTIGO visível enquanto
+ * o novo componente carrega ("pending UI"). Resultado: URL muda mas a
+ * página não troca — fica presa no conteúdo anterior.
+ *
+ * SOLUÇÃO: { flushSync: true } faz React Router usar ReactDOM.flushSync()
+ * em vez de startTransition. Isso força React a desmontar a página antiga
+ * imediatamente e mostrar o Suspense fallback enquanto o chunk carrega.
  */
 
 import { useCallback } from 'react';
 import { useNavigate, NavigateOptions } from 'react-router-dom';
 
-/**
- * Hook que retorna uma função navigate para navegação SPA.
- * Substitui window.location.href para evitar page reloads.
- */
 export function useTransitionNavigate() {
   const navigate = useNavigate();
 
   return useCallback(
     (to: string, options?: NavigateOptions) => {
-      navigate(to, options);
+      navigate(to, { ...options, flushSync: true });
     },
     [navigate]
   );

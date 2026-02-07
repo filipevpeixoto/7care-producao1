@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Filter, Cake, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +31,6 @@ export default function Calendar() {
   const { toast } = useToast();
   const { user } = useAuth();
   const _queryClient = useQueryClient();
-  const routerNavigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
@@ -496,69 +494,6 @@ export default function Calendar() {
   return (
     <MobileLayout>
       <div className="p-4 space-y-6">
-        {/* ====== DEBUG: Botões de teste de navegação ====== */}
-        <div className="bg-red-50 dark:bg-red-900/30 border-2 border-red-400 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-bold text-red-700 dark:text-red-300">
-            🔧 TESTE DE NAVEGAÇÃO — Qual botão consegue sair desta página?
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => { window.location.href = '/dashboard'; }}
-              className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg"
-            >
-              1. window.location.href
-            </button>
-            <button
-              onClick={() => { window.location.replace('/dashboard'); }}
-              className="px-3 py-2 bg-green-600 text-white text-xs font-bold rounded-lg"
-            >
-              2. location.replace
-            </button>
-            <button
-              onClick={() => { routerNavigate('/dashboard'); }}
-              className="px-3 py-2 bg-purple-600 text-white text-xs font-bold rounded-lg"
-            >
-              3. useNavigate()
-            </button>
-            <button
-              onClick={() => { routerNavigate('/dashboard', { replace: true }); }}
-              className="px-3 py-2 bg-orange-600 text-white text-xs font-bold rounded-lg"
-            >
-              4. navigate(replace)
-            </button>
-            <button
-              onClick={() => { window.history.pushState({}, '', '/dashboard'); window.location.reload(); }}
-              className="px-3 py-2 bg-pink-600 text-white text-xs font-bold rounded-lg"
-            >
-              5. pushState + reload
-            </button>
-            <a
-              href="/dashboard"
-              className="px-3 py-2 bg-yellow-600 text-white text-xs font-bold rounded-lg text-center"
-            >
-              6. Link &lt;a href&gt;
-            </a>
-            <button
-              onClick={() => {
-                window.location.assign('/dashboard');
-              }}
-              className="px-3 py-2 bg-teal-600 text-white text-xs font-bold rounded-lg"
-            >
-              7. location.assign
-            </button>
-            <button
-              onClick={() => {
-                const url = new URL('/dashboard', window.location.origin);
-                window.open(url.href, '_self');
-              }}
-              className="px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg"
-            >
-              8. window.open(_self)
-            </button>
-          </div>
-        </div>
-        {/* ====== FIM DEBUG ====== */}
-
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
