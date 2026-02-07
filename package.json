@@ -9,7 +9,12 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev:web": "vite --config vite.config.ts",
+    "dev:tauri": "tauri dev",
     "build": "npx vite build",
+    "build:tauri": "VITE_API_URL=https://7careadv.netlify.app vite build --config vite.config.ts",
+    "tauri": "tauri",
+    "tauri:build": "VITE_API_URL=https://7careadv.netlify.app tauri build",
     "build:server": "esbuild server/index.prod.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist-server/index.cjs",
     "start:server": "NODE_ENV=production node dist-server/index.js",
     "build:full": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",

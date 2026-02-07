@@ -8,6 +8,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const isTauri = !!process.env.TAURI_ENV_PLATFORM;
+const host = process.env.TAURI_DEV_HOST;
+
 export default defineConfig({
   plugins: [
     react(),
@@ -20,111 +23,113 @@ export default defineConfig({
         brotliSize: true,
         template: 'treemap', // sunburst, treemap, network
       }),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'robots.txt'],
-      manifest: {
-        name: '7Care - Sistema de Gestão',
-        short_name: '7Care',
-        description: 'Sistema de gestão para igrejas e comunidades',
-        theme_color: '#3b82f6',
-        background_color: '#ffffff',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
-        categories: ['productivity', 'utilities'],
-        icons: [
-          {
-            src: '/icons/icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
-          {
-            src: '/icons/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
-      },
-      workbox: {
-        // Estratégias de cache
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            // NUNCA cachear rotas que dependem do usuário logado
-            // Estas rotas retornam dados diferentes por usuário/pastor
-            urlPattern: /^https?:\/\/.*\/api\/(users|meetings|activities|prayer-requests|testimonies|members|visits|transfers|districts|churches|dashboard)/i,
-            handler: 'NetworkOnly', // Sempre buscar da rede, nunca cachear
-          },
-          {
-            // Cache de API pública/estática - Network First com fallback
-            urlPattern: /^https?:\/\/.*\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: '7care-api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24, // 1 dia apenas
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              networkTimeoutSeconds: 5,
+    // Desabilitar PWA para builds Tauri (desktop/mobile nativo)
+    !isTauri &&
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'robots.txt'],
+        manifest: {
+          name: '7Care - Sistema de Gestão',
+          short_name: '7Care',
+          description: 'Sistema de gestão para igrejas e comunidades',
+          theme_color: '#3b82f6',
+          background_color: '#ffffff',
+          display: 'standalone',
+          orientation: 'portrait',
+          scope: '/',
+          start_url: '/',
+          categories: ['productivity', 'utilities'],
+          icons: [
+            {
+              src: '/icons/icon-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any maskable',
             },
-          },
-          {
-            // Cache de imagens - Cache First
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: '7care-images-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
+            {
+              src: '/icons/icon-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable',
+            },
+          ],
+        },
+        workbox: {
+          // Estratégias de cache
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          runtimeCaching: [
+            {
+              // NUNCA cachear rotas que dependem do usuário logado
+              // Estas rotas retornam dados diferentes por usuário/pastor
+              urlPattern: /^https?:\/\/.*\/api\/(users|meetings|activities|prayer-requests|testimonies|members|visits|transfers|districts|churches|dashboard)/i,
+              handler: 'NetworkOnly', // Sempre buscar da rede, nunca cachear
+            },
+            {
+              // Cache de API pública/estática - Network First com fallback
+              urlPattern: /^https?:\/\/.*\/api\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: '7care-api-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24, // 1 dia apenas
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+                networkTimeoutSeconds: 5,
               },
             },
-          },
-          {
-            // Cache de fontes - Cache First
-            urlPattern: /\.(?:woff|woff2|ttf|otf|eot)$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: '7care-fonts-cache',
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 ano
+            {
+              // Cache de imagens - Cache First
+              urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: '7care-images-cache',
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
+                },
               },
             },
-          },
-          {
-            // Cache de uploads - Network First
-            urlPattern: /^https?:\/\/.*\/uploads\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: '7care-uploads-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
+            {
+              // Cache de fontes - Cache First
+              urlPattern: /\.(?:woff|woff2|ttf|otf|eot)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: '7care-fonts-cache',
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 ano
+                },
               },
-              networkTimeoutSeconds: 5,
             },
-          },
-        ],
-        // Não pré-cache dados sensíveis
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//],
-        // Excluir imagens grandes do precache (serão cached em runtime)
-        globIgnores: ['**/mountain-*.png'],
-        // Aumentar limite para 5MB
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-      },
-      devOptions: {
-        enabled: false, // Desabilitar em dev para evitar confusão
-      },
-    }),
+            {
+              // Cache de uploads - Network First
+              urlPattern: /^https?:\/\/.*\/uploads\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: '7care-uploads-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
+                },
+                networkTimeoutSeconds: 5,
+              },
+            },
+          ],
+          // Não pré-cache dados sensíveis
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//],
+          // Excluir imagens grandes do precache (serão cached em runtime)
+          globIgnores: ['**/mountain-*.png'],
+          // Aumentar limite para 5MB
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        },
+        devOptions: {
+          enabled: false, // Desabilitar em dev para evitar confusão
+        },
+      }),
   ],
   resolve: {
     alias: {
@@ -136,15 +141,21 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
-    // Otimização de bundle
-    target: 'es2020',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    // Otimização de bundle — ajustar target para Tauri
+    target: isTauri
+      ? process.env.TAURI_ENV_PLATFORM === 'windows'
+        ? 'chrome105'
+        : 'safari13'
+      : 'es2020',
+    minify: isTauri ? (!process.env.TAURI_ENV_DEBUG ? 'esbuild' : false) : 'terser',
+    terserOptions: !isTauri
+      ? {
+          compress: {
+            drop_console: true,
+            drop_debugger: true,
+          },
+        }
+      : undefined,
     rollupOptions: {
       output: {
         // Code splitting simplificado para evitar dependências circulares
@@ -183,12 +194,19 @@ export default defineConfig({
     },
     // Aumentar limite de aviso de chunk
     chunkSizeWarningLimit: 500,
-    // Source maps apenas em desenvolvimento
-    sourcemap: false,
+    // Source maps
+    sourcemap: isTauri ? !!process.env.TAURI_ENV_DEBUG : false,
   },
   server: {
     port: 3065,
+    strictPort: true,
+    host: host || false,
+    hmr: host ? { protocol: 'ws', host, port: 1421 } : undefined,
+    watch: {
+      ignored: ['**/src-tauri/**'],
+    },
   },
+  envPrefix: ['VITE_', 'TAURI_ENV_'],
   // Otimização de dependências
   optimizeDeps: {
     include: [

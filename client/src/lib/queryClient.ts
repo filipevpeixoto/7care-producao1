@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { PERFORMANCE_CONFIG } from './performance';
+import { resolveApiUrl } from './api';
 
 // Helper para extrair os dados do usuário atual do localStorage
 // IMPORTANTE: Se houver impersonação ativa, retorna o usuário impersonado
@@ -67,7 +68,7 @@ export const createQueryClient = () => {
           const url = queryKey[0] as string;
           const headers = getAuthHeaders();
 
-          const response = await fetch(url, { headers });
+          const response = await fetch(resolveApiUrl(url), { headers });
 
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -160,7 +161,7 @@ export const prefetchImportantData = (queryClient: QueryClient) => {
   queryClient.prefetchQuery({
     queryKey: ['/api/dashboard/stats'],
     queryFn: async () => {
-      const response = await fetch('/api/dashboard/stats');
+      const response = await fetch(resolveApiUrl('/api/dashboard/stats'));
       if (!response.ok) throw new Error('Failed to fetch dashboard stats');
       return response.json();
     },

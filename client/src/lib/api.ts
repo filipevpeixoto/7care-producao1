@@ -19,6 +19,24 @@
  */
 
 /**
+ * Base URL para chamadas de API.
+ * - No browser (web): string vazia (URLs relativas funcionam via proxy)
+ * - No Tauri (desktop/mobile): URL completa do servidor de produção
+ */
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+/**
+ * Resolve um path relativo de API para URL completa quando necessário.
+ * No browser, '/api/users' continua '/api/users'.
+ * No Tauri, '/api/users' vira 'https://7careadv.netlify.app/api/users'.
+ */
+export function resolveApiUrl(url: string): string {
+  if (!API_BASE_URL) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE_URL}${url}`;
+}
+
+/**
  * Extrai o ID do usuário atual do localStorage
  *
  * @private
@@ -104,7 +122,8 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
     ...(userId ? { 'x-user-id': userId } : {}),
   };
 
-  return fetch(url, {
+  const resolvedUrl = resolveApiUrl(url);
+  return fetch(resolvedUrl, {
     ...options,
     headers,
   });

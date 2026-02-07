@@ -59,7 +59,7 @@ export function createApp(): express.Express {
   // CORS — origens explícitas (nunca wildcard *)
   app.use((req: Request, res: Response, next: NextFunction) => {
     const defaultOrigins =
-      'https://7careadv.netlify.app,http://localhost:3064,http://localhost:5173';
+      'https://7careadv.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
       .split(',')
       .map(origin => origin.trim())
@@ -74,7 +74,7 @@ export function createApp(): express.Express {
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header(
       'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id, x-user-role'
     );
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');

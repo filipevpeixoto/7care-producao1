@@ -69,8 +69,9 @@ if (typeof chrome !== 'undefined' && chrome?.runtime) {
   }
 }
 
-// Registrar Service Worker para funcionalidade offline
-if ('serviceWorker' in navigator) {
+// Registrar Service Worker para funcionalidade offline (apenas no browser, não no Tauri)
+const isTauri = '__TAURI_INTERNALS__' in window;
+if (!isTauri && 'serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', {

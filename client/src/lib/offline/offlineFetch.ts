@@ -636,8 +636,14 @@ export function enableGlobalOfflineFetch(): void {
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = typeof input === 'string' ? input : input.toString();
 
-    // Só interceptar requisições para a API local
+    // Só interceptar requisições para a API
     if (url.startsWith('/api/') || url.includes('/api/')) {
+      // Resolver URL para Tauri (prefixa com VITE_API_URL se definido)
+      const apiBaseUrl = (import.meta as any).env?.VITE_API_URL || '';
+      if (apiBaseUrl && typeof input === 'string' && !input.startsWith('http')) {
+        const resolvedInput = `${apiBaseUrl}${input}`;
+        return offlineFetch(resolvedInput, init as FetchOptions);
+      }
       return offlineFetch(input, init as FetchOptions);
     }
 
