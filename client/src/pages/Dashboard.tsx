@@ -19,10 +19,7 @@ import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
 import { BirthdayCard } from '@/components/dashboard/BirthdayCard';
 import { Visitometer } from '@/components/dashboard/Visitometer';
 import { QuickGamificationCard } from '@/components/dashboard/QuickGamificationCard';
-import {
-  DashboardSkeletonGrid,
-  NumberSkeleton,
-} from '@/components/dashboard/DashboardCardSkeleton';
+
 
 import { SpiritualCheckInModal } from '@/components/dashboard/SpiritualCheckInModal';
 import { useSpiritualCheckIn } from '@/hooks/useSpiritualCheckIn';
@@ -1192,16 +1189,8 @@ const Dashboard = () => {
   // Loading state otimizado para superadmin (usa dados unificados)
   const isUnifiedLoading = isSuperAdmin(user) && unifiedLoading;
 
-  // Verifica se é o primeiro carregamento (sem dados em cache)
-  const isFirstLoad = isUnifiedLoading && !unifiedData;
-
   const renderAdminDashboard = () => (
     <div className="space-y-4 lg:space-y-8">
-      {/* Skeleton Grid para primeiro carregamento */}
-      {isFirstLoad ? (
-        <DashboardSkeletonGrid count={6} />
-      ) : (
-        <>
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6">
             <Card className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
@@ -1217,7 +1206,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent className="relative z-10 p-3 lg:p-6">
                 <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                  {isLoading ? <NumberSkeleton /> : stats.totalUsers}
+                  {isLoading ? '...' : stats.totalUsers}
                 </div>
                 <p className="text-xs lg:text-sm text-white/80 mt-1">
                   {stats.approvedUsers} usuários aprovados
@@ -1247,13 +1236,13 @@ const Dashboard = () => {
               <CardContent className="relative z-10 p-3 lg:p-6 space-y-2">
                 <div className="flex items-baseline gap-2">
                   <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                    {isLoading ? <NumberSkeleton /> : stats.totalInterested}
+                    {isLoading ? '...' : stats.totalInterested}
                   </div>
                   <span className="text-xs lg:text-sm text-white/80">Amigos</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-white/20">
                   <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
-                    {isLoading ? <NumberSkeleton size="sm" /> : stats.interestedBeingDiscipled || 0}
+                    {isLoading ? '...' : stats.interestedBeingDiscipled || 0}
                   </div>
                   <span className="text-xs lg:text-sm text-white/80 leading-tight">
                     Estão Sendo Discipulados
@@ -1276,31 +1265,19 @@ const Dashboard = () => {
               <CardContent className="relative z-10 p-3 lg:p-6 space-y-2">
                 <div className="flex items-baseline gap-2">
                   <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                    {isLoading || tasksLoading ? (
-                      <NumberSkeleton />
-                    ) : (
-                      dashboardStats?.pendingTasks || 0
-                    )}
+                    {isLoading || tasksLoading ? '...' : dashboardStats?.pendingTasks || 0}
                   </div>
                   <span className="text-xs lg:text-sm text-white/80">Pendentes</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-white/20">
                   <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
-                    {isLoading || tasksLoading ? (
-                      <NumberSkeleton size="sm" />
-                    ) : (
-                      dashboardStats?.completedTasks || 0
-                    )}
+                    {isLoading || tasksLoading ? '...' : dashboardStats?.completedTasks || 0}
                   </div>
                   <span className="text-xs lg:text-sm text-white/80 leading-tight">Concluídas</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-white/20">
                   <div className="text-sm lg:text-lg font-semibold text-white/90 drop-shadow">
-                    {isLoading || tasksLoading ? (
-                      <NumberSkeleton size="sm" />
-                    ) : (
-                      dashboardStats?.totalTasks || 0
-                    )}
+                    {isLoading || tasksLoading ? '...' : dashboardStats?.totalTasks || 0}
                   </div>
                   <span className="text-xs lg:text-sm text-white/80 leading-tight">Total</span>
                 </div>
@@ -1329,7 +1306,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent className="relative z-10 p-3 lg:p-6">
                 <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                  {isLoading ? <NumberSkeleton /> : stats.totalMembers}
+                  {isLoading ? '...' : stats.totalMembers}
                 </div>
                 <p className="text-xs lg:text-sm text-white/80 mt-1">Membros ativos da igreja</p>
               </CardContent>
@@ -1349,7 +1326,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent className="relative z-10 p-3 lg:p-6">
                 <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                  {isLoading ? <NumberSkeleton /> : stats.totalMissionaries}
+                  {isLoading ? '...' : stats.totalMissionaries}
                 </div>
                 <p className="text-xs lg:text-sm text-white/80 mt-1">Discipuladores ativos</p>
               </CardContent>
@@ -1471,8 +1448,6 @@ const Dashboard = () => {
               />
             </div>
           </div>
-        </>
-      )}
     </div>
   );
 
