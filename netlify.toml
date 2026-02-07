@@ -6,6 +6,7 @@
   NODE_VERSION = "20"
   NODE_ENV = "production"
   NPM_CONFIG_PRODUCTION = "false"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # Nova função dedicada para chat-list (antes da rota genérica de API)
 [[redirects]]
