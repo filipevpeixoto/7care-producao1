@@ -22,13 +22,13 @@ import { Button } from '@/components/ui/button';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { getRoleDisplayName } from '@/lib/permissions';
-import { useNavigate } from 'react-router-dom';
+import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const Menu = () => {
   const { user, logout, refreshUserData } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
   const { toast } = useToast();
 
   const handleLogout = async () => {

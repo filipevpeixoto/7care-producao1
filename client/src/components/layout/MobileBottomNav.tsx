@@ -11,11 +11,12 @@ import {
   Mail,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { usePrefetch } from '@/hooks/usePrefetch';
+import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 import { useModal } from '@/contexts/ModalContext';
 import {
   DropdownMenu,
@@ -40,7 +41,7 @@ interface MenuItem {
 
 export const MobileBottomNav = memo(() => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
   const { user } = useAuth();
   const { isAnyModalOpen } = useModal();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -193,25 +194,14 @@ export const MobileBottomNav = memo(() => {
   const handleNavigation = useCallback(
     (path: string, index: number) => {
       if (location.pathname === path) {
-        console.log('🔄 Já está na página:', path);
         return;
       }
 
-      console.log('🔄 FORÇANDO navegação de', location.pathname, '→', path);
-
       setActiveIndex(index);
-      window.location.href = path;
+      navigate(path);
     },
-    [location.pathname]
+    [location.pathname, navigate]
   );
-
-  // Log para debug
-  console.log('🔍 MobileBottomNav - Render:', {
-    userRole: user?.role,
-    allowedItemsCount: allowedItems.length,
-    activeIndex,
-    location: location.pathname,
-  });
 
   // Se não há itens permitidos, usar itens básicos como fallback
   const fallbackItems: MenuItem[] = [

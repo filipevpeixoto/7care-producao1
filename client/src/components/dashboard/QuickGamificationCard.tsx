@@ -11,6 +11,7 @@ import {
 } from '@/lib/gamification';
 import { MountIcon } from '@/components/ui/mount-icon';
 import { PointsCalculator, UserData } from '@/lib/pointsCalculator';
+import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 
 interface QuickGamificationCardProps {
   userData?: UserData;
@@ -21,6 +22,7 @@ export const QuickGamificationCard = ({
   userData,
   showDetails: _showDetails = false,
 }: QuickGamificationCardProps) => {
+  const navigate = useTransitionNavigate();
   // Dados de exemplo se não fornecidos
   const defaultUserData: UserData = {
     engajamento: 'Alto',
@@ -61,7 +63,7 @@ export const QuickGamificationCard = ({
 
   return (
     <div
-      onClick={() => (window.location.href = '/gamification')}
+      onClick={() => navigate('/gamification')}
       className="block h-full cursor-pointer"
     >
       <Card className="group relative overflow-hidden bg-gradient-to-br from-yellow-500 to-purple-600 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">

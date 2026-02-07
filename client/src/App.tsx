@@ -72,12 +72,16 @@ const PageLoader = () => {
     () => getSkeletonForRoute(location.pathname),
     [location.pathname]
   );
-  return <SkeletonComponent />;
+  return (
+    <div className="page-loading-fallback">
+      <SkeletonComponent />
+    </div>
+  );
 };
 
 // Fallback simples para rotas sem skeleton mapeado
 const SimpleLoader = () => (
-  <div className="flex items-center justify-center min-h-screen" role="status" aria-live="polite">
+  <div className="page-loading-fallback flex items-center justify-center min-h-screen" role="status" aria-live="polite">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" aria-hidden="true"></div>
     <span className="sr-only">Carregando...</span>
   </div>

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
 import { BirthdayCard } from '@/components/dashboard/BirthdayCard';
@@ -36,7 +36,7 @@ import type {
 
 const Dashboard = () => {
   const { user, realUser, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
   const queryClient = useQueryClient();
   const { shouldShowCheckIn: _shouldShowCheckIn, markCheckInComplete } = useSpiritualCheckIn();
   const { toast: _toast } = useToast();
@@ -1529,7 +1529,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Card de Estatísticas de Interessados */}
           <div
-            onClick={() => (window.location.href = '/my-interested')}
+            onClick={() => navigate('/my-interested')}
             className="block h-full cursor-pointer"
           >
             <Card className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
@@ -1607,7 +1607,7 @@ const Dashboard = () => {
           </div>
 
           <div
-            onClick={() => (window.location.href = '/calendar')}
+            onClick={() => navigate('/calendar')}
             className="block h-full cursor-pointer"
           >
             <Card className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">

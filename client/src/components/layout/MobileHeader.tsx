@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 
-import { useNavigate } from 'react-router-dom';
+import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo, useEffect } from 'react';
 import { useSystemLogo } from '@/hooks/useSystemLogo';
@@ -31,7 +31,7 @@ import { PageHelpModal } from '@/components/help/PageHelpModal';
 
 export const MobileHeader = () => {
   const { user, logout, stopImpersonating } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
   const { toast } = useToast();
   const { resolvedTheme, toggleTheme } = useTheme();
   const [lastScrollY, setLastScrollY] = useState(0);
