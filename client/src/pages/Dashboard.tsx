@@ -192,19 +192,6 @@ const Dashboard = () => {
     enabled: isAuthReady, // Só executar quando auth estiver pronto
     // Usar dados unificados como initialData para superadmin
     initialData: unifiedData?.stats,
-    // Placeholder para renderizar cards com 0 enquanto carrega (evita "...")
-    placeholderData: {
-      totalUsers: 0,
-      totalMembers: 0,
-      totalMissionaries: 0,
-      totalInterested: 0,
-      approvedUsers: 0,
-      totalPrayers: 0,
-      totalVisits: 0,
-      totalActivities: 0,
-      totalPoints: 0,
-      interestedBeingDiscipled: 0,
-    },
   });
 
   // USAR dados reais das páginas correspondentes
