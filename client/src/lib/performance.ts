@@ -59,13 +59,14 @@ export const isDevelopment = () => process.env.NODE_ENV === 'development';
 export const isProduction = () => process.env.NODE_ENV === 'production';
 
 // Função para limpar console logs em produção
+// IMPORTANT: console.error and console.warn are preserved to allow
+// diagnosing rendering failures (e.g. lazy route transition errors).
 export const cleanConsoleInProduction = () => {
   if (isProduction()) {
     console.log = () => {};
     console.info = () => {};
     console.debug = () => {};
-    console.warn = () => {};
-    console.error = () => {};
+    // console.warn and console.error are intentionally kept!
   }
 };
 

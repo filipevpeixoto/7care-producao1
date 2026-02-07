@@ -1,8 +1,8 @@
 /**
  * Estilos para transições suaves entre páginas
  * 
- * Usa CSS puro para evitar problemas com a View Transitions API
- * (que causa bloqueio de navegação com rotas lazy-loaded + Suspense).
+ * Usa CSS puro para animações de entrada suaves nas páginas.
+ * Compatível com React Router v7 + React.lazy() + Suspense.
  */
 
 /* ============================================
@@ -21,11 +21,33 @@
 }
 
 /* ============================================
+   Transição suave de entrada para rotas
+   ============================================ */
+
+.route-transition-wrapper {
+  animation: route-fade-in 200ms ease-out;
+}
+
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
    Acessibilidade
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in {
+  .animate-fade-in,
+  .route-transition-wrapper,
+  .page-loading-fallback {
     animation: none !important;
+    opacity: 1 !important;
   }
 }

@@ -46,45 +46,11 @@ export default function Calendar() {
     isLoading: permissionsLoading,
   } = useEventFilterPermissions();
 
-  // Garantir que não há nada bloqueando a navegação
+  // Cleanup ao desmontar o componente
   useEffect(() => {
-    // Interceptar e suprimir erros de extensões do Chrome
-    const handleUnhandledRejection = (event: PromiseRejectionEvent): void => {
-      if (
-        event.reason?.message?.includes('message channel closed') ||
-        event.reason?.message?.includes('listener indicated an asynchronous response')
-      ) {
-        console.warn('🔇 Erro de extensão do Chrome suprimido:', event.reason?.message);
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-
-    // Interceptar erros globais de extensões
-    const handleError = (event: ErrorEvent): void => {
-      if (
-        event.message?.includes('message channel closed') ||
-        event.message?.includes('listener indicated an asynchronous response')
-      ) {
-        console.warn('🔇 Erro de extensão do Chrome suprimido:', event.message);
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-
-    // Adicionar listeners
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    window.addEventListener('error', handleError);
-
-    // Cleanup ao desmontar o componente
     return () => {
-      // Remover listeners
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-      window.removeEventListener('error', handleError);
-
       // Fechar qualquer modal/dropdown que possa estar aberto
       setShowEventModal(false);
-      console.log('🧹 Calendar desmontado - limpeza completa');
     };
   }, []);
 
