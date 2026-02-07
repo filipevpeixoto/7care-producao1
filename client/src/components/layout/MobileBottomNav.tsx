@@ -198,7 +198,27 @@ export const MobileBottomNav = memo(() => {
       }
 
       setActiveIndex(index);
-      navigate(path);
+
+      // Tentar navegação SPA primeiro
+      try {
+        navigate(path);
+      } catch {
+        // Se falhar, fallback direto
+        window.location.href = path;
+        return;
+      }
+
+      // Safety net: se após 300ms a rota não mudou, forçar navegação
+      // Isso resolve o problema do React Router v7 com startTransition
+      // mantendo conteúdo stale em rotas lazy-loaded (ex: Calendar)
+      const checkTimeout = setTimeout(() => {
+        if (window.location.pathname === location.pathname) {
+          window.location.href = path;
+        }
+      }, 300);
+
+      // Limpar timeout se o componente desmontar (navegação funcionou)
+      return () => clearTimeout(checkTimeout);
     },
     [location.pathname, navigate]
   );
