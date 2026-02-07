@@ -68,7 +68,7 @@ exports.handler = async (event) => {
           FROM users 
           WHERE status IN ('approved', 'active')
             AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))
-          LIMIT 500
+          LIMIT 5000
         `;
       } else {
         users = await sql`
@@ -76,7 +76,7 @@ exports.handler = async (event) => {
           FROM users 
           WHERE status IN ('approved', 'active')
             AND district_id = ${currentUser.district_id}
-          LIMIT 500
+          LIMIT 5000
         `;
       }
     } else if (currentUser && currentUser.role !== 'superadmin' && currentUser.church) {
@@ -85,14 +85,14 @@ exports.handler = async (event) => {
         FROM users 
         WHERE status IN ('approved', 'active')
           AND church = ${currentUser.church}
-        LIMIT 500
+        LIMIT 5000
       `;
     } else {
       users = await sql`
         SELECT id, name, email, church, extra_data 
         FROM users 
         WHERE status IN ('approved', 'active')
-        LIMIT 500
+        LIMIT 5000
       `;
     }
 

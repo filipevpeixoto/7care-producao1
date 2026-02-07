@@ -75,7 +75,7 @@ const Dashboard = () => {
     queryKey: ['/api/users', user?.id],
     queryFn: async () => {
       // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
-      const response = await fetch('/api/users?limit=500', {
+      const response = await fetch('/api/users?limit=5000', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',

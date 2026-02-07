@@ -502,7 +502,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
   const loadMembers = async () => {
     try {
       // Buscar todos os membros sem limite de paginação
-      const response = await fetch('/api/users?limit=500', {
+      const response = await fetch('/api/users?limit=5000', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache',
@@ -931,7 +931,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
   const loadEligibleCandidates = async () => {
     try {
-      const response = await fetch('/api/users?limit=500', {
+      const response = await fetch('/api/users?limit=5000', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
         },

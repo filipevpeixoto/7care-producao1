@@ -240,8 +240,8 @@ export const userRoutes = (app: Express): void => {
    *         name: limit
    *         schema:
    *           type: integer
-   *           default: 50
-   *         description: Limite de resultados por página (máximo 500)
+   *           default: 5000
+   *         description: Limite de resultados por página (máximo 5000)
    *     responses:
    *       200:
    *         description: Lista paginada de usuários
@@ -320,7 +320,7 @@ export const userRoutes = (app: Express): void => {
 
       // Paginação
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50)); // Máximo 500
+      const limit = Math.min(5000, Math.max(1, parseInt(req.query.limit as string) || 5000)); // Máximo 5000
       const offset = (page - 1) * limit;
 
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');

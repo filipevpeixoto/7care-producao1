@@ -166,7 +166,7 @@ export default function Users() {
           'x-user-role': user?.role || '',
         };
         console.log('📤 DEBUG - Headers enviados:', JSON.stringify(headers));
-        const response = await fetch('/api/users?limit=500', { headers });
+        const response = await fetch('/api/users?limit=5000', { headers });
         if (!response.ok) {
           throw new Error('Falha ao carregar usuários');
         }
