@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { usePrefetch } from '@/hooks/usePrefetch';
-import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
+
 import { useModal } from '@/contexts/ModalContext';
 import {
   DropdownMenu,
@@ -41,7 +41,6 @@ interface MenuItem {
 
 export const MobileBottomNav = memo(() => {
   const location = useLocation();
-  const navigate = useTransitionNavigate();
   const { user } = useAuth();
   const { isAnyModalOpen } = useModal();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -199,28 +198,22 @@ export const MobileBottomNav = memo(() => {
 
       setActiveIndex(index);
 
-      // Tentar navegação SPA primeiro
-      try {
-        navigate(path);
-      } catch {
-        // Se falhar, fallback direto
-        window.location.href = path;
-        return;
-      }
-
-      // Safety net: se após 300ms a rota não mudou, forçar navegação
-      // Isso resolve o problema do React Router v7 com startTransition
-      // mantendo conteúdo stale em rotas lazy-loaded (ex: Calendar)
-      const checkTimeout = setTimeout(() => {
-        if (window.location.pathname === location.pathname) {
+      // Usar navegação direta (window.location.href) para máxima confiabilidade
+      // React Router v7 navigate() tem bug com lazy routes + startTransition
+      // que mantém conteúdo stale (URL muda mas componente não desmonta)
+      // Fade-out suave antes de navegar para manter UX agradável
+      const wrapper = document.querySelector('.route-transition-wrapper');
+      if (wrapper) {
+        (wrapper as HTMLElement).style.opacity = '0';
+        (wrapper as HTMLElement).style.transition = 'opacity 150ms ease-out';
+        setTimeout(() => {
           window.location.href = path;
-        }
-      }, 300);
-
-      // Limpar timeout se o componente desmontar (navegação funcionou)
-      return () => clearTimeout(checkTimeout);
+        }, 150);
+      } else {
+        window.location.href = path;
+      }
     },
-    [location.pathname, navigate]
+    [location.pathname]
   );
 
   // Se não há itens permitidos, usar itens básicos como fallback
@@ -351,7 +344,17 @@ export const MobileBottomNav = memo(() => {
                           key={subIndex}
                           onSelect={() => {
                             setAdminMenuOpen(false);
-                            navigate(subItem.path);
+                            // Mesmo approach do handleNavigation para confiabilidade
+                            const wrapper = document.querySelector('.route-transition-wrapper');
+                            if (wrapper) {
+                              (wrapper as HTMLElement).style.opacity = '0';
+                              (wrapper as HTMLElement).style.transition = 'opacity 150ms ease-out';
+                              setTimeout(() => {
+                                window.location.href = subItem.path;
+                              }, 150);
+                            } else {
+                              window.location.href = subItem.path;
+                            }
                           }}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 ${
                             isSubActive
