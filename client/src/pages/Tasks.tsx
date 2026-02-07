@@ -40,6 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
+import { isSuperAdmin, isPastor } from '@/lib/permissions';
 import { toast } from 'sonner';
 import { notificationService } from '@/lib/notificationService';
 
@@ -158,6 +159,23 @@ export default function Tasks() {
   // Verificação simples de conexão
   const isOnline = navigator.onLine;
 
+  // Buscar igrejas do distrito do pastor para filtrar tarefas
+  const { data: districtChurches } = useQuery({
+    queryKey: ['district-churches', user?.districtId],
+    queryFn: async () => {
+      if (!user?.districtId) return [];
+      const response = await fetch(`/api/districts/${user.districtId}/churches`, {
+        headers: { 'x-user-id': user?.id?.toString() || '' },
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      const churches = data?.data || data || [];
+      return churches.map((c: any) => c.name || c);
+    },
+    enabled: !!user?.districtId && isPastor(user),
+    staleTime: 10 * 60 * 1000,
+  });
+
   // Hook SIMPLIFICADO - buscar tarefas DIRETO DO GOOGLE SHEETS (fonte da verdade)
   const {
     data: tasksData,
@@ -225,7 +243,24 @@ export default function Tasks() {
     refetchOnWindowFocus: false, // Não refetch a cada foco
   });
 
-  const allTasks = tasksData || [];
+  // Filtrar tarefas por distrito/igreja do pastor
+  const allTasks = React.useMemo(() => {
+    const tasks = tasksData || [];
+    // Superadmin vê tudo
+    if (isSuperAdmin(user)) return tasks;
+    // Pastor filtra pelas igrejas do distrito
+    if (isPastor(user) && districtChurches && districtChurches.length > 0) {
+      return tasks.filter((task: Task) => {
+        if (!task.church) return true; // Tarefas sem igreja aparecem para todos
+        return districtChurches.includes(task.church);
+      });
+    }
+    // Outros usuários: filtrar pela própria igreja
+    if (user?.church) {
+      return tasks.filter((task: Task) => !task.church || task.church === user.church);
+    }
+    return tasks;
+  }, [tasksData, user, districtChurches]);
 
   // Monitoramento de conexão agora é feito pelo hook useOnlineStatus
 
@@ -773,7 +808,7 @@ export default function Tasks() {
                   {task.title}
                 </h3>
                 {isNotSynced && (
-                  <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
+                  <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600/50 text-xs">
                     <CloudOff className="h-2 w-2 mr-1" />
                     Sem conexão
                   </Badge>
@@ -798,14 +833,14 @@ export default function Tasks() {
                 </Badge>
 
                 {task.assigned_to_name && (
-                  <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600/50">
                     <User className="h-3 w-3 mr-1" />
                     {task.assigned_to_name}
                   </Badge>
                 )}
 
                 {task.church && (
-                  <Badge className="bg-purple-50 text-purple-700 border-purple-200">
+                  <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-600/50">
                     🏛️ {task.church}
                   </Badge>
                 )}
@@ -823,13 +858,13 @@ export default function Tasks() {
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <Button
                   onClick={() => handleEditTask(task)}
                   variant="ghost"
                   size="sm"
-                  className="h-9 px-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                  className="h-9 px-3 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all duration-200"
                 >
                   <Edit3 className="h-4 w-4 mr-1.5" />
                   <span className="hidden sm:inline">Editar</span>
@@ -839,7 +874,7 @@ export default function Tasks() {
                   onClick={() => handleDeleteTask(task.id)}
                   variant="ghost"
                   size="sm"
-                  className="h-9 px-3 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
+                  className="h-9 px-3 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-200"
                 >
                   <Trash2 className="h-4 w-4 mr-1.5" />
                   <span className="hidden sm:inline">Deletar</span>
@@ -847,10 +882,10 @@ export default function Tasks() {
               </div>
 
               <div
-                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                 onClick={() => handleToggleTaskSelection(task.id)}
               >
-                <span className="text-sm text-gray-600 hidden sm:inline">Selecionar</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">Selecionar</span>
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={() => handleToggleTaskSelection(task.id)}
@@ -876,18 +911,18 @@ export default function Tasks() {
     description: string;
   }) => (
     <div className="text-center py-12">
-      <div className="inline-flex p-4 rounded-full bg-gray-100 mb-4">
+      <div className="inline-flex p-4 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
         <Icon className="h-8 w-8 text-gray-400" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
-      <p className="text-gray-500 max-w-sm mx-auto">{description}</p>
+      <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">{description}</p>
     </div>
   );
 
   if (tasksLoading) {
     return (
       <MobileLayout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
           <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -900,18 +935,18 @@ export default function Tasks() {
 
   return (
     <MobileLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
                   Tarefas
                 </h1>
               </div>
 
-              <p className="text-gray-600 text-lg">Organize e acompanhe suas tarefas</p>
+              <p className="text-gray-600 dark:text-gray-400 text-lg">Organize e acompanhe suas tarefas</p>
             </div>
 
             <div className="flex gap-3 flex-wrap">
@@ -920,7 +955,7 @@ export default function Tasks() {
                 variant="outline"
                 size="sm"
                 onClick={() => syncFromGoogleSheets(true)}
-                className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-300 dark:border-green-600/50"
                 title="Sincronizar do Google Sheets manualmente"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -1114,7 +1149,7 @@ export default function Tasks() {
 
           {/* Barra de Seleção Múltipla */}
           {filteredTasks.length > 0 && (
-            <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-white shadow-md">
+            <Card className="mb-6 border-blue-200 dark:border-blue-600/50 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800 shadow-md">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -1131,7 +1166,7 @@ export default function Tasks() {
                           ? `${selectedTasks.length} selecionada${selectedTasks.length > 1 ? 's' : ''}`
                           : 'Selecionar todas'}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {filteredTasks.length} tarefa{filteredTasks.length > 1 ? 's' : ''}{' '}
                         disponível{filteredTasks.length > 1 ? 'is' : ''}
                       </p>
@@ -1169,21 +1204,21 @@ export default function Tasks() {
             <TabsList className="grid w-full grid-cols-3 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-sm">
               <TabsTrigger
                 value="pending"
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300"
               >
                 <Circle className="h-4 w-4 mr-2" />
                 Pendentes ({pendingTasks.length})
               </TabsTrigger>
               <TabsTrigger
                 value="in_progress"
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300"
               >
                 <Clock className="h-4 w-4 mr-2" />
                 Em Progresso ({inProgressTasks.length})
               </TabsTrigger>
               <TabsTrigger
                 value="completed"
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300"
               >
                 <CheckSquare2 className="h-4 w-4 mr-2" />
                 Concluídas ({completedTasks.length})
