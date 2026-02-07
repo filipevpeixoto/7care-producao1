@@ -8,9 +8,6 @@
 import { useCallback } from 'react';
 import { useNavigate, NavigateOptions } from 'react-router-dom';
 
-const supportsViewTransitions =
-  typeof document !== 'undefined' && 'startViewTransition' in document;
-
 /**
  * Hook que retorna uma função navigate com transições suaves.
  * Substitui useNavigate() e window.location.href para evitar
@@ -21,13 +18,19 @@ export function useTransitionNavigate() {
 
   const transitionNavigate = useCallback(
     (to: string, options?: NavigateOptions) => {
-      if (supportsViewTransitions) {
-        (document as any).startViewTransition(() => {
-          navigate(to, options);
-        });
-      } else {
-        navigate(to, options);
+      // Tentar usar View Transitions API se disponível
+      if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+        try {
+          (document as any).startViewTransition(() => {
+            navigate(to, options);
+          });
+          return;
+        } catch {
+          // Fallback silencioso
+        }
       }
+      // Navegação direta como fallback
+      navigate(to, options);
     },
     [navigate]
   );

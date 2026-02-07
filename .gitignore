@@ -63,3 +63,4 @@ client/public/mountain-*.png
 
 # Auto Claude data directory
 .auto-claude/
+src-tauri/target/

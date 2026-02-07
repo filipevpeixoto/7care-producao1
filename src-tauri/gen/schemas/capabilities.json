@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Default capabilities for 7Care desktop app","local":true,"windows":["main"],"permissions":["core:default",{"identifier":"http:default","allow":[{"url":"https://7careadv.netlify.app/**"}]}]}}

@@ -329,22 +329,9 @@ export const MobileBottomNav = memo(() => {
                       return (
                         <DropdownMenuItem
                           key={subIndex}
-                          onSelect={e => {
-                            e.preventDefault();
+                          onSelect={() => {
                             setAdminMenuOpen(false);
-                            // Usar requestAnimationFrame para garantir que o estado seja atualizado antes da navegação
-                            requestAnimationFrame(() => {
-                              navigate(subItem.path);
-                            });
-                          }}
-                          onClick={e => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setAdminMenuOpen(false);
-                            // Usar requestAnimationFrame para garantir que o estado seja atualizado antes da navegação
-                            requestAnimationFrame(() => {
-                              navigate(subItem.path);
-                            });
+                            navigate(subItem.path);
                           }}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 ${
                             isSubActive
