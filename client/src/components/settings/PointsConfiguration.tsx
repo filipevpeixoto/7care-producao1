@@ -202,7 +202,9 @@ export const PointsConfiguration = () => {
         setIsInitialLoading(true);
 
         // Primeiro, tentar carregar configuração específica do distrito
-        const districtResponse = await fetch('/api/settings/my-district/points-config');
+        const districtResponse = await fetch('/api/settings/my-district/points-config', {
+          headers: getAuthHeaders(),
+        });
 
         // Tipo para configuração do backend (pode ter camelCase ou lowercase)
         type BackendConfig = Partial<PointsConfig> & {
@@ -226,7 +228,9 @@ export const PointsConfiguration = () => {
 
             // Buscar nome do distrito
             try {
-              const districtInfoResponse = await fetch(`/api/districts/${districtData.districtId}`);
+              const districtInfoResponse = await fetch(`/api/districts/${districtData.districtId}`, {
+                headers: getAuthHeaders(),
+              });
               if (districtInfoResponse.ok) {
                 const districtInfo = await districtInfoResponse.json();
                 setDistrictName(districtInfo.name || `Distrito ${districtData.districtId}`);
@@ -239,7 +243,9 @@ export const PointsConfiguration = () => {
           backendConfig = districtData.config || {};
         } else {
           // Fallback para API global antiga
-          const response = await fetch('/api/system/points-config');
+          const response = await fetch('/api/system/points-config', {
+            headers: getAuthHeaders(),
+          });
           if (response.ok) {
             backendConfig = await response.json();
             setIsGlobalConfig(true);
@@ -681,6 +687,7 @@ export const PointsConfiguration = () => {
 
       const response = await fetch(resetUrl, {
         method: 'POST',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -696,7 +703,9 @@ export const PointsConfiguration = () => {
       const configUrl = districtId
         ? '/api/settings/my-district/points-config'
         : '/api/system/points-config';
-      const configResponse = await fetch(configUrl);
+      const configResponse = await fetch(configUrl, {
+        headers: getAuthHeaders(),
+      });
       if (configResponse.ok) {
         const responseData = await configResponse.json();
         const backendConfig = districtId ? responseData.config || {} : responseData;

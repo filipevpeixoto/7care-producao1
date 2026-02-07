@@ -287,6 +287,13 @@ export default function ElectionConfig() {
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
   const [editingDescriptionText, setEditingDescriptionText] = useState('');
 
+  // Carregar candidatos automaticamente quando o usuário chega no passo 5
+  useEffect(() => {
+    if (currentStep === 5 && config.churchId && eligibleCandidates.length === 0 && !loadingCandidates) {
+      loadEligibleCandidates();
+    }
+  }, [currentStep, config.churchId]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -538,6 +545,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
         headers: {
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
+          'x-user-id': user?.id?.toString() || '',
         },
       });
 
@@ -957,73 +965,111 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           let isEligible = true;
           const eligibilityReasons: string[] = [];
 
-          // Dados de teste para Vagner (ID 2227)
-          if (member.id === 2227) {
-            member.extra_data = {
-              dizimistaType: 'Pontual (1-3)',
-              ofertanteType: 'Recorrente (8-13)',
-              teveParticipacao: 'Recorrente (8-13/14)',
-              tempoBatismoAnos: 5,
-            };
+          // Parse extraData uma vez no início
+          const extraData =
+            typeof member.extraData === 'string'
+              ? JSON.parse(member.extraData || '{}')
+              : member.extraData || {};
+
+          // Também verificar extra_data (snake_case) se extraData não tiver os dados
+          const extraDataAlt =
+            typeof member.extra_data === 'string'
+              ? JSON.parse(member.extra_data || '{}')
+              : member.extra_data || {};
+
+          // Merge dos dois objetos (prioridade para extraData)
+          const mergedExtraData = { ...extraDataAlt, ...extraData };
+
+          // Extrair participação das observations se não disponível em extraData
+          // observations pode ter: "Participação: Recorrente (8-13/14)"
+          let participacaoFromObs = '';
+          if ((member as any).observations) {
+            const match = ((member as any).observations as string).match(/Participação:\s*([^\|]+)/i);
+            if (match) {
+              participacaoFromObs = match[1].trim();
+            }
           }
 
+          // IMPORTANTE: Os dados podem vir de diferentes fontes:
+          // 1. Campo direto no member (snake_case): member.dizimista_type, member.ofertante_type
+          // 2. extraData (camelCase variação 1): extraData.dizimistaType
+          // 3. extraData (camelCase variação 2): extraData.dizimista
+          // 4. observations para participação
+          // Precisamos verificar TODAS as fontes
+          const normalizedData = {
+            dizimistaType: mergedExtraData.dizimistaType || mergedExtraData.dizimista || (member as any).dizimista_type || '',
+            ofertanteType: mergedExtraData.ofertanteType || mergedExtraData.ofertante || (member as any).ofertante_type || '',
+            teveParticipacao: mergedExtraData.teveParticipacao || mergedExtraData.participacao || participacaoFromObs || '',
+            tempoBatismoAnos: mergedExtraData.tempoBatismoAnos || mergedExtraData.tempoBatismo || (member as any).tempo_batismo_anos || 0,
+            classificacao: mergedExtraData.classificacao || (member as any).classificacao || '',
+            totalPresenca: mergedExtraData.totalPresenca || (member as any).total_presenca || 0,
+          };
+
           console.log(`🔍 Analisando candidato ${member.name}:`, {
-            extra_data_raw: member.extra_data,
-            dizimistaType: member.extra_data?.dizimistaType,
-            ofertanteType: member.extra_data?.ofertanteType,
-            teveParticipacao: member.extra_data?.teveParticipacao,
+            dadosNormalizados: normalizedData,
+            camposDiretos: {
+              dizimista_type: (member as any).dizimista_type,
+              ofertante_type: (member as any).ofertante_type,
+              tempo_batismo_anos: (member as any).tempo_batismo_anos,
+              classificacao: (member as any).classificacao,
+            },
+            extraData: mergedExtraData,
             criteria: config.criteria,
           });
 
-          // Critério de Fidelidade - usando a mesma lógica do UserDetailModal
+          // Critério de Fidelidade - usando normalizedData
           if (config.criteria?.faithfulness?.enabled) {
             let hasFaithfulness = false;
-            const extraData =
-              typeof member.extra_data === 'string'
-                ? JSON.parse(member.extra_data || '{}')
-                : member.extra_data || {};
 
-            // Verificar dizimista - usando coluna direta
-            const dizimistaType = member.dizimista_type;
-            const isDizimista = member.is_donor || member.isDonor || dizimistaType;
+            // Verificar dizimista - usando normalizedData
+            const dizimistaType = normalizedData.dizimistaType.toLowerCase();
+            const isDizimista = member.isDonor || member.isTither || dizimistaType;
 
-            if (isDizimista) {
+            // Rejeitar "naodizimista" explicitamente
+            const isNotDizimista = dizimistaType === 'naodizimista' || dizimistaType === 'não dizimista';
+
+            if (isDizimista && dizimistaType && !isNotDizimista) {
               console.log(`  📊 Verificando dizimista: ${dizimistaType}`);
-              if (config.criteria.faithfulness.punctual && dizimistaType?.includes('Pontual')) {
+              if (config.criteria.faithfulness.punctual && dizimistaType.includes('pontual')) {
                 hasFaithfulness = true;
-                console.log(`    ✅ Passou em Pontual`);
+                console.log(`    ✅ Passou em Pontual (dizimista)`);
               }
-              if (config.criteria.faithfulness.seasonal && dizimistaType?.includes('Sazonal')) {
+              if (config.criteria.faithfulness.seasonal && dizimistaType.includes('sazonal')) {
                 hasFaithfulness = true;
-                console.log(`    ✅ Passou em Sazonal`);
+                console.log(`    ✅ Passou em Sazonal (dizimista)`);
               }
-              if (config.criteria.faithfulness.recurring && dizimistaType?.includes('Recorrente')) {
+              if (config.criteria.faithfulness.recurring && dizimistaType.includes('recorrente')) {
                 hasFaithfulness = true;
-                console.log(`    ✅ Passou em Recorrente`);
+                console.log(`    ✅ Passou em Recorrente (dizimista)`);
               }
             }
 
-            // Verificar ofertante - usando coluna direta
+            // Verificar ofertante - usando normalizedData
             if (!hasFaithfulness) {
-              const ofertanteType = member.ofertante_type;
+              const ofertanteType = normalizedData.ofertanteType.toLowerCase();
               const isOfertante = member.isOffering || ofertanteType;
 
+              // Rejeitar "naoofertante" explicitamente
+              const isNotOfertante = ofertanteType === 'naoofertante' || ofertanteType === 'não ofertante';
+
               console.log(`  💰 Verificando ofertante: ${ofertanteType}`);
-              if (isOfertante) {
-                if (config.criteria.faithfulness.punctual && ofertanteType?.includes('Pontual')) {
+              if (isOfertante && ofertanteType && !isNotOfertante) {
+                if (config.criteria.faithfulness.punctual && ofertanteType.includes('pontual')) {
                   hasFaithfulness = true;
                   console.log(`    ✅ Passou em Pontual (ofertante)`);
                 }
-                if (config.criteria.faithfulness.seasonal && ofertanteType?.includes('Sazonal')) {
+                if (config.criteria.faithfulness.seasonal && ofertanteType.includes('sazonal')) {
                   hasFaithfulness = true;
                   console.log(`    ✅ Passou em Sazonal (ofertante)`);
                 }
-                if (
-                  config.criteria.faithfulness.recurring &&
-                  ofertanteType?.includes('Recorrente')
-                ) {
+                if (config.criteria.faithfulness.recurring && ofertanteType.includes('recorrente')) {
                   hasFaithfulness = true;
                   console.log(`    ✅ Passou em Recorrente (ofertante)`);
+                }
+                // NOVO: Se o valor é apenas "ofertante" (genérico), aceitar quando qualquer tipo está marcado
+                if (ofertanteType === 'ofertante' && (config.criteria.faithfulness.punctual || config.criteria.faithfulness.seasonal || config.criteria.faithfulness.recurring)) {
+                  hasFaithfulness = true;
+                  console.log(`    ✅ Passou como Ofertante genérico`);
                 }
               }
             }
@@ -1031,32 +1077,28 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             console.log(`  🎯 Resultado fidelidade: ${hasFaithfulness}`);
             if (!hasFaithfulness) {
               isEligible = false;
-              eligibilityReasons.push('Não atende aos critérios de fidelidade');
+              eligibilityReasons.push('Não atende aos critérios de fidelidade (dizimista/ofertante)');
             }
           }
 
-          // Critério de Presença - usando a mesma lógica do UserDetailModal
+          // Critério de Presença - usando normalizedData
           if (config.criteria?.attendance?.enabled) {
             let hasAttendance = false;
-            const extraData =
-              typeof member.extra_data === 'string'
-                ? JSON.parse(member.extra_data || '{}')
-                : member.extra_data || {};
 
-            // Verificar participação - exatamente como no UserDetailModal
-            const teveParticipacao = extraData.teveParticipacao;
+            // Verificar participação - usando normalizedData
+            const teveParticipacao = normalizedData.teveParticipacao.toLowerCase();
 
             console.log(`  📅 Verificando participação: ${teveParticipacao}`);
-            if (teveParticipacao && teveParticipacao !== 'Não informado') {
-              if (config.criteria.attendance.punctual && teveParticipacao.includes('Pontual')) {
+            if (teveParticipacao && teveParticipacao !== 'não informado') {
+              if (config.criteria.attendance.punctual && teveParticipacao.includes('pontual')) {
                 hasAttendance = true;
                 console.log(`    ✅ Passou em Pontual (participação)`);
               }
-              if (config.criteria.attendance.seasonal && teveParticipacao.includes('Sazonal')) {
+              if (config.criteria.attendance.seasonal && teveParticipacao.includes('sazonal')) {
                 hasAttendance = true;
                 console.log(`    ✅ Passou em Sazonal (participação)`);
               }
-              if (config.criteria.attendance.recurring && teveParticipacao.includes('Recorrente')) {
+              if (config.criteria.attendance.recurring && teveParticipacao.includes('recorrente')) {
                 hasAttendance = true;
                 console.log(`    ✅ Passou em Recorrente (participação)`);
               }
@@ -1069,15 +1111,12 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             }
           }
 
-          // Critério de Tempo na Igreja (baseado no tempo de batismo)
+          // Critério de Tempo na Igreja (baseado no tempo de batismo) - usando normalizedData
           if (config.criteria?.churchTime?.enabled) {
-            const extraData =
-              typeof member.extra_data === 'string'
-                ? JSON.parse(member.extra_data || '{}')
-                : member.extra_data || {};
-
-            const tempoBatismoAnos = member.tempo_batismo_anos || 0;
+            const tempoBatismoAnos = Number(normalizedData.tempoBatismoAnos) || 0;
             const minimumYears = Math.round((config.criteria.churchTime.minimumMonths || 12) / 12);
+
+            console.log(`  ⏰ Verificando tempo de batismo: ${tempoBatismoAnos} anos (mínimo: ${minimumYears})`);
 
             if (tempoBatismoAnos < minimumYears) {
               isEligible = false;
@@ -1087,9 +1126,9 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             }
           }
 
-          // Critério de Classificação
+          // Critério de Classificação - usando normalizedData
           if (config.criteria?.classification?.enabled) {
-            const memberClassification = (member.classificacao || '').toLowerCase();
+            const memberClassification = normalizedData.classificacao.toLowerCase();
             let hasValidClassification = false;
 
             console.log(
@@ -1116,15 +1155,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             if (!hasValidClassification) {
               isEligible = false;
               eligibilityReasons.push(
-                `Classificação não atende aos critérios (${member.classificacao || 'não informado'})`
+                `Classificação não atende aos critérios (${normalizedData.classificacao || 'não informado'})`
               );
             }
           }
-
-          const extraData =
-            typeof member.extra_data === 'string'
-              ? JSON.parse(member.extra_data || '{}')
-              : member.extra_data || {};
 
           const candidateData = {
             id: member.id,
@@ -1133,17 +1167,17 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
             church: member.church,
             role: member.role,
             status: member.status,
-            // Usando colunas diretas
-            isTither: member.dizimista_type || (member.is_donor || member.isDonor ? 'Sim' : 'Não'),
-            isDonor: member.ofertante_type || (member.isOffering ? 'Sim' : 'Não'),
-            attendance: extraData.teveParticipacao || 'Não informado',
-            classification: member.classificacao || 'Não informado',
-            // Tempo baseado no batismo - usando coluna direta
-            churchTime: member.tempo_batismo_anos
-              ? `${member.tempo_batismo_anos} anos`
+            // Usando normalizedData
+            isTither: normalizedData.dizimistaType || (member.isDonor || member.isTither ? 'Sim' : 'Não informado'),
+            isDonor: normalizedData.ofertanteType || (member.isOffering ? 'Sim' : 'Não informado'),
+            attendance: normalizedData.teveParticipacao || 'Não informado',
+            classification: normalizedData.classificacao || 'Não informado',
+            // Tempo baseado no batismo - usando normalizedData
+            churchTime: normalizedData.tempoBatismoAnos
+              ? `${normalizedData.tempoBatismoAnos} anos`
               : 'Não informado',
-            churchTimeYears: member.tempo_batismo_anos || 0,
-            extraData: member.extra_data,
+            churchTimeYears: Number(normalizedData.tempoBatismoAnos) || 0,
+            extraData: mergedExtraData,
             eligibilityReasons,
           };
 
@@ -1261,6 +1295,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify(payload),
       });
@@ -1335,6 +1370,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           ...config,
@@ -1575,16 +1611,16 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
 
         {/* Indicador de Modo (Edição ou Criação) */}
         {isEditing ? (
-          <Alert className="mb-4 border-blue-500 bg-blue-50">
-            <Edit className="h-4 w-4 text-blue-600" />
+          <Alert className="mb-4 border-blue-500 bg-blue-50 dark:bg-blue-950/50 dark:border-blue-400">
+            <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertDescription>
               <strong>Modo Edição</strong> - Você está editando a nomeação ID #{editingConfigId}.
               Clique em "Nova Nomeação" para criar uma nova configuração do zero.
             </AlertDescription>
           </Alert>
         ) : (
-          <Alert className="mb-4 border-green-500 bg-green-50">
-            <Plus className="h-4 w-4 text-green-600" />
+          <Alert className="mb-4 border-green-500 bg-green-50 dark:bg-green-950/50 dark:border-green-400">
+            <Plus className="h-4 w-4 text-green-600 dark:text-green-400" />
             <AlertDescription>
               <strong>Modo Criação</strong> - Você está criando uma nova nomeação. Todas as
               alterações serão salvas como uma nova configuração.
@@ -1867,10 +1903,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           </Label>
 
                           {/* Campo inline para Pontual */}
-                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-blue-600">P</span>
+                              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">P</span>
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Pontual</Label>
@@ -1889,10 +1925,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           </div>
 
                           {/* Campo inline para Sazonal */}
-                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-green-600">S</span>
+                              <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                                <span className="text-xs font-bold text-green-600 dark:text-green-400">S</span>
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Sazonal</Label>
@@ -1911,10 +1947,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           </div>
 
                           {/* Campo inline para Recorrente */}
-                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-purple-600">R</span>
+                              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">R</span>
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Recorrente</Label>
@@ -1934,10 +1970,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         </div>
 
                         {/* Resumo dos critérios selecionados */}
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
                           <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <Label className="text-sm font-medium text-blue-800">
+                            <div className="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
+                            <Label className="text-sm font-medium text-blue-800 dark:text-blue-300">
                               Critérios Ativos:
                             </Label>
                           </div>
@@ -1945,7 +1981,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                             {config.criteria?.faithfulness?.punctual && (
                               <Badge
                                 variant="secondary"
-                                className="text-xs bg-blue-100 text-blue-700"
+                                className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
                               >
                                 Pontual
                               </Badge>
@@ -1953,7 +1989,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                             {config.criteria?.faithfulness?.seasonal && (
                               <Badge
                                 variant="secondary"
-                                className="text-xs bg-green-100 text-green-700"
+                                className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                               >
                                 Sazonal
                               </Badge>
@@ -1961,7 +1997,7 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                             {config.criteria?.faithfulness?.recurring && (
                               <Badge
                                 variant="secondary"
-                                className="text-xs bg-purple-100 text-purple-700"
+                                className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
                               >
                                 Recorrente
                               </Badge>
@@ -2135,10 +2171,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           </Label>
 
                           {/* Campo inline para Frequente */}
-                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-green-600">F</span>
+                              <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                                <span className="text-xs font-bold text-green-600 dark:text-green-400">F</span>
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Frequente</Label>
@@ -2157,10 +2193,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           </div>
 
                           {/* Campo inline para Não Frequente */}
-                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-orange-600">N</span>
+                              <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+                                <span className="text-xs font-bold text-orange-600 dark:text-orange-400">N</span>
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">Não Frequente</Label>
@@ -2179,10 +2215,10 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                           </div>
 
                           {/* Campo inline para A Resgatar */}
-                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-red-600">R</span>
+                              <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
+                                <span className="text-xs font-bold text-red-600 dark:text-red-400">R</span>
                               </div>
                               <div>
                                 <Label className="font-medium text-sm">A Resgatar</Label>
@@ -2202,36 +2238,36 @@ Normalmente é liderado pelo casal, apesar de apenas um nome ser indicado como l
                         </div>
 
                         {/* Resumo dos critérios selecionados */}
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
                           <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <Label className="text-sm font-medium text-blue-800">
+                            <div className="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
+                            <Label className="text-sm font-medium text-blue-800 dark:text-blue-300">
                               Critérios Ativos:
                             </Label>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {config.criteria?.classification?.frequente && (
                               <Badge
-                                variant="secondary"
-                                className="text-xs bg-green-100 text-green-700"
+                                variant="success"
+                                className="text-xs px-3 py-1 shadow-sm border-0"
                               >
-                                Frequente
+                                <span className="font-semibold">Frequente</span>
                               </Badge>
                             )}
                             {config.criteria?.classification?.naoFrequente && (
                               <Badge
-                                variant="secondary"
-                                className="text-xs bg-orange-100 text-orange-700"
+                                variant="warning"
+                                className="text-xs px-3 py-1 shadow-sm border-0"
                               >
-                                Não Frequente
+                                <span className="font-semibold">Não Frequente</span>
                               </Badge>
                             )}
                             {config.criteria?.classification?.aResgatar && (
                               <Badge
-                                variant="secondary"
-                                className="text-xs bg-red-100 text-red-700"
+                                variant="destructive"
+                                className="text-xs px-3 py-1 shadow-sm border-0"
                               >
-                                A Resgatar
+                                <span className="font-semibold">A Resgatar</span>
                               </Badge>
                             )}
                             {!config.criteria?.classification?.frequente &&

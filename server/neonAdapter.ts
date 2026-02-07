@@ -235,6 +235,7 @@ export class NeonAdapter implements IStorage {
     return {
       id: Number(record.id),
       userId: Number(record.requesterId),
+      districtId: record.districtId != null ? Number(record.districtId) : null,
       title: String(record.title),
       description: record.description == null ? null : String(record.description),
       isPublic: record.isPrivate === null ? true : !record.isPrivate,
@@ -1664,7 +1665,9 @@ export class NeonAdapter implements IStorage {
   }
 
   // Método para recalcular pontos dos usuários (opcionalmente filtrado por distrito)
-  async calculateAdvancedUserPoints(districtId?: number | null): Promise<PointsRecalculationResult> {
+  async calculateAdvancedUserPoints(
+    districtId?: number | null
+  ): Promise<PointsRecalculationResult> {
     try {
       // Buscar todos os usuários
       let users = await this.getAllUsers();
@@ -1673,7 +1676,9 @@ export class NeonAdapter implements IStorage {
       if (districtId !== undefined && districtId !== null) {
         const beforeCount = users.length;
         users = users.filter(u => u.districtId === districtId);
-        logger.info(`🏛️ Recálculo filtrado por distrito ${districtId}: ${users.length} usuários (de ${beforeCount} total)`);
+        logger.info(
+          `🏛️ Recálculo filtrado por distrito ${districtId}: ${users.length} usuários (de ${beforeCount} total)`
+        );
       }
 
       let updatedCount = 0;
@@ -1716,9 +1721,8 @@ export class NeonAdapter implements IStorage {
         }
       }
 
-      const scopeMessage = districtId !== undefined && districtId !== null
-        ? `do distrito`
-        : `do sistema`;
+      const scopeMessage =
+        districtId !== undefined && districtId !== null ? `do distrito` : `do sistema`;
 
       return {
         success: true,
@@ -3176,7 +3180,7 @@ export class NeonAdapter implements IStorage {
         return null;
       }
 
-      return result[0] as Event;
+      return result[0] as unknown as Event;
     } catch (error) {
       console.error('Error getting event by Google ID:', error);
       return null;

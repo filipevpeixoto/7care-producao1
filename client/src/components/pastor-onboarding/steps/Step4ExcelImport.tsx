@@ -2,8 +2,10 @@
  * Step 4: Importação de Planilha Excel
  * Upload e preview de membros existentes
  * Design elegante e moderno com etapas de mapeamento e validação
- * Usa EXATAMENTE a mesma lógica de detecção do Gestão de Dados (Settings.tsx)
- * Importado do módulo compartilhado importHelpers.ts
+ * 
+ * IMPORTANTE: Passa os dados BRUTOS da planilha para o backend processar
+ * O backend usa exatamente a mesma lógica do Gestão de Dados (Settings.tsx)
+ * Isso garante consistência entre os dois métodos de importação
  */
 
 import React, { useState, useRef, useCallback, useMemo } from 'react';
@@ -43,13 +45,6 @@ import {
 } from 'lucide-react';
 import { ExcelData, ExcelRow } from '@/types/pastor-invite';
 import { readExcelFile } from '@/lib/excel';
-import {
-  processExcelRow,
-  formatDateToISO,
-  toStr,
-  cleanSexo,
-  parseNumber,
-} from '@/lib/importHelpers';
 
 type ImportStep = 'upload' | 'preview' | 'mapping' | 'validation' | 'complete';
 
@@ -85,148 +80,157 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ============================================================
-  // Processamento de dados brutos usando importHelpers
-  // (EXATAMENTE a mesma lógica do Gestão de Dados - Settings.tsx)
+  // IMPORTANTE: Passa os dados BRUTOS da planilha sem transformação
+  // O backend irá processar exatamente como o Gestão de Dados faz
+  // Isso garante consistência entre os dois métodos de importação
   // ============================================================
   const processRawData = useCallback((raw: Record<string, unknown>[]): ExcelRow[] => {
     return raw
       .map(row => {
-        // Usar exatamente a mesma função do Gestão de Dados
-        const processed = processExcelRow(row);
-        if (!processed) return null;
-
-        // Converter ImportedMemberData para ExcelRow
-        // Extrair dados extras do JSON para campos individuais
-        let extraDataParsed: Record<string, unknown> = {};
-        try {
-          if (processed.extraData) {
-            extraDataParsed = JSON.parse(processed.extraData);
-          }
-        } catch {
-          // Ignore parse errors
+        // Pegar o nome - obrigatório
+        const rawNome = row.Nome || row.nome || row.name || row['Nome Completo'] || row['nome completo'];
+        const nome = rawNome ? String(rawNome).trim() : '';
+        
+        // Pular linhas sem nome válido
+        if (!nome || nome.length < 2 || nome.includes('@') || /^\d+$/.test(nome)) {
+          return null;
         }
 
+        // Pegar a igreja
+        const rawIgreja = row.Igreja || row.igreja || row.church || row.Church || row.Congregação;
+        const igreja = rawIgreja ? String(rawIgreja).trim() : 'Igreja Principal';
+
+        // IMPORTANTE: Passar valores ORIGINAIS da planilha para dizimista/ofertante
+        // Sem usar parseDizimistaField/parseOfertanteField que transformam os valores
+        const dizimistaOriginal = row.Dizimista || row.dizimista;
+        const ofertanteOriginal = row.Ofertante || row.ofertante;
+
+        // Retornar dados brutos - o backend vai processar
         return {
           // Campos obrigatórios
-          nome: processed.name,
-          igreja: processed.church,
+          nome,
+          igreja,
           
-          // Campos básicos
-          telefone: processed.phone || undefined,
-          email: processed.email,
-          cargo: toStr(extraDataParsed.cargo),
-          codigo: processed.churchCode,
-          tipo: processed.role,
-          distrital: toStr(extraDataParsed.distrital),
+          // Campos básicos - valores diretos da planilha
+          telefone: row.Celular || row.celular || row.telefone || row.Telefone || row.phone,
+          email: row.Email || row.email || row['E-mail'] || row['e-mail'],
+          cargo: row.Cargo || row.cargo,
+          codigo: row.Código || row.codigo || row.code,
+          tipo: row.Tipo || row.tipo || row.role,
+          distrital: row.Distrital || row.distrital,
           
-          // Dados pessoais
-          dataNascimento: processed.birthDate ? formatDateToISO(processed.birthDate) : undefined,
-          estadoCivil: processed.civilStatus,
-          profissao: processed.occupation,
-          escolaridade: processed.education,
-          endereco: processed.address,
-          sexo: cleanSexo(extraDataParsed.sexo),
-          cpf: processed.cpf,
-          idade: extraDataParsed.idade !== undefined ? parseNumber(extraDataParsed.idade) : undefined,
-          bairro: toStr(extraDataParsed.bairro),
-          cidadeEstado: toStr(extraDataParsed.cidadeEstado),
-          cidadeNascimento: toStr(extraDataParsed.cidadeNascimento),
-          estadoNascimento: toStr(extraDataParsed.estadoNascimento),
+          // Dados pessoais - valores diretos
+          dataNascimento: row.Nascimento || row.nascimento || row.birthDate || row['Data de Nascimento'] || row['data de nascimento'],
+          estadoCivil: row['Estado civil'] || row.estadoCivil || row.civilStatus || row['Estado Civil'],
+          profissao: row.Ocupação || row.ocupacao || row.profissao || row.Profissão || row.occupation,
+          escolaridade: row['Grau de educação'] || row.educacao || row.education || row.Escolaridade || row.escolaridade,
+          endereco: row.Endereço || row.endereco || row.address || row.Address,
+          sexo: row.Sexo || row.sexo,
+          cpf: row.CPF || row.cpf,
+          idade: row.Idade || row.idade,
+          bairro: row.Bairro || row.bairro,
+          cidadeEstado: row['Cidade e Estado'] || row.cidadeEstado,
+          cidadeNascimento: row['Cidade de nascimento'] || row.cidadeNascimento,
+          estadoNascimento: row['Estado de nascimento'] || row.estadoNascimento,
           
-          // Dados religiosos
-          dataBatismo: processed.baptismDate ? formatDateToISO(processed.baptismDate) : undefined,
-          // Usar valores ORIGINAIS da planilha para dizimista/ofertante (assim como Settings.tsx)
-          dizimista: toStr(extraDataParsed.dizimistaOriginal) || processed.dizimistaType,
-          ofertante: toStr(extraDataParsed.ofertanteOriginal) || processed.ofertanteType,
-          religiaoAnterior: processed.previousReligion,
-          instrutorBiblico: processed.biblicalInstructor,
+          // Dados religiosos - VALORES ORIGINAIS (SEM TRANSFORMAÇÃO)
+          dataBatismo: row.Batismo || row.batismo || row.baptismDate || row['Data de Batismo'] || row['data de batismo'],
+          dizimista: dizimistaOriginal, // Valor ORIGINAL da planilha
+          ofertante: ofertanteOriginal, // Valor ORIGINAL da planilha
+          religiaoAnterior: row['Religião anterior'] || row.religiaoAnterior,
+          instrutorBiblico: row['Instrutor bíblico'] || row.instrutorBiblico,
           
-          // Engajamento e Classificação
-          engajamento: processed.engajamento || undefined,
-          classificacao: processed.classificacao || undefined,
+          // Engajamento e Classificação - valores diretos
+          engajamento: row.Engajamento || row.engajamento,
+          classificacao: row.Classificação || row.classificacao,
           
-          // Campos de pontuação
-          tempoBatismoAnos: processed.tempoBatismoAnos,
-          departamentosCargos: processed.departamentosCargos || undefined,
-          nomeUnidade: processed.nomeUnidade || undefined,
-          temLicao: processed.temLicao,
-          totalPresenca: processed.totalPresenca,
-          comunhao: processed.comunhao,
-          missao: processed.missao,
-          estudoBiblico: processed.estudoBiblico,
-          batizouAlguem: processed.batizouAlguem,
-          discPosBatismal: processed.discPosBatismal,
-          cpfValido: processed.cpfValido,
-          camposVazios: processed.camposVazios,
+          // Campos de pontuação - valores diretos
+          tempoBatismoAnos: row['Tempo de batismo - anos'] || row.tempoBatismoAnos,
+          departamentosCargos: row['Departamentos e cargos'] || row.departamentosCargos || row.departamentos,
+          nomeUnidade: row['Nome da unidade'] || row.nomeUnidade || row.Unidade,
+          temLicao: row['Tem lição'] || row.temLicao,
+          totalPresenca: row['Total de presença'] || row.totalPresenca || row.presencaTotal || row.Presença,
+          comunhao: row.Comunhão || row.comunhao,
+          missao: row.Missão || row.missao,
+          estudoBiblico: row['Estudo bíblico'] || row.estudoBiblico,
+          batizouAlguem: row['Batizou alguém'] || row.batizouAlguem,
+          discPosBatismal: row['Disc. pós batismal'] || row.discPosBatismal,
+          cpfValido: row['CPF válido'] || row.cpfValido,
+          camposVazios: row['Campos vazios/inválidos'] || row.camposVazios,
           
           // Escola Sabatina
-          matriculadoES: processed.isEnrolledES,
-          periodoES: processed.esPeriod || undefined,
+          matriculadoES: row['Matriculado na ES'] || row.matriculadoES,
+          periodoES: row['Período ES'] || row.periodoES,
           
-          // Dízimos (12 meses)
-          dizimos12m: toStr(extraDataParsed.dizimos12m),
-          ultimoDizimo: toStr(extraDataParsed.ultimoDizimo),
-          valorDizimo: toStr(extraDataParsed.valorDizimo),
-          numeroMesesSemDizimar: extraDataParsed.numeroMesesSemDizimar !== undefined ? parseNumber(extraDataParsed.numeroMesesSemDizimar) : undefined,
-          dizimistaAntesUltimoDizimo: toStr(extraDataParsed.dizimistaAntesUltimoDizimo),
-          dizimistaType: processed.dizimistaType || toStr(extraDataParsed.dizimistaType),
+          // Dízimos (12 meses) - valores diretos
+          dizimos12m: row['Dízimos - 12m'] || row.dizimos12m,
+          ultimoDizimo: row['Último dízimo - 12m'] || row.ultimoDizimo,
+          valorDizimo: row['Valor dízimo - 12m'] || row.valorDizimo,
+          numeroMesesSemDizimar: row['Número de meses s/ dizimar'] || row.numeroMesesSemDizimar,
+          dizimistaAntesUltimoDizimo: row['Dizimista antes do últ. dízimo'] || row.dizimistaAntesUltimoDizimo,
           
-          // Ofertas (12 meses)
-          ofertas12m: toStr(extraDataParsed.ofertas12m),
-          ultimaOferta: toStr(extraDataParsed.ultimaOferta),
-          valorOferta: toStr(extraDataParsed.valorOferta),
-          numeroMesesSemOfertar: extraDataParsed.numeroMesesSemOfertar !== undefined ? parseNumber(extraDataParsed.numeroMesesSemOfertar) : undefined,
-          ofertanteAntesUltimaOferta: toStr(extraDataParsed.ofertanteAntesUltimaOferta),
-          ofertanteType: processed.ofertanteType || toStr(extraDataParsed.ofertanteType),
+          // Ofertas (12 meses) - valores diretos
+          ofertas12m: row['Ofertas - 12m'] || row.ofertas12m,
+          ultimaOferta: row['Última oferta - 12m'] || row.ultimaOferta,
+          valorOferta: row['Valor oferta - 12m'] || row.valorOferta,
+          numeroMesesSemOfertar: row['Número de meses s/ ofertar'] || row.numeroMesesSemOfertar,
+          ofertanteAntesUltimaOferta: row['Ofertante antes da últ. oferta'] || row.ofertanteAntesUltimaOferta,
           
           // Movimentos
-          ultimoMovimento: toStr(extraDataParsed.ultimoMovimento),
-          dataUltimoMovimento: toStr(extraDataParsed.dataUltimoMovimento),
-          tipoEntrada: toStr(extraDataParsed.tipoEntrada),
+          ultimoMovimento: row['Último movimento'] || row.ultimoMovimento,
+          dataUltimoMovimento: row['Data do último movimento'] || row.dataUltimoMovimento,
+          tipoEntrada: row['Tipo de entrada'] || row.tipoEntrada,
           
           // Batismo detalhado
-          tempoBatismo: toStr(extraDataParsed.tempoBatismo),
-          localidadeBatismo: toStr(extraDataParsed.localidadeBatismo),
-          batizadoPor: toStr(extraDataParsed.batizadoPor),
-          idadeBatismo: toStr(extraDataParsed.idadeBatismo),
+          tempoBatismo: row['Tempo de batismo'] || row.tempoBatismo,
+          localidadeBatismo: row['Localidade do batismo'] || row.localidadeBatismo,
+          batizadoPor: row['Batizado por'] || row.batizadoPor,
+          idadeBatismo: row['Idade no Batismo'] || row.idadeBatismo,
           
           // Conversão
-          comoConheceu: toStr(extraDataParsed.comoConheceu),
-          fatorDecisivo: toStr(extraDataParsed.fatorDecisivo),
-          comoEstudou: toStr(extraDataParsed.comoEstudou),
-          instrutorBiblico2: toStr(extraDataParsed.instrutorBiblico2),
+          comoConheceu: row['Como conheceu a IASD'] || row.comoConheceu,
+          fatorDecisivo: row['Fator decisivo'] || row.fatorDecisivo,
+          comoEstudou: row['Como estudou a Bíblia'] || row.comoEstudou,
+          instrutorBiblico2: row['Instrutor bíblico 2'] || row.instrutorBiblico2,
           
           // Cargos
-          temCargo: toStr(extraDataParsed.temCargo),
-          teen: toStr(extraDataParsed.teen),
+          temCargo: row['Tem cargo'] || row.temCargo,
+          teen: row.Teen || row.teen,
           
           // Família
-          nomeMae: toStr(extraDataParsed.nomeMae),
-          nomePai: toStr(extraDataParsed.nomePai),
-          dataCasamento: toStr(extraDataParsed.dataCasamento),
+          nomeMae: row['Nome da mãe'] || row.nomeMae,
+          nomePai: row['Nome do pai'] || row.nomePai,
+          dataCasamento: row['Data de casamento'] || row.dataCasamento,
           
           // Presença detalhada
-          presencaCartao: extraDataParsed.presencaCartao !== undefined ? parseNumber(extraDataParsed.presencaCartao) : undefined,
-          presencaQuizLocal: extraDataParsed.presencaQuizLocal !== undefined ? parseNumber(extraDataParsed.presencaQuizLocal) : undefined,
-          presencaQuizOutra: extraDataParsed.presencaQuizOutra !== undefined ? parseNumber(extraDataParsed.presencaQuizOutra) : undefined,
-          presencaQuizOnline: extraDataParsed.presencaQuizOnline !== undefined ? parseNumber(extraDataParsed.presencaQuizOnline) : undefined,
-          teveParticipacao: toStr(extraDataParsed.teveParticipacao),
+          presencaCartao: row['Total presença no cartão'] || row.presencaCartao,
+          presencaQuizLocal: row['Presença no quiz local'] || row.presencaQuizLocal,
+          presencaQuizOutra: row['Presença no quiz outra unidade'] || row.presencaQuizOutraUnidade,
+          presencaQuizOnline: row['Presença no quiz online'] || row.presencaQuizOnline,
+          teveParticipacao: row['Teve participação'] || row.teveParticipacao,
           
           // Colaboração
-          campoColaborador: toStr(extraDataParsed.campoColaborador),
-          areaColaborador: toStr(extraDataParsed.areaColaborador),
-          estabelecimentoColaborador: toStr(extraDataParsed.estabelecimentoColaborador),
-          funcaoColaborador: toStr(extraDataParsed.funcaoColaborador),
+          campoColaborador: row['Campo - colaborador'] || row.campoColaborador,
+          areaColaborador: row['Área - colaborador'] || row.areaColaborador,
+          estabelecimentoColaborador: row['Estabelecimento - colaborador'] || row.estabelecimentoColaborador,
+          funcaoColaborador: row['Função - colaborador'] || row.funcaoColaborador,
           
-          // Educação (novos campos)
-          alunoEducacao: toStr(extraDataParsed.alunoEducacao),
-          parentesco: toStr(extraDataParsed.parentesco),
+          // Educação
+          alunoEducacao: row['Aluno educação Adv.'] || row.alunoEducacao,
+          parentesco: row['Parentesco p/ c/ aluno'] || row.parentesco,
           
           // Validação
-          nomeCamposVazios: toStr(extraDataParsed.nomeCamposVazios),
+          nomeCamposVazios: row['Nome dos campos vazios no ACMS'] || row.nomeCamposVazios,
           
-          // Observações
-          observacoes: processed.observations || toStr(extraDataParsed.observacoes),
+          // Observações - construir a partir dos campos originais
+          observacoes: [
+            row['Como estudou a Bíblia'] && `Como estudou: ${row['Como estudou a Bíblia']}`,
+            row['Teve participação'] && `Participação: ${row['Teve participação']}`,
+            row['Campos vazios/inválidos'] && `Campos vazios: ${row['Campos vazios/inválidos']}`,
+            row['Tempo de batismo'] && `Tempo de batismo: ${row['Tempo de batismo']}`,
+            row['Engajamento'] && `Engajamento: ${row['Engajamento']}`,
+            row['Classificação'] && `Classificação: ${row['Classificação']}`,
+          ].filter(Boolean).join(' | ') || undefined,
           
           // Flag de validação interna
           valid: true,
@@ -409,7 +413,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       </div>
 
       {/* Progress Bar */}
-      {importStep !== 'upload' && (
+      {(importStep as string) !== 'upload' && (
         <div className="mb-8 space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-blue-700">Progresso da Importação</span>

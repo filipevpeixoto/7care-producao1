@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -47,7 +47,29 @@ export const EditUserModal = ({
     education: user?.education || '',
     address: user?.address || '',
     observations: user?.observations || '',
+    interestedSituation: user?.interestedSituation || '',
   });
+
+  // Atualizar formData quando o usuário mudar
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        role: user.role || 'interested',
+        status: user.status || 'pending',
+        church: user.church || '',
+        birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : '',
+        civilStatus: user.civilStatus || '',
+        occupation: user.occupation || '',
+        education: user.education || '',
+        address: user.address || '',
+        observations: user.observations || '',
+        interestedSituation: user.interestedSituation || '',
+      });
+    }
+  }, [user]);
 
   const updateUserMutation = useMutation({
     mutationFn: ({ userId, data }: { userId: number; data: any }) =>
@@ -183,6 +205,29 @@ export const EditUserModal = ({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Campo de Situação do Amigo - apenas para role 'interested' */}
+            {(formData.role === 'interested' || user?.role === 'interested') && (
+              <div className="space-y-2">
+                <Label htmlFor="interestedSituation">Situação do Amigo</Label>
+                <Select
+                  value={formData.interestedSituation}
+                  onValueChange={value => handleInputChange('interestedSituation', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a situação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem situação</SelectItem>
+                    <SelectItem value="A">A - Pronto para Batismo</SelectItem>
+                    <SelectItem value="B">B - Detalhes Pessoais</SelectItem>
+                    <SelectItem value="C">C - Estudando Bíblia</SelectItem>
+                    <SelectItem value="D">D - Quer Estudar</SelectItem>
+                    <SelectItem value="E">E - Contato Inicial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="church">Igreja</Label>

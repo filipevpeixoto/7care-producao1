@@ -4,25 +4,21 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { setDefaultChurchSchema } from '../schemas';
 import multer from 'multer';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendError } from '../utils/apiResponse';
+import { getRepository, getService } from '../container';
 
 export const settingsRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
+  const meetingRepo = getRepository('meetingRepository');
+  const pointsRepo = getRepository('pointsRepository');
+  const systemRepo = getRepository('systemRepository');
+  const pointsCalcService = getService('pointsCalculationService');
 
   /**
    * @swagger
@@ -37,7 +33,7 @@ export const settingsRoutes = (app: Express): void => {
   app.get(
     '/api/settings/default-church',
     asyncHandler(async (req: Request, res: Response) => {
-      const defaultChurch = await storage.getDefaultChurch();
+      const defaultChurch = await churchRepo.getDefaultChurch();
       sendSuccess(res, { defaultChurch });
     })
   );
@@ -71,7 +67,7 @@ export const settingsRoutes = (app: Express): void => {
         .validatedBody;
 
       logger.info(`Setting default church: ${churchId}`);
-      const success = await storage.setDefaultChurch(
+      const success = await churchRepo.setDefaultChurch(
         typeof churchId === 'number' ? churchId : parseInt(String(churchId), 10)
       );
       if (success) {
@@ -141,7 +137,7 @@ export const settingsRoutes = (app: Express): void => {
         const logoUrl = `/uploads/${file.filename}`;
 
         try {
-          await storage.saveSystemLogo(logoUrl);
+          await systemRepo.saveLogo(logoUrl);
           logger.info(`System logo saved: ${logoUrl}`);
         } catch (dbError) {
           logger.error('Database error:', dbError);
@@ -175,7 +171,7 @@ export const settingsRoutes = (app: Express): void => {
   app.get(
     '/api/settings/logo',
     asyncHandler(async (req: Request, res: Response) => {
-      const logoData = await storage.getSystemLogo();
+      const logoData = await systemRepo.getLogo();
 
       if (logoData) {
         sendSuccess(res, {
@@ -208,7 +204,7 @@ export const settingsRoutes = (app: Express): void => {
   app.delete(
     '/api/settings/logo',
     asyncHandler(async (req: Request, res: Response) => {
-      await storage.clearSystemLogo();
+      await systemRepo.clearLogo();
       sendSuccess(res, null, 200, 'Logo deleted successfully');
     })
   );
@@ -226,7 +222,7 @@ export const settingsRoutes = (app: Express): void => {
   app.get(
     '/api/meeting-types',
     asyncHandler(async (req: Request, res: Response) => {
-      const meetingTypes = await storage.getMeetingTypes();
+      const meetingTypes = await meetingRepo.getMeetingTypes();
       sendSuccess(res, meetingTypes);
     })
   );
@@ -252,7 +248,7 @@ export const settingsRoutes = (app: Express): void => {
         return sendError(res, 'Usuário não autenticado', 401);
       }
 
-      const requestingUser = await storage.getUserById(requestingUserId);
+      const requestingUser = await userRepo.getUserById(requestingUserId);
 
       if (!requestingUser) {
         return sendError(res, 'Usuário não encontrado', 404);
@@ -262,7 +258,7 @@ export const settingsRoutes = (app: Express): void => {
       const districtId = requestingUser.districtId;
 
       // Buscar configuração global (a mesma para todos, mas retornar info do distrito)
-      const config = await storage.getPointsConfiguration();
+      const config = await pointsRepo.getConfiguration();
 
       sendSuccess(res, {
         districtId: districtId || null,
@@ -293,7 +289,7 @@ export const settingsRoutes = (app: Express): void => {
         return sendError(res, 'Usuário não autenticado', 401);
       }
 
-      const requestingUser = await storage.getUserById(requestingUserId);
+      const requestingUser = await userRepo.getUserById(requestingUserId);
 
       if (!requestingUser) {
         return sendError(res, 'Usuário não encontrado', 404);
@@ -303,7 +299,7 @@ export const settingsRoutes = (app: Express): void => {
       const districtId = requestingUser.districtId;
 
       // Salvar configuração global
-      await storage.savePointsConfiguration(config);
+      await pointsRepo.saveConfiguration(config);
 
       // Recalcular pontos apenas do distrito se for pastor
       let districtFilter: number | null = null;
@@ -312,7 +308,7 @@ export const settingsRoutes = (app: Express): void => {
         logger.info(`🏛️ Salvando config e recalculando pontos do distrito: ${districtFilter}`);
       }
 
-      const result = await storage.calculateAdvancedUserPoints(districtFilter);
+      const result = await pointsCalcService.calculateAdvancedUserPoints(districtFilter);
 
       sendSuccess(res, {
         success: true,
@@ -344,7 +340,7 @@ export const settingsRoutes = (app: Express): void => {
         return sendError(res, 'Usuário não autenticado', 401);
       }
 
-      const requestingUser = await storage.getUserById(requestingUserId);
+      const requestingUser = await userRepo.getUserById(requestingUserId);
 
       if (!requestingUser) {
         return sendError(res, 'Usuário não encontrado', 404);
@@ -359,7 +355,7 @@ export const settingsRoutes = (app: Express): void => {
         logger.info(`🏛️ Reset e recálculo de pontos do distrito: ${districtFilter}`);
       }
 
-      const result = await storage.calculateAdvancedUserPoints(districtFilter);
+      const result = await pointsCalcService.calculateAdvancedUserPoints(districtFilter);
 
       sendSuccess(res, {
         success: true,

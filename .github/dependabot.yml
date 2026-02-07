@@ -1,67 +1,51 @@
-# ===========================================
-# Dependabot - Atualizações automáticas de dependências
-# ===========================================
-
 version: 2
 updates:
-  # Manter dependências npm atualizadas
+  # npm dependencies
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "09:00"
-      timezone: "America/Sao_Paulo"
     open-pull-requests-limit: 10
-    reviewers:
-      - "pxttorrent"
     labels:
       - "dependencies"
       - "automated"
-    commit-message:
-      prefix: "chore(deps)"
+    # Group minor/patch updates to reduce PR noise
     groups:
-      # Agrupar atualizações de dev dependencies
-      dev-dependencies:
-        patterns:
-          - "@types/*"
-          - "eslint*"
-          - "prettier*"
-          - "jest*"
-          - "typescript*"
-          - "@testing-library/*"
-          - "@playwright/*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Agrupar atualizações de Radix UI
       radix-ui:
         patterns:
           - "@radix-ui/*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Agrupar atualizações do React
-      react:
+      tanstack:
         patterns:
-          - "react"
-          - "react-dom"
-          - "react-*"
-        update-types:
-          - "minor"
-          - "patch"
+          - "@tanstack/*"
+      types:
+        patterns:
+          - "@types/*"
+      eslint:
+        patterns:
+          - "eslint*"
+          - "typescript-eslint"
+    # Ignore major version bumps for critical deps (review manually)
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "express"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "drizzle-orm"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "deps"
+      include: "scope"
 
-  # Manter GitHub Actions atualizados
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Sao_Paulo"
     labels:
-      - "dependencies"
       - "ci"
       - "automated"
     commit-message:
-      prefix: "chore(ci)"
+      prefix: "ci"

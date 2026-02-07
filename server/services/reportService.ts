@@ -197,9 +197,7 @@ export class ReportService {
    */
   async getBirthdayReport(month: number, districtId: number | null = null) {
     try {
-      const whereConditions = [
-        sql`EXTRACT(MONTH FROM ${schema.users.birthDate}) = ${month}`,
-      ];
+      const whereConditions = [sql`EXTRACT(MONTH FROM ${schema.users.birthDate}) = ${month}`];
 
       if (districtId) {
         whereConditions.push(eq(schema.users.districtId, districtId));
@@ -230,9 +228,9 @@ export class ReportService {
       const csvHeaders = headers.join(',');
 
       // Converter cada linha
-      const csvRows = data.map((row) =>
+      const csvRows = data.map(row =>
         headers
-          .map((header) => {
+          .map(header => {
             const value = (row as any)[header];
             // Escapar valores com vírgula ou aspas
             if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {

@@ -335,7 +335,7 @@ export const useAppTour = () => {
     // Filtrar apenas steps com elementos que existem
     const validSteps = allSteps.filter(step => {
       if (!step.element) return true;
-      const el = document.querySelector(step.element);
+      const el = document.querySelector(step.element as string);
       return el !== null;
     });
 
@@ -347,8 +347,8 @@ export const useAppTour = () => {
 
     const driverObj = driver({
       showProgress: true,
-      showButtons: ['next', 'previous', 'close'],
-      steps: validSteps,
+      showButtons: ['next', 'previous', 'close'] as any,
+      steps: validSteps as any,
       nextBtnText: 'Próximo →',
       prevBtnText: '← Anterior',
       doneBtnText: 'Finalizar ✓',
@@ -361,7 +361,7 @@ export const useAppTour = () => {
       onDestroyed: () => {
         setIsRunning(false);
       },
-    });
+    } as any);
 
     driverObj.drive();
   }, [getHeaderSteps, getPageSpecificSteps, getNavSteps]);

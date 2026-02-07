@@ -762,4 +762,5 @@ export const schema = {
   districtSettings,
   expenseReceipts,
   automationConfig,
+  googleCalendarTokens,
 };

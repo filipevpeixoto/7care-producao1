@@ -115,7 +115,7 @@ const offlineHandlers: Record<string, CacheHandler> = {
   },
   '/api/emotional-checkin': {
     save: saveEmotionalCheckinsOffline as (data: unknown[]) => Promise<void>,
-    get: getEmotionalCheckinsOffline,
+    get: getEmotionalCheckinsOffline as unknown as (params?: Record<string, string>) => Promise<unknown[]>,
     cacheDuration: CACHE_DURATION,
   },
   '/api/discipleship-requests': {
@@ -125,7 +125,7 @@ const offlineHandlers: Record<string, CacheHandler> = {
   },
   '/api/notifications': {
     save: saveNotificationsOffline as (data: unknown[]) => Promise<void>,
-    get: getNotificationsOffline,
+    get: getNotificationsOffline as unknown as (params?: Record<string, string>) => Promise<unknown[]>,
     cacheDuration: CACHE_DURATION,
   },
 };

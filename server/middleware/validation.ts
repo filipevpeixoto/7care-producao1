@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodSchema, ZodError, ZodType } from 'zod';
 import { ErrorCodes } from '../types';
 
 /**
@@ -12,6 +12,8 @@ import { ErrorCodes } from '../types';
  */
 export interface ValidatedRequest<T> extends Request {
   validatedBody: T;
+  validatedParams: T;
+  validatedQuery: T;
 }
 
 /**
@@ -66,7 +68,7 @@ export const validateBody = <T>(schema: ZodSchema<T>) => {
 /**
  * Middleware factory para validação de query params
  */
-export const validateQuery = <T>(schema: ZodSchema<T>) => {
+export const validateQuery = <T>(schema: ZodType<T, any, any>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
       const result = schema.safeParse(req.query);
@@ -83,6 +85,7 @@ export const validateQuery = <T>(schema: ZodSchema<T>) => {
 
       // Substitui query pelos dados validados
       req.query = result.data as Record<string, string>;
+      (req as any).validatedQuery = result.data;
       next();
     } catch (_error) {
       res.status(500).json({
@@ -97,7 +100,7 @@ export const validateQuery = <T>(schema: ZodSchema<T>) => {
 /**
  * Middleware factory para validação de path params
  */
-export const validateParams = <T>(schema: ZodSchema<T>) => {
+export const validateParams = <T>(schema: ZodType<T, any, any>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
       const result = schema.safeParse(req.params);
@@ -113,6 +116,7 @@ export const validateParams = <T>(schema: ZodSchema<T>) => {
       }
 
       req.params = result.data as Record<string, string>;
+      (req as any).validatedParams = result.data;
       next();
     } catch (_error) {
       res.status(500).json({

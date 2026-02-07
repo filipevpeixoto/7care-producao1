@@ -10,6 +10,7 @@ import { RefreshCw } from 'lucide-react';
 
 interface MobileLayoutProps {
   children: ReactNode;
+  title?: string;
   showBottomNav?: boolean;
   fullscreen?: boolean;
   showBreadcrumbs?: boolean;
@@ -38,8 +39,8 @@ export const MobileLayout = ({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div className="text-center space-y-4" role="status" aria-live="polite">
+          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto" aria-hidden="true"></div>
           <p className="text-white">Carregando...</p>
         </div>
       </div>
@@ -72,9 +73,9 @@ export const MobileLayout = ({
 
       {!fullscreen && <MobileHeader />}
       {!fullscreen && showBreadcrumbs && <Breadcrumbs />}
-      <main className={`flex-1 overflow-auto ${fullscreen ? '' : 'pb-24'}`}>
+      <div role="region" aria-label="Conteúdo da página" className={`flex-1 overflow-auto ${fullscreen ? '' : 'pb-24'}`}>
         <div className="animate-fade-in">{children}</div>
-      </main>
+      </div>
       {showBottomNav && !fullscreen && <MobileBottomNav />}
     </div>
   );

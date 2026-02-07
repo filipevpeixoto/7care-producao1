@@ -7,7 +7,14 @@ import { eq } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
-import type { EventPermissions } from '../types/storage';
+import type {
+  EventPermissions,
+  Activity,
+  CreateActivityInput,
+  UpdateActivityInput,
+  GoogleDriveConfig,
+  GoogleCalendarConfig,
+} from '../types/storage';
 
 export class SystemRepository {
   /**
@@ -184,6 +191,154 @@ export class SystemRepository {
       logger.error('Erro ao salvar permissões de eventos:', error);
       throw error;
     }
+  }
+
+  // ========== GOOGLE DRIVE CONFIG ==========
+
+  /**
+   * Salva configuração do Google Drive
+   */
+  async saveGoogleDriveConfig(config: GoogleDriveConfig): Promise<void> {
+    await this.saveConfig('google_drive_config', config);
+  }
+
+  /**
+   * Busca configuração do Google Drive
+   */
+  async getGoogleDriveConfig(): Promise<GoogleDriveConfig | null> {
+    const config = await this.getConfig('google_drive_config');
+    if (!config) {
+      return null;
+    }
+    return config as GoogleDriveConfig;
+  }
+
+  // ========== GOOGLE CALENDAR CONFIG ==========
+
+  /**
+   * Salva configuração do Google Calendar para um usuário
+   */
+  async saveGoogleCalendarConfig(
+    userId: number,
+    config: Partial<GoogleCalendarConfig>
+  ): Promise<void> {
+    const existingConfig = await this.getGoogleCalendarConfig(userId);
+    const newConfig = {
+      ...existingConfig,
+      ...config,
+      userId,
+    };
+    await this.saveConfig(`google_calendar_config_${userId}`, newConfig);
+  }
+
+  /**
+   * Busca configuração do Google Calendar para um usuário
+   */
+  async getGoogleCalendarConfig(userId: number): Promise<GoogleCalendarConfig | null> {
+    const config = await this.getConfig(`google_calendar_config_${userId}`);
+    if (!config) {
+      return null;
+    }
+    return config as GoogleCalendarConfig;
+  }
+
+  // ========== ACTIVITIES (CONFIG-BASED) ==========
+
+  /**
+   * Helper para extrair atividades de config stored
+   */
+  private getActivitiesFromConfig(stored: unknown): Activity[] {
+    if (!stored) return [];
+    if (Array.isArray(stored)) {
+      return stored.map((item: Record<string, unknown>) => ({
+        id: Number(item.id ?? 0),
+        title: String(item.title ?? ''),
+        description: item.description == null ? null : String(item.description),
+        imageUrl: item.imageUrl == null ? '' : String(item.imageUrl),
+        date: item.date == null ? null : String(item.date),
+        active: item.active == null ? true : Boolean(item.active),
+        order: item.order == null ? 0 : Number(item.order),
+        districtId: item.districtId == null ? null : Number(item.districtId),
+      }));
+    }
+    return [];
+  }
+
+  /**
+   * Busca todas as atividades (armazenadas em systemConfig)
+   */
+  async getAllActivities(): Promise<Activity[]> {
+    const stored = await this.getConfig('activities');
+    return this.getActivitiesFromConfig(stored);
+  }
+
+  /**
+   * Cria atividade
+   */
+  async createActivity(data: CreateActivityInput & { createdBy?: number }): Promise<Activity> {
+    const activities = await this.getAllActivities();
+    const nextId = activities.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+
+    // Buscar distrito do criador da atividade
+    let districtId = null;
+    if (data.createdBy) {
+      try {
+        const [user] = await db
+          .select({ districtId: schema.users.districtId })
+          .from(schema.users)
+          .where(eq(schema.users.id, data.createdBy))
+          .limit(1);
+        districtId = user?.districtId || null;
+      } catch {
+        // ignore
+      }
+    }
+
+    const activity: Activity = {
+      id: nextId,
+      title: data.title,
+      description: data.description ?? null,
+      imageUrl: data.imageUrl ?? '',
+      date: data.date ?? null,
+      active: data.active ?? true,
+      order: data.order ?? activities.length,
+      districtId: districtId,
+    };
+    const updated = [...activities, activity];
+    await this.saveConfig('activities', updated);
+    return activity;
+  }
+
+  /**
+   * Atualiza atividade
+   */
+  async updateActivity(id: number, updates: UpdateActivityInput): Promise<Activity | null> {
+    const activities = await this.getAllActivities();
+    const index = activities.findIndex(item => Number(item.id) === id);
+    if (index === -1) {
+      return null;
+    }
+    const updatedActivity = {
+      ...activities[index],
+      ...updates,
+      id,
+    };
+    activities[index] = updatedActivity;
+    await this.saveConfig('activities', activities);
+    return updatedActivity;
+  }
+
+  /**
+   * Deleta atividade
+   */
+  async deleteActivity(id: number): Promise<boolean> {
+    const activities = await this.getAllActivities();
+    const filtered = activities.filter(item => Number(item.id) !== id);
+    if (filtered.length === activities.length) {
+      return false;
+    }
+    await this.saveConfig('activities', filtered);
+    return true;
   }
 
   /**

@@ -6,10 +6,11 @@
 import { Express, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { insertUserSchema } from '../../shared/schema';
 import { handleBadRequest, handleNotFound, handleUnauthorized } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
+import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from '../config/security';
 import { authLimiter, registerLimiter, sensitiveLimiter } from '../middleware/rateLimiter';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { loginSchema, changePasswordSchema, resetPasswordSchema } from '../schemas';
@@ -28,7 +29,8 @@ type JwtUserPayload = {
 };
 
 export const authRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
 
   /**
    * @swagger
@@ -79,11 +81,11 @@ export const authRoutes = (app: Express): void => {
       const { email, password } = (req as ValidatedRequest<typeof loginSchema._type>).validatedBody;
 
       // Try to find user by email first
-      let user = await storage.getUserByEmail(email);
+      let user = await userRepo.getUserByEmail(email);
 
       // If not found by email, try to find by normalized username (O(1) with index)
       if (!user) {
-        user = await storage.getUserByNormalizedUsername(email);
+        user = await userRepo.getUserByNormalizedUsername(email);
       }
 
       // Verify password
@@ -168,7 +170,7 @@ export const authRoutes = (app: Express): void => {
       const userData = insertUserSchema.parse(req.body);
 
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email || '');
+      const existingUser = await userRepo.getUserByEmail(userData.email || '');
       if (existingUser) {
         return handleBadRequest(res, 'Usuário já existe');
       }
@@ -187,14 +189,16 @@ export const authRoutes = (app: Express): void => {
         }
       }
 
-      const userRole = (req.body.role as string) || 'interested';
+      const ALLOWED_REGISTRATION_ROLES = ['interested', 'member', 'missionary'];
+      const requestedRole = (req.body.role as string) || 'interested';
+      const userRole = ALLOWED_REGISTRATION_ROLES.includes(requestedRole) ? requestedRole : 'interested';
 
-      const user = await storage.createUser({
+      const user = await userRepo.createUser({
         ...userData,
         role: userRole,
         isApproved: userRole === 'interested',
         status: userRole === 'interested' ? 'approved' : 'pending',
-      } as Parameters<typeof storage.createUser>[0]);
+      } as Parameters<typeof userRepo.createUser>[0]);
 
       logger.info(`Novo usuário registrado: ${user.email}`);
 
@@ -248,23 +252,13 @@ export const authRoutes = (app: Express): void => {
   app.get(
     '/api/auth/me',
     asyncHandler(async (req: Request, res: Response) => {
-      const headerUserId = req.headers['x-user-id'] || req.headers['user-id'];
       const authHeaderValue = req.headers.authorization;
       const rawAuth = Array.isArray(authHeaderValue) ? authHeaderValue[0] : authHeaderValue;
       const authHeader = rawAuth ? String(rawAuth) : '';
 
       let id: number | null = null;
-      const rawUserId =
-        (req.query.userId ? String(req.query.userId) : undefined) ||
-        (headerUserId
-          ? String(Array.isArray(headerUserId) ? headerUserId[0] : headerUserId)
-          : undefined);
-      if (rawUserId) {
-        const parsed = parseInt(rawUserId, 10);
-        if (!Number.isNaN(parsed)) id = parsed;
-      }
 
-      if (id === null && authHeader.startsWith('Bearer ') && JWT_SECRET) {
+      if (authHeader.startsWith('Bearer ') && JWT_SECRET) {
         const token = authHeader.slice('Bearer '.length).trim();
         try {
           const decoded = jwt.verify(token, JWT_SECRET) as Partial<JwtUserPayload>;
@@ -282,7 +276,7 @@ export const authRoutes = (app: Express): void => {
         return handleBadRequest(res, 'ID do usuário inválido');
       }
 
-      const user = await storage.getUserById(id);
+      const user = await userRepo.getUserById(id);
 
       if (!user) {
         return handleNotFound(res, 'Usuário');
@@ -290,10 +284,10 @@ export const authRoutes = (app: Express): void => {
 
       // If user doesn't have a church, assign the first available church
       if (!user.church) {
-        const churches = await storage.getAllChurches();
+        const churches = await churchRepo.getAllChurches();
         if (churches.length > 0) {
           const firstChurch = churches[0];
-          await storage.updateUserChurch(id, firstChurch.name);
+          await userRepo.updateUserChurch(id, firstChurch.name);
           user.church = firstChurch.name;
         }
       }
@@ -337,7 +331,7 @@ export const authRoutes = (app: Express): void => {
         return handleBadRequest(res, 'Invalid user ID');
       }
 
-      const user = await storage.getUserById(id);
+      const user = await userRepo.getUserById(id);
 
       if (!user) {
         return handleNotFound(res, 'User');
@@ -346,11 +340,11 @@ export const authRoutes = (app: Express): void => {
       // If user doesn't have a church, get the first available one
       let churchName = user.church;
       if (!churchName) {
-        const churches = await storage.getAllChurches();
+        const churches = await churchRepo.getAllChurches();
         if (churches.length > 0) {
           churchName = churches[0].name;
           try {
-            await storage.updateUserChurch(id, churchName || '');
+            await userRepo.updateUserChurch(id, churchName || '');
           } catch (updateError) {
             logger.error('Error updating user church:', updateError);
           }
@@ -395,16 +389,16 @@ export const authRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const { email } = (req as ValidatedRequest<typeof resetPasswordSchema._type>).validatedBody;
 
-      const user = await storage.getUserByEmail(email);
+      const user = await userRepo.getUserByEmail(email);
       if (!user) {
         return handleNotFound(res, 'User');
       }
 
       // Hash default password
-      const hashedPassword = await bcrypt.hash('meu7care', 10);
+      const hashedPassword = await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS);
 
       // Update user password and set firstAccess to true
-      const updatedUser = await storage.updateUser(user.id, {
+      const updatedUser = await userRepo.updateUser(user.id, {
         password: hashedPassword,
         firstAccess: true,
         updatedAt: new Date().toISOString(),
@@ -475,7 +469,7 @@ export const authRoutes = (app: Express): void => {
         req as ValidatedRequest<typeof changePasswordSchema._type>
       ).validatedBody;
 
-      const user = await storage.getUserById(userId);
+      const user = await userRepo.getUserById(userId);
       if (!user) {
         return handleNotFound(res, 'User');
       }
@@ -502,10 +496,10 @@ export const authRoutes = (app: Express): void => {
       }
 
       // Hash new password
-      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      const hashedNewPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
 
       // Update user password and set firstAccess to false
-      const updatedUser = await storage.updateUser(userId, {
+      const updatedUser = await userRepo.updateUser(userId, {
         password: hashedNewPassword,
         firstAccess: false,
         updatedAt: new Date().toISOString(),

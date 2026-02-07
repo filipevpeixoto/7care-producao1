@@ -132,6 +132,44 @@ export class MessageRepository {
 
 export class ConversationRepository {
   /**
+   * Busca participantes de uma conversa
+   */
+  async getParticipants(conversationId: number): Promise<
+    Array<{
+      id: number;
+      conversationId: number;
+      userId: number;
+      userName?: string;
+      joinedAt: string;
+    }>
+  > {
+    try {
+      const participants = await db
+        .select({
+          id: schema.conversationParticipants.id,
+          conversationId: schema.conversationParticipants.conversationId,
+          userId: schema.conversationParticipants.userId,
+          userName: schema.users.name,
+          joinedAt: schema.conversationParticipants.joinedAt,
+        })
+        .from(schema.conversationParticipants)
+        .leftJoin(schema.users, eq(schema.conversationParticipants.userId, schema.users.id))
+        .where(eq(schema.conversationParticipants.conversationId, conversationId));
+
+      return participants.map(p => ({
+        id: Number(p.id),
+        conversationId: Number(p.conversationId),
+        userId: Number(p.userId),
+        userName: p.userName || undefined,
+        joinedAt: p.joinedAt?.toISOString() || new Date().toISOString(),
+      }));
+    } catch (error) {
+      logger.error('Erro ao buscar participantes da conversa:', error);
+      return [];
+    }
+  }
+
+  /**
    * Busca todas as conversas
    */
   async getAll(): Promise<Conversation[]> {

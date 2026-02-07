@@ -4,15 +4,19 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { googleDriveConfigSchema } from '../schemas';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 import { isPastor } from '../utils/permissions';
+import { getRepository } from '../container';
 
 export const calendarRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
+  const eventRepo = getRepository('eventRepository');
+  const systemRepo = getRepository('systemRepository');
+
   const resolveOrganizerId = (req: Request): number => {
     const headerValue = req.headers['x-user-id'];
     const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
@@ -20,11 +24,11 @@ export const calendarRoutes = (app: Express): void => {
     return Number.isNaN(parsed) ? 1 : parsed;
   };
   const resolveChurchId = async (): Promise<number> => {
-    const defaultChurch = await storage.getDefaultChurch();
+    const defaultChurch = await churchRepo.getDefaultChurch();
     if (defaultChurch?.id) {
       return defaultChurch.id;
     }
-    const churches = await storage.getAllChurches();
+    const churches = await churchRepo.getAllChurches();
     return churches[0]?.id ?? 1;
   };
 
@@ -62,7 +66,7 @@ export const calendarRoutes = (app: Express): void => {
       ).validatedBody;
 
       logger.info('Saving Google Drive config');
-      await storage.saveGoogleDriveConfig({
+      await systemRepo.saveGoogleDriveConfig({
         spreadsheetUrl,
         sheetName,
         apiKey,
@@ -86,7 +90,7 @@ export const calendarRoutes = (app: Express): void => {
   app.get(
     '/api/calendar/google-drive-config',
     asyncHandler(async (req: Request, res: Response) => {
-      const config = await storage.getGoogleDriveConfig();
+      const config = await systemRepo.getGoogleDriveConfig();
       sendSuccess(res, config || {});
     })
   );
@@ -167,7 +171,7 @@ export const calendarRoutes = (app: Express): void => {
   app.post(
     '/api/calendar/sync-google-drive',
     asyncHandler(async (req: Request, res: Response) => {
-      const config = await storage.getGoogleDriveConfig();
+      const config = await systemRepo.getGoogleDriveConfig();
 
       if (!config || !config.spreadsheetUrl) {
         return sendError(res, 'Google Drive não configurado', 400);
@@ -232,7 +236,7 @@ export const calendarRoutes = (app: Express): void => {
             churchId,
           };
 
-          await storage.createEvent(event);
+          await eventRepo.createEvent(event);
           imported++;
         } catch (err) {
           errors.push(`Erro na linha ${imported + 2}: ${err}`);
@@ -319,16 +323,16 @@ export const calendarRoutes = (app: Express): void => {
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
       let requestingUser = null;
       if (requestingUserId) {
-        requestingUser = await storage.getUserById(requestingUserId);
+        requestingUser = await userRepo.getUserById(requestingUserId);
       }
 
-      let activities = await storage.getAllActivities();
+      let activities = await systemRepo.getAllActivities();
 
       // Filtrar por distrito se for pastor (não superadmin)
       if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
         logger.info(`📅 Filtrando atividades por distrito: ${requestingUser.districtId}`);
         activities = activities.filter(
-          (a: { districtId?: number }) =>
+          (a: { districtId?: number | null }) =>
             a.districtId === requestingUser!.districtId || a.districtId === null
         );
       }
@@ -360,7 +364,7 @@ export const calendarRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const activityData = req.body;
       const createdBy = parseInt((req.headers['x-user-id'] as string) || '0');
-      const activity = await storage.createActivity({ ...activityData, createdBy });
+      const activity = await systemRepo.createActivity({ ...activityData, createdBy });
       sendSuccess(res, activity, 201, 'Atividade criada');
     })
   );
@@ -389,7 +393,7 @@ export const calendarRoutes = (app: Express): void => {
       const id = parseInt(req.params.id);
       const activityData = req.body;
 
-      const activity = await storage.updateActivity(id, activityData);
+      const activity = await systemRepo.updateActivity(id, activityData);
 
       if (!activity) {
         return sendNotFound(res, 'Atividade');
@@ -421,7 +425,7 @@ export const calendarRoutes = (app: Express): void => {
     '/api/activities/:id',
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
-      await storage.deleteActivity(id);
+      await systemRepo.deleteActivity(id);
       sendSuccess(res, null, 200, 'Atividade removida');
     })
   );

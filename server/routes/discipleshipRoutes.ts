@@ -4,25 +4,18 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createDiscipleshipRequestSchema } from '../schemas';
 import { hasAdminAccess } from '../utils/permissions';
 import { asyncHandler } from '../utils';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendCreated, sendError, sendNotFound } from '../utils/apiResponse';
+import { getRepository } from '../container';
 
 export const discipleshipRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const discipleshipRepo = getRepository('discipleshipRepository');
+  const relationshipRepo = getRepository('relationshipRepository');
 
   /**
    * @swagger
@@ -66,7 +59,7 @@ export const discipleshipRoutes = (app: Express): void => {
 
       // Se não for admin, filtrar por distrito (pastor) ou igreja (outros usuários)
       if (!hasAdminAccess({ role: userRole }) && userId) {
-        const currentUser = await storage.getUserById(parseInt(userId));
+        const currentUser = await userRepo.getUserById(parseInt(userId));
         if (currentUser) {
           // Se for pastor, usar filtro por distrito
           if (currentUser.role === 'pastor' && currentUser.districtId) {
@@ -82,7 +75,7 @@ export const discipleshipRoutes = (app: Express): void => {
         }
       }
 
-      let requests = await storage.getAllDiscipleshipRequests();
+      let requests = await discipleshipRepo.getAll();
 
       if (missionaryId) {
         const id = parseInt(missionaryId as string);
@@ -96,8 +89,8 @@ export const discipleshipRoutes = (app: Express): void => {
       // Enriquecer com dados dos usuários
       const enrichedRequests = await Promise.all(
         requests.map(async (req: { interestedId?: number; missionaryId?: number }) => {
-          const interested = req.interestedId ? await storage.getUserById(req.interestedId) : null;
-          const missionary = req.missionaryId ? await storage.getUserById(req.missionaryId) : null;
+          const interested = req.interestedId ? await userRepo.getUserById(req.interestedId) : null;
+          const missionary = req.missionaryId ? await userRepo.getUserById(req.missionaryId) : null;
 
           return {
             ...req,
@@ -179,8 +172,8 @@ export const discipleshipRoutes = (app: Express): void => {
       );
 
       // Validar que ambos pertencem à mesma igreja
-      const interested = await storage.getUserById(interestedId);
-      const missionary = await storage.getUserById(missionaryId);
+      const interested = await userRepo.getUserById(interestedId);
+      const missionary = await userRepo.getUserById(missionaryId);
 
       if (!interested) {
         return sendNotFound(res, 'Interessado');
@@ -195,7 +188,7 @@ export const discipleshipRoutes = (app: Express): void => {
       }
 
       // Verificar se já existe um pedido pendente
-      const existingRequests = await storage.getAllDiscipleshipRequests();
+      const existingRequests = await discipleshipRepo.getAll();
       const hasPending = existingRequests.some(
         (r: { interestedId?: number; missionaryId?: number; status?: string }) =>
           r.interestedId === interestedId &&
@@ -207,7 +200,7 @@ export const discipleshipRoutes = (app: Express): void => {
         return sendError(res, 'Já existe um pedido pendente para este interessado', 400);
       }
 
-      const request = await storage.createDiscipleshipRequest({
+      const request = await discipleshipRepo.create({
         interestedId,
         missionaryId,
         status: 'pending',
@@ -256,7 +249,7 @@ export const discipleshipRoutes = (app: Express): void => {
       const id = parseInt(req.params.id);
       const { status, notes } = req.body;
 
-      const request = await storage.updateDiscipleshipRequest(id, { status, notes });
+      const request = await discipleshipRepo.update(id, { status, notes });
 
       if (!request) {
         return sendNotFound(res, 'Pedido');
@@ -264,7 +257,7 @@ export const discipleshipRoutes = (app: Express): void => {
 
       // Se aprovado, criar relacionamento
       if (status === 'approved' && request.interestedId && request.missionaryId) {
-        await storage.createRelationship({
+        await relationshipRepo.create({
           interestedId: request.interestedId,
           missionaryId: request.missionaryId,
           status: 'active',
@@ -298,7 +291,7 @@ export const discipleshipRoutes = (app: Express): void => {
     '/api/discipleship-requests/:id',
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
-      await storage.deleteDiscipleshipRequest(id);
+      await discipleshipRepo.delete(id);
       sendSuccess(res, { message: 'Pedido removido' });
     })
   );
@@ -344,7 +337,7 @@ export const discipleshipRoutes = (app: Express): void => {
       }
 
       // Verificar se já existe relacionamento ativo
-      const existingRelationships = await storage.getRelationshipsByInterested(interestedId);
+      const existingRelationships = await relationshipRepo.getByInterested(interestedId);
       const hasActive = existingRelationships.some(
         (r: { status?: string }) => r.status === 'active'
       );
@@ -353,7 +346,7 @@ export const discipleshipRoutes = (app: Express): void => {
         return sendError(res, 'Interessado já possui um missionário vinculado', 400);
       }
 
-      const relationship = await storage.createRelationship({
+      const relationship = await relationshipRepo.create({
         interestedId,
         missionaryId,
         status: 'active',

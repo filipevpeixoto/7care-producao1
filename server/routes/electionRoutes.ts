@@ -1,12 +1,11 @@
 import { sql } from '../neonConfig';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
+import type { UserRepository } from '../repositories/userRepository';
 import { hasAdminAccess } from '../utils/permissions';
 import { Express, Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import {
   sendSuccess,
-  sendCreated,
-  sendError,
   sendNotFound,
   sendUnauthorized,
   sendForbidden,
@@ -187,14 +186,14 @@ type DistrictFilterResult = {
 
 const getDistrictFilterForUser = async (
   userId: number | null,
-  storage: NeonAdapter
+  userRepo: UserRepository
 ): Promise<DistrictFilterResult> => {
   if (!userId) {
     return { hasDistrictFilter: false, districtId: null, churchNames: [] };
   }
 
   try {
-    const user = await storage.getUserById(userId);
+    const user = await userRepo.getUserById(userId);
 
     // Se não é pastor ou não tem distrito, não filtra
     if (!user || user.role !== 'pastor' || !user.districtId) {
@@ -202,13 +201,15 @@ const getDistrictFilterForUser = async (
     }
 
     // Buscar igrejas do distrito
-    const churches = await sql`
+    const churches = await sql<{ name: string }>`
       SELECT name FROM churches WHERE district_id = ${user.districtId}
     `;
 
-    const churchNames = churches.map((c: { name: string }) => c.name);
+    const churchNames = churches.map(c => c.name);
 
-    logger.debug(`🏛️ Filtro de distrito aplicado: districtId=${user.districtId}, igrejas=${churchNames.length}`);
+    logger.debug(
+      `🏛️ Filtro de distrito aplicado: districtId=${user.districtId}, igrejas=${churchNames.length}`
+    );
 
     return {
       hasDistrictFilter: true,
@@ -222,14 +223,14 @@ const getDistrictFilterForUser = async (
 };
 
 export const electionRoutes = (app: Express) => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
 
   // Middleware para proteger endpoints de eleição contra readonly users
   const checkReadOnlyAccess = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = parseHeaderUserId(req);
       if (userId !== null) {
-        const user = await storage.getUserById(userId);
+        const user = await userRepo.getUserById(userId);
         const extraData = user ? parseExtraData(user.extraData) : {};
         const readOnlyFlag = (extraData as { readOnly?: boolean }).readOnly;
         if (user && (user.role === 'admin_readonly' || readOnlyFlag === true)) {
@@ -433,7 +434,7 @@ export const electionRoutes = (app: Express) => {
       const userId = parseHeaderUserId(req);
 
       // Verificar filtro de distrito para pastores
-      const districtFilter = await getDistrictFilterForUser(userId, storage);
+      const districtFilter = await getDistrictFilterForUser(userId, userRepo);
 
       const config = await sql`
         SELECT ec.*, e.status as election_status, e.created_at as election_created_at
@@ -602,11 +603,9 @@ export const electionRoutes = (app: Express) => {
 
       // Verificar se é pastor com distrito (para filtro por distrito)
       const isPastorWithDistrict =
-        requestingUser &&
-        requestingUser.role === 'pastor' &&
-        requestingUser.district_id;
+        requestingUser && requestingUser.role === 'pastor' && requestingUser.district_id;
 
-      let configs;
+      let configs: Record<string, unknown>[] = [];
 
       if (isSuperAdminUser || !userChurch) {
         // Super admin vê todas as configurações
@@ -625,10 +624,10 @@ export const electionRoutes = (app: Express) => {
         `;
       } else if (isPastorWithDistrict) {
         // Pastor vê configurações das igrejas do seu distrito
-        const districtChurches = await sql`
-          SELECT name FROM churches WHERE district_id = ${requestingUser.district_id}
+        const districtChurches = await sql<{ name: string }>`
+          SELECT name FROM churches WHERE district_id = ${requestingUser!.district_id}
         `;
-        const churchNames = districtChurches.map((c: { name: string }) => c.name);
+        const churchNames = districtChurches.map(c => c.name);
 
         if (churchNames.length > 0) {
           configs = await sql`
@@ -878,7 +877,9 @@ export const electionRoutes = (app: Express) => {
 
       if (!positions || positions.length === 0) {
         logger.warn(' Nenhuma posição configurada na eleição');
-        return sendValidationError(res, { message: 'Configuração inválida: nenhuma posição encontrada' });
+        return sendValidationError(res, {
+          message: 'Configuração inválida: nenhuma posição encontrada',
+        });
       }
 
       // Inserir candidatos para cada posição
@@ -1848,7 +1849,9 @@ export const electionRoutes = (app: Express) => {
       `;
 
       if (existingNomination.length > 0) {
-        return sendValidationError(res, { message: 'Você já indicou um candidato para esta posição' });
+        return sendValidationError(res, {
+          message: 'Você já indicou um candidato para esta posição',
+        });
       }
 
       // Registrar indicação
@@ -2148,7 +2151,9 @@ export const electionRoutes = (app: Express) => {
 
       if (!positions || positions.length === 0) {
         logger.warn(' Nenhuma posição configurada na eleição');
-        return sendValidationError(res, { message: 'Configuração inválida: nenhuma posição encontrada' });
+        return sendValidationError(res, {
+          message: 'Configuração inválida: nenhuma posição encontrada',
+        });
       }
 
       const currentPositionIndex = toNumber(election[0].current_position);
@@ -2534,7 +2539,7 @@ export const electionRoutes = (app: Express) => {
         requestingUser.email === 'admin@7care.com';
 
       // Buscar informações da eleição e sua configuração
-      const electionInfo = await sql`
+      const electionInfo = await sql<{ id: number; config_id: number; church_name: string; church_id: number }>`
         SELECT e.id, e.config_id, ec.church_name, ec.church_id
         FROM elections e
         JOIN election_configs ec ON e.config_id = ec.id
@@ -2557,16 +2562,16 @@ export const electionRoutes = (app: Express) => {
         }
 
         // Verificar se a igreja da eleição pertence ao distrito do pastor
-        const districtChurches = await sql`
+        const districtChurches = await sql<{ name: string }>`
           SELECT name FROM churches WHERE district_id = ${districtId}
         `;
-        const districtChurchNames = districtChurches.map((ch: { name: string }) => ch.name);
+        const districtChurchNames = districtChurches.map(ch => ch.name);
 
         // Também verificar por users da igreja que pertencem ao distrito
-        const usersInDistrict = await sql`
+        const usersInDistrict = await sql<{ church: string }>`
           SELECT DISTINCT church FROM users WHERE district_id = ${districtId} AND church IS NOT NULL
         `;
-        const userChurchNames = usersInDistrict.map((u: { church: string }) => u.church);
+        const userChurchNames = usersInDistrict.map(u => u.church);
 
         const allDistrictChurches = [...new Set([...districtChurchNames, ...userChurchNames])];
 

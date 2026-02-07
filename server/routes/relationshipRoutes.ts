@@ -4,7 +4,7 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createRelationshipSchema } from '../schemas';
@@ -12,7 +12,8 @@ import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 
 export const relationshipRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const relationshipRepo = getRepository('relationshipRepository');
 
   /**
    * @swagger
@@ -44,7 +45,7 @@ export const relationshipRoutes = (app: Express): void => {
 
       // Se não for admin, filtrar por distrito/igreja do usuário
       if (!hasAdminAccess({ role: userRole }) && userId) {
-        const currentUser = await storage.getUserById(parseInt(userId));
+        const currentUser = await userRepo.getUserById(parseInt(userId));
         if (currentUser) {
           userChurch = currentUser.church || null;
           userDistrictId = currentUser.districtId || null;
@@ -56,13 +57,13 @@ export const relationshipRoutes = (app: Express): void => {
         }
       }
 
-      const relationships = await storage.getAllRelationships();
+      const relationships = await relationshipRepo.getAll();
 
       // Enriquecer com dados dos usuários
       const enrichedRelationships = await Promise.all(
         relationships.map(async (rel: { interestedId?: number; missionaryId?: number }) => {
-          const interested = rel.interestedId ? await storage.getUserById(rel.interestedId) : null;
-          const missionary = rel.missionaryId ? await storage.getUserById(rel.missionaryId) : null;
+          const interested = rel.interestedId ? await userRepo.getUserById(rel.interestedId) : null;
+          const missionary = rel.missionaryId ? await userRepo.getUserById(rel.missionaryId) : null;
 
           return {
             ...rel,
@@ -175,8 +176,8 @@ export const relationshipRoutes = (app: Express): void => {
       );
 
       // Validar que ambos pertencem à mesma igreja
-      const interested = await storage.getUserById(interestedId);
-      const missionary = await storage.getUserById(missionaryId);
+      const interested = await userRepo.getUserById(interestedId);
+      const missionary = await userRepo.getUserById(missionaryId);
 
       if (!interested) {
         return sendNotFound(res, 'Interessado');
@@ -190,7 +191,7 @@ export const relationshipRoutes = (app: Express): void => {
         return sendError(res, 'Discipulado só pode acontecer entre membros da mesma igreja', 400);
       }
 
-      const relationship = await storage.createRelationship({
+      const relationship = await relationshipRepo.create({
         interestedId,
         missionaryId,
         status: status || 'active',
@@ -226,7 +227,7 @@ export const relationshipRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
 
-      const deleted = await storage.deleteRelationship(id);
+      const deleted = await relationshipRepo.delete(id);
 
       if (!deleted) {
         return sendNotFound(res, 'Relacionamento');
@@ -256,7 +257,7 @@ export const relationshipRoutes = (app: Express): void => {
     '/api/relationships/interested/:interestedId',
     asyncHandler(async (req: Request, res: Response) => {
       const interestedId = parseInt(req.params.interestedId);
-      const relationships = await storage.getRelationshipsByInterested(interestedId);
+      const relationships = await relationshipRepo.getByInterested(interestedId);
       sendSuccess(res, relationships);
     })
   );
@@ -285,8 +286,8 @@ export const relationshipRoutes = (app: Express): void => {
 
       // Verificar permissões de acesso
       if (requestingUserId) {
-        const requestingUser = await storage.getUserById(parseInt(requestingUserId as string));
-        const missionary = await storage.getUserById(missionaryId);
+        const requestingUser = await userRepo.getUserById(parseInt(requestingUserId as string));
+        const missionary = await userRepo.getUserById(missionaryId);
 
         if (!missionary) {
           return sendNotFound(res, 'Missionário');
@@ -321,7 +322,7 @@ export const relationshipRoutes = (app: Express): void => {
         }
       }
 
-      const relationships = await storage.getRelationshipsByMissionary(missionaryId);
+      const relationships = await relationshipRepo.getByMissionary(missionaryId);
       sendSuccess(res, relationships);
     })
   );
@@ -350,7 +351,7 @@ export const relationshipRoutes = (app: Express): void => {
       const interestedId = parseInt(req.params.interestedId);
 
       // Buscar relacionamentos ativos
-      const relationships = await storage.getRelationshipsByInterested(interestedId);
+      const relationships = await relationshipRepo.getByInterested(interestedId);
       const activeRelationship = relationships.find(
         (r: { status?: string }) => r.status === 'active'
       );
@@ -359,7 +360,7 @@ export const relationshipRoutes = (app: Express): void => {
         return sendNotFound(res, 'Relacionamento ativo');
       }
 
-      await storage.deleteRelationship(activeRelationship.id);
+      await relationshipRepo.delete(activeRelationship.id);
       sendSuccess(res, null, 200, 'Relacionamento ativo removido');
     })
   );

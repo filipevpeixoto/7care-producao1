@@ -259,7 +259,7 @@ export const MobileBottomNav = memo(() => {
       }}
     >
       {/* Menu principal suspenso/flutuante */}
-      <nav ref={navRef} className={navClasses}>
+      <nav ref={navRef} className={navClasses} aria-label="Navegação principal">
         <div className="relative flex justify-around items-center py-2 px-3">
           {/* Fundo deslizante centralizado - não aparece quando menu admin está aberto */}
           {!adminMenuOpen && (
@@ -294,6 +294,8 @@ export const MobileBottomNav = memo(() => {
                   <DropdownMenuTrigger asChild>
                     <button
                       id="tour-nav-admin"
+                      aria-label="Menu Administração"
+                      aria-current={isActive ? 'page' : undefined}
                       className={`relative flex flex-col items-center justify-center w-full h-12 transition-all duration-300 ease-out ${
                         isActive ? 'scale-110' : 'scale-100'
                       }`}
@@ -380,6 +382,8 @@ export const MobileBottomNav = memo(() => {
               <button
                 key={index}
                 id={tourId}
+                aria-label={item.title}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={e => {
                   e.stopPropagation();
                   if (item.path !== '#') {

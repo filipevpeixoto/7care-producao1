@@ -47,13 +47,22 @@ import { receiptRoutes } from './receiptRoutes';
  * Registra todas as rotas da aplicação
  */
 export const registerAllRoutes = async (app: Express): Promise<Server> => {
-  // Inicializar banco de dados
-  try {
-    await migrateToNeon();
-    logger.info('✅ Neon Database conectado e funcionando');
+  // Inicializar banco de dados (migrations e seed apenas quando explicitamente habilitados)
+  const shouldMigrate = process.env.RUN_MIGRATIONS === 'true';
+  const shouldSeed = process.env.RUN_SEED === 'true';
 
-    await setupNeonData();
-    logger.info('✅ Dados iniciais configurados');
+  try {
+    if (shouldMigrate) {
+      await migrateToNeon();
+      logger.info('✅ Neon Database migrado com sucesso');
+    }
+
+    if (shouldSeed) {
+      await setupNeonData();
+      logger.info('✅ Dados iniciais configurados');
+    }
+
+    logger.info('✅ Neon Database conectado e funcionando');
   } catch (error) {
     logger.error('❌ Erro ao conectar com Neon Database:', error);
   }

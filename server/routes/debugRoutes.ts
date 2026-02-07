@@ -4,19 +4,10 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { asyncHandler } from '../utils';
 import { User } from '../../shared/schema';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess } from '../utils/apiResponse';
 
 export const debugRoutes = (app: Express): void => {
   // Só registra rotas de debug em ambiente de desenvolvimento
@@ -24,7 +15,10 @@ export const debugRoutes = (app: Express): void => {
     return;
   }
 
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const eventRepo = getRepository('eventRepository');
+  const churchRepo = getRepository('churchRepository');
+  const notificationRepo = getRepository('notificationRepository');
 
   /**
    * @swagger
@@ -39,7 +33,7 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/debug/visited-users',
     asyncHandler(async (req: Request, res: Response) => {
-      const users = await storage.getAllUsers();
+      const users = await userRepo.getAllUsers();
       const visitedUsers = users.filter(u => 'lastVisitDate' in u && u.lastVisitDate);
 
       sendSuccess(res, {
@@ -67,7 +61,7 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/debug/events',
     asyncHandler(async (req: Request, res: Response) => {
-      const events = await storage.getAllEvents();
+      const events = await eventRepo.getAllEvents();
       sendSuccess(res, {
         total: events.length,
         events,
@@ -88,7 +82,7 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/debug/create-simple-event',
     asyncHandler(async (req: Request, res: Response) => {
-      const event = await storage.createEvent({
+      const event = await eventRepo.createEvent({
         title: `Evento de Teste ${Date.now()}`,
         description: 'Evento criado para debug',
         date: new Date().toISOString(),
@@ -122,7 +116,7 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/debug/check-churches',
     asyncHandler(async (req: Request, res: Response) => {
-      const churches = await storage.getAllChurches();
+      const churches = await churchRepo.getAllChurches();
       sendSuccess(res, {
         total: churches.length,
         churches,
@@ -143,7 +137,7 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/debug/check-users',
     asyncHandler(async (req: Request, res: Response) => {
-      const users = await storage.getAllUsers();
+      const users = await userRepo.getAllUsers();
       const roleCount: Record<string, number> = {};
 
       users.forEach((u: { role?: string }) => {
@@ -171,7 +165,7 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/debug/check-events-db',
     asyncHandler(async (req: Request, res: Response) => {
-      const events = await storage.getAllEvents();
+      const events = await eventRepo.getAllEvents();
       const typeCount: Record<string, number> = {};
 
       events.forEach((e: { type?: string }) => {
@@ -199,7 +193,7 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/debug/notifications',
     asyncHandler(async (req: Request, res: Response) => {
-      const notifications = await storage.getAllNotifications();
+      const notifications = await notificationRepo.getAll();
 
       const unread = notifications.filter((n: { isRead?: boolean }) => !n.isRead);
       const typeCount: Record<string, number> = {};
@@ -230,7 +224,7 @@ export const debugRoutes = (app: Express): void => {
   app.post(
     '/api/debug/clean-duplicates',
     asyncHandler(async (req: Request, res: Response) => {
-      const events = await storage.getAllEvents();
+      const events = await eventRepo.getAllEvents();
       const seen = new Map<string, number>();
       const duplicateIds: number[] = [];
 
@@ -244,7 +238,7 @@ export const debugRoutes = (app: Express): void => {
       });
 
       for (const id of duplicateIds) {
-        await storage.deleteEvent(id);
+        await eventRepo.deleteEvent(id);
       }
 
       sendSuccess(res, { removed: duplicateIds.length, message: 'Duplicados removidos' });
@@ -264,7 +258,7 @@ export const debugRoutes = (app: Express): void => {
   app.post(
     '/api/system/check-missionary-profiles',
     asyncHandler(async (req: Request, res: Response) => {
-      const users = await storage.getAllUsers();
+      const users = await userRepo.getAllUsers();
       const missionaries = users.filter((u: { role?: string }) => u.role === 'missionary');
 
       sendSuccess(res, {
@@ -294,9 +288,9 @@ export const debugRoutes = (app: Express): void => {
   app.get(
     '/api/setup/test-data',
     asyncHandler(async (req: Request, res: Response) => {
-      const users = await storage.getAllUsers();
-      const churches = await storage.getAllChurches();
-      const events = await storage.getAllEvents();
+      const users = await userRepo.getAllUsers();
+      const churches = await churchRepo.getAllChurches();
+      const events = await eventRepo.getAllEvents();
 
       sendSuccess(res, {
         users: users.length,

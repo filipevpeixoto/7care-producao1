@@ -4,26 +4,20 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { logger } from '../utils/logger';
 import { isSuperAdmin, isPastor } from '../utils/permissions';
 import { Church, Event, Relationship, User } from '../../shared/schema';
 import { cacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
 
 export const dashboardRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const eventRepo = getRepository('eventRepository');
+  const churchRepo = getRepository('churchRepository');
+  const relationshipRepo = getRepository('relationshipRepository');
 
   /**
    * @swagger
@@ -61,9 +55,9 @@ export const dashboardRoutes = (app: Express): void => {
     cacheMiddleware('dashboard', CACHE_TTL.DASHBOARD),
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
-      const allEvents = await storage.getAllEvents();
+      const allEvents = await eventRepo.getAllEvents();
 
       let usersToInclude: User[] = [];
       let eventsToInclude: Event[] = [];
@@ -73,35 +67,35 @@ export const dashboardRoutes = (app: Express): void => {
       if (isPastor(user) && user?.districtId) {
         // Pastor: query otimizada direto do banco
         logger.info(`🏛️ PASTOR no Dashboard - Query direta por distrito: ${user.districtId}`);
-        usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+        usersToInclude = await userRepo.getUsersByDistrictId(user.districtId);
         usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
         logger.info(`✅ Dashboard: ${usersToInclude.length} usuários carregados diretamente`);
         eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
-        churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
+        churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
       } else if (isSuperAdmin(user)) {
         if (user?.districtId) {
           // Superadmin com distrito específico
-          usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+          usersToInclude = await userRepo.getUsersByDistrictId(user.districtId);
           usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
           eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
-          churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
+          churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
         } else {
           // Superadmin sem distrito (vê tudo)
-          const allUsers = await storage.getAllUsers();
+          const allUsers = await userRepo.getAllUsers();
           usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
           eventsToInclude = allEvents;
-          churchesToInclude = await storage.getAllChurches();
+          churchesToInclude = await churchRepo.getAllChurches();
         }
       } else {
         // Usuário comum: filtrar por igreja
         const userChurch = user?.church;
         if (userChurch) {
-          const allUsers = await storage.getAllUsers();
+          const allUsers = await userRepo.getAllUsers();
           usersToInclude = allUsers.filter(
             (u: User) => u.email !== 'admin@7care.com' && u.church === userChurch
           );
           eventsToInclude = allEvents.filter((e: Event) => e.church === userChurch);
-          churchesToInclude = await storage
+          churchesToInclude = await churchRepo
             .getAllChurches()
             .then(chs => chs.filter((ch: Church) => ch.name === userChurch));
         } else {
@@ -188,7 +182,7 @@ export const dashboardRoutes = (app: Express): void => {
 
       let interestedBeingDiscipled = 0;
       try {
-        const allRelationships = await storage.getAllRelationships();
+        const allRelationships = await relationshipRepo.getAll();
         const includedUserIds = new Set(usersToInclude.map((u: User) => u.id));
         const relationships = allRelationships.filter(
           (rel: Relationship) => rel.interestedId != null && includedUserIds.has(rel.interestedId)
@@ -251,16 +245,16 @@ export const dashboardRoutes = (app: Express): void => {
     '/api/dashboard/visits',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
-      const allUsers = await storage.getAllUsers();
+      const allUsers = await userRepo.getAllUsers();
 
       // Filtrar por distrito se for pastor
       let filteredUsers: User[] = [];
       if (isSuperAdmin(user)) {
         if (user?.districtId) {
           // Super admin com distrito vinculado
-          const districtChurches = await storage.getChurchesByDistrict(user.districtId);
+          const districtChurches = await churchRepo.getChurchesByDistrict(user.districtId);
           const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
           filteredUsers = allUsers.filter((u: User) => {
             const churchName = u.church ?? '';
@@ -275,7 +269,7 @@ export const dashboardRoutes = (app: Express): void => {
         }
       } else if (isPastor(user) && user?.districtId) {
         // Pastor - filtrar pelo distrito
-        const districtChurches = await storage.getChurchesByDistrict(user.districtId);
+        const districtChurches = await churchRepo.getChurchesByDistrict(user.districtId);
         const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
         filteredUsers = allUsers.filter((u: User) => {
           const churchName = u.church ?? '';
@@ -397,7 +391,7 @@ export const dashboardRoutes = (app: Express): void => {
         return sendError(res, 'Data da visita é obrigatória', 400);
       }
 
-      const user = await storage.getUserById(id);
+      const user = await userRepo.getUserById(id);
       if (!user) {
         return sendNotFound(res, 'Usuário');
       }
@@ -421,7 +415,7 @@ export const dashboardRoutes = (app: Express): void => {
       extraData.lastVisitDate = visitDate;
       extraData.visitCount = previousVisitCount + 1;
 
-      const updatedUser = await storage.updateUser(id, {
+      const updatedUser = await userRepo.updateUser(id, {
         extraData: JSON.stringify(extraData),
       });
 

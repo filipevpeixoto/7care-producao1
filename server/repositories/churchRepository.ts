@@ -217,11 +217,7 @@ export class ChurchRepository {
    */
   async getDefaultChurch(): Promise<Church | null> {
     try {
-      const [church] = await db
-        .select()
-        .from(schema.churches)
-        .orderBy(schema.churches.id)
-        .limit(1);
+      const [church] = await db.select().from(schema.churches).orderBy(schema.churches.id).limit(1);
       return church ? this.mapChurchRecord(church) : null;
     } catch (error) {
       logger.error('Erro ao buscar igreja padrao', error);

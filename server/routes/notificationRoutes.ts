@@ -4,13 +4,15 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { asyncHandler, sendSuccess, sendNotFound, sendError } from '../utils';
 import { validateParams, ValidatedRequest } from '../middleware/validation';
 import { idParamSchema, userIdParamSchema } from '../schemas';
+import { getRepository, getService } from '../container';
 
 export const notificationRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const notificationRepo = getRepository('notificationRepository');
+  const pushSubRepo = getRepository('pushSubscriptionRepository');
+  const pushService = getService('pushNotificationService');
 
   /**
    * @swagger
@@ -40,7 +42,7 @@ export const notificationRoutes = (app: Express): void => {
       const userId = (req as ValidatedRequest<typeof userIdParamSchema._type>).validatedParams.id;
       const { unreadOnly } = req.query;
 
-      let notifications = await storage.getNotificationsByUser(userId);
+      let notifications = await notificationRepo.getByUserId(userId);
 
       if (unreadOnly === 'true') {
         notifications = notifications.filter((n: { isRead?: boolean }) => !n.isRead);
@@ -73,7 +75,7 @@ export const notificationRoutes = (app: Express): void => {
     validateParams(idParamSchema),
     asyncHandler(async (req: Request, res: Response) => {
       const id = (req as ValidatedRequest<typeof idParamSchema._type>).validatedParams.id;
-      const notification = await storage.markNotificationAsRead(id);
+      const notification = await notificationRepo.markAsRead(id);
 
       if (!notification) {
         sendNotFound(res, 'Notificação');
@@ -112,7 +114,7 @@ export const notificationRoutes = (app: Express): void => {
         return;
       }
 
-      const subscriptions = await storage.getPushSubscriptionsByUser(userId);
+      const subscriptions = await pushSubRepo.getByUserId(userId);
       sendSuccess(res, subscriptions);
     })
   );
@@ -158,7 +160,7 @@ export const notificationRoutes = (app: Express): void => {
       const subscriptionPayload =
         typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
 
-      const pushSubscription = await storage.createPushSubscription({
+      const pushSubscription = await pushSubRepo.create({
         userId,
         subscription: subscriptionPayload,
         deviceName: deviceName || 'Dispositivo desconhecido',
@@ -191,7 +193,7 @@ export const notificationRoutes = (app: Express): void => {
     '/api/push/subscriptions/:id/toggle',
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
-      const subscription = await storage.togglePushSubscription(id);
+      const subscription = await pushSubRepo.toggle(id);
 
       if (!subscription) {
         sendNotFound(res, 'Inscrição');
@@ -224,7 +226,7 @@ export const notificationRoutes = (app: Express): void => {
     '/api/push/subscriptions/:id',
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
-      await storage.deletePushSubscription(id);
+      await pushSubRepo.delete(id);
       sendSuccess(res, { message: 'Inscrição removida' });
     })
   );
@@ -274,7 +276,7 @@ export const notificationRoutes = (app: Express): void => {
         return;
       }
 
-      const results = await storage.sendPushNotifications({
+      const results = await pushService.sendPushNotifications({
         userIds,
         title,
         body,

@@ -54,7 +54,11 @@ export async function getUserById(id: number): Promise<User | null> {
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   try {
-    const result = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
+    const result = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email))
+      .limit(1);
     const row = result[0] || null;
     return row ? toUser(row) : null;
   } catch (error) {
@@ -75,10 +79,13 @@ export async function createUser(userData: CreateUserInput): Promise<User> {
       ...userData,
       password: hashedPassword,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
-    const result = await db.insert(schema.users).values(newUser as typeof schema.users.$inferInsert).returning();
+    const result = await db
+      .insert(schema.users)
+      .values(newUser as typeof schema.users.$inferInsert)
+      .returning();
     return toUser(result[0]);
   } catch (error) {
     logger.error('Erro ao criar usuário:', error);
@@ -110,16 +117,18 @@ export async function updateUser(id: number, updates: UpdateUserInput): Promise<
   }
 }
 
-export async function updateUserDirectly(id: number, updates: UpdateUserInput): Promise<User | null> {
+export async function updateUserDirectly(
+  id: number,
+  updates: UpdateUserInput
+): Promise<User | null> {
   try {
     if (updates.password && !updates.password.startsWith('$2')) {
       updates.password = await bcrypt.hash(updates.password, 10);
     }
 
     const updatedAt = new Date();
-    const extraDataString = typeof updates.extraData === 'object' ? 
-      JSON.stringify(updates.extraData) : 
-      updates.extraData;
+    const extraDataString =
+      typeof updates.extraData === 'object' ? JSON.stringify(updates.extraData) : updates.extraData;
 
     await neonSql`
       UPDATE users 
@@ -139,11 +148,11 @@ export async function deleteUser(id: number): Promise<boolean> {
   try {
     const user = await getUserById(id);
     if (user && isSuperAdmin(toPermissionUser(user))) {
-      throw new Error("Não é possível excluir o Super Administrador do sistema");
+      throw new Error('Não é possível excluir o Super Administrador do sistema');
     }
 
     if (user && hasAdminAccess(toPermissionUser(user))) {
-      throw new Error("Não é possível excluir usuários administradores do sistema");
+      throw new Error('Não é possível excluir usuários administradores do sistema');
     }
 
     await db.delete(schema.users).where(eq(schema.users.id, id));
@@ -164,7 +173,8 @@ export async function rejectUser(id: number): Promise<User | null> {
 
 export async function updateUserChurch(userId: number, churchName: string): Promise<boolean> {
   try {
-    await db.update(schema.users)
+    await db
+      .update(schema.users)
       .set({ church: churchName, updatedAt: new Date() })
       .where(eq(schema.users.id, userId));
     return true;

@@ -77,7 +77,7 @@ export class CacheService {
       this.isRedisConnected = true;
       return true;
     } catch (error) {
-      console.warn(
+      logger.warn(
         '[Redis] Não foi possível conectar, usando cache em memória:',
         (error as Error).message
       );

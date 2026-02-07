@@ -173,7 +173,7 @@ export class GoogleCalendarService {
       throw new Error('Invalid state token');
     }
 
-    const savedState = await this.storage.getSystemConfig(`google_oauth_state_${userId}`) as {
+    const savedState = (await this.storage.getSystemConfig(`google_oauth_state_${userId}`)) as {
       state?: string;
       expiresAt?: string;
     } | null;
@@ -376,7 +376,12 @@ export class GoogleCalendarService {
 
       for (const googleEvent of events) {
         try {
-          await this.syncSingleEvent(googleEvent, userId, user.churchId ?? undefined, user.districtId ?? undefined);
+          await this.syncSingleEvent(
+            googleEvent,
+            userId,
+            user.churchId ?? undefined,
+            user.districtId ?? undefined
+          );
 
           // Check if it's new or updated
           const existing = await this.storage.getEventByGoogleId(googleEvent.id || '');

@@ -196,6 +196,7 @@ export class PrayerRepository {
     return {
       id: Number(record.id),
       userId: Number(record.requesterId),
+      districtId: record.districtId != null ? Number(record.districtId) : null,
       title: String(record.title || ''),
       description: record.description ? String(record.description) : null,
       isPublic: record.isPrivate === null ? true : !record.isPrivate,

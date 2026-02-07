@@ -4,24 +4,17 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createMessageSchema } from '../schemas';
 import { asyncHandler } from '../utils';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendCreated, sendError } from '../utils/apiResponse';
+import { getRepository } from '../container';
 
 export const messagingRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const messageRepo = getRepository('messageRepository');
+  const conversationRepo = getRepository('conversationRepository');
 
   /**
    * @swagger
@@ -43,16 +36,16 @@ export const messagingRoutes = (app: Express): void => {
     '/api/conversations/:userId',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.userId);
-      const conversations = await storage.getConversationsByUser(userId);
+      const conversations = await conversationRepo.getByUserId(userId);
 
       // Enriquecer conversas com participantes e última mensagem
       const enrichedConversations = await Promise.all(
         conversations.map(async conv => {
           // Buscar participantes
-          const participants = await storage.getConversationParticipants(conv.id);
+          const participants = await conversationRepo.getParticipants(conv.id);
 
           // Buscar última mensagem
-          const messages = await storage.getMessagesByConversation(conv.id);
+          const messages = await messageRepo.getByConversationId(conv.id);
           const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
           // Para conversas diretas, usar o nome do outro participante
@@ -60,7 +53,7 @@ export const messagingRoutes = (app: Express): void => {
           if (conv.type === 'direct' || conv.type === 'private') {
             const otherParticipant = participants.find(p => p.userId !== userId);
             if (otherParticipant) {
-              const otherUser = await storage.getUserById(otherParticipant.userId);
+              const otherUser = await userRepo.getUserById(otherParticipant.userId);
               name = otherUser?.name || 'Usuário';
             }
           }
@@ -135,7 +128,7 @@ export const messagingRoutes = (app: Express): void => {
         return sendError(res, 'IDs dos usuários são obrigatórios', 400);
       }
 
-      const conversation = await storage.getOrCreateDirectConversation(userId1, userId2);
+      const conversation = await conversationRepo.getOrCreateDirect(userId1, userId2);
       sendSuccess(res, conversation);
     })
   );
@@ -170,7 +163,7 @@ export const messagingRoutes = (app: Express): void => {
     '/api/conversations/:id/messages',
     asyncHandler(async (req: Request, res: Response) => {
       const conversationId = parseInt(req.params.id);
-      const messages = await storage.getMessagesByConversation(conversationId);
+      const messages = await messageRepo.getByConversationId(conversationId);
       sendSuccess(res, messages);
     })
   );
@@ -214,10 +207,10 @@ export const messagingRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const messageData = (req as ValidatedRequest<typeof createMessageSchema._type>).validatedBody;
       logger.info(`New message in conversation ${messageData.conversationId}`);
-      const message = await storage.createMessage({
+      const message = await messageRepo.create({
         ...messageData,
         isRead: false,
-      } as Parameters<typeof storage.createMessage>[0]);
+      } as Parameters<typeof messageRepo.create>[0]);
       sendCreated(res, message);
     })
   );

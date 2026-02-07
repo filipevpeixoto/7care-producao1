@@ -10,16 +10,7 @@ import { logger } from '../utils/logger';
 import { asyncHandler } from '../utils';
 import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
 import { createTaskSchema, updateTaskSchema, idParamSchema } from '../schemas';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendCreated, sendNotFound } from '../utils/apiResponse';
 
 // Interface para tarefa
 interface Task {

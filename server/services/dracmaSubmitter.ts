@@ -511,7 +511,7 @@ export class DracmaSubmitter {
    * Busca credenciais do Dracma no banco de dados
    */
   async getCredentials(userId: number): Promise<DracmaCredentials> {
-    const userResult = await sql<{ id: number; role: string; name: string }[]>`
+    const userResult = await sql<{ id: number; role: string; name: string }>`
       SELECT id, role, name FROM users WHERE id = ${userId} LIMIT 1
     `;
 
@@ -519,13 +519,13 @@ export class DracmaSubmitter {
       throw new Error(`Usuário ${userId} não encontrado`);
     }
 
-    const user = userResult[0] as { id: number; role: string; name: string };
+    const user = userResult[0];
 
     if (!['pastor', 'admin', 'superadmin'].includes(user.role)) {
       throw new Error(`Usuário ${user.name} não é pastor.`);
     }
 
-    const configs = await sql<{ key: string; value: string }[]>`
+    const configs = await sql<{ key: string; value: string }>`
       SELECT key, value FROM automation_config
       WHERE key IN ('dracma_username', 'dracma_password')
       AND user_id = ${userId}
@@ -533,7 +533,7 @@ export class DracmaSubmitter {
     `;
 
     const creds: Record<string, string> = {};
-    (configs as { key: string; value: string }[]).forEach(c => {
+    configs.forEach(c => {
       creds[c.key.replace('dracma_', '')] = c.value;
     });
 
@@ -563,7 +563,7 @@ export class DracmaSubmitter {
 
     // Configurar interceptação para debugging
     if (this.debug) {
-      page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+      page.on('console', msg => logger.info('PAGE LOG:', msg.text()));
     }
 
     try {

@@ -1,141 +1,155 @@
-import eslint from '@eslint/js';
+import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
-import unusedImports from 'eslint-plugin-unused-imports';
 
 export default tseslint.config(
-  eslint.configs.recommended,
-  ...tseslint.configs.recommended,
-  {
-    plugins: {
-      'unused-imports': unusedImports,
-    },
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-        ...globals.es2021,
-      },
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
-    },
-    rules: {
-      // ===============================================
-      // REGRAS CRÍTICAS DE SEGURANÇA - SEMPRE ATIVAS
-      // ===============================================
-      'no-eval': 'error',
-      'no-implied-eval': 'error',
-      'no-new-func': 'error',
-      'no-var': 'error',
-      
-      // ===============================================
-      // REGRAS DE QUALIDADE - STRICTO PARA 10/10
-      // ===============================================
-      
-      // Igualdade estrita - crítico para evitar bugs
-      eqeqeq: ['error', 'always', { null: 'ignore' }],
-      
-      // Preferir const para variáveis não reatribuídas
-      'prefer-const': 'error',
-      
-      // Auto-remover imports não utilizados
-      'unused-imports/no-unused-imports': 'error',
-      'unused-imports/no-unused-vars': ['warn', {
-        vars: 'all',
-        varsIgnorePattern: '^_|^handle|^set|^loading|^refresh|^clear|^toggle|^filtered|^is|^can|^get|^display|^result|^current|^show|^import|^subscriptions|^editing|^stats|^total|^source|^now|^extraData|^headers|^user$|^toast$|^lastUpdate$|^index$|^checked$|^mock|^action|^nav$|^prev|^request|^NEW_|^logout$|^electionId$|^auditRepository$',
-        args: 'after-used',
-        argsIgnorePattern: '^_|^req$|^res$|^next$|^event$|^index$|^checked$|^err$|^electionId$',
-        caughtErrorsIgnorePattern: '^_|^error$|^err$|^e$|^parseError$',
-        ignoreRestSiblings: true,
-        destructuredArrayIgnorePattern: '^_'
-      }],
-      
-      // Desativar a regra original em favor do plugin
-      '@typescript-eslint/no-unused-vars': 'off',
-      
-      // Any explícito - desativado (muitos casos legítimos em migrações e tipos externos)
-      '@typescript-eslint/no-explicit-any': 'off',
-      
-      // Imports duplicados
-      'no-duplicate-imports': 'error',
-      
-      // Expressões binárias constantes - off (casos legítimos)
-      'no-constant-binary-expression': 'off',
-      
-      // Curly braces para blocos - melhora legibilidade
-      curly: ['error', 'multi-line'],
-      
-      // Console.log - warn para lembrar de remover
-      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
-      
-      // Return await desnecessário
-      'no-return-await': 'error',
-      
-      // Throw apenas Error objects
-      'no-throw-literal': 'error',
-      
-      // Preferir template literals
-      'prefer-template': 'warn',
-      
-      // ===============================================
-      // REGRAS DESATIVADAS - RUÍDO EXCESSIVO
-      // ===============================================
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/no-namespace': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-unsafe-function-type': 'off',
-      'no-unused-expressions': 'off',
-      'no-case-declarations': 'off',
-      'no-empty': 'off',
-    },
-  },
-  {
-    files: ['tests/**', '**/*.test.ts', '**/*.spec.ts', '**/*.test.cjs', '**/*.spec.cjs'],
-    languageOptions: {
-      globals: {
-        ...globals.jest,
-      },
-    },
-    rules: {
-      'no-undef': 'off', // TypeScript handles this, and Jest globals sometimes conflict
-    }
-  },
-  {
-    // Permitir console.log em todo o código - necessário para debug e logs
-    files: [
-      'server/**/*.ts',
-      'client/src/**/*.ts',
-      'client/src/**/*.tsx',
-      'tests/**',
-      'e2e/**',
-      'run-migrations.ts',
-    ],
-    rules: {
-      'no-console': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
-    },
-  },
+  // Ignorar pastas geradas
   {
     ignores: [
-      'node_modules/',
-      'dist/',
-      'build/',
-      'coverage/',
-      '*.config.js',
+      'dist/**',
+      'dist-server/**',
+      'node_modules/**',
+      'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
+      'uploads/**',
       '*.config.cjs',
-      '*.config.mjs',
-      'netlify/functions/',
-      'uploads/',
-      'client/public/**',
-      '**/*.js',
+      '*.config.js',
+      'scripts/**',
+      'netlify/**',
     ],
-  }
+  },
+
+  // Regras base JS
+  js.configs.recommended,
+
+  // TypeScript recomendado (sem type-checking para ser rápido)
+  ...tseslint.configs.recommended,
+
+  // ========================================
+  // Configuração para código do SERVIDOR
+  // ========================================
+  {
+    files: ['server/**/*.ts', 'shared/**/*.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      // ── Qualidade de Código ──
+      'no-console': 'warn',
+      'no-debugger': 'error',
+      'no-duplicate-imports': 'error',
+      'no-template-curly-in-string': 'warn',
+      'no-unreachable-loop': 'error',
+      'no-unused-private-class-members': 'error',
+      'prefer-const': 'error',
+      'no-var': 'error',
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'multi-line'],
+      'default-case-last': 'error',
+      'no-else-return': 'warn',
+      'no-lonely-if': 'warn',
+      'no-nested-ternary': 'warn',
+      'no-unneeded-ternary': 'error',
+      'prefer-template': 'warn',
+      'object-shorthand': 'warn',
+      'prefer-arrow-callback': 'warn',
+      'no-useless-return': 'error',
+      'no-useless-rename': 'error',
+      'no-useless-concat': 'warn',
+
+      // ── TypeScript ──
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+      '@typescript-eslint/no-require-imports': 'off', // Alguns scripts usam require
+      '@typescript-eslint/no-empty-object-type': 'warn',
+      '@typescript-eslint/no-unused-expressions': 'warn',
+    },
+  },
+
+  // ========================================
+  // Configuração para código do CLIENTE (React)
+  // ========================================
+  {
+    files: ['client/**/*.{ts,tsx}'],
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+    },
+    rules: {
+      // ── React Hooks ──
+      ...reactHooks.configs.recommended.rules,
+
+      // ── React Refresh ──
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+
+      // ── Qualidade de Código ──
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'error',
+      'no-duplicate-imports': 'error',
+      'prefer-const': 'error',
+      'no-var': 'error',
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'multi-line'],
+      'no-nested-ternary': 'warn',
+      'no-unneeded-ternary': 'error',
+      'prefer-template': 'warn',
+      'object-shorthand': 'warn',
+      'prefer-arrow-callback': 'warn',
+      'no-useless-return': 'error',
+      'no-useless-rename': 'error',
+
+      // ── TypeScript ──
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+      '@typescript-eslint/no-empty-object-type': 'warn',
+      '@typescript-eslint/no-unused-expressions': 'warn',
+    },
+  },
+
+  // ========================================
+  // Configuração para TESTES
+  // ========================================
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', 'e2e/**/*.ts', 'tests/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
 );

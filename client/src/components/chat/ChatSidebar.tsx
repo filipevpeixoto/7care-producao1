@@ -16,6 +16,9 @@ interface ChatUser {
   role: string;
   isOnline: boolean;
   lastSeen?: string;
+  email?: string;
+  profilePhoto?: string;
+  church?: string;
 }
 
 interface Conversation {
@@ -148,7 +151,7 @@ export const ChatSidebar = ({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [allUsers, setAllUsers] = useState<
-    Array<{ id: number; name: string; email?: string; profilePhoto?: string }>
+    Array<{ id: number; name: string; email?: string; profilePhoto?: string; church?: string }>
   >([]);
 
   // Carregar conversas reais do backend
@@ -245,7 +248,7 @@ export const ChatSidebar = ({
     return content || 'Sem mensagens';
   };
 
-  const totalUnread = filteredConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+  const totalUnread = filteredConversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
   const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return allUsers
@@ -455,7 +458,7 @@ const ConversationItem = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
           <h3
-            className={cn('font-medium truncate', conversation.unreadCount > 0 && 'font-semibold')}
+            className={cn('font-medium truncate', (conversation.unreadCount || 0) > 0 && 'font-semibold')}
             data-testid={`conversation-name-${conversation.id}`}
           >
             {conversation.name || 'Conversa'}
@@ -474,19 +477,19 @@ const ConversationItem = ({
           <p
             className={cn(
               'text-sm text-muted-foreground truncate',
-              conversation.unreadCount > 0 && 'font-medium text-foreground'
+              conversation.unreadCount && conversation.unreadCount > 0 && 'font-medium text-foreground'
             )}
             data-testid={`conversation-preview-${conversation.id}`}
           >
             {getLastMessagePreview(conversation)}
           </p>
-          {conversation.unreadCount > 0 && (
+          {(conversation.unreadCount || 0) > 0 && (
             <Badge
               variant="destructive"
               className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
               data-testid={`conversation-unread-${conversation.id}`}
             >
-              {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
+              {(conversation.unreadCount || 0) > 9 ? '9+' : conversation.unreadCount}
             </Badge>
           )}
         </div>

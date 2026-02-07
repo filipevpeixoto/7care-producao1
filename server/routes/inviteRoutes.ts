@@ -13,6 +13,7 @@ import { pastorInvites, users, districts, churches } from '../schema';
 import { requireAuth } from '../middleware';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
+import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from '../config/security';
 import { asyncHandler } from '../utils';
 import { readExcelFile, cleanupTempFile } from '../utils/excelUtils';
 import {
@@ -28,17 +29,8 @@ import {
 } from '../types/pastor-invite.types';
 import { extractChurchesFromExcel, validateExcelChurches } from '../utils/church-validation';
 import { isSuperAdmin } from '../utils/permissions';
-import { NeonAdapter } from '../neonAdapter';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { getRepository } from '../container';
+import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -158,7 +150,7 @@ export const inviteRoutes = (app: Express): void => {
     '/api/churches/registered',
     asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const userId = req.headers['x-user-id'] as string;
-      const storage = new NeonAdapter();
+      const userRepo = getRepository('userRepository');
 
       let allChurches = await db
         .select({
@@ -171,7 +163,7 @@ export const inviteRoutes = (app: Express): void => {
 
       // Filtrar por distrito se não for super admin
       if (userId) {
-        const requestingUser = await storage.getUserById(parseInt(userId));
+        const requestingUser = await userRepo.getUserById(parseInt(userId));
 
         if (requestingUser && !isSuperAdmin(requestingUser)) {
           // Se for pastor, filtrar pelo distrito
@@ -361,7 +353,7 @@ export const inviteRoutes = (app: Express): void => {
       }
 
       // Hash da senha
-      const passwordHash = await bcrypt.hash(data.password, 10);
+      const passwordHash = await bcrypt.hash(data.password, BCRYPT_SALT_ROUNDS);
 
       // Normalizar dados do payload (frontend pode enviar em formato diferente)
       const normalizedPersonal = {
@@ -502,15 +494,13 @@ export const inviteRoutes = (app: Express): void => {
               name: member.nome,
               email:
                 member.email || `${Date.now()}-${Math.random().toString(36).substr(2, 6)}@temp.com`,
-              password: await bcrypt.hash('changeme123', 10),
+              password: await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS),
               role: 'member',
               church: member.igreja,
               districtId: district.id,
               status: 'pending',
               firstAccess: true,
               // Dados completos do Excel para cálculo de pontos
-              phone: member.telefone || null,
-              cpf: member.cpf || null,
               engajamento: member.engajamento || null,
               classificacao: member.classificacao || null,
               dizimistaType: member.dizimista || null,
@@ -526,8 +516,8 @@ export const inviteRoutes = (app: Express): void => {
               tempoBatismoAnos: tempoBatismoAnos,
               camposVazios: camposVazios,
               // Dados adicionais
-              birthDate: member.dataNascimento ? new Date(member.dataNascimento) : null,
-              baptismDate: member.dataBatismo ? new Date(member.dataBatismo) : null,
+              birthDate: member.dataNascimento || null,
+              baptismDate: member.dataBatismo || null,
               civilStatus: member.estadoCivil || null,
               occupation: member.profissao || null,
               education: member.escolaridade || null,
@@ -1014,15 +1004,13 @@ export const inviteRoutes = (app: Express): void => {
             name: member.nome,
             email:
               member.email || `${Date.now()}-${Math.random().toString(36).substr(2, 6)}@temp.com`,
-            password: await bcrypt.hash('changeme123', 10),
+            password: await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS),
             role: 'member',
             church: member.igreja,
             districtId: district.id,
             status: 'pending',
             firstAccess: true,
             // Dados completos do Excel para cálculo de pontos
-            phone: member.telefone || null,
-            cpf: member.cpf || null,
             engajamento: member.engajamento || null,
             classificacao: member.classificacao || null,
             dizimistaType: member.dizimista || null,
@@ -1038,8 +1026,8 @@ export const inviteRoutes = (app: Express): void => {
             tempoBatismoAnos: tempoBatismoAnos,
             camposVazios: camposVazios,
             // Dados adicionais
-            birthDate: member.dataNascimento ? new Date(member.dataNascimento) : null,
-            baptismDate: member.dataBatismo ? new Date(member.dataBatismo) : null,
+            birthDate: member.dataNascimento || null,
+            baptismDate: member.dataBatismo || null,
             civilStatus: member.estadoCivil || null,
             occupation: member.profissao || null,
             education: member.escolaridade || null,

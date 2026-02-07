@@ -28,6 +28,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         return () => clearTimeout(timer);
       }
     }
+    return undefined;
   }, [user]);
 
   const handleTourComplete = () => {

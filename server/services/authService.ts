@@ -12,7 +12,7 @@
  * // Login
  * const result = await authService.login('user@email.com', 'password');
  * if (result.success) {
- *   console.log('Token:', result.token);
+ *   logger.info('Token:', result.token);
  * }
  *
  * // Registro
@@ -254,7 +254,7 @@ export class AuthService {
    * ```typescript
    * const result = await authService.changePassword(123, 'senhaAtual', 'NovaSenha123!');
    * if (!result.success && result.suggestions) {
-   *   console.log('Sugestões:', result.suggestions);
+   *   logger.info('Sugestões:', result.suggestions);
    * }
    * ```
    */

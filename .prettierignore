@@ -1,7 +1,8 @@
 node_modules
 dist
-build
+dist-server
 coverage
+.netlify
+playwright-report
+test-results
 *.min.js
-netlify/functions
-uploads

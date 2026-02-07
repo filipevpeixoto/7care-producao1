@@ -5,7 +5,12 @@
     "build",
     "dist",
     "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
     "e2e/**/*",
+    "tests/**/*",
     "playwright.config.ts",
     "**/*.stories.tsx",
     "server/migrate*.ts"

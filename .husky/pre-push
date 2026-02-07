@@ -1,6 +1,0 @@
-#!/bin/sh
-# Pre-push hook - Verificação leve antes do push
-# Nota: Jest e tsc causam out-of-memory neste projeto.
-# Testes devem ser rodados manualmente com: npx tsx server/__tests__/manual/*.test.ts
-
-echo "✅ Push autorizado. Enviando..."

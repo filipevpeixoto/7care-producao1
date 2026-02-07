@@ -4,25 +4,19 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { sql } from '../neonConfig';
 import { logger } from '../utils/logger';
 import { isSuperAdmin, isPastor } from '../utils/permissions';
 import { User, Church, Event, District } from '../../shared/schema';
 import { asyncHandler } from '../utils';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendError } from '../utils/apiResponse';
 
 export const reportsRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const eventRepo = getRepository('eventRepository');
+  const churchRepo = getRepository('churchRepository');
+  const relationshipRepo = getRepository('relationshipRepository');
 
   /**
    * Helper function para buscar usuários com isolamento de distrito
@@ -31,33 +25,33 @@ export const reportsRoutes = (app: Express): void => {
   const getUsersForReport = async (
     user: User | null
   ): Promise<{ users: User[]; churches: Church[]; events: Event[] }> => {
-    const allEvents = await storage.getAllEvents();
-    
+    const allEvents = await eventRepo.getAllEvents();
+
     if (isPastor(user) && user?.districtId) {
       // Pastor: query otimizada direto do banco por district_id
       logger.info(`🏛️ Reports Helper - Query direta por distrito: ${user.districtId}`);
-      const users = await storage.getUsersByDistrictId(user.districtId);
+      const users = await userRepo.getUsersByDistrictId(user.districtId);
       const filteredUsers = users.filter((u: User) => u.email !== 'admin@7care.com');
-      const churches = await storage.getChurchesByDistrict(user.districtId);
+      const churches = await churchRepo.getChurchesByDistrict(user.districtId);
       const events = allEvents.filter((e: Event) => e.districtId === user.districtId);
       return { users: filteredUsers, churches, events };
     } else if (isSuperAdmin(user)) {
       if (user?.districtId) {
         // Superadmin com distrito específico
-        const users = await storage.getUsersByDistrictId(user.districtId);
+        const users = await userRepo.getUsersByDistrictId(user.districtId);
         const filteredUsers = users.filter((u: User) => u.email !== 'admin@7care.com');
-        const churches = await storage.getChurchesByDistrict(user.districtId);
+        const churches = await churchRepo.getChurchesByDistrict(user.districtId);
         const events = allEvents.filter((e: Event) => e.districtId === user.districtId);
         return { users: filteredUsers, churches, events };
       } else {
         // Superadmin sem distrito (vê tudo)
-        const allUsers = await storage.getAllUsers();
+        const allUsers = await userRepo.getAllUsers();
         const filteredUsers = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-        const allChurches = await storage.getAllChurches();
+        const allChurches = await churchRepo.getAllChurches();
         return { users: filteredUsers, churches: allChurches, events: allEvents };
       }
     }
-    
+
     // Fallback: sem acesso
     return { users: [], churches: [], events: [] };
   };
@@ -118,14 +112,14 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/overview',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allChurches = await storage.getAllChurches();
-      const allEvents = await storage.getAllEvents();
+      const allChurches = await churchRepo.getAllChurches();
+      const allEvents = await eventRepo.getAllEvents();
       const allDistricts = await sql`SELECT * FROM districts`;
 
       let usersToInclude: User[] = [];
@@ -136,21 +130,21 @@ export const reportsRoutes = (app: Express): void => {
       if (isPastor(user) && user?.districtId) {
         // Pastor: query otimizada direto do banco por district_id
         logger.info(`🏛️ PASTOR em Reports - Query direta por distrito: ${user.districtId}`);
-        usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+        usersToInclude = await userRepo.getUsersByDistrictId(user.districtId);
         usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
         logger.info(`✅ Reports: ${usersToInclude.length} usuários carregados diretamente`);
-        churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
+        churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
         eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
       } else if (isSuperAdmin(user)) {
         if (user?.districtId) {
           // Superadmin com distrito específico
-          usersToInclude = await storage.getUsersByDistrictId(user.districtId);
+          usersToInclude = await userRepo.getUsersByDistrictId(user.districtId);
           usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
-          churchesToInclude = await storage.getChurchesByDistrict(user.districtId);
+          churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
           eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
         } else {
           // Superadmin sem distrito (vê tudo)
-          const allUsers = await storage.getAllUsers();
+          const allUsers = await userRepo.getAllUsers();
           usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
           churchesToInclude = allChurches;
           eventsToInclude = allEvents;
@@ -277,7 +271,7 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/spiritual-funnel',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
@@ -345,20 +339,19 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/church-comparison',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: allUsersFiltered, churches: churchesToInclude } = await getUsersForReport(user);
+      const { users: allUsersFiltered, churches: churchesToInclude } =
+        await getUsersForReport(user);
 
       const churchStats = churchesToInclude
         .map(church => {
-          const churchUsers = allUsersFiltered.filter(
-            (u: User) => u.church === church.name
-          );
+          const churchUsers = allUsersFiltered.filter((u: User) => u.church === church.name);
 
           const interested = churchUsers.filter(u => u.role === 'interested').length;
           const members = churchUsers.filter(u => u.role === 'member').length;
@@ -421,7 +414,7 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/engagement-analysis',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
@@ -521,7 +514,7 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/growth-trends',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
@@ -630,7 +623,7 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/missionary-performance',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
@@ -638,7 +631,7 @@ export const reportsRoutes = (app: Express): void => {
 
       // PERFORMANCE FIX: Usar helper otimizado
       const { users: usersToInclude } = await getUsersForReport(user);
-      const allRelationships = await storage.getAllRelationships();
+      const allRelationships = await relationshipRepo.getAll();
 
       // Get missionaries
       const missionaries = usersToInclude.filter(u => u.role === 'missionary');
@@ -714,14 +707,14 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/district-comparison',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
-      const allChurches = await storage.getAllChurches();
+      const allUsers = await userRepo.getAllUsers();
+      const allChurches = await churchRepo.getAllChurches();
       const allDistricts =
         await sql`SELECT d.*, u.name as pastor_name FROM districts d LEFT JOIN users u ON d.pastor_id = u.id`;
 
@@ -820,7 +813,7 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/goals',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);
@@ -924,7 +917,7 @@ export const reportsRoutes = (app: Express): void => {
     '/api/reports/insights',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
         return sendError(res, 'Acesso não autorizado', 403);

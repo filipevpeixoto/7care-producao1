@@ -4,7 +4,6 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { isSuperAdmin } from '../utils/permissions';
@@ -14,16 +13,8 @@ import { pointsConfigSchema } from '../schemas';
 import { User } from '../../shared/schema';
 import { PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
 import { asyncHandler } from '../utils';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendError } from '../utils/apiResponse';
+import { getRepository, getService } from '../container';
 
 // Tipo para dados extras do usuário
 interface UserExtraData {
@@ -91,7 +82,10 @@ interface PointsConfig {
 }
 
 export const pointsRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const pointsRepo = getRepository('pointsRepository');
+  const systemRepo = getRepository('systemRepository');
+  const pointsCalcService = getService('pointsCalculationService');
 
   // Helper function to parse extraData
   const parseExtraData = (user: User): UserExtraData => {
@@ -445,7 +439,7 @@ export const pointsRoutes = (app: Express): void => {
   app.get(
     '/api/system/points-config',
     asyncHandler(async (req: Request, res: Response) => {
-      const config = await storage.getPointsConfiguration();
+      const config = await pointsRepo.getConfiguration();
       sendSuccess(res, config);
     })
   );
@@ -479,18 +473,20 @@ export const pointsRoutes = (app: Express): void => {
       let districtFilter: number | null = null;
 
       if (requestingUserId) {
-        const requestingUser = await storage.getUserById(requestingUserId);
+        const requestingUser = await userRepo.getUserById(requestingUserId);
         if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
           districtFilter = requestingUser.districtId;
-          logger.info(`🏛️ Salvando config e recalculando pontos filtrado por distrito: ${districtFilter}`);
+          logger.info(
+            `🏛️ Salvando config e recalculando pontos filtrado por distrito: ${districtFilter}`
+          );
         }
       }
 
-      await storage.savePointsConfiguration(
-        config as unknown as Parameters<typeof storage.savePointsConfiguration>[0]
+      await pointsRepo.saveConfiguration(
+        config as unknown as Parameters<typeof pointsRepo.saveConfiguration>[0]
       );
 
-      const result = await storage.calculateAdvancedUserPoints(districtFilter);
+      const result = await pointsCalcService.calculateAdvancedUserPoints(districtFilter);
 
       if (result.success) {
         sendSuccess(res, {
@@ -527,7 +523,7 @@ export const pointsRoutes = (app: Express): void => {
       let districtFilter: number | null = null;
 
       if (requestingUserId) {
-        const requestingUser = await storage.getUserById(requestingUserId);
+        const requestingUser = await userRepo.getUserById(requestingUserId);
         if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
           districtFilter = requestingUser.districtId;
           logger.info(`🏛️ Reset de config e recálculo filtrado por distrito: ${districtFilter}`);
@@ -536,7 +532,7 @@ export const pointsRoutes = (app: Express): void => {
 
       await db.delete(schema.pointConfigs);
 
-      const result = await storage.calculateAdvancedUserPoints(districtFilter);
+      const result = await pointsCalcService.calculateAdvancedUserPoints(districtFilter);
 
       if (result.success) {
         sendSuccess(res, {
@@ -574,7 +570,7 @@ export const pointsRoutes = (app: Express): void => {
       let districtFilter: number | null = null;
 
       if (requestingUserId) {
-        requestingUser = await storage.getUserById(requestingUserId);
+        requestingUser = await userRepo.getUserById(requestingUserId);
 
         // Se for pastor, filtrar por distrito
         if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
@@ -583,7 +579,7 @@ export const pointsRoutes = (app: Express): void => {
         }
       }
 
-      let users = await storage.getAllUsers();
+      let users = await userRepo.getAllUsers();
 
       // Aplicar filtro de distrito se necessário
       if (districtFilter !== null) {
@@ -607,11 +603,11 @@ export const pointsRoutes = (app: Express): void => {
             continue;
           }
 
-          const calculation = await storage.calculateUserPoints(user.id);
+          const calculation = await pointsCalcService.calculateUserPoints(user.id);
 
           if (calculation && typeof calculation === 'object' && calculation.success) {
             if (user.points !== calculation.points) {
-              await storage.updateUser(user.id, { points: calculation.points });
+              await userRepo.updateUser(user.id, { points: calculation.points });
               updatedCount++;
             }
 
@@ -630,9 +626,7 @@ export const pointsRoutes = (app: Express): void => {
         }
       }
 
-      const scopeMessage = districtFilter !== null
-        ? `do distrito`
-        : `do sistema`;
+      const scopeMessage = districtFilter !== null ? `do distrito` : `do sistema`;
 
       sendSuccess(res, {
         success: true,
@@ -659,7 +653,7 @@ export const pointsRoutes = (app: Express): void => {
   app.get(
     '/api/system/parameter-average',
     asyncHandler(async (req: Request, res: Response) => {
-      const currentConfig = await storage.getPointsConfiguration();
+      const currentConfig = await pointsRepo.getConfiguration();
       const currentAverage = calculateParameterAverage(currentConfig);
 
       sendSuccess(res, {
@@ -708,15 +702,15 @@ export const pointsRoutes = (app: Express): void => {
       let requestingUser = null;
 
       if (requestingUserId) {
-        requestingUser = await storage.getUserById(requestingUserId);
+        requestingUser = await userRepo.getUserById(requestingUserId);
         if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
           districtFilter = requestingUser.districtId;
           logger.info(`🏛️ Ajuste de média filtrado por distrito: ${districtFilter}`);
         }
       }
 
-      const currentConfig = await storage.getPointsConfiguration();
-      let allUsers = await storage.getAllUsers();
+      const currentConfig = await pointsRepo.getConfiguration();
+      let allUsers = await userRepo.getAllUsers();
 
       // Aplicar filtro de distrito se necessário
       if (districtFilter !== null) {
@@ -740,9 +734,9 @@ export const pointsRoutes = (app: Express): void => {
       const newConfig = applyAdjustmentFactorToParameters(currentConfig, adjustmentFactor);
       const mergedConfig = mergePointsConfiguration(currentConfig, newConfig);
 
-      await storage.savePointsConfiguration(mergedConfig);
+      await pointsRepo.saveConfiguration(mergedConfig);
 
-      const result = await storage.calculateAdvancedUserPoints(districtFilter);
+      const result = await pointsCalcService.calculateAdvancedUserPoints(districtFilter);
 
       if (!result.success) {
         throw new Error(`Erro no recálculo automático: ${result.message}`);
@@ -775,7 +769,7 @@ export const pointsRoutes = (app: Express): void => {
   app.get(
     '/api/system/event-permissions',
     asyncHandler(async (req: Request, res: Response) => {
-      const permissions = await storage.getEventPermissions();
+      const permissions = await systemRepo.getEventPermissions();
       sendSuccess(res, { permissions });
     })
   );
@@ -810,7 +804,7 @@ export const pointsRoutes = (app: Express): void => {
         return sendError(res, 'Permissões são obrigatórias e devem ser um objeto', 400);
       }
 
-      await storage.saveEventPermissions(permissions);
+      await systemRepo.saveEventPermissions(permissions);
 
       sendSuccess(res, { message: 'Permissões de eventos salvas com sucesso' });
     })

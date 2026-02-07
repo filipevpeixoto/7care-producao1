@@ -41,6 +41,28 @@ export interface ExcelRow {
   telefone?: string;
   email?: string;
   cargo?: string;
+  // Campos importados do Excel para cálculo de pontos
+  dataBatismo?: string;
+  cpf?: string;
+  endereco?: string;
+  dataNascimento?: string;
+  engajamento?: string;
+  classificacao?: string;
+  dizimista?: string;
+  ofertante?: string;
+  nomeUnidade?: string;
+  temLicao?: boolean;
+  totalPresenca?: number;
+  comunhao?: number;
+  missao?: number;
+  estudoBiblico?: number;
+  batizouAlguem?: boolean;
+  valid?: boolean;
+  estadoCivil?: string;
+  profissao?: string;
+  escolaridade?: string;
+  religiaoAnterior?: string;
+  departamentosCargos?: string;
 }
 
 // Dados do Excel importado
@@ -143,6 +165,9 @@ export interface SubmitOnboardingDTO {
   dracmaConfig?: DracmaConfigData; // Configuração do Dracma
   gamificationConfig?: GamificationConfigData; // Configuração de Gamificação
   password: string;
+  // Campos opcionais de compatibilidade (usados por algumas versões do frontend)
+  name?: string;
+  phone?: string;
 }
 
 // DTO para rejeitar convite

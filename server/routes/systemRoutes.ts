@@ -4,31 +4,25 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendError } from '../utils/apiResponse';
+import { getRepository } from '../container';
 
 // Variáveis de controle do cleanup automático
 let autoCleanupInterval: NodeJS.Timeout | null = null;
 let autoCleanupEnabled = true;
 
 export const systemRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const discipleshipRepo = getRepository('discipleshipRepository');
+  const relationshipRepo = getRepository('relationshipRepository');
+  const systemRepo = getRepository('systemRepository');
 
   // Função auxiliar para executar limpeza automática
   const executeAutoCleanup = async () => {
     try {
-      const allRequests = await storage.getAllDiscipleshipRequests();
+      const allRequests = await discipleshipRepo.getAll();
       const approvedRequests = allRequests.filter(req => req.status === 'approved');
 
       let cleanedCount = 0;
@@ -38,11 +32,11 @@ export const systemRoutes = (app: Express): void => {
           if (request.interestedId == null) {
             continue;
           }
-          const relationships = await storage.getRelationshipsByInterested(request.interestedId);
+          const relationships = await relationshipRepo.getByInterested(request.interestedId);
           const hasActiveRelationship = relationships.some(rel => rel.status === 'active');
 
           if (!hasActiveRelationship) {
-            await storage.updateDiscipleshipRequest(request.id, {
+            await discipleshipRepo.update(request.id, {
               status: 'rejected',
               notes: 'Limpeza automática - sem relacionamento ativo',
             });
@@ -112,7 +106,7 @@ export const systemRoutes = (app: Express): void => {
   app.post(
     '/api/system/clean-orphaned-approvals',
     asyncHandler(async (req: Request, res: Response) => {
-      const allRequests = await storage.getAllDiscipleshipRequests();
+      const allRequests = await discipleshipRepo.getAll();
       const approvedRequests = allRequests.filter(req => req.status === 'approved');
 
       let cleanedCount = 0;
@@ -123,11 +117,11 @@ export const systemRoutes = (app: Express): void => {
           if (request.interestedId == null) {
             continue;
           }
-          const relationships = await storage.getRelationshipsByInterested(request.interestedId);
+          const relationships = await relationshipRepo.getByInterested(request.interestedId);
           const hasActiveRelationship = relationships.some(rel => rel.status === 'active');
 
           if (!hasActiveRelationship) {
-            const updatedRequest = await storage.updateDiscipleshipRequest(request.id, {
+            const updatedRequest = await discipleshipRepo.update(request.id, {
               status: 'rejected',
               notes: 'Solicitação rejeitada automaticamente - sem relacionamento ativo',
             });
@@ -296,13 +290,13 @@ export const systemRoutes = (app: Express): void => {
         return sendError(res, 'Usuário não autenticado', 401);
       }
 
-      const user = await storage.getUserById(Number(userId));
+      const user = await userRepo.getUserById(Number(userId));
       if (!user || user.role !== 'superadmin') {
         return sendError(res, 'Apenas superadmin pode executar esta operação', 403);
       }
 
       // Executar limpeza completa (mantém superadmin, remove convites de pastores)
-      await storage.clearAllData();
+      await systemRepo.clearAllData();
 
       sendSuccess(res, {
         message: 'Dados limpos com sucesso. Superadmin mantido, convites de pastores removidos.',

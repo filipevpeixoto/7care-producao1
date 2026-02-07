@@ -19,19 +19,20 @@ interface ChatUser {
 
 interface Conversation {
   id: number;
-  type: 'direct' | 'group';
-  name: string;
+  type: 'direct' | 'group' | 'private' | string;
+  name?: string;
+  title?: string;
   avatar?: string;
-  participants: ChatUser[];
-  lastMessage: {
+  participants?: ChatUser[];
+  lastMessage?: {
     content: string;
     timestamp: string;
     senderId: number;
     senderName: string;
   };
-  unreadCount: number;
-  isPinned: boolean;
-  isArchived: boolean;
+  unreadCount?: number;
+  isPinned?: boolean;
+  isArchived?: boolean;
 }
 
 export default function Chat() {
@@ -102,7 +103,7 @@ export default function Chat() {
       };
     }
     if (conversation.type === 'direct') {
-      return conversation.participants[0];
+      return conversation.participants?.[0];
     }
     return undefined;
   };

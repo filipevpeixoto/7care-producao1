@@ -11,24 +11,27 @@ import { logger } from '../utils/logger';
 
 export async function getAllEvents(): Promise<Event[]> {
   try {
-    const result = await db.select({
-      id: schema.events.id,
-      title: schema.events.title,
-      description: schema.events.description,
-      date: schema.events.date,
-      endDate: schema.events.endDate,
-      location: schema.events.location,
-      type: schema.events.type,
-      color: schema.events.color,
-      capacity: schema.events.capacity,
-      isRecurring: schema.events.isRecurring,
-      recurrencePattern: schema.events.recurrencePattern,
-      createdBy: schema.events.createdBy,
-      churchId: schema.events.churchId,
-      createdAt: schema.events.createdAt,
-      updatedAt: schema.events.updatedAt
-    }).from(schema.events).orderBy(desc(schema.events.date));
-    
+    const result = await db
+      .select({
+        id: schema.events.id,
+        title: schema.events.title,
+        description: schema.events.description,
+        date: schema.events.date,
+        endDate: schema.events.endDate,
+        location: schema.events.location,
+        type: schema.events.type,
+        color: schema.events.color,
+        capacity: schema.events.capacity,
+        isRecurring: schema.events.isRecurring,
+        recurrencePattern: schema.events.recurrencePattern,
+        createdBy: schema.events.createdBy,
+        churchId: schema.events.churchId,
+        createdAt: schema.events.createdAt,
+        updatedAt: schema.events.updatedAt,
+      })
+      .from(schema.events)
+      .orderBy(desc(schema.events.date));
+
     return result as unknown as Event[];
   } catch (error) {
     logger.error('Erro ao buscar eventos:', error);
@@ -85,10 +88,13 @@ export async function createEvent(eventData: CreateEventInput): Promise<Event> {
       createdBy: eventExtras.organizerId ?? null,
       churchId: eventExtras.churchId ?? null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
-    const result = await db.insert(schema.events).values(newEvent as typeof schema.events.$inferInsert).returning();
+    const result = await db
+      .insert(schema.events)
+      .values(newEvent as typeof schema.events.$inferInsert)
+      .returning();
     return result[0] as unknown as Event;
   } catch (error) {
     logger.error('Erro ao criar evento:', error);
@@ -111,14 +117,18 @@ export async function updateEvent(id: number, updates: UpdateEventInput): Promis
     const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
 
     if (updatesExtras.title !== undefined) dbUpdates.title = updatesExtras.title;
-    if (updatesExtras.description !== undefined) dbUpdates.description = updatesExtras.description ?? null;
+    if (updatesExtras.description !== undefined)
+      dbUpdates.description = updatesExtras.description ?? null;
     if (updatesExtras.location !== undefined) dbUpdates.location = updatesExtras.location ?? null;
     if (updatesExtras.type !== undefined) dbUpdates.type = updatesExtras.type;
     if (updatesExtras.isRecurring !== undefined) dbUpdates.isRecurring = updatesExtras.isRecurring;
-    if (updatesExtras.recurrencePattern !== undefined) dbUpdates.recurrencePattern = updatesExtras.recurrencePattern ?? null;
-    if (updatesExtras.maxParticipants !== undefined) dbUpdates.capacity = updatesExtras.maxParticipants ?? null;
+    if (updatesExtras.recurrencePattern !== undefined)
+      dbUpdates.recurrencePattern = updatesExtras.recurrencePattern ?? null;
+    if (updatesExtras.maxParticipants !== undefined)
+      dbUpdates.capacity = updatesExtras.maxParticipants ?? null;
     if (updatesExtras.capacity !== undefined) dbUpdates.capacity = updatesExtras.capacity ?? null;
-    if (updatesExtras.organizerId !== undefined) dbUpdates.createdBy = updatesExtras.organizerId ?? null;
+    if (updatesExtras.organizerId !== undefined)
+      dbUpdates.createdBy = updatesExtras.organizerId ?? null;
     if (updatesExtras.color !== undefined) dbUpdates.color = updatesExtras.color ?? null;
     if (updatesExtras.churchId !== undefined) dbUpdates.churchId = updatesExtras.churchId ?? null;
     if (updatesExtras.date !== undefined) {

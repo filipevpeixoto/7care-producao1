@@ -83,7 +83,7 @@ export const receiptRoutes = (app: Express): void => {
       const apiKey = req.headers['x-api-key'];
 
       // Validar API key - agora suporta chaves por pastor
-      const configResult = await sql<{ key: string; value: string; user_id: number | null }[]>`
+      const configResult = await sql<{ key: string; value: string; user_id: number | null }>`
         SELECT key, value, user_id
         FROM automation_config
         WHERE key = 'n8n_api_key'
@@ -100,7 +100,7 @@ export const receiptRoutes = (app: Express): void => {
       const validated = receiptIngestSchema.parse(req.body);
 
       // Encontrar usuário pelo número de WhatsApp (campo phone)
-      const userResult = await sql<{ id: number; name: string }[]>`
+      const userResult = await sql<{ id: number; name: string }>`
         SELECT id, name FROM users
         WHERE phone = ${validated.whatsappNumber}
         LIMIT 1
@@ -126,7 +126,7 @@ export const receiptRoutes = (app: Express): void => {
       }
 
       // Inserir recibo
-      const receiptResult = await sql<{ id: number; status: string; created_at: string }[]>`
+      const receiptResult = await sql<{ id: number; status: string; created_at: string }>`
         INSERT INTO expense_receipts (
           user_id, whatsapp_number, image_url, ocr_provider, ocr_raw_data,
           ocr_confidence, merchant_name, receipt_date, total_amount, tax_id,
@@ -584,7 +584,7 @@ export const receiptRoutes = (app: Express): void => {
         return sendError(res, 'Only pastors can configure Dracma credentials', 403);
       }
 
-      const configs = await sql<{ key: string }[]>`
+      const configs = await sql<{ key: string }>`
         SELECT key FROM automation_config
         WHERE user_id = ${userId}
         AND key IN ('dracma_username', 'dracma_password')
@@ -629,7 +629,7 @@ export const receiptRoutes = (app: Express): void => {
         return sendError(res, 'Only pastors can access Dracma credentials', 403);
       }
 
-      const configs = await sql<{ key: string; value: string }[]>`
+      const configs = await sql<{ key: string; value: string }>`
         SELECT key, value FROM automation_config
         WHERE user_id = ${userId}
         AND key IN ('dracma_username', 'dracma_password', 'n8n_api_key', 'ocr_space_api_key')
@@ -719,7 +719,7 @@ export const receiptRoutes = (app: Express): void => {
       }
 
       // Gerar API key para n8n se não existir
-      const existingN8nKey = await sql<{ value: string }[]>`
+      const existingN8nKey = await sql<{ value: string }>`
         SELECT value FROM automation_config
         WHERE user_id = ${userId}
         AND key = 'n8n_api_key'
@@ -747,7 +747,7 @@ export const receiptRoutes = (app: Express): void => {
 
       for (const config of configs) {
         // Verificar se já existe
-        const existing = await sql<{ id: number }[]>`
+        const existing = await sql<{ id: number }>`
           SELECT id FROM automation_config
           WHERE key = ${config.key}
           AND user_id = ${userId}

@@ -2,10 +2,13 @@ import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { logger } from './utils/logger';
 
-// Configuração do Neon Database - usa variável de ambiente ou fallback
-const connectionString =
-  process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_enihr4YBSDm8@ep-still-glade-ac5u1r48-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+// Configuração do Neon Database - requer variável de ambiente
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error(
+    '❌ DATABASE_URL não definida. Configure a variável de ambiente DATABASE_URL com a connection string do Neon.'
+  );
+}
 
 // Configurações de connection pooling e retry
 const POOL_CONFIG = {
@@ -19,6 +22,9 @@ const RETRY_CONFIG = {
   initialDelayMs: 100,
   maxDelayMs: 2000,
 };
+
+// Threshold para slow query logging (em ms)
+const SLOW_QUERY_THRESHOLD_MS = Number(process.env.SLOW_QUERY_THRESHOLD_MS) || 500;
 
 /**
  * Implementa retry com exponential backoff
@@ -124,9 +130,9 @@ export function getConnectionMetrics(): ConnectionMetrics {
 }
 
 /**
- * Wrapper para operações de banco com métricas e retry
+ * Wrapper para operações de banco com métricas, retry e slow query logging
  */
-export async function dbQueryWithMetrics<T>(operation: () => Promise<T>): Promise<T> {
+export async function dbQueryWithMetrics<T>(operation: () => Promise<T>, queryLabel?: string): Promise<T> {
   const startTime = Date.now();
   metrics.totalQueries++;
 
@@ -136,6 +142,16 @@ export async function dbQueryWithMetrics<T>(operation: () => Promise<T>): Promis
     metrics.lastQueryTime = queryTime;
     metrics.averageQueryTime =
       (metrics.averageQueryTime * (metrics.totalQueries - 1) + queryTime) / metrics.totalQueries;
+
+    // Slow query logging
+    if (queryTime >= SLOW_QUERY_THRESHOLD_MS) {
+      logger.warn(`🐌 Slow query detected (${queryTime}ms): ${queryLabel || 'unnamed query'}`, {
+        queryTime,
+        threshold: SLOW_QUERY_THRESHOLD_MS,
+        label: queryLabel,
+      });
+    }
+
     return result;
   } catch (error) {
     metrics.failedQueries++;

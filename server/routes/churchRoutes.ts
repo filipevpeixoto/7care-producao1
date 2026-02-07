@@ -4,7 +4,7 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { isSuperAdmin, isPastor } from '../utils/permissions';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createChurchSchema, updateChurchSchema } from '../schemas';
@@ -13,19 +13,11 @@ import { Church } from '../../shared/schema';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
 
 export const churchRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
 
   /**
    * @swagger
@@ -50,20 +42,20 @@ export const churchRoutes = (app: Express): void => {
     cacheMiddleware('churches', CACHE_TTL.CHURCHES),
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       let churches: Church[];
       if (isSuperAdmin(user)) {
         // Superadmin sempre vê todas as igrejas
-        churches = await storage.getAllChurches();
+        churches = await churchRepo.getAllChurches();
       } else if (isPastor(user) && user?.districtId) {
         // Pastor vê apenas igrejas do seu distrito
-        churches = await storage.getChurchesByDistrict(user.districtId);
+        churches = await churchRepo.getChurchesByDistrict(user.districtId);
       } else {
         // Outros usuários veem apenas sua igreja
         const userChurch = user?.church;
         if (userChurch) {
-          churches = await storage
+          churches = await churchRepo
             .getAllChurches()
             .then(chs => chs.filter(ch => ch.name === userChurch));
         } else {
@@ -110,7 +102,7 @@ export const churchRoutes = (app: Express): void => {
       const { name } = (req as ValidatedRequest<typeof createChurchSchema._type>).validatedBody;
       logger.info(`Creating church: ${name}`);
 
-      const church = await storage.getOrCreateChurch(name.trim());
+      const church = await churchRepo.getOrCreateChurch(name.trim());
 
       sendSuccess(res, church);
     })
@@ -154,19 +146,19 @@ export const churchRoutes = (app: Express): void => {
       const id = parseInt(req.params.id);
       const updates = (req as ValidatedRequest<typeof updateChurchSchema._type>).validatedBody;
 
-      const oldChurch = await storage
+      const oldChurch = await churchRepo
         .getAllChurches()
         .then(churches => churches.find(c => c.id === id));
 
-      const updatedChurch = await storage.updateChurch(id, updates);
+      const updatedChurch = await churchRepo.updateChurch(id, updates);
       if (updatedChurch) {
         if (updates.name && oldChurch && oldChurch.name !== updates.name) {
-          const allUsers = await storage.getAllUsers();
+          const allUsers = await userRepo.getAllUsers();
 
           for (const user of allUsers) {
             if (user.church === oldChurch.name) {
               try {
-                await storage.updateUser(user.id, { church: updates.name });
+                await userRepo.updateUser(user.id, { church: updates.name });
               } catch (error) {
                 logger.error(`Erro ao atualizar usuário ${user.name}:`, error);
               }
@@ -215,7 +207,7 @@ export const churchRoutes = (app: Express): void => {
         return sendError(res, 'Invalid user ID', 400);
       }
 
-      const user = await storage.getUserById(id);
+      const user = await userRepo.getUserById(id);
 
       if (!user) {
         return sendNotFound(res, 'Usuário');
@@ -223,11 +215,11 @@ export const churchRoutes = (app: Express): void => {
 
       let churchName = user.church;
       if (!churchName) {
-        const churches = await storage.getAllChurches();
+        const churches = await churchRepo.getAllChurches();
         if (churches.length > 0) {
           churchName = churches[0].name;
           try {
-            await storage.updateUserChurch(id, churchName || '');
+            await userRepo.updateUserChurch(id, churchName || '');
           } catch (updateError) {
             logger.error('Error updating user church:', updateError);
           }

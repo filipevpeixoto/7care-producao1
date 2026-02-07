@@ -7,9 +7,10 @@
 import 'dotenv/config';
 import { NeonAdapter } from './neonAdapter';
 import * as bcrypt from 'bcryptjs';
+import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from './config/security';
 
 // Senha padrão do admin - usar variável de ambiente em produção
-const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'meu7care';
+const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || DEFAULT_RESET_PASSWORD;
 
 async function createSuperAdmin() {
   const storage = new NeonAdapter();
@@ -32,7 +33,7 @@ async function createSuperAdmin() {
     }
 
     // Criar novo super admin
-    const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
+    const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, BCRYPT_SALT_ROUNDS);
 
     const admin = await storage.createUser({
       name: 'Super Administrador',

@@ -51,69 +51,111 @@ import {
   UserPlus,
 } from 'lucide-react';
 
-// Types
+// Types - Alinhados com o backend (reportsRoutes.ts)
 interface OverviewData {
-  totalMembers: number;
-  activeMembers: number;
-  newMembersThisMonth: number;
+  // Basic counts
+  totalUsers: number;
   totalChurches: number;
-  totalMissionaries: number;
-  averageAttendance: number;
-  baptismsThisYear: number;
-  studiesInProgress: number;
+  totalEvents: number;
+  totalDistricts: number;
+  // By role
+  usersByRole: Record<string, number>;
+  // Spiritual stages
+  spiritualStages: Array<{ stage: string; count: number }>;
+  // Engagement
+  engagementLevels: Record<string, number>;
+  avgEngagement: number;
+  // Financial/spiritual
+  tithers: number;
+  donors: number;
+  withLesson: number;
+  baptized: number;
+  tithersPercentage: number;
+  donorsPercentage: number;
+  // Events
+  eventsThisMonth: number;
+  // Growth
+  usersThisMonth: number;
+  usersLastMonth: number;
   growthRate: number;
-  retentionRate: number;
 }
 
 interface FunnelStage {
   stage: string;
   count: number;
-  percentage: number;
   color: string;
 }
 
+interface FunnelData {
+  funnel: FunnelStage[];
+  conversions: {
+    CtoB: number;
+    BtoA: number;
+    AtoBaptism: number;
+  };
+  totals: {
+    totalInterested: number;
+    totalBaptized: number;
+    totalMembers: number;
+    totalMissionaries: number;
+  };
+}
+
 interface ChurchMetric {
-  churchId: string;
-  churchName: string;
+  id: number;
+  name: string;
+  totalUsers: number;
+  interested: number;
   members: number;
-  attendance: number;
-  baptisms: number;
-  studies: number;
-  growthRate: number;
+  missionaries: number;
+  baptized: number;
+  tithers: number;
+  avgEngagement: number;
+  tithersPercentage: number;
 }
 
 interface EngagementData {
-  category: string;
-  value: number;
-  change: number;
+  categories: Array<{ label: string; value: number; max: number }>;
+  avgEngagement: number;
+  engagementLevels: Record<string, number>;
 }
 
 interface GrowthTrend {
   month: string;
-  members: number;
-  baptisms: number;
-  studies: number;
-  attendance: number;
+  year: number;
+  monthNum: number;
+  newUsers: number;
+  newInterested: number;
+  newBaptized: number;
+  newMembers: number;
 }
 
 interface MissionaryPerformance {
-  missionaryId: string;
+  id: number;
   name: string;
   church: string;
-  studies: number;
-  baptisms: number;
-  visits: number;
-  activeContacts: number;
-  conversionRate: number;
+  activeRelationships: number;
+  totalMentored: number;
+  conversions: number;
+  engagement: number;
+  points: number;
+  level: string;
 }
 
 interface DistrictData {
-  districtId: string;
-  districtName: string;
-  churches: number;
+  id: number;
+  name: string;
+  code: string;
+  pastorName: string;
+  churchCount: number;
+  totalUsers: number;
+  interested: number;
   members: number;
-  baptisms: number;
-  growthRate: number;
+  missionaries: number;
+  baptized: number;
+  tithers: number;
+  avgEngagement: number;
+  tithersPercentage: number;
 }
 
 interface Goal {
@@ -177,7 +219,7 @@ export default function Reports() {
     refetchOnMount: 'always',
   });
 
-  const { data: funnelData, isLoading: loadingFunnel } = useQuery<FunnelStage[]>({
+  const { data: funnelData, isLoading: loadingFunnel } = useQuery<FunnelData>({
     queryKey: ['/api/reports/spiritual-funnel', selectedPeriod, user?.id],
     enabled: !!user?.id && hasAccess && activeTab === 'funnel',
     staleTime: 0,
@@ -191,7 +233,7 @@ export default function Reports() {
     refetchOnMount: 'always',
   });
 
-  const { data: engagementData, isLoading: loadingEngagement } = useQuery<EngagementData[]>({
+  const { data: engagementData, isLoading: loadingEngagement } = useQuery<EngagementData>({
     queryKey: ['/api/reports/engagement-analysis', selectedPeriod, user?.id],
     enabled: !!user?.id && hasAccess && activeTab === 'engagement',
     staleTime: 0,
@@ -298,40 +340,39 @@ export default function Reports() {
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 gap-4">
         <StatCard
-          title="Total de Membros"
-          value={overviewData?.totalMembers ?? 0}
+          title="Total de Usuários"
+          value={overviewData?.totalUsers ?? 0}
           change={overviewData?.growthRate}
           icon={Users}
           loading={loadingOverview}
         />
         <StatCard
-          title="Membros Ativos"
-          value={overviewData?.activeMembers ?? 0}
-          change={overviewData?.retentionRate}
+          title="Engajamento Médio"
+          value={`${overviewData?.avgEngagement ?? 0}%`}
           icon={Activity}
           loading={loadingOverview}
         />
         <StatCard
           title="Novos este Mês"
-          value={overviewData?.newMembersThisMonth ?? 0}
+          value={overviewData?.usersThisMonth ?? 0}
           icon={UserPlus}
           loading={loadingOverview}
         />
         <StatCard
-          title="Batismos no Ano"
-          value={overviewData?.baptismsThisYear ?? 0}
+          title="Batizados"
+          value={overviewData?.baptized ?? 0}
           icon={Heart}
           loading={loadingOverview}
         />
         <StatCard
-          title="Estudos em Andamento"
-          value={overviewData?.studiesInProgress ?? 0}
+          title="Com Lição"
+          value={overviewData?.withLesson ?? 0}
           icon={BookOpen}
           loading={loadingOverview}
         />
         <StatCard
-          title="Média de Presença"
-          value={`${overviewData?.averageAttendance ?? 0}%`}
+          title="Dizimistas"
+          value={`${overviewData?.tithersPercentage ?? 0}%`}
           icon={BarChart3}
           loading={loadingOverview}
         />
@@ -365,7 +406,15 @@ export default function Reports() {
                     Total de Missionários
                   </span>
                   <span className="font-semibold text-foreground dark:text-white">
-                    {overviewData?.totalMissionaries ?? 0}
+                    {overviewData?.usersByRole?.missionary ?? 0}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground dark:text-gray-400">
+                    Total de Distritos
+                  </span>
+                  <span className="font-semibold text-foreground dark:text-white">
+                    {overviewData?.totalDistricts ?? 0}
                   </span>
                 </div>
               </div>
@@ -414,31 +463,62 @@ export default function Reports() {
             </div>
           ) : (
             <div className="space-y-4">
-              {(funnelData ?? []).map((stage, index) => (
-                <div key={stage.stage} className="relative">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-foreground dark:text-white capitalize">
-                      {stage.stage}
-                    </span>
-                    <span className="text-sm text-muted-foreground dark:text-gray-400">
-                      {stage.count} ({stage.percentage}%)
-                    </span>
+              {(funnelData?.funnel ?? []).map((stage, index) => {
+                const total = funnelData?.funnel?.reduce((sum, s) => sum + s.count, 0) || 1;
+                const percentage = Math.round((stage.count / total) * 100);
+                return (
+                  <div key={stage.stage} className="relative">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-foreground dark:text-white capitalize">
+                        {stage.stage}
+                      </span>
+                      <span className="text-sm text-muted-foreground dark:text-gray-400">
+                        {stage.count} ({percentage}%)
+                      </span>
+                    </div>
+                    <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                      <div
+                        className="h-full transition-all duration-500"
+                        style={{
+                          width: `${percentage}%`,
+                          backgroundColor: stage.color || COLORS[index % COLORS.length],
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                    <div
-                      className="h-full transition-all duration-500"
-                      style={{
-                        width: `${stage.percentage}%`,
-                        backgroundColor: stage.color || COLORS[index % COLORS.length],
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Conversions Summary */}
+      {funnelData?.conversions && (
+        <Card className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-foreground dark:text-white">
+              Taxas de Conversão
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-500">{funnelData.conversions.CtoB}%</p>
+                <p className="text-sm text-muted-foreground">C → B</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-500">{funnelData.conversions.BtoA}%</p>
+                <p className="text-sm text-muted-foreground">B → A</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-purple-500">{funnelData.conversions.AtoBaptism}%</p>
+                <p className="text-sm text-muted-foreground">A → Batismo</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Funnel Visualization */}
       <Card className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700">
@@ -452,7 +532,7 @@ export default function Reports() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={funnelData ?? []} layout="vertical">
+              <BarChart data={funnelData?.funnel ?? []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis type="number" stroke="#9ca3af" />
                 <YAxis dataKey="stage" type="category" width={100} stroke="#9ca3af" />
@@ -465,7 +545,7 @@ export default function Reports() {
                   labelStyle={{ color: '#f9fafb' }}
                 />
                 <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]}>
-                  {(funnelData ?? []).map((entry, index) => (
+                  {(funnelData?.funnel ?? []).map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.color || COLORS[index % COLORS.length]}
@@ -480,105 +560,121 @@ export default function Reports() {
     </div>
   );
 
-  const EngagementTab = () => (
-    <div className="space-y-6">
-      <Card className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-lg text-foreground dark:text-white">
-            Análise de Engajamento
-          </CardTitle>
-          <CardDescription className="dark:text-gray-400">
-            Métricas de participação e envolvimento
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loadingEngagement ? (
-            <Skeleton className="h-64 w-full" />
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={engagementData ?? []}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  nameKey="category"
-                  label={({ category, value }) => `${category}: ${value}`}
-                >
-                  {(engagementData ?? []).map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+  const EngagementTab = () => {
+    // Preparar dados para o gráfico de pizza a partir do engagementLevels
+    const pieData = engagementData?.engagementLevels
+      ? Object.entries(engagementData.engagementLevels).map(([key, value]) => ({
+          name: key === 'high' ? 'Alto' : key === 'medium' ? 'Médio' : 'Baixo',
+          value,
+        }))
+      : [];
 
-      {/* Engagement Metrics */}
-      <div className="grid gap-4">
-        {loadingEngagement
-          ? [1, 2, 3].map(i => (
-              <Card
-                key={i}
-                className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700"
-              >
-                <CardContent className="p-4">
-                  <Skeleton className="h-16 w-full" />
-                </CardContent>
-              </Card>
-            ))
-          : (engagementData ?? []).map((item, index) => (
-              <Card
-                key={item.category}
-                className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700"
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <span className="font-medium text-foreground dark:text-white">
-                        {item.category}
-                      </span>
-                    </div>
-                    <div className="text-right">
+    return (
+      <div className="space-y-6">
+        {/* Average Engagement Card */}
+        <Card className="bg-gradient-to-r from-green-500/10 to-blue-500/10 dark:from-green-500/20 dark:to-blue-500/20 border-green-200 dark:border-green-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500/20 rounded-lg">
+                <Activity className="h-6 w-6 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">
+                  Engajamento Médio
+                </p>
+                <p className="text-2xl font-bold text-foreground dark:text-white">
+                  {engagementData?.avgEngagement ?? 0}%
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-foreground dark:text-white">
+              Níveis de Engajamento
+            </CardTitle>
+            <CardDescription className="dark:text-gray-400">
+              Distribuição dos níveis de participação
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingEngagement ? (
+              <Skeleton className="h-64 w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    nameKey="name"
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    {pieData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1f2937',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Engagement Categories */}
+        <div className="grid gap-4">
+          {loadingEngagement
+            ? [1, 2, 3].map(i => (
+                <Card
+                  key={i}
+                  className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700"
+                >
+                  <CardContent className="p-4">
+                    <Skeleton className="h-16 w-full" />
+                  </CardContent>
+                </Card>
+              ))
+            : (engagementData?.categories ?? []).map((item, index) => (
+                <Card
+                  key={item.label}
+                  className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="font-medium text-foreground dark:text-white">
+                          {item.label}
+                        </span>
+                      </div>
                       <span className="text-lg font-bold text-foreground dark:text-white">
                         {item.value}
                       </span>
-                      <div className="flex items-center gap-1">
-                        {item.change >= 0 ? (
-                          <TrendingUp className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3 text-red-500" />
-                        )}
-                        <span
-                          className={`text-xs ${item.change >= 0 ? 'text-green-500' : 'text-red-500'}`}
-                        >
-                          {Math.abs(item.change)}%
-                        </span>
-                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <Progress value={(item.value / (item.max || 100)) * 100} className="h-2" />
+                  </CardContent>
+                </Card>
+              ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const GrowthTab = () => (
     <div className="space-y-6">
@@ -621,16 +717,16 @@ export default function Reports() {
                 <Legend />
                 <Area
                   type="monotone"
-                  dataKey="members"
-                  name="Membros"
+                  dataKey="newMembers"
+                  name="Novos Membros"
                   stroke="#3b82f6"
                   fillOpacity={1}
                   fill="url(#colorMembers)"
                 />
                 <Area
                   type="monotone"
-                  dataKey="baptisms"
-                  name="Batismos"
+                  dataKey="newBaptized"
+                  name="Novos Batizados"
                   stroke="#10b981"
                   fillOpacity={1}
                   fill="url(#colorBaptisms)"
@@ -645,7 +741,7 @@ export default function Reports() {
       <Card className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700">
         <CardHeader>
           <CardTitle className="text-lg text-foreground dark:text-white">
-            Estudos e Presença
+            Novos Usuários e Interessados
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -668,15 +764,15 @@ export default function Reports() {
                 <Legend />
                 <Line
                   type="monotone"
-                  dataKey="studies"
-                  name="Estudos"
+                  dataKey="newUsers"
+                  name="Novos Usuários"
                   stroke="#f59e0b"
                   strokeWidth={2}
                 />
                 <Line
                   type="monotone"
-                  dataKey="attendance"
-                  name="Presença"
+                  dataKey="newInterested"
+                  name="Novos Interessados"
                   stroke="#8b5cf6"
                   strokeWidth={2}
                 />
@@ -707,7 +803,7 @@ export default function Reports() {
               <BarChart data={churchData ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis
-                  dataKey="churchName"
+                  dataKey="name"
                   stroke="#9ca3af"
                   angle={-45}
                   textAnchor="end"
@@ -724,7 +820,7 @@ export default function Reports() {
                 />
                 <Legend />
                 <Bar dataKey="members" name="Membros" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="baptisms" name="Batismos" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="baptized" name="Batizados" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -746,7 +842,7 @@ export default function Reports() {
             ))
           : (churchData ?? []).map(church => (
               <Card
-                key={church.churchId}
+                key={church.id}
                 className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700"
               >
                 <CardContent className="p-4">
@@ -754,18 +850,20 @@ export default function Reports() {
                     <div className="flex items-center gap-2">
                       <Church className="h-5 w-5 text-blue-500" />
                       <span className="font-semibold text-foreground dark:text-white">
-                        {church.churchName}
+                        {church.name}
                       </span>
                     </div>
-                    <Badge
-                      variant={church.growthRate >= 0 ? 'default' : 'destructive'}
-                      className={church.growthRate >= 0 ? 'bg-green-500/20 text-green-500' : ''}
-                    >
-                      {church.growthRate >= 0 ? '+' : ''}
-                      {church.growthRate}%
+                    <Badge className="bg-green-500/20 text-green-500">
+                      {church.tithersPercentage}% dizimistas
                     </Badge>
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Total</p>
+                      <p className="font-semibold text-foreground dark:text-white">
+                        {church.totalUsers}
+                      </p>
+                    </div>
                     <div>
                       <p className="text-xs text-muted-foreground dark:text-gray-400">Membros</p>
                       <p className="font-semibold text-foreground dark:text-white">
@@ -773,21 +871,15 @@ export default function Reports() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Presença</p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Batizados</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {church.attendance}%
+                        {church.baptized}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Batismos</p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Engajam.</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {church.baptisms}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Estudos</p>
-                      <p className="font-semibold text-foreground dark:text-white">
-                        {church.studies}
+                        {church.avgEngagement}%
                       </p>
                     </div>
                   </div>
@@ -820,7 +912,7 @@ export default function Reports() {
             <div className="space-y-4">
               {(missionaryData ?? []).map((missionary, index) => (
                 <div
-                  key={missionary.missionaryId}
+                  key={missionary.id}
                   className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -840,32 +932,32 @@ export default function Reports() {
                       </div>
                     </div>
                     <Badge className="bg-purple-500/20 text-purple-500">
-                      {missionary.conversionRate}% conversão
+                      {missionary.level}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-center">
                     <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Estudos</p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Relacion.</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {missionary.studies}
+                        {missionary.activeRelationships}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Batismos</p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Mentoriados</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {missionary.baptisms}
+                        {missionary.totalMentored}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Visitas</p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Conversões</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {missionary.visits}
+                        {missionary.conversions}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Contatos</p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Pontos</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {missionary.activeContacts}
+                        {missionary.points}
                       </p>
                     </div>
                   </div>
@@ -894,7 +986,7 @@ export default function Reports() {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={districtData ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="districtName" stroke="#9ca3af" />
+                <XAxis dataKey="name" stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" />
                 <Tooltip
                   contentStyle={{
@@ -905,9 +997,9 @@ export default function Reports() {
                   labelStyle={{ color: '#f9fafb' }}
                 />
                 <Legend />
-                <Bar dataKey="churches" name="Igrejas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="churchCount" name="Igrejas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="members" name="Membros" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="baptisms" name="Batismos" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="baptized" name="Batizados" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -929,7 +1021,7 @@ export default function Reports() {
             ))
           : (districtData ?? []).map(district => (
               <Card
-                key={district.districtId}
+                key={district.id}
                 className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700"
               >
                 <CardContent className="p-4">
@@ -937,22 +1029,18 @@ export default function Reports() {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-5 w-5 text-purple-500" />
                       <span className="font-semibold text-foreground dark:text-white">
-                        {district.districtName}
+                        {district.name}
                       </span>
                     </div>
-                    <Badge
-                      variant={district.growthRate >= 0 ? 'default' : 'destructive'}
-                      className={district.growthRate >= 0 ? 'bg-green-500/20 text-green-500' : ''}
-                    >
-                      {district.growthRate >= 0 ? '+' : ''}
-                      {district.growthRate}%
+                    <Badge className="bg-green-500/20 text-green-500">
+                      {district.tithersPercentage}% dizimistas
                     </Badge>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <p className="text-xs text-muted-foreground dark:text-gray-400">Igrejas</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {district.churches}
+                        {district.churchCount}
                       </p>
                     </div>
                     <div>
@@ -962,9 +1050,9 @@ export default function Reports() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Batismos</p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">Batizados</p>
                       <p className="font-semibold text-foreground dark:text-white">
-                        {district.baptisms}
+                        {district.baptized}
                       </p>
                     </div>
                   </div>

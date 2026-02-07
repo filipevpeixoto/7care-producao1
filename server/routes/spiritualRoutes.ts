@@ -4,26 +4,19 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createEmotionalCheckInSchema } from '../schemas';
 import { isPastor } from '../utils/permissions';
 import { Church, User } from '../../shared/schema';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendError } from '../utils/apiResponse';
+import { getRepository } from '../container';
 
 export const spiritualRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
+  const emotionalRepo = getRepository('emotionalCheckInRepository');
 
   /**
    * @swagger
@@ -76,7 +69,7 @@ export const spiritualRoutes = (app: Express): void => {
         finalScore = null;
       }
 
-      const checkIn = await storage.createEmotionalCheckIn({
+      const checkIn = await emotionalRepo.create({
         userId,
         emotionalScore: finalScore,
         mood: mood ?? null,
@@ -105,15 +98,15 @@ export const spiritualRoutes = (app: Express): void => {
     '/api/emotional-checkins/admin',
     asyncHandler(async (req: Request, res: Response) => {
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const requestingUser = requestingUserId ? await storage.getUserById(requestingUserId) : null;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
-      let checkIns = await storage.getEmotionalCheckInsForAdmin();
+      let checkIns = await emotionalRepo.getAll();
 
       // Filtrar por distrito se for pastor
       if (isPastor(requestingUser) && requestingUser?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(requestingUser.districtId);
+        const districtChurches = await churchRepo.getChurchesByDistrict(requestingUser.districtId);
         const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        const allUsers = await storage.getAllUsers();
+        const allUsers = await userRepo.getAllUsers();
 
         // IDs de usuários do distrito
         const districtUserIds = new Set(
@@ -154,14 +147,14 @@ export const spiritualRoutes = (app: Express): void => {
     '/api/spiritual-checkins/scores',
     asyncHandler(async (req: Request, res: Response) => {
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const requestingUser = requestingUserId ? await storage.getUserById(requestingUserId) : null;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
-      let checkIns = await storage.getEmotionalCheckInsForAdmin();
-      let allUsers = await storage.getAllUsers();
+      let checkIns = await emotionalRepo.getAll();
+      let allUsers = await userRepo.getAllUsers();
 
       // Filtrar por distrito se for pastor
       if (isPastor(requestingUser) && requestingUser?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(requestingUser.districtId);
+        const districtChurches = await churchRepo.getChurchesByDistrict(requestingUser.districtId);
         const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
 
         // Filtrar usuários do distrito
@@ -231,7 +224,7 @@ export const spiritualRoutes = (app: Express): void => {
         return sendError(res, 'ID do usuário inválido', 400);
       }
 
-      const checkIns = await storage.getEmotionalCheckInsByUser(userId);
+      const checkIns = await emotionalRepo.getByUserId(userId);
       sendSuccess(res, checkIns);
     })
   );

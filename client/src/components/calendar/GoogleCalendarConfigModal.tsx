@@ -139,7 +139,7 @@ export function GoogleCalendarConfigModal({
   };
 
   return (
-    <DialogWithModalTracking modalId="google-calendar-config" isOpen={isOpen} onClose={onClose}>
+    <DialogWithModalTracking modalId="google-calendar-config" open={isOpen} onOpenChange={(open: boolean) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

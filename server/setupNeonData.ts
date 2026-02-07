@@ -1,8 +1,9 @@
 import { NeonAdapter } from './neonAdapter';
 import * as bcrypt from 'bcryptjs';
+import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from './config/security';
 
 // Senha padrão do admin - usar variável de ambiente em produção
-const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'meu7care';
+const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || DEFAULT_RESET_PASSWORD;
 
 export async function setupNeonData() {
   const storage = new NeonAdapter();
@@ -27,7 +28,7 @@ export async function setupNeonData() {
 
   if (!existingAdmin) {
     console.log('👑 Criando super admin...');
-    const adminPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
+    const adminPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, BCRYPT_SALT_ROUNDS);
     admin = await storage.createUser({
       name: 'Super Administrador',
       email: 'admin@7care.com',
@@ -91,7 +92,7 @@ export async function setupNeonData() {
     {
       name: 'Pastor João Silva',
       email: 'joao@armour.com',
-      password: 'armour123',
+      password: DEFAULT_RESET_PASSWORD,
       role: 'admin',
       church: 'Armour',
       churchCode: 'ARM001',
@@ -133,7 +134,7 @@ export async function setupNeonData() {
     {
       name: 'Maria Santos',
       email: 'maria@armour.com',
-      password: 'armour123',
+      password: DEFAULT_RESET_PASSWORD,
       role: 'member',
       church: 'Armour',
       churchCode: 'ARM001',
@@ -175,7 +176,7 @@ export async function setupNeonData() {
     {
       name: 'Carlos Oliveira',
       email: 'carlos@armour.com',
-      password: 'armour123',
+      password: DEFAULT_RESET_PASSWORD,
       role: 'member',
       church: 'Armour',
       churchCode: 'ARM001',
@@ -219,7 +220,7 @@ export async function setupNeonData() {
   console.log('👥 Criando usuários do Armour...');
 
   for (const userData of armourUsers) {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const hashedPassword = await bcrypt.hash(userData.password, BCRYPT_SALT_ROUNDS);
 
     const user = await storage.createUser({
       ...userData,

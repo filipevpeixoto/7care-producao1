@@ -4,7 +4,6 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
 import { sql } from '../neonConfig';
 import { checkReadOnlyAccess } from '../middleware';
 import { User } from '../../shared/schema';
@@ -21,19 +20,12 @@ import { validateBody, validateParams, ValidatedRequest } from '../middleware/va
 import { createUserSchema } from '../schemas';
 import { idParamSchema } from '../utils/paramValidation';
 import { logger } from '../utils/logger';
+import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from '../config/security';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
-import {
-  sendSuccess,
-  sendCreated,
-  sendError,
-  sendNotFound,
-  sendUnauthorized,
-  sendForbidden,
-  sendValidationError,
-  sendInternalError,
-} from '../utils/apiResponse';
+import { sendSuccess, sendCreated, sendError, sendNotFound } from '../utils/apiResponse';
+import { getRepository, getService } from '../container';
 
 // Tipo para dados extras do usuário (para cálculo de pontos)
 interface UserExtraData {
@@ -215,7 +207,11 @@ const calculateUserPointsFromConfig = (user: User, config: PointsConfig): number
 };
 
 export const userRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
+  const relationshipRepo = getRepository('relationshipRepository');
+  const pointsRepo = getRepository('pointsRepository');
+  const pointsCalcService = getService('pointsCalculationService');
 
   /**
    * @swagger
@@ -289,11 +285,11 @@ export const userRoutes = (app: Express): void => {
       // Buscar dados do usuário que está fazendo a requisição
       let requestingUser = null;
       if (requestingUserId) {
-        requestingUser = await storage.getUserById(requestingUserId);
+        requestingUser = await userRepo.getUserById(requestingUserId);
       }
 
       // Buscar todos os usuários aprovados
-      let users = await storage.getUsers();
+      let users = await userRepo.getAllUsers();
 
       // Filtrar apenas usuários aprovados
       users = users.filter(u => u.status === 'approved');
@@ -334,7 +330,7 @@ export const userRoutes = (app: Express): void => {
       // Buscar dados do usuário que está fazendo a requisição
       let requestingUser = null;
       if (requestingUserId) {
-        requestingUser = await storage.getUserById(requestingUserId);
+        requestingUser = await userRepo.getUserById(requestingUserId);
         logger.info('🔍 requestingUser carregado:', {
           id: requestingUser?.id,
           name: requestingUser?.name,
@@ -343,7 +339,7 @@ export const userRoutes = (app: Express): void => {
         });
       }
 
-      let users = await storage.getAllUsers();
+      let users = await userRepo.getAllUsers();
       logger.debug(`✅ ${users.length} usuários encontrados no banco`);
 
       if (role) {
@@ -395,7 +391,7 @@ export const userRoutes = (app: Express): void => {
               u.churchCode === missionary.churchCode
           );
 
-          const relationships = await storage.getRelationshipsByMissionary(missionaryId);
+          const relationships = await relationshipRepo.getByMissionary(missionaryId);
           const linkedInterestedIds = relationships.map(r => r.interestedId);
 
           const processedUsers = churchInterested.map(user => {
@@ -459,7 +455,7 @@ export const userRoutes = (app: Express): void => {
 
       // Calcular pontuação apenas para os usuários da página atual (otimização)
       const paginatedUsers = users.slice(offset, offset + limit);
-      const pointsMap = await storage.calculateUserPointsBatch(paginatedUsers);
+      const pointsMap = await pointsCalcService.calculateUserPointsBatch(paginatedUsers);
       const usersWithPoints = paginatedUsers.map(user => ({
         ...user,
         calculatedPoints: pointsMap.get(user.id) ?? 0,
@@ -503,7 +499,7 @@ export const userRoutes = (app: Express): void => {
     validateParams(idParamSchema),
     asyncHandler(async (req: Request, res: Response) => {
       const id = Number(req.params.id);
-      const user = await storage.getUserById(id);
+      const user = await userRepo.getUserById(id);
 
       if (!user) {
         return sendNotFound(res, 'Usuário');
@@ -520,7 +516,7 @@ export const userRoutes = (app: Express): void => {
         });
       }
 
-      const requestingUser = await storage.getUserById(parseInt(requestingUserId as string));
+      const requestingUser = await userRepo.getUserById(parseInt(requestingUserId as string));
 
       if (!requestingUser) {
         return res.status(401).json({
@@ -589,13 +585,13 @@ export const userRoutes = (app: Express): void => {
       logger.info(`Criando novo usuário: ${userData.email}`);
 
       const hashedPassword = userData.password
-        ? await bcrypt.hash(userData.password, 10)
-        : await bcrypt.hash('meu7care', 10);
+        ? await bcrypt.hash(userData.password, BCRYPT_SALT_ROUNDS)
+        : await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS);
 
       let _processedChurch: string | null = null;
       if (userData.church && userData.church.trim() !== '') {
         try {
-          const church = await storage.getOrCreateChurch(userData.church.trim());
+          const church = await churchRepo.getOrCreateChurch(userData.church.trim());
           _processedChurch = church.name;
         } catch (error) {
           logger.error(`Erro ao processar igreja "${userData.church}":`, error);
@@ -615,10 +611,10 @@ export const userRoutes = (app: Express): void => {
         attendance: 0,
       };
 
-      const newUser = await storage.createUser({
+      const newUser = await userRepo.createUser({
         ...processedUserData,
         biblicalInstructor: processedUserData.biblicalInstructor ?? null,
-      } as Parameters<typeof storage.createUser>[0]);
+      } as Parameters<typeof userRepo.createUser>[0]);
 
       sendCreated(res, newUser);
     })
@@ -658,9 +654,9 @@ export const userRoutes = (app: Express): void => {
 
       if (updateData.biblicalInstructor !== undefined) {
         if (updateData.biblicalInstructor) {
-          const existingRelationship = await storage.getRelationshipsByInterested(id);
+          const existingRelationship = await relationshipRepo.getByInterested(id);
           if (!existingRelationship || existingRelationship.length === 0) {
-            await storage.createRelationship({
+            await relationshipRepo.create({
               missionaryId: parseInt(updateData.biblicalInstructor),
               interestedId: id,
               status: 'active',
@@ -670,7 +666,7 @@ export const userRoutes = (app: Express): void => {
         }
       }
 
-      const user = await storage.updateUser(id, updateData);
+      const user = await userRepo.updateUser(id, updateData);
       if (!user) {
         return sendNotFound(res, 'Usuário');
       }
@@ -705,7 +701,7 @@ export const userRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
 
-      const user = await storage.getUserById(id);
+      const user = await userRepo.getUserById(id);
       if (!user) {
         return sendNotFound(res, 'Usuário');
       }
@@ -718,7 +714,7 @@ export const userRoutes = (app: Express): void => {
         return sendError(res, 'Não é possível excluir usuários administradores do sistema', 403);
       }
 
-      const success = await storage.deleteUser(id);
+      const success = await userRepo.deleteUser(id);
 
       if (!success) {
         return sendNotFound(res, 'Usuário');
@@ -751,7 +747,7 @@ export const userRoutes = (app: Express): void => {
     checkReadOnlyAccess,
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
-      const user = await storage.approveUser(id);
+      const user = await userRepo.approveUser(id);
 
       if (!user) {
         return sendNotFound(res, 'Usuário');
@@ -785,7 +781,7 @@ export const userRoutes = (app: Express): void => {
     checkReadOnlyAccess,
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
-      const user = await storage.rejectUser(id);
+      const user = await userRepo.rejectUser(id);
 
       if (!user) {
         return sendNotFound(res, 'Usuário');
@@ -817,7 +813,7 @@ export const userRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.id);
 
-      const result = await storage.calculateUserPoints(userId);
+      const result = await pointsCalcService.calculateUserPoints(userId);
 
       if (result && result.success) {
         sendSuccess(res, result);
@@ -848,12 +844,12 @@ export const userRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.id);
 
-      const user = await storage.getUserById(userId);
+      const user = await userRepo.getUserById(userId);
       if (!user) {
         return sendNotFound(res, 'Usuário');
       }
 
-      const result = await storage.calculateUserPoints(userId);
+      const result = await pointsCalcService.calculateUserPoints(userId);
 
       if (result && result.success) {
         sendSuccess(res, {
@@ -902,13 +898,13 @@ export const userRoutes = (app: Express): void => {
       let userChurch: string | null = null;
 
       if (!hasAdminAccess({ role: userRole as User['role'] }) && userId) {
-        const currentUser = await storage.getUserById(parseInt(userId));
+        const currentUser = await userRepo.getUserById(parseInt(userId));
         if (currentUser && currentUser.church) {
           userChurch = currentUser.church;
         }
       }
 
-      const allUsers = await storage.getAllUsers();
+      const allUsers = await userRepo.getAllUsers();
       const today = new Date();
       const currentMonth = today.getMonth();
       const currentDay = today.getDate();
@@ -992,18 +988,18 @@ export const userRoutes = (app: Express): void => {
         return sendError(res, 'Usuário não autenticado', 401);
       }
 
-      const user = await storage.getUserById(userId);
+      const user = await userRepo.getUserById(userId);
       if (!user || (user.role !== 'missionary' && user.role !== 'member')) {
         return sendError(res, 'Apenas missionários e membros podem acessar esta rota', 403);
       }
 
-      const allUsers = await storage.getAllUsers();
+      const allUsers = await userRepo.getAllUsers();
 
       const churchInterested = allUsers.filter(
         u => u.role === 'interested' && u.church === user.church
       );
 
-      const relationships = await storage.getRelationshipsByMissionary(userId);
+      const relationships = await relationshipRepo.getByMissionary(userId);
       const linkedInterestedIds = relationships.map(r => r.interestedId);
 
       const processedUsers = churchInterested.map(user => {
@@ -1083,7 +1079,7 @@ export const userRoutes = (app: Express): void => {
       // Obter configuração de pontos atual
       let pointsConfig: PointsConfig = {};
       try {
-        const configData = await storage.getPointsConfiguration();
+        const configData = await pointsRepo.getConfiguration();
         pointsConfig = configData || {};
         logger.info('Configuração de pontos carregada para importação em massa');
       } catch (configError) {
@@ -1099,7 +1095,7 @@ export const userRoutes = (app: Express): void => {
       for (let i = 0; i < users.length; i++) {
         const userData = users[i];
         try {
-          const existingUser = await storage.getUserByEmail(userData.email);
+          const existingUser = await userRepo.getUserByEmail(userData.email);
           if (existingUser) {
             errors.push({
               userId: userData.email,
@@ -1127,7 +1123,7 @@ export const userRoutes = (app: Express): void => {
 
           let finalUsername = baseUsername;
           let counter = 1;
-          const allUsers = await storage.getAllUsers();
+          const allUsers = await userRepo.getAllUsers();
           while (
             allUsers.some(u => {
               const normalize = (str: string) =>
@@ -1152,7 +1148,7 @@ export const userRoutes = (app: Express): void => {
             counter++;
           }
 
-          const hashedPassword = await bcrypt.hash('meu7care', 10);
+          const hashedPassword = await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS);
 
           const processedBirthDate = userData.birthDate ? parseBirthDate(userData.birthDate) : null;
           const processedBaptismDate = userData.baptismDate
@@ -1162,7 +1158,7 @@ export const userRoutes = (app: Express): void => {
           let processedChurch: string | null = null;
           if (userData.church && userData.church.trim() !== '') {
             try {
-              const church = await storage.getOrCreateChurch(userData.church.trim());
+              const church = await churchRepo.getOrCreateChurch(userData.church.trim());
               processedChurch = church.name;
             } catch (error) {
               logger.error(`Erro ao processar igreja "${userData.church}":`, error);
@@ -1181,10 +1177,10 @@ export const userRoutes = (app: Express): void => {
             isApproved: false,
           };
 
-          const newUser = await storage.createUser({
+          const newUser = await userRepo.createUser({
             ...processedUserData,
             biblicalInstructor: processedUserData.biblicalInstructor ?? null,
-          } as Parameters<typeof storage.createUser>[0]);
+          } as Parameters<typeof userRepo.createUser>[0]);
 
           // Calcular e atualizar pontos do usuário recém-criado
           let calculatedPoints = 0;
@@ -1192,7 +1188,7 @@ export const userRoutes = (app: Express): void => {
             try {
               calculatedPoints = calculateUserPointsFromConfig(newUser as User, pointsConfig);
               if (calculatedPoints > 0) {
-                await storage.updateUser(newUser.id, { points: calculatedPoints });
+                await userRepo.updateUser(newUser.id, { points: calculatedPoints });
                 logger.info(`Pontos calculados para ${newUser.name}: ${calculatedPoints}`);
               }
             } catch (pointsError) {
@@ -1360,7 +1356,7 @@ export const userRoutes = (app: Express): void => {
       let districtFilter: number | null = null;
 
       if (requestingUserId) {
-        const requestingUser = await storage.getUserById(requestingUserId);
+        const requestingUser = await userRepo.getUserById(requestingUserId);
         if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
           districtFilter = requestingUser.districtId;
           logger.info(`🏛️ Recálculo pós-PowerBI filtrado por distrito: ${districtFilter}`);
@@ -1368,7 +1364,7 @@ export const userRoutes = (app: Express): void => {
       }
 
       try {
-        await storage.calculateAdvancedUserPoints(districtFilter);
+        await pointsCalcService.calculateAdvancedUserPoints(districtFilter);
       } catch (error) {
         logger.error('Erro ao recalcular pontos:', error);
       }

@@ -26,10 +26,34 @@ import { systemRepository, SystemRepository } from './repositories/systemReposit
 import { districtRepository, DistrictRepository } from './repositories/districtRepository';
 import { electionRepository, ElectionRepository } from './repositories/electionRepository';
 import { auditRepository, AuditRepository } from './repositories/auditRepository';
+import {
+  notificationRepository,
+  NotificationRepository,
+} from './repositories/notificationRepository';
+import {
+  discipleshipRepository,
+  DiscipleshipRepository,
+} from './repositories/discipleshipRepository';
+import {
+  emotionalCheckInRepository,
+  EmotionalCheckInRepository,
+} from './repositories/emotionalCheckInRepository';
+import {
+  pushSubscriptionRepository,
+  PushSubscriptionRepository,
+} from './repositories/pushSubscriptionRepository';
 import { auditService, AuditService } from './services/auditService';
 import { authService, AuthService } from './services/authService';
 import { userService, UserService } from './services/userService';
 import { cacheService, CacheService } from './services/cacheService';
+import {
+  pointsCalculationService,
+  PointsCalculationService,
+} from './services/pointsCalculationService';
+import {
+  pushNotificationService,
+  PushNotificationService,
+} from './services/pushNotificationService';
 
 /**
  * Tipos de serviços registrados
@@ -48,10 +72,16 @@ export type ServiceType =
   | 'districtRepository'
   | 'electionRepository'
   | 'auditRepository'
+  | 'notificationRepository'
+  | 'discipleshipRepository'
+  | 'emotionalCheckInRepository'
+  | 'pushSubscriptionRepository'
   | 'auditService'
   | 'authService'
   | 'userService'
-  | 'cacheService';
+  | 'cacheService'
+  | 'pointsCalculationService'
+  | 'pushNotificationService';
 
 /**
  * Mapa de tipos para instâncias
@@ -70,10 +100,16 @@ interface ServiceMap {
   districtRepository: DistrictRepository;
   electionRepository: ElectionRepository;
   auditRepository: AuditRepository;
+  notificationRepository: NotificationRepository;
+  discipleshipRepository: DiscipleshipRepository;
+  emotionalCheckInRepository: EmotionalCheckInRepository;
+  pushSubscriptionRepository: PushSubscriptionRepository;
   auditService: AuditService;
   authService: AuthService;
   userService: UserService;
   cacheService: CacheService;
+  pointsCalculationService: PointsCalculationService;
+  pushNotificationService: PushNotificationService;
 }
 
 /**
@@ -105,12 +141,18 @@ class DIContainer {
     this.register('districtRepository', districtRepository);
     this.register('electionRepository', electionRepository);
     this.register('auditRepository', auditRepository);
+    this.register('notificationRepository', notificationRepository);
+    this.register('discipleshipRepository', discipleshipRepository);
+    this.register('emotionalCheckInRepository', emotionalCheckInRepository);
+    this.register('pushSubscriptionRepository', pushSubscriptionRepository);
 
     // Services
     this.register('auditService', auditService);
     this.register('authService', authService);
     this.register('userService', userService);
     this.register('cacheService', cacheService);
+    this.register('pointsCalculationService', pointsCalculationService);
+    this.register('pushNotificationService', pushNotificationService);
   }
 
   /**

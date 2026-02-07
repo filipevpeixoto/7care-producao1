@@ -39,6 +39,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { notificationService } from '@/lib/notificationService';
 
@@ -134,6 +135,7 @@ const GOOGLE_SHEETS_CONFIG = {
 
 export default function Tasks() {
   console.log('🚀 Tasks - Sistema de sincronização simplificado');
+  const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
@@ -276,7 +278,7 @@ export default function Tasks() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           action: 'addTask',
@@ -315,7 +317,7 @@ export default function Tasks() {
 
       // Verificar se a tarefa ainda existe no servidor antes de atualizar
       const checkResponse = await fetch(`/api/tasks`, {
-        headers: { 'x-user-id': '1' },
+        headers: { 'x-user-id': user?.id?.toString() || '' },
       });
 
       if (checkResponse.ok) {
@@ -334,7 +336,7 @@ export default function Tasks() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           action: 'deleteTask',
@@ -369,7 +371,7 @@ export default function Tasks() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           action: 'deleteTask',
@@ -481,7 +483,7 @@ export default function Tasks() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify(taskData),
       });
@@ -553,7 +555,7 @@ export default function Tasks() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify(updates),
       });
@@ -585,7 +587,7 @@ export default function Tasks() {
       // Deletar do servidor
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
-        headers: { 'x-user-id': '1' },
+        headers: { 'x-user-id': user?.id?.toString() || '' },
       });
 
       if (!response.ok && response.status !== 404) {
@@ -636,7 +638,7 @@ export default function Tasks() {
         // Deletar do servidor
         await fetch(`/api/tasks/${taskId}`, {
           method: 'DELETE',
-          headers: { 'x-user-id': '1' },
+          headers: { 'x-user-id': user?.id?.toString() || '' },
         });
 
         // Deletar do Google Sheets
@@ -665,7 +667,7 @@ export default function Tasks() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           status: newStatus,

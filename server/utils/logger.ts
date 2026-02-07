@@ -1,10 +1,13 @@
 /**
  * Logger Centralizado e Seguro
  * Sanitiza dados sensíveis e padroniza formato de logs
+ * Em produção: JSON structured logging para integração com serviços de observability
+ * Em desenvolvimento: formato humano legível
  */
 
 const isDev = process.env.NODE_ENV === 'development';
 const isTest = process.env.NODE_ENV === 'test';
+const isProd = process.env.NODE_ENV === 'production';
 
 // Campos que devem ser sanitizados (nunca logados)
 const SENSITIVE_FIELDS = [
@@ -118,6 +121,56 @@ const getTimestamp = (): string => {
 };
 
 /**
+ * Emite log estruturado em JSON (produção) ou texto formatado (desenvolvimento)
+ */
+const emit = (level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG', message: string, data?: unknown): void => {
+  if (isTest) return;
+
+  const timestamp = getTimestamp();
+
+  if (isProd) {
+    // JSON structured logging para produção (Sentry, Datadog, CloudWatch, etc.)
+    const logEntry: Record<string, unknown> = {
+      timestamp,
+      level,
+      message,
+      service: 'church-plus-manager',
+      environment: 'production',
+    };
+
+    if (data !== undefined && data !== null) {
+      logEntry.data = sanitizeObject(data);
+    }
+
+    const jsonLine = JSON.stringify(logEntry);
+    switch (level) {
+      case 'ERROR':
+        console.error(jsonLine);
+        break;
+      case 'WARN':
+        console.warn(jsonLine);
+        break;
+      default:
+        console.log(jsonLine);
+    }
+    return;
+  }
+
+  // Formato humano legível para desenvolvimento
+  const prefix = `[${timestamp}] [${level}]`;
+  switch (level) {
+    case 'ERROR':
+      console.error(`${prefix} ${message}`, ...(data !== undefined ? [sanitizeObject(data)] : []));
+      break;
+    case 'WARN':
+      console.warn(`${prefix} ${message}`, ...(data !== undefined ? [sanitizeObject(data)] : []));
+      break;
+    default:
+      console.log(`${prefix} ${message}`, ...(data !== undefined ? [sanitizeObject(data)] : []));
+  }
+};
+
+/**
  * Logger principal
  */
 export const logger = {
@@ -126,7 +179,7 @@ export const logger = {
    */
   info: (message: string, ...args: unknown[]): void => {
     if (!isTest) {
-      console.log(`[${getTimestamp()}] [INFO] ${message}`, ...args.map(arg => sanitizeObject(arg)));
+      emit('INFO', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
     }
   },
 
@@ -135,10 +188,7 @@ export const logger = {
    */
   error: (message: string, ...args: unknown[]): void => {
     if (!isTest) {
-      console.error(
-        `[${getTimestamp()}] [ERROR] ${message}`,
-        ...args.map(arg => sanitizeObject(arg))
-      );
+      emit('ERROR', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
     }
   },
 
@@ -147,10 +197,7 @@ export const logger = {
    */
   warn: (message: string, ...args: unknown[]): void => {
     if (!isTest) {
-      console.warn(
-        `[${getTimestamp()}] [WARN] ${message}`,
-        ...args.map(arg => sanitizeObject(arg))
-      );
+      emit('WARN', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
     }
   },
 
@@ -159,10 +206,7 @@ export const logger = {
    */
   debug: (message: string, ...args: unknown[]): void => {
     if (isDev && !isTest) {
-      console.log(
-        `[${getTimestamp()}] [DEBUG] ${message}`,
-        ...args.map(arg => sanitizeObject(arg))
-      );
+      emit('DEBUG', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
     }
   },
 

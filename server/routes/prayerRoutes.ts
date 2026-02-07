@@ -4,7 +4,7 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createPrayerSchema } from '../schemas';
@@ -12,7 +12,8 @@ import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 import { isPastor } from '../utils/permissions';
 
 export const prayerRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const prayerRepo = getRepository('prayerRepository');
+  const userRepo = getRepository('userRepository');
 
   /**
    * @swagger
@@ -49,16 +50,16 @@ export const prayerRoutes = (app: Express): void => {
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
       let requestingUser = null;
       if (requestingUserId) {
-        requestingUser = await storage.getUserById(requestingUserId);
+        requestingUser = await userRepo.getUserById(requestingUserId);
       }
 
-      let prayers = await storage.getAllPrayers();
+      let prayers = await prayerRepo.getAll();
 
       // Filtrar por distrito se for pastor (não superadmin)
       if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
         logger.info(`🙏 Filtrando orações por distrito: ${requestingUser.districtId}`);
         prayers = prayers.filter(
-          (p: { districtId?: number }) =>
+          (p) =>
             p.districtId === requestingUser!.districtId || p.districtId === null
         );
       }
@@ -122,7 +123,7 @@ export const prayerRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const prayerData = (req as ValidatedRequest<typeof createPrayerSchema._type>).validatedBody;
       logger.info(`Creating prayer request: ${prayerData.title}`);
-      const prayer = await storage.createPrayer({
+      const prayer = await prayerRepo.create({
         ...prayerData,
         description: prayerData.description ?? null,
       });
@@ -162,7 +163,7 @@ export const prayerRoutes = (app: Express): void => {
       const id = parseInt(req.params.id);
       const { testimony } = req.body;
 
-      const prayer = await storage.markPrayerAsAnswered(id, testimony);
+      const prayer = await prayerRepo.markAsAnswered(id, testimony);
 
       if (!prayer) {
         return sendNotFound(res, 'Pedido de oração');
@@ -197,19 +198,19 @@ export const prayerRoutes = (app: Express): void => {
 
       // Verificar permissão (apenas o criador ou admin pode remover)
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const prayer = await storage.getPrayerById(id);
+      const prayer = await prayerRepo.getById(id);
 
       if (!prayer) {
         return sendNotFound(res, 'Pedido de oração');
       }
 
       // Verificar se é o dono ou admin
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
       if (prayer.userId !== userId && user?.role !== 'superadmin' && user?.role !== 'pastor') {
         return sendError(res, 'Sem permissão para remover este pedido', 403);
       }
 
-      await storage.deletePrayer(id);
+      await prayerRepo.delete(id);
       sendSuccess(res, null, 200, 'Pedido removido');
     })
   );
@@ -253,7 +254,7 @@ export const prayerRoutes = (app: Express): void => {
         return sendError(res, 'ID do intercessor é obrigatório', 400);
       }
 
-      const result = await storage.addIntercessor(prayerId, intercessorId);
+      const result = await prayerRepo.addIntercessor(prayerId, intercessorId);
       sendSuccess(res, result, 201, 'Intercessor adicionado');
     })
   );
@@ -287,7 +288,7 @@ export const prayerRoutes = (app: Express): void => {
       const prayerId = parseInt(req.params.id);
       const intercessorId = parseInt(req.params.intercessorId);
 
-      await storage.removeIntercessor(prayerId, intercessorId);
+      await prayerRepo.removeIntercessor(prayerId, intercessorId);
       sendSuccess(res, null, 200, 'Intercessor removido');
     })
   );
@@ -312,7 +313,7 @@ export const prayerRoutes = (app: Express): void => {
     '/api/prayers/:id/intercessors',
     asyncHandler(async (req: Request, res: Response) => {
       const prayerId = parseInt(req.params.id);
-      const intercessors = await storage.getIntercessorsByPrayer(prayerId);
+      const intercessors = await prayerRepo.getIntercessors(prayerId);
       sendSuccess(res, intercessors);
     })
   );
@@ -337,7 +338,7 @@ export const prayerRoutes = (app: Express): void => {
     '/api/prayers/user/:userId/interceding',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.userId);
-      const prayers = await storage.getPrayersUserIsInterceding(userId);
+      const prayers = await prayerRepo.getPrayersUserIsPrayingFor(userId);
       sendSuccess(res, prayers);
     })
   );

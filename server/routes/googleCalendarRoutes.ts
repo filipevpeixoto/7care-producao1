@@ -9,10 +9,14 @@ import { GoogleCalendarService } from '../services/googleCalendarService';
 import { logger } from '../utils/logger';
 import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { hasAdminAccess, isPastor } from '../utils/permissions';
+import { getRepository } from '../container';
 
 export const googleCalendarRoutes = (app: Express): void => {
+  // NeonAdapter mantido apenas para GoogleCalendarService (TODO: refatorar service)
   const storage = new NeonAdapter();
   const googleCalendar = new GoogleCalendarService(storage);
+  const userRepo = getRepository('userRepository');
+  const systemRepo = getRepository('systemRepository');
 
   /**
    * Resolve user ID from headers
@@ -33,7 +37,7 @@ export const googleCalendarRoutes = (app: Express): void => {
   const checkAuthorization = async (req: Request, res: Response, next: Function) => {
     try {
       const userId = resolveUserId(req);
-      const user = await storage.getUserById(userId);
+      const user = await userRepo.getUserById(userId);
 
       if (!user) {
         return sendError(res, 'Usuário não encontrado', 404);
@@ -47,7 +51,7 @@ export const googleCalendarRoutes = (app: Express): void => {
         );
       }
 
-      req.user = user;
+      (req as any).user = user;
       next();
     } catch (error) {
       return sendError(res, (error as Error).message, 401);
@@ -224,7 +228,7 @@ export const googleCalendarRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const userId = resolveUserId(req);
 
-      const config = await storage.getGoogleCalendarConfig(userId);
+      const config = await systemRepo.getGoogleCalendarConfig(userId);
 
       sendSuccess(res, config || {}, 200);
     })
@@ -268,7 +272,7 @@ export const googleCalendarRoutes = (app: Express): void => {
 
       logger.info(`💾 Salvando config Google Calendar para userId: ${userId}`);
 
-      await storage.saveGoogleCalendarConfig(userId, {
+      await systemRepo.saveGoogleCalendarConfig(userId, {
         userId,
         calendarId,
         autoSync: autoSync ?? false,

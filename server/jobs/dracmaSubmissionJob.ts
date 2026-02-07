@@ -28,7 +28,7 @@ export async function processDracmaSubmissions(): Promise<void> {
 
   try {
     // Buscar recibos prontos para submissão (inclui district_id)
-    const pendingReceipts = await sql<PendingReceipt[]>`
+    const pendingReceipts = await sql<PendingReceipt>`
       SELECT
         id, user_id, district_id, merchant_name, receipt_date, total_amount, category,
         image_url, tax_id, dracma_retry_count
@@ -103,7 +103,7 @@ export async function retryFailedReceipts(): Promise<void> {
   logger.info('🔄 [DracmaJob] Iniciando retry de recibos com erro...');
 
   try {
-    const failedReceipts = await sql<PendingReceipt[]>`
+    const failedReceipts = await sql<PendingReceipt>`
       SELECT
         id, user_id, district_id, merchant_name, receipt_date, total_amount, category,
         image_url, tax_id, dracma_retry_count
@@ -155,7 +155,7 @@ export async function getDracmaJobStats(): Promise<{
       submitted: number;
       error: number;
       error_with_retries: number;
-    }[]
+    }
   >`
     SELECT
       COUNT(*) as total,
@@ -188,11 +188,11 @@ if (isMainModule) {
     case 'run':
       processDracmaSubmissions()
         .then(() => {
-          console.log('✅ Job executado com sucesso');
+          logger.info('✅ Job executado com sucesso');
           process.exit(0);
         })
         .catch(err => {
-          console.error('❌ Job falhou:', err);
+          logger.error('❌ Job falhou:', err);
           process.exit(1);
         });
       break;
@@ -200,11 +200,11 @@ if (isMainModule) {
     case 'retry':
       retryFailedReceipts()
         .then(() => {
-          console.log('✅ Retry executado com sucesso');
+          logger.info('✅ Retry executado com sucesso');
           process.exit(0);
         })
         .catch(err => {
-          console.error('❌ Retry falhou:', err);
+          logger.error('❌ Retry falhou:', err);
           process.exit(1);
         });
       break;
@@ -212,23 +212,23 @@ if (isMainModule) {
     case 'stats':
       getDracmaJobStats()
         .then(stats => {
-          console.log('📊 Estatísticas do Job:');
+          logger.info('📊 Estatísticas do Job:');
           console.table(stats);
           process.exit(0);
         })
         .catch(err => {
-          console.error('❌ Erro ao buscar stats:', err);
+          logger.error('❌ Erro ao buscar stats:', err);
           process.exit(1);
         });
       break;
 
     default:
-      console.log('Uso: npx tsx server/jobs/dracmaSubmissionJob.ts [run|retry|stats]');
-      console.log('');
-      console.log('Comandos:');
-      console.log('  run   - Processar recibos pendentes');
-      console.log('  retry - Tentar novamente recibos com erro');
-      console.log('  stats - Exibir estatísticas');
+      logger.info('Uso: npx tsx server/jobs/dracmaSubmissionJob.ts [run|retry|stats]');
+      logger.info('');
+      logger.info('Comandos:');
+      logger.info('  run   - Processar recibos pendentes');
+      logger.info('  retry - Tentar novamente recibos com erro');
+      logger.info('  stats - Exibir estatísticas');
       process.exit(1);
   }
 }

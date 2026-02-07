@@ -384,9 +384,8 @@ export default function Users() {
     if (situation === 'all') return users.filter(u => u.role === 'interested').length;
     return users.filter(user => {
       if (user.role !== 'interested') return false;
-      const extraData = getUserExtraData(user);
-      const rawSituation = extraData.situacaoInteressado;
-      const situationData = typeof rawSituation === 'string' ? rawSituation : '';
+      // Usar campo direto interestedSituation ao invés de extraData
+      const situationData = user.interestedSituation || '';
       switch (situation) {
         case 'A':
           return situationData === 'A';
@@ -396,6 +395,8 @@ export default function Users() {
           return situationData === 'C';
         case 'D':
           return situationData === 'D';
+        case 'E':
+          return situationData === 'E';
         case 'no-situation':
           return !situationData || situationData === '';
         case 'total':
@@ -406,15 +407,24 @@ export default function Users() {
     }).length;
   };
 
-  // Função para contar usuários por monte considerando restrições de missionários
+  // Função para contar usuários por monte considerando restrições de missionários e discipuladores
   const getUsersCountByMountain = (mountainKey: string) => {
-    if (user?.role === 'missionary') {
-      // Para missionários, contar apenas interessados vinculados
+    // Verificar se o usuário atual é missionário OU é membro com relacionamentos ativos (discipulador)
+    const isUserMissionary = user?.role === 'missionary';
+    const isUserDiscipulador = user?.role === 'member' && safeRelationshipsData.some(
+      (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.status === 'active'
+    );
+
+    if (isUserMissionary || isUserDiscipulador) {
+      // Para missionários e discipuladores, contar apenas interessados vinculados
       return usersWithDiscipleRequests.filter((u: UserWithDiscipleRequest) => {
         if (u.role !== 'interested') return false;
 
-        // Funcionalidade de relacionamentos removida temporariamente
-        return false;
+        // Verificar se o interessado está vinculado ao missionário/discipulador atual
+        const isLinkedToMissionary = safeRelationshipsData.some(
+          (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.interestedId === u.id && rel.status === 'active'
+        );
+        if (!isLinkedToMissionary) return false;
 
         // Verificar pontos do monte
         const userPoints = u.points || 0;
@@ -500,8 +510,12 @@ export default function Users() {
       // Lógica especial para filtro de missionários: incluir membros com relacionamentos ativos
       let matchesRole = !roleFilter || roleFilter === 'all' || u.role === roleFilter;
       if (roleFilter === 'missionary') {
-        // Funcionalidade de relacionamentos removida temporariamente
-        matchesRole = u.role.includes('missionary');
+        // Incluir usuários com role 'missionary' OU membros que têm relacionamentos ativos como missionários
+        const isMissionaryRole = u.role === 'missionary';
+        const hasMissionaryRelationship = safeRelationshipsData.some(
+          (rel: Relationship) => rel.missionaryId === u.id && rel.status === 'active'
+        );
+        matchesRole = isMissionaryRole || hasMissionaryRelationship;
       }
       const matchesStatus = !statusFilter || statusFilter === 'all' || u.status === statusFilter;
       const matchesChurch = churchFilter === 'all' || u.church === churchFilter;
@@ -566,17 +580,26 @@ export default function Users() {
         }
       }
 
-      // Filtro para missionários: só podem ver interessados vinculados a eles
+      // Filtro para missionários e membros discipuladores: só podem ver interessados vinculados a eles
       let matchesMissionaryRestriction = true;
-      if (user?.role === 'missionary') {
+
+      // Verificar se o usuário atual é missionário OU é membro com relacionamentos ativos (discipulador)
+      const isUserMissionary = user?.role === 'missionary';
+      const isUserDiscipulador = user?.role === 'member' && safeRelationshipsData.some(
+        (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.status === 'active'
+      );
+
+      if (isUserMissionary || isUserDiscipulador) {
         if (u.role === 'interested') {
-          // Funcionalidade de relacionamentos removida temporariamente
-          matchesMissionaryRestriction = false;
+          // Verificar se o interessado está vinculado ao missionário/discipulador atual
+          matchesMissionaryRestriction = safeRelationshipsData.some(
+            (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.interestedId === u.id && rel.status === 'active'
+          );
         } else if (user?.id != null && u.id === Number(user.id)) {
-          // Missionário pode ver seu próprio perfil
+          // Missionário/discipulador pode ver seu próprio perfil
           matchesMissionaryRestriction = true;
         } else {
-          // Missionário não pode ver outros usuários (exceto interessados vinculados)
+          // Missionário/discipulador não pode ver outros usuários (exceto interessados vinculados)
           matchesMissionaryRestriction = false;
         }
       }

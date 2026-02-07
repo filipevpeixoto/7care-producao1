@@ -297,7 +297,7 @@ export default function Calendar() {
         // Criar novo evento no banco
         const response = await fetch('/api/calendar/events', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-user-id': '1' },
+          headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id?.toString() || '' },
           body: JSON.stringify({
             title: eventData.title,
             description: eventData.description || '',
@@ -305,7 +305,7 @@ export default function Calendar() {
             end_date: eventData.endDate || eventData.startDate,
             type: eventData.type || 'reunioes',
             location: eventData.location || '',
-            created_by: 1,
+            created_by: user?.id || 1,
           }),
         });
 
@@ -329,7 +329,7 @@ export default function Calendar() {
         // Atualizar evento
         const response = await fetch(`/api/calendar/events/${selectedEvent.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'x-user-id': '1' },
+          headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id?.toString() || '' },
           body: JSON.stringify({
             title: eventData.title,
             description: eventData.description,
@@ -363,7 +363,7 @@ export default function Calendar() {
       // Deletar do banco
       const response = await fetch(`/api/calendar/events/${eventId}`, {
         method: 'DELETE',
-        headers: { 'x-user-id': '1' },
+        headers: { 'x-user-id': user?.id?.toString() || '' },
       });
 
       if (!response.ok) throw new Error('Erro ao deletar evento');
@@ -405,7 +405,7 @@ export default function Calendar() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           action: 'addEvent',
@@ -436,7 +436,7 @@ export default function Calendar() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           action: 'deleteEvent',
@@ -465,7 +465,7 @@ export default function Calendar() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
           action: 'deleteEvent',

@@ -1,8 +1,9 @@
 import { Express, Request, Response } from 'express';
 import { sql } from '../neonConfig';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { hasAdminAccess, isSuperAdmin, isPastor, canManagePastors } from '../utils/permissions';
 import { logger } from '../utils/logger';
+import { BCRYPT_SALT_ROUNDS } from '../config/security';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
@@ -10,16 +11,15 @@ import { createDistrictSchema, updateDistrictSchema, idParamSchema } from '../sc
 import {
   sendSuccess,
   sendCreated,
-  sendError,
   sendNotFound,
-  sendUnauthorized,
   sendForbidden,
   sendValidationError,
   sendInternalError,
 } from '../utils/apiResponse';
 
 export const districtRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
 
   // ========== DISTRITOS ==========
 
@@ -30,7 +30,7 @@ export const districtRoutes = (app: Express): void => {
     async (req: Request, res: Response) => {
       try {
         const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-        const user = userId ? await storage.getUserById(userId) : null;
+        const user = userId ? await userRepo.getUserById(userId) : null;
 
         if (isSuperAdmin(user)) {
           // Superadmin vê todos os distritos
@@ -68,7 +68,7 @@ export const districtRoutes = (app: Express): void => {
       try {
         const districtId = parseInt(req.params.id);
         const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-        const user = userId ? await storage.getUserById(userId) : null;
+        const user = userId ? await userRepo.getUserById(userId) : null;
 
         const district = await sql`
         SELECT d.*, u.name as pastor_name, u.email as pastor_email
@@ -101,7 +101,7 @@ export const districtRoutes = (app: Express): void => {
     async (req: Request, res: Response) => {
       try {
         const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-        const user = userId ? await storage.getUserById(userId) : null;
+        const user = userId ? await userRepo.getUserById(userId) : null;
 
         // Apenas pastores podem usar esta rota
         if (!isPastor(user)) {
@@ -187,7 +187,7 @@ export const districtRoutes = (app: Express): void => {
     async (req: Request, res: Response) => {
       try {
         const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-        const user = userId ? await storage.getUserById(userId) : null;
+        const user = userId ? await userRepo.getUserById(userId) : null;
 
         if (!isSuperAdmin(user)) {
           return sendForbidden(res, 'Apenas superadmin pode criar distritos');
@@ -210,7 +210,7 @@ export const districtRoutes = (app: Express): void => {
 
         // Se pastorId foi fornecido, verificar se é um pastor válido
         if (pastorId) {
-          const pastor = await storage.getUserById(pastorId);
+          const pastor = await userRepo.getUserById(pastorId);
           if (!pastor || pastor.role !== 'pastor') {
             return sendValidationError(res, { message: 'Usuário não é um pastor válido' });
           }
@@ -248,7 +248,7 @@ export const districtRoutes = (app: Express): void => {
       try {
         const districtId = (req as ValidatedRequest<typeof idParamSchema._type>).validatedParams.id;
         const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-        const user = userId ? await storage.getUserById(userId) : null;
+        const user = userId ? await userRepo.getUserById(userId) : null;
 
         if (!isSuperAdmin(user)) {
           return sendForbidden(res, 'Apenas superadmin pode atualizar distritos');
@@ -280,7 +280,7 @@ export const districtRoutes = (app: Express): void => {
         // Se pastorId foi fornecido, verificar se é um pastor válido
         if (pastorId !== undefined) {
           if (pastorId) {
-            const pastor = await storage.getUserById(pastorId);
+            const pastor = await userRepo.getUserById(pastorId);
             if (!pastor || pastor.role !== 'pastor') {
               return sendValidationError(res, { message: 'Usuário não é um pastor válido' });
             }
@@ -335,7 +335,7 @@ export const districtRoutes = (app: Express): void => {
     try {
       const districtId = parseInt(req.params.id);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
         return sendForbidden(res, 'Apenas superadmin pode deletar distritos');
@@ -385,14 +385,14 @@ export const districtRoutes = (app: Express): void => {
     try {
       const districtId = parseInt(req.params.id);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       // Verificar permissão - superadmin tem acesso a tudo, pastor apenas ao seu distrito
       if (!isSuperAdmin(user) && !(isPastor(user) && user?.districtId === districtId)) {
         return sendForbidden(res, 'Acesso negado');
       }
 
-      const churches = await storage.getChurchesByDistrict(districtId);
+      const churches = await churchRepo.getChurchesByDistrict(districtId);
       return sendSuccess(res, churches);
     } catch (error) {
       logger.error('Erro ao buscar igrejas do distrito:', error);
@@ -406,7 +406,7 @@ export const districtRoutes = (app: Express): void => {
   app.get('/api/pastors', async (req: Request, res: Response) => {
     try {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (isSuperAdmin(user)) {
         // Superadmin vê todos os pastores
@@ -432,7 +432,7 @@ export const districtRoutes = (app: Express): void => {
     try {
       const pastorId = parseInt(req.params.id);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       const pastor = await sql`
         SELECT u.*, d.name as district_name, d.code as district_code
@@ -461,7 +461,7 @@ export const districtRoutes = (app: Express): void => {
   app.post('/api/pastors', async (req: Request, res: Response) => {
     try {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
         return sendForbidden(res, 'Apenas superadmin pode criar pastores');
@@ -474,7 +474,7 @@ export const districtRoutes = (app: Express): void => {
       }
 
       // Verificar se email já existe
-      const existing = await storage.getUserByEmail(email);
+      const existing = await userRepo.getUserByEmail(email);
       if (existing) {
         return sendValidationError(res, { message: 'Email já está em uso' });
       }
@@ -491,10 +491,10 @@ export const districtRoutes = (app: Express): void => {
 
       // Hash da senha
       const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
       // Criar usuário como pastor
-      const newPastor = await storage.createUser({
+      const newPastor = await userRepo.createUser({
         name,
         email,
         password: hashedPassword,
@@ -533,13 +533,13 @@ export const districtRoutes = (app: Express): void => {
     try {
       const pastorId = parseInt(req.params.id);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
         return sendForbidden(res, 'Apenas superadmin pode atualizar pastores');
       }
 
-      const pastor = await storage.getUserById(pastorId);
+      const pastor = await userRepo.getUserById(pastorId);
       if (!pastor || pastor.role !== 'pastor') {
         return sendNotFound(res, 'Pastor não encontrado');
       }
@@ -550,7 +550,7 @@ export const districtRoutes = (app: Express): void => {
       if (name) updates.name = name;
       if (email && email !== pastor.email) {
         // Verificar se novo email já existe
-        const existing = await storage.getUserByEmail(email);
+        const existing = await userRepo.getUserByEmail(email);
         if (existing) {
           return sendValidationError(res, { message: 'Email já está em uso' });
         }
@@ -570,10 +570,10 @@ export const districtRoutes = (app: Express): void => {
       }
       if (password) {
         const bcrypt = await import('bcryptjs');
-        updates.password = await bcrypt.hash(password, 10);
+        updates.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
       }
 
-      const updated = await storage.updateUser(pastorId, updates);
+      const updated = await userRepo.updateUser(pastorId, updates);
       return sendSuccess(res, updated);
     } catch (error) {
       logger.error('Erro ao atualizar pastor:', error);
@@ -586,13 +586,13 @@ export const districtRoutes = (app: Express): void => {
     try {
       const pastorId = parseInt(req.params.id);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
         return sendForbidden(res, 'Apenas superadmin pode deletar pastores');
       }
 
-      const pastor = await storage.getUserById(pastorId);
+      const pastor = await userRepo.getUserById(pastorId);
       if (!pastor || pastor.role !== 'pastor') {
         return sendNotFound(res, 'Pastor não encontrado');
       }
@@ -608,7 +608,7 @@ export const districtRoutes = (app: Express): void => {
 
       // Deletar pastor (ou converter para member)
       // Por segurança, vamos apenas remover o role de pastor
-      await storage.updateUser(pastorId, { role: 'member', districtId: null });
+      await userRepo.updateUser(pastorId, { role: 'member', districtId: null });
 
       return sendSuccess(res, { success: true, message: 'Pastor removido com sucesso' });
     } catch (error) {
@@ -623,7 +623,7 @@ export const districtRoutes = (app: Express): void => {
   app.get('/api/churches/unassigned', async (req: Request, res: Response) => {
     try {
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
         return sendForbidden(res, 'Apenas superadmin pode ver igrejas sem distrito');
@@ -647,7 +647,7 @@ export const districtRoutes = (app: Express): void => {
     try {
       const districtId = parseInt(req.params.id);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
         return res
@@ -699,7 +699,7 @@ export const districtRoutes = (app: Express): void => {
     try {
       const districtId = parseInt(req.params.id);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
         return res
@@ -753,7 +753,7 @@ export const districtRoutes = (app: Express): void => {
       const districtId = parseInt(req.params.id);
       const churchId = parseInt(req.params.churchId);
       const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const user = userId ? await storage.getUserById(userId) : null;
+      const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
         return res
@@ -794,7 +794,7 @@ export const districtRoutes = (app: Express): void => {
       try {
         const districtId = parseInt(req.params.id);
         const userId = parseInt((req.headers['x-user-id'] as string) || '0');
-        const user = userId ? await storage.getUserById(userId) : null;
+        const user = userId ? await userRepo.getUserById(userId) : null;
 
         // Verificar se o distrito existe
         const district = await sql`SELECT id, name FROM districts WHERE id = ${districtId}`;
@@ -808,10 +808,10 @@ export const districtRoutes = (app: Express): void => {
         }
 
         // Buscar igrejas do distrito
-        const churches = await sql`
+        const churches = await sql<{ id: number }>`
           SELECT id FROM churches WHERE district_id = ${districtId}
         `;
-        const churchIds = churches.map((c: { id: number }) => c.id);
+        const churchIds = churches.map(c => c.id);
 
         if (churchIds.length === 0) {
           return sendSuccess(res, {
@@ -834,7 +834,7 @@ export const districtRoutes = (app: Express): void => {
             SELECT id FROM users WHERE church_id = ANY(${churchIds})
           )
         `;
-        deletedRelationships = relResult.count || 0;
+        deletedRelationships = (relResult as any).count || 0;
 
         // 2. Deletar solicitações de discipulado
         await sql`
@@ -851,7 +851,7 @@ export const districtRoutes = (app: Express): void => {
           DELETE FROM events
           WHERE church_id = ANY(${churchIds})
         `;
-        deletedEvents = eventResult.count || 0;
+        deletedEvents = (eventResult as any).count || 0;
 
         // 4. Deletar tarefas das igrejas/membros
         await sql`
@@ -896,7 +896,7 @@ export const districtRoutes = (app: Express): void => {
             AND role NOT IN ('superadmin', 'pastor', 'admin')
             AND id != ${userId}
         `;
-        deletedUsers = userResult.count || 0;
+        deletedUsers = (userResult as any).count || 0;
 
         logger.info(`Dados do distrito ${districtId} limpos por usuário ${userId}:`, {
           deletedUsers,

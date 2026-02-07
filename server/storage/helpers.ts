@@ -339,6 +339,7 @@ export function mapPrayerRecord(record: Record<string, unknown>): Prayer {
   return {
     id: Number(record.id),
     userId: Number(record.requesterId),
+    districtId: record.districtId != null ? Number(record.districtId) : null,
     title: String(record.title),
     description: record.description == null ? null : String(record.description),
     isPublic: record.isPrivate === null ? true : !record.isPrivate,

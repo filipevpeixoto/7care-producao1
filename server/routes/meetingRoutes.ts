@@ -4,7 +4,7 @@
  */
 
 import { Express, Request, Response } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { asyncHandler, sendSuccess, sendNotFound } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
@@ -13,7 +13,9 @@ import { isPastor } from '../utils/permissions';
 import { Church, User } from '../../shared/schema';
 
 export const meetingRoutes = (app: Express): void => {
-  const storage = new NeonAdapter();
+  const meetingRepo = getRepository('meetingRepository');
+  const userRepo = getRepository('userRepository');
+  const churchRepo = getRepository('churchRepository');
 
   /**
    * @swagger
@@ -42,15 +44,15 @@ export const meetingRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const { userId, status } = req.query;
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
-      const requestingUser = requestingUserId ? await storage.getUserById(requestingUserId) : null;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
-      let meetings = await storage.getAllMeetings();
+      let meetings = await meetingRepo.getAll();
 
       // Filtrar por distrito se for pastor
       if (isPastor(requestingUser) && requestingUser?.districtId) {
-        const districtChurches = await storage.getChurchesByDistrict(requestingUser.districtId);
+        const districtChurches = await churchRepo.getChurchesByDistrict(requestingUser.districtId!);
         const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        const allUsers = await storage.getAllUsers();
+        const allUsers = await userRepo.getAllUsers();
 
         // IDs de usuários do distrito
         const districtUserIds = new Set(
@@ -67,7 +69,7 @@ export const meetingRoutes = (app: Express): void => {
 
         meetings = meetings.filter(
           m =>
-            districtUserIds.has(m.requesterId) ||
+            (m.requesterId && districtUserIds.has(m.requesterId)) ||
             (m.assignedToId && districtUserIds.has(m.assignedToId))
         );
         logger.info(
@@ -142,11 +144,11 @@ export const meetingRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const meetingData = (req as ValidatedRequest<typeof createMeetingSchema._type>).validatedBody;
       logger.info(`Creating meeting: ${meetingData.title}`);
-      const meeting = await storage.createMeeting({
+      const meeting = await meetingRepo.create({
         ...meetingData,
         notes: meetingData.notes ?? '',
         isUrgent: meetingData.isUrgent ?? false,
-      } as Parameters<typeof storage.createMeeting>[0]);
+      } as Parameters<typeof meetingRepo.create>[0]);
       sendSuccess(res, meeting, 201);
     })
   );
@@ -183,7 +185,7 @@ export const meetingRoutes = (app: Express): void => {
       const id = parseInt(req.params.id);
       const meetingData = req.body;
 
-      const meeting = await storage.updateMeeting(id, meetingData);
+      const meeting = await meetingRepo.update(id, meetingData);
 
       if (!meeting) {
         sendNotFound(res, 'Reunião');
@@ -207,7 +209,7 @@ export const meetingRoutes = (app: Express): void => {
   app.get(
     '/api/meeting-types',
     asyncHandler(async (req: Request, res: Response) => {
-      const meetingTypes = await storage.getMeetingTypes();
+      const meetingTypes = await meetingRepo.getMeetingTypes();
       sendSuccess(res, meetingTypes);
     })
   );

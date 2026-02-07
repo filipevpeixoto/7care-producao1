@@ -73,6 +73,7 @@ export type UpdateEmotionalCheckInInput = Partial<Omit<EmotionalCheckIn, 'id' | 
 export interface Prayer {
   id: number;
   userId: number;
+  districtId: number | null;
   title: string;
   description: string | null;
   isPublic: boolean;
@@ -85,7 +86,7 @@ export interface Prayer {
 
 export type CreatePrayerInput = Omit<
   Prayer,
-  'id' | 'createdAt' | 'updatedAt' | 'isAnswered' | 'answeredAt' | 'testimony'
+  'id' | 'createdAt' | 'updatedAt' | 'isAnswered' | 'answeredAt' | 'testimony' | 'districtId'
 >;
 
 // Tipos para push subscriptions
@@ -125,6 +126,7 @@ export interface Activity {
   date?: string | null;
   active: boolean;
   order: number;
+  districtId?: number | null;
 }
 
 export type CreateActivityInput = Omit<Activity, 'id'>;
@@ -611,5 +613,5 @@ export interface IStorage {
 
   // ===== UTILITÁRIOS =====
   clearAllData(): Promise<void>;
-  calculateAdvancedUserPoints(): Promise<PointsRecalculationResult>;
+  calculateAdvancedUserPoints(districtId?: number | null): Promise<PointsRecalculationResult>;
 }

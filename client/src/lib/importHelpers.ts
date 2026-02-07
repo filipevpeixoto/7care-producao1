@@ -928,7 +928,7 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
 
   return {
     name: nome,
-    email,
+    email: email || '',
     password: '123456',
     role,
     church: igreja,

@@ -16,6 +16,7 @@ import { OfflineIndicator } from './components/offline/OfflineIndicator';
 import { ModalProvider } from './contexts/ModalContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 import {
   enableGlobalOfflineFetch,
@@ -24,6 +25,7 @@ import {
   testOfflineData,
 } from './lib/offline';
 import { SkipLink } from './components/accessibility/SkipLink';
+import { RouteAnnouncer } from './components/accessibility/RouteAnnouncer';
 import { getSkeletonForRoute } from './components/ui/page-skeleton';
 import { usePrefetchOnMount } from './hooks/usePrefetch';
 
@@ -75,8 +77,9 @@ const PageLoader = () => {
 
 // Fallback simples para rotas sem skeleton mapeado
 const SimpleLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  <div className="flex items-center justify-center min-h-screen" role="status" aria-live="polite">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" aria-hidden="true"></div>
+    <span className="sr-only">Carregando...</span>
   </div>
 );
 
@@ -202,6 +205,8 @@ const App = () => {
               <BrowserRouter>
                 {/* Prefetch de rotas críticas */}
                 <PrefetchManager />
+                {/* Anunciador de rota para leitores de tela */}
+                <RouteAnnouncer />
                 <Suspense fallback={<SimpleLoader />}>
                   {/* Main content wrapper com id para o skip link e View Transition */}
                   <main
@@ -216,34 +221,35 @@ const App = () => {
                         <Route path="/login" element={<Login />} />
                         <Route path="/first-access" element={<FirstAccessWelcome />} />
                         <Route path="/pastor-onboarding/:token" element={<PastorOnboarding />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/calendar" element={<Calendar />} />
-                        <Route path="/menu" element={<Menu />} />
-                        <Route path="/meu-cadastro" element={<MeuCadastro />} />
-                        <Route path="/users" element={<Users />} />
-                        <Route path="/interested" element={<Interested />} />
-                        <Route path="/my-interested" element={<MyInterested />} />
-                        <Route path="/chat" element={<Chat />} />
-                        <Route path="/gamification" element={<Gamification />} />
-                        <Route path="/prayers" element={<Prayers />} />
-                        <Route path="/push-notifications" element={<PushNotifications />} />
-                        <Route path="/notifications" element={<NotificationsHistory />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/tasks" element={<Tasks />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/my-reports" element={<Tasks />} />
-                        <Route path="/contact" element={<Contact />} />
-                        <Route path="/election-config" element={<ElectionConfig />} />
-                        <Route path="/election-voting" element={<ElectionVoting />} />
-                        <Route path="/election-dashboard" element={<ElectionDashboard />} />
-                        <Route path="/elections" element={<UnifiedElection />} />
-                        <Route path="/election-dashboard/:configId" element={<ElectionResults />} />
-                        <Route path="/election-manage" element={<ElectionDashboard />} />
-                        <Route path="/election-manage/:configId" element={<ElectionManage />} />
-                        <Route path="/election-vote/:configId" element={<ElectionVotingMobile />} />
-                        <Route path="/districts" element={<Districts />} />
-                        <Route path="/pastors" element={<Pastors />} />
-                        <Route path="/pastor-invites" element={<PastorInvites />} />
+                        {/* Rotas protegidas — requerem autenticação */}
+                        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                        <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+                        <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
+                        <Route path="/meu-cadastro" element={<ProtectedRoute><MeuCadastro /></ProtectedRoute>} />
+                        <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+                        <Route path="/interested" element={<ProtectedRoute><Interested /></ProtectedRoute>} />
+                        <Route path="/my-interested" element={<ProtectedRoute><MyInterested /></ProtectedRoute>} />
+                        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+                        <Route path="/gamification" element={<ProtectedRoute><Gamification /></ProtectedRoute>} />
+                        <Route path="/prayers" element={<ProtectedRoute><Prayers /></ProtectedRoute>} />
+                        <Route path="/push-notifications" element={<ProtectedRoute><PushNotifications /></ProtectedRoute>} />
+                        <Route path="/notifications" element={<ProtectedRoute><NotificationsHistory /></ProtectedRoute>} />
+                        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                        <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                        <Route path="/my-reports" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                        <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+                        <Route path="/election-config" element={<ProtectedRoute><ElectionConfig /></ProtectedRoute>} />
+                        <Route path="/election-voting" element={<ProtectedRoute><ElectionVoting /></ProtectedRoute>} />
+                        <Route path="/election-dashboard" element={<ProtectedRoute><ElectionDashboard /></ProtectedRoute>} />
+                        <Route path="/elections" element={<ProtectedRoute><UnifiedElection /></ProtectedRoute>} />
+                        <Route path="/election-dashboard/:configId" element={<ProtectedRoute><ElectionResults /></ProtectedRoute>} />
+                        <Route path="/election-manage" element={<ProtectedRoute><ElectionDashboard /></ProtectedRoute>} />
+                        <Route path="/election-manage/:configId" element={<ProtectedRoute><ElectionManage /></ProtectedRoute>} />
+                        <Route path="/election-vote/:configId" element={<ProtectedRoute><ElectionVotingMobile /></ProtectedRoute>} />
+                        <Route path="/districts" element={<ProtectedRoute><Districts /></ProtectedRoute>} />
+                        <Route path="/pastors" element={<ProtectedRoute><Pastors /></ProtectedRoute>} />
+                        <Route path="/pastor-invites" element={<ProtectedRoute><PastorInvites /></ProtectedRoute>} />
                         <Route path="/termos" element={<Terms />} />
                         <Route path="/privacidade" element={<Privacy />} />
                         <Route path="*" element={<NotFound />} />
