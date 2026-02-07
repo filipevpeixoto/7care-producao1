@@ -7,7 +7,6 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatEmailDisplay } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -3904,7 +3903,7 @@ export default function Settings() {
                   <SelectItem value="all">Todos os usuários</SelectItem>
                   {usersList.map(user => (
                     <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.name} ({formatEmailDisplay(user.email)})
+                      {user.name} ({user.email})
                     </SelectItem>
                   ))}
                 </SelectContent>

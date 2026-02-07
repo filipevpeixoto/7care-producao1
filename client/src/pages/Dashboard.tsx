@@ -51,7 +51,6 @@ const Dashboard = () => {
   const { data: unifiedData, isLoading: unifiedLoading } = useQuery({
     queryKey: ['/api/dashboard/unified', user?.id],
     queryFn: async () => {
-      console.log('🚀 Dashboard: Carregando dados unificados...');
       const response = await fetch('/api/dashboard/unified', {
         headers: {
           'x-user-id': user?.id?.toString() || '',
@@ -60,15 +59,14 @@ const Dashboard = () => {
       });
       if (!response.ok) throw new Error('Failed to fetch unified dashboard');
       const data = await response.json();
-      console.log(`✅ Dashboard: Dados unificados carregados em ${data.loadTimeMs}ms`);
       return data;
     },
     // Só executar quando auth estiver pronto E for superadmin
     enabled: isAuthReady && isSuperAdmin(user),
-    staleTime: 0, // Sempre buscar dados frescos
+    staleTime: 60 * 1000, // 1 minuto - dados não mudam com tanta frequência
     gcTime: 10 * 60 * 1000,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // BUSCAR dados de usuários da mesma query da página Users (fallback para não-superadmin)
@@ -76,7 +74,6 @@ const Dashboard = () => {
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['/api/users', user?.id],
     queryFn: async () => {
-      console.log('🔄 Dashboard: Buscando usuários da API...');
       // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
       const response = await fetch('/api/users?limit=500', {
         headers: {
@@ -85,21 +82,19 @@ const Dashboard = () => {
         },
       });
       if (!response.ok) {
-        console.error('❌ Dashboard: Erro ao buscar usuários:', response.status);
         return [];
       }
       const data = await response.json();
       // A API retorna { data: [], pagination: {} }, extrair o array
       const users = Array.isArray(data) ? data : data?.data || [];
       const total = data?.pagination?.total || users.length;
-      console.log(`✅ Dashboard: ${users.length} usuários carregados (total: ${total})`);
       return users;
     },
     // Só executar quando auth estiver pronto
     enabled: isAuthReady,
-    staleTime: 0, // Sempre buscar dados frescos
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000, // 30 segundos
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Garantir que usersData é sempre um array (proteção contra cache antiga)
@@ -116,9 +111,6 @@ const Dashboard = () => {
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      console.log('🚀 INICIANDO BUSCA DE TAREFAS...');
-      console.log('📖 [DASHBOARD] Buscando tarefas DO GOOGLE SHEETS (fonte da verdade)...');
-
       // Buscar DIRETO do Google Sheets (IGUAL à página Tasks)
       const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
@@ -137,11 +129,6 @@ const Dashboard = () => {
 
       const data = await response.json();
       const tasks = data.tasks || [];
-
-      console.log('🔍 [DASHBOARD] DADOS BRUTOS DO GOOGLE SHEETS:');
-      console.log('🔍 Resposta completa:', data);
-      console.log('🔍 Array de tarefas:', tasks);
-      console.log('🔍 Número de tarefas retornadas:', tasks.length);
 
       // Converter formato do Sheets para formato do app (IGUAL à página Tasks)
       const convertedTasks = tasks.map((sheetTask: SheetTask) => ({
@@ -172,34 +159,6 @@ const Dashboard = () => {
         tags: sheetTask.tags ? sheetTask.tags.split(',').filter(Boolean) : [],
       }));
 
-      console.log(`✅ [DASHBOARD] ${convertedTasks.length} tarefas carregadas DO GOOGLE SHEETS`);
-
-      // Log específico para verificar contagem
-      const pendingCount = convertedTasks.filter(
-        (t: { status: string }) => t.status === 'pending' || t.status === 'in_progress'
-      ).length;
-      const completedCount = convertedTasks.filter(
-        (t: { status: string }) => t.status === 'completed'
-      ).length;
-
-      console.log(`📊 [DASHBOARD] CONTAGEM DAS TAREFAS:`);
-      console.log(`📊 Total: ${convertedTasks.length}`);
-      console.log(`📊 Pendentes: ${pendingCount}`);
-      console.log(`📊 Concluídas: ${completedCount}`);
-
-      // Log detalhado de cada tarefa
-      console.log('🔍 [DASHBOARD] LISTA DETALHADA DE TAREFAS:');
-      convertedTasks.forEach(
-        (task: { id: string; title: string; status: string }, index: number) => {
-          console.log(`🔍 Tarefa ${index + 1}:`, {
-            id: task.id,
-            title: task.title,
-            status: task.status,
-            statusOriginal: tasks[index]?.status,
-          });
-        }
-      );
-
       return convertedTasks;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos - dados não mudam tão frequentemente
@@ -216,7 +175,6 @@ const Dashboard = () => {
     queryFn: async () => {
       // Se temos dados unificados, usar eles
       if (unifiedData?.stats) {
-        console.log('🔍 Dashboard: Usando stats do cache unificado');
         return unifiedData.stats;
       }
       const response = await fetch('/api/dashboard/stats', {
@@ -228,22 +186,32 @@ const Dashboard = () => {
       return response.json();
     },
     // Configurações otimizadas para performance
-    staleTime: 0, // Sempre buscar dados frescos
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000, // 30 segundos - cache curto para dados frescos
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
     enabled: isAuthReady, // Só executar quando auth estiver pronto
     // Usar dados unificados como initialData para superadmin
     initialData: unifiedData?.stats,
+    // Placeholder para renderizar cards com 0 enquanto carrega (evita "...")
+    placeholderData: {
+      totalUsers: 0,
+      totalMembers: 0,
+      totalMissionaries: 0,
+      totalInterested: 0,
+      approvedUsers: 0,
+      totalPrayers: 0,
+      totalVisits: 0,
+      totalActivities: 0,
+      totalPoints: 0,
+      interestedBeingDiscipled: 0,
+    },
   });
 
   // USAR dados reais das páginas correspondentes
   // Para superadmin, priorizar dados unificados (mais rápidos)
   const dashboardStats = useMemo(() => {
-    console.log('🔍 Dashboard: Calculando stats...');
-
     // Se temos dados unificados (superadmin), usar eles primeiro
     if (unifiedData?.stats) {
-      console.log('✅ Dashboard: Usando stats unificados (superadmin)');
       return {
         totalUsers: unifiedData.stats.totalUsers || 0,
         totalMembers: unifiedData.stats.totalMembers || 0,
@@ -263,10 +231,6 @@ const Dashboard = () => {
 
     // usersData já é garantido ser array (normalizado acima)
     const tasksArray = Array.isArray(tasksData) ? tasksData : [];
-
-    console.log('🔍 usersData (paginado):', usersData.length);
-    console.log('🔍 dashboardStatsRaw?.totalUsers (real):', dashboardStatsRaw?.totalUsers);
-    console.log('🔍 tasksArray:', tasksArray.length);
 
     // USAR TOTAIS DA API dashboardStatsRaw (que não tem paginação)
     // usersData é paginado e só traz 50 por padrão
@@ -327,14 +291,6 @@ const Dashboard = () => {
       interestedBeingDiscipled: dashboardStatsRaw?.interestedBeingDiscipled || 0,
     };
 
-    console.log('📊 Dashboard: Stats calculados:', stats);
-
-    // Log específico do card de tarefas
-    console.log('🎯 [CARD TAREFAS] VALOR FINAL EXIBIDO:');
-    console.log('🎯 Total de tarefas:', stats.totalTasks);
-    console.log('🎯 Tarefas pendentes:', stats.pendingTasks);
-    console.log('🎯 Tarefas concluídas:', stats.completedTasks);
-
     return stats;
   }, [dashboardStatsRaw, tasksData, usersData, unifiedData]);
 
@@ -356,10 +312,10 @@ const Dashboard = () => {
     },
     enabled: isAuthReady,
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
+    staleTime: 60 * 1000, // 1 minuto
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch visit data for visitometer with optimized caching
@@ -385,9 +341,9 @@ const Dashboard = () => {
     },
     enabled: isAuthReady,
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
+    staleTime: 30 * 1000, // 30 segundos
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   // Fetch missionary relationships for interested count
@@ -395,13 +351,8 @@ const Dashboard = () => {
     queryKey: ['/api/relationships/missionary', user?.id],
     queryFn: async () => {
       if (!user?.id || user.role !== 'missionary') {
-        console.log('🔍 Dashboard: User not missionary or no ID:', {
-          userId: user?.id,
-          role: user?.role,
-        });
         return [];
       }
-      console.log('🔍 Dashboard: Fetching relationships for missionary:', user.id);
       const response = await fetch(`/api/relationships/missionary/${user.id}`, {
         headers: {
           'x-user-id': user?.id?.toString() || '',
@@ -412,14 +363,13 @@ const Dashboard = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log('🔍 Dashboard: Relationships data:', data);
       return data;
     },
     enabled: isAuthReady && user?.role?.includes('missionary'),
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
+    staleTime: 60 * 1000, // 1 minuto
     gcTime: 10 * 60 * 1000, // 15 minutes
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   // Fetch events filtered by user role for dashboard cards
@@ -428,10 +378,8 @@ const Dashboard = () => {
     queryKey: ['/api/events', user?.id, user?.role],
     queryFn: async () => {
       if (!user?.role) {
-        console.log('🔍 Dashboard: No user role available');
         return [];
       }
-      console.log('🔍 Dashboard: Fetching events for role:', user.role);
       const response = await fetch(`/api/events?role=${user.role}`, {
         headers: {
           'x-user-id': user?.id?.toString() || '',
@@ -442,14 +390,13 @@ const Dashboard = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log('🔍 Dashboard: Events data for role', user.role, ':', data.length, 'events');
       return data;
     },
     enabled: isAuthReady && !!user?.role,
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
+    staleTime: 60 * 1000, // 1 minuto
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   // Fetch spiritual check-ins for admin dashboard
@@ -471,9 +418,9 @@ const Dashboard = () => {
     },
     enabled: isAuthReady && hasAdminAccess(user),
     refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
+    staleTime: 60 * 1000, // 1 minuto
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   // Fetch districts count for superadmin (usa dados unificados se disponível)
@@ -482,10 +429,6 @@ const Dashboard = () => {
     queryFn: async () => {
       // Se temos dados unificados, usar eles
       if (unifiedData?.districtsCount !== undefined) {
-        console.log(
-          '🔍 Dashboard: Usando districtsCount do cache unificado:',
-          unifiedData.districtsCount
-        );
         return unifiedData.districtsCount;
       }
       const response = await fetch('/api/districts', {
@@ -494,17 +437,15 @@ const Dashboard = () => {
         },
       });
       if (!response.ok) {
-        console.error('❌ Erro ao buscar distritos:', response.status);
         return 0;
       }
       const data = await response.json();
       const count = Array.isArray(data) ? data.length : 0;
-      console.log('🔍 Dashboard: Distritos encontrados:', count);
       return count;
     },
     enabled: isAuthReady && isSuperAdmin(user),
-    staleTime: 0, // Sempre buscar dados frescos
-    refetchOnMount: 'always',
+    staleTime: 60 * 1000, // 1 minuto
+    refetchOnMount: true,
     // Usar initialData dos dados unificados para carregamento instantâneo
     initialData: unifiedData?.districtsCount,
   });
@@ -515,10 +456,6 @@ const Dashboard = () => {
     queryFn: async () => {
       // Se temos dados unificados, usar eles
       if (unifiedData?.pastorsCount !== undefined) {
-        console.log(
-          '🔍 Dashboard: Usando pastorsCount do cache unificado:',
-          unifiedData.pastorsCount
-        );
         return unifiedData.pastorsCount;
       }
       const response = await fetch('/api/pastors', {
@@ -527,17 +464,15 @@ const Dashboard = () => {
         },
       });
       if (!response.ok) {
-        console.error('❌ Erro ao buscar pastores:', response.status);
         return 0;
       }
       const data = await response.json();
       const count = Array.isArray(data) ? data.length : 0;
-      console.log('🔍 Dashboard: Pastores encontrados:', count);
       return count;
     },
     enabled: isAuthReady && isSuperAdmin(user),
-    staleTime: 0, // Sempre buscar dados frescos
-    refetchOnMount: 'always',
+    staleTime: 60 * 1000, // 1 minuto
+    refetchOnMount: true,
     // Usar initialData dos dados unificados para carregamento instantâneo
     initialData: unifiedData?.pastorsCount,
   });
@@ -638,18 +573,6 @@ const Dashboard = () => {
         // CRÍTICO: Verificar se hoje está ENTRE a data de início e fim (inclusive)
         const isHappeningToday = todayTimestamp >= startTimestamp && todayTimestamp <= endTimestamp;
 
-        // Debug log para eventos de hoje
-        if (isHappeningToday) {
-          const isMultiDay = e._end && startTimestamp !== endTimestamp;
-          console.log('📅 [NextEventDisplay] Evento HOJE encontrado:', {
-            title: e.title,
-            startDate: eventStartDate.toLocaleDateString('pt-BR'),
-            endDate: e._end ? eventEndDate.toLocaleDateString('pt-BR') : 'N/A',
-            isMultiDay: isMultiDay,
-            today: today.toLocaleDateString('pt-BR'),
-          });
-        }
-
         return isHappeningToday;
       })
       .sort((a, b) => (a._start as Date).getTime() - (b._start as Date).getTime());
@@ -668,14 +591,6 @@ const Dashboard = () => {
         return eventTimestamp >= todayTimestamp;
       })
       .sort((a, b) => (a._start as Date).getTime() - (b._start as Date).getTime());
-
-    // Debug log
-    console.log('📅 [NextEventDisplay] Eventos:', {
-      total: validEvents.length,
-      hoje: todayEvents.length,
-      proximos: upcomingEvents.length,
-      mostrarHoje: todayEvents.length > 0,
-    });
 
     const eventToShow = todayEvents.length > 0 ? todayEvents[0] : upcomingEvents[0];
 
@@ -836,46 +751,25 @@ const Dashboard = () => {
     queryKey: ['church-interested', user?.id],
     queryFn: async () => {
       if (!user?.id || (user.role !== 'member' && user.role !== 'missionary')) {
-        console.log('🔍 Dashboard: User not member/missionary or no ID:', {
-          userId: user?.id,
-          role: user?.role,
-        });
         return [];
       }
-      console.log(
-        '🔍 Dashboard: Fetching church interested for user:',
-        user.id,
-        'Name:',
-        user.name,
-        'Role:',
-        user.role,
-        'Church:',
-        user.church
-      );
       const response = await fetch('/api/my-interested', {
         headers: {
           'x-user-id': user.id.toString(),
         },
       });
-      console.log('🔍 Dashboard: Response status:', response.status, response.statusText);
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('🔍 Dashboard: Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log('🔍 Dashboard: Church interested data received:', {
-        dataType: typeof data,
-        dataLength: Array.isArray(data) ? data.length : 'not array',
-        data: data,
-      });
       return data;
     },
     enabled: isAuthReady && (user?.role === 'member' || user?.role === 'missionary'),
-    refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
-    gcTime: 10 * 60 * 1000, // 15 minutes
-    refetchOnMount: 'always',
+    refetchInterval: 300000,
+    staleTime: 30 * 1000, // 30 segundos
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: true,
   });
 
   // Fetch user relationships for members - usando a mesma query key da página MyInterested
@@ -883,51 +777,26 @@ const Dashboard = () => {
     queryKey: ['my-relationships', user?.id],
     queryFn: async () => {
       if (!user?.id || (user.role !== 'member' && user.role !== 'missionary')) {
-        console.log('🔍 Dashboard: User not member/missionary or no ID:', {
-          userId: user?.id,
-          role: user?.role,
-        });
         return [];
       }
-      console.log(
-        '🔍 Dashboard: Fetching user relationships for user:',
-        user.id,
-        'Name:',
-        user.name,
-        'Role:',
-        user.role,
-        'Church:',
-        user.church
-      );
       const response = await fetch(`/api/relationships/missionary/${user.id}`, {
         headers: {
           'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         },
       });
-      console.log(
-        '🔍 Dashboard: Relationships response status:',
-        response.status,
-        response.statusText
-      );
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('🔍 Dashboard: Relationships error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log('🔍 Dashboard: User relationships data received:', {
-        dataType: typeof data,
-        dataLength: Array.isArray(data) ? data.length : 'not array',
-        data: data,
-      });
       return data;
     },
     enabled: isAuthReady && (user?.role === 'member' || user?.role === 'missionary'),
-    refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
-    gcTime: 10 * 60 * 1000, // 15 minutes
-    refetchOnMount: 'always',
+    refetchInterval: 300000,
+    staleTime: 30 * 1000, // 30 segundos
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: true,
   });
 
   // Fetch user detailed data for gamification
@@ -935,10 +804,8 @@ const Dashboard = () => {
     queryKey: ['/api/users', user?.id, 'points-details'],
     queryFn: async () => {
       if (!user?.id) {
-        console.log('🔍 Dashboard: No user ID available for points details');
         return null;
       }
-      console.log('🔍 Dashboard: Fetching points details for user:', user.id);
       const response = await fetch(`/api/users/${user.id}/points-details`, {
         headers: {
           'x-user-id': user?.id?.toString() || '',
@@ -949,22 +816,18 @@ const Dashboard = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log('🔍 Dashboard: User points details data:', data);
       return data;
     },
     enabled: isAuthReady,
-    refetchInterval: 300000, // Refresh every 5 minutes
-    staleTime: 0, // Sempre buscar dados frescos
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    refetchInterval: 300000,
+    staleTime: 60 * 1000, // 1 minuto
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Usar dados reais das páginas correspondentes
   const stats = useMemo(() => {
-    console.log('📊 Dashboard: Calculando stats finais...');
-    console.log('📊 dashboardStats:', dashboardStats);
-
     const calculatedStats = {
       // Usar dados calculados do dashboardStats (que vem das páginas)
       totalUsers: dashboardStats?.totalUsers || 0,
@@ -988,9 +851,6 @@ const Dashboard = () => {
       totalPoints: dashboardStats?.totalPoints || 0,
     };
 
-    // Debug: log das estatísticas finais
-    console.log('📊 Dashboard: Stats finais calculados:', calculatedStats);
-
     return calculatedStats;
   }, [dashboardStats, dashboardStatsRaw]);
 
@@ -1001,8 +861,6 @@ const Dashboard = () => {
     const handleUserUpdate = (event: CustomEvent) => {
       try {
         if (!isMounted) return;
-
-        console.log('🔄 Dashboard: User updated event received:', event.detail);
 
         // Invalidar queries relacionadas ao dashboard imediatamente
         queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
@@ -1030,10 +888,8 @@ const Dashboard = () => {
           queryClient.invalidateQueries({ queryKey: ['/api/users'] });
           queryClient.invalidateQueries({ queryKey: ['/api/missionary-profiles'] });
         }
-
-        console.log('✅ Dashboard: Cache invalidado');
       } catch (error) {
-        console.error('❌ Erro no handleUserUpdate:', error);
+        // silently ignore
       }
     };
 
@@ -1067,15 +923,11 @@ const Dashboard = () => {
     // Função para atualizar estatísticas
     const updateStats = async () => {
       try {
-        console.log('🔄 Dashboard: Atualizando estatísticas em tempo real...');
-
         // Invalidar cache e forçar refetch
         await queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
         await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-
-        console.log('✅ Dashboard: Estatísticas atualizadas com sucesso');
       } catch (error) {
-        console.error('❌ Dashboard: Erro ao atualizar estatísticas:', error);
+        // silently ignore
       }
     };
 
@@ -1084,7 +936,6 @@ const Dashboard = () => {
 
     // Também atualizar quando a janela ganha foco (usuário volta à aba)
     const handleFocus = () => {
-      console.log('🔄 Dashboard: Janela ganhou foco, atualizando estatísticas...');
       updateStats();
     };
 
@@ -1113,8 +964,6 @@ const Dashboard = () => {
         if (response.ok) {
           const result = await response.json();
           if (result.correctedCount > 0) {
-            console.log(`🔄 Dashboard: ${result.correctedCount} perfis corrigidos automaticamente`);
-
             // Atualizar dashboard silenciosamente
             queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
             queryClient.invalidateQueries({ queryKey: ['/api/users'] });
@@ -1122,7 +971,7 @@ const Dashboard = () => {
           }
         }
       } catch (error) {
-        console.error('❌ Erro na verificação automática de perfis missionários:', error);
+        // silently ignore
       }
     };
 
@@ -1658,36 +1507,7 @@ const Dashboard = () => {
   };
 
   const renderMemberDashboard = () => {
-    // Calcular estatísticas de interessados com logs detalhados
-    console.log('🔍 MEMBER DASHBOARD DEBUG - BEATRIZ.LEITES:', {
-      userId: user?.id,
-      userName: user?.name,
-      userRole: user?.role,
-      userChurch: user?.church,
-      userChurchCode: (user as any)?.churchCode,
-      userStatus: user?.status,
-      churchInterested: churchInterested,
-      churchInterestedLength: churchInterested?.length,
-      churchInterestedType: typeof churchInterested,
-      churchInterestedIsArray: Array.isArray(churchInterested),
-      churchInterestedSample: churchInterested?.slice(0, 2), // Primeiros 2 itens
-      userRelationships: userRelationships,
-      userRelationshipsLength: userRelationships?.length,
-      userRelationshipsType: typeof userRelationships,
-      userRelationshipsIsArray: Array.isArray(userRelationships),
-      userRelationshipsSample: userRelationships?.slice(0, 2), // Primeiros 2 itens
-      churchInterestedLoading: churchInterestedLoading,
-      userRelationshipsLoading: userRelationshipsLoading,
-      queriesEnabled: {
-        churchInterested: !!user?.id && (user.role === 'member' || user.role === 'missionary'),
-        userRelationships: !!user?.id && (user.role === 'member' || user.role === 'missionary'),
-      },
-      queryKeys: {
-        churchInterested: ['church-interested', user?.id],
-        userRelationships: ['my-relationships', user?.id],
-      },
-    });
-
+    // Calcular estatísticas de interessados
     const totalChurchInterested =
       churchInterested && Array.isArray(churchInterested) ? churchInterested.length : 0;
 
@@ -1699,9 +1519,6 @@ const Dashboard = () => {
               typeof rel === 'object' &&
               rel.missionaryId === user?.id &&
               rel.status === 'active';
-            if (isMatch) {
-              console.log('✅ Active relationship found:', rel);
-            }
             return isMatch;
           })
         : [];
@@ -1714,24 +1531,11 @@ const Dashboard = () => {
               typeof rel === 'object' &&
               rel.missionaryId === user?.id &&
               rel.status === 'pending';
-            if (isMatch) {
-              console.log('⏳ Pending relationship found:', rel);
-            }
             return isMatch;
           })
         : [];
 
     const totalUserInterested = userActiveRelationships.length + userPendingRelationships.length;
-
-    console.log('📊 MEMBER DASHBOARD CALCULATED:', {
-      totalChurchInterested,
-      userActiveRelationships: userActiveRelationships.length,
-      userPendingRelationships: userPendingRelationships.length,
-      totalUserInterested,
-      allRelationshipsForUser: userRelationships?.filter(
-        (rel: Relationship) => rel?.missionaryId === user?.id
-      ),
-    });
 
     return (
       <div className="space-y-8">
@@ -1970,10 +1774,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  console.log('🚀 DASHBOARD: Renderizando componente...');
-  console.log('🚀 tasksData:', tasksData?.length || 0);
-  console.log('🚀 stats:', stats);
 
   // Definir fundo baseado no role do usuário
   const isAdmin = hasAdminAccess(user);
