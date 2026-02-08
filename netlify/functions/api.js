@@ -8384,7 +8384,7 @@ exports.handler = async (event, context) => {
           // Superadmin vê todas
           console.log('🔍 [PRAYERS] Buscando todas as orações (superadmin)');
           prayers = await sql`
-            SELECT p.*, u.name as requester_name, u.church, u.profile_photo as requester_photo
+            SELECT p.*, u.name as requester_name, u.church
             FROM prayers p
             LEFT JOIN users u ON p.requester_id = u.id
             ORDER BY p.created_at DESC
@@ -8394,7 +8394,7 @@ exports.handler = async (event, context) => {
           // Pastor/usuário vê apenas do seu distrito
           console.log(`🔍 [PRAYERS] Buscando orações do distrito: ${userDistrictId}`);
           prayers = await sql`
-            SELECT p.*, u.name as requester_name, u.church, u.profile_photo as requester_photo
+            SELECT p.*, u.name as requester_name, u.church
             FROM prayers p
             LEFT JOIN users u ON p.requester_id = u.id
             WHERE p.district_id = ${userDistrictId}
