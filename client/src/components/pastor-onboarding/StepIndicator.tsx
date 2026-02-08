@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Lock,
   Trophy,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +31,8 @@ const steps = [
   { number: 5, label: 'Validação', icon: CheckCircle },
   // { number: 6, label: 'Dracma', icon: Receipt }, // Desabilitado temporariamente
   { number: 6, label: 'Gamificação', icon: Trophy },
-  { number: 7, label: 'Senha', icon: Lock },
+  { number: 7, label: 'Situações', icon: Layers },
+  { number: 8, label: 'Senha', icon: Lock },
 ];
 
 export function StepIndicator({ currentStep, completedSteps, onStepClick }: StepIndicatorProps) {

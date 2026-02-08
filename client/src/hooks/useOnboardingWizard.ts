@@ -155,6 +155,7 @@ export function useOnboardingWizard(token: string) {
           churchValidation: state.data.churchValidation,
           // dracmaConfig: state.data.dracmaConfig, // Dracma desabilitado temporariamente
           gamificationConfig: state.data.gamificationConfig, // Adicionar configuração de Gamificação
+          situationLevels: state.data.situationLevels, // Níveis de situação personalizados
         };
 
         const response = await fetch(`/api/invites/onboarding/${token}`, {

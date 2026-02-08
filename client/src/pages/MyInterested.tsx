@@ -33,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 import { getMountName, getLevelIcon } from '@/lib/gamification';
 import { MountIcon } from '@/components/ui/mount-icon';
 import { fetchWithAuth } from '@/lib/api';
+import { useSituationLevels } from '@/hooks/useSituationLevels';
 import {
   Select,
   SelectContent,
@@ -86,20 +87,12 @@ interface DiscipleshipRequest {
   missionaryName?: string;
 }
 
-// Situação do interessado (categorias A-E)
-const SITUATION_OPTIONS = [
-  { value: 'A', label: 'Pronto para Batismo', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' },
-  { value: 'B', label: 'Detalhes Pessoais', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
-  { value: 'C', label: 'Estudando Bíblia', color: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200' },
-  { value: 'D', label: 'Quer Estudar', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
-  { value: 'E', label: 'Contato Inicial', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' },
-] as const;
-
 export default function MyInterested() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { levels: situationLevels, getLevelByValue } = useSituationLevels();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -324,7 +317,13 @@ export default function MyInterested() {
 
   // Mutation para vincular discipulador diretamente (pastor)
   const directDiscipleMutation = useMutation({
-    mutationFn: async ({ interestedId, missionaryId }: { interestedId: number; missionaryId: number }) => {
+    mutationFn: async ({
+      interestedId,
+      missionaryId,
+    }: {
+      interestedId: number;
+      missionaryId: number;
+    }) => {
       const response = await fetchWithAuth(`/api/users/${interestedId}/disciple`, {
         method: 'POST',
         body: JSON.stringify({ missionaryId }),
@@ -356,7 +355,13 @@ export default function MyInterested() {
 
   // Mutation para pastor convidar membro a discipular um interessado
   const pastorInviteMutation = useMutation({
-    mutationFn: async ({ interestedId, missionaryId }: { interestedId: number; missionaryId: number }) => {
+    mutationFn: async ({
+      interestedId,
+      missionaryId,
+    }: {
+      interestedId: number;
+      missionaryId: number;
+    }) => {
       const response = await fetchWithAuth('/api/discipleship-requests', {
         method: 'POST',
         body: JSON.stringify({
@@ -427,11 +432,17 @@ export default function MyInterested() {
   );
 
   // Lista de membros/missionários disponíveis para discipular (para pastores)
-  const availableMissionaries: UserMember[] = (allUsers || []).filter(
-    (u: UserMember) => u.role !== 'interested' && u.role !== 'pastor' && u.role !== 'superadmin' && u.id !== user?.id
-  ).sort((a: UserMember, b: UserMember) => 
-    (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
-  );
+  const availableMissionaries: UserMember[] = (allUsers || [])
+    .filter(
+      (u: UserMember) =>
+        u.role !== 'interested' &&
+        u.role !== 'pastor' &&
+        u.role !== 'superadmin' &&
+        u.id !== user?.id
+    )
+    .sort((a: UserMember, b: UserMember) =>
+      (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+    );
 
   // Convites de pastor pendentes para o membro logado (para aceitar/rejeitar)
   const myPendingInvites: DiscipleshipRequest[] = (allRequests || []).filter(
@@ -443,7 +454,7 @@ export default function MyInterested() {
 
   // Obter situação do interessado
   const getSituationOption = (situation?: string) => {
-    return SITUATION_OPTIONS.find(opt => opt.value === situation);
+    return getLevelByValue(situation);
   };
 
   // Handler para atualizar situação
@@ -902,7 +913,7 @@ export default function MyInterested() {
           <Input
             placeholder="Buscar amigos..."
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -948,7 +959,7 @@ export default function MyInterested() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as igrejas</SelectItem>
-                {availableChurches.map(church => (
+                {availableChurches.map((church) => (
                   <SelectItem key={church} value={church}>
                     {church}
                   </SelectItem>
@@ -966,12 +977,16 @@ export default function MyInterested() {
               Convites do Pastor ({myPendingInvites.length})
             </h3>
             {myPendingInvites.map((invite: DiscipleshipRequest) => (
-              <Card key={invite.id} className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+              <Card
+                key={invite.id}
+                className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800"
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1">
                       <p className="text-sm font-medium">
-                        O pastor convidou você para discipular <strong>{invite.interestedName || getUserInfo(invite.interestedId)}</strong>
+                        O pastor convidou você para discipular{' '}
+                        <strong>{invite.interestedName || getUserInfo(invite.interestedId)}</strong>
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Recebido em {formatDate(invite.requestedAt || invite.createdAt)}
@@ -1057,12 +1072,25 @@ export default function MyInterested() {
                               </Badge>
                             )}
 
-                            {/* Badge de situação (A-E) */}
-                            {(person.interestedSituation || person.interested_situation) && (
-                              <Badge className={getSituationOption(person.interestedSituation || person.interested_situation)?.color || 'bg-gray-100 text-gray-800'}>
-                                {person.interestedSituation || person.interested_situation}
-                              </Badge>
-                            )}
+                            {/* Badge de situação */}
+                            {(person.interestedSituation || person.interested_situation) &&
+                              (() => {
+                                const level = getSituationOption(
+                                  person.interestedSituation || person.interested_situation
+                                );
+                                return level ? (
+                                  <Badge
+                                    className="border-0"
+                                    style={{
+                                      backgroundColor: level.color + '20',
+                                      color: level.color,
+                                    }}
+                                    title={level.label}
+                                  >
+                                    {level.value}
+                                  </Badge>
+                                ) : null;
+                              })()}
 
                             {/* Informação de quem está discipulando (apenas na aba Da Igreja) */}
                             {selectedTab === 'church' && (
@@ -1201,12 +1229,16 @@ export default function MyInterested() {
                         {/* Pastor Controls - Situação e Discipulador */}
                         {isPastorUser && selectedTab === 'church' && (
                           <div className="space-y-3 border-t pt-3">
-                            {/* Situação Selector (A-E) */}
+                            {/* Situação Selector */}
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Situação:</span>
+                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                Situação:
+                              </span>
                               <div className="flex gap-1 flex-wrap">
-                                {SITUATION_OPTIONS.map((opt) => {
-                                  const isActive = (person.interestedSituation || person.interested_situation) === opt.value;
+                                {situationLevels.map((opt) => {
+                                  const isActive =
+                                    (person.interestedSituation || person.interested_situation) ===
+                                    opt.value;
                                   return (
                                     <button
                                       key={opt.value}
@@ -1214,9 +1246,18 @@ export default function MyInterested() {
                                       disabled={updatingSituation === person.id}
                                       className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
                                         isActive
-                                          ? opt.color + ' ring-2 ring-offset-1 ring-current'
+                                          ? 'ring-2 ring-offset-1'
                                           : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                                       } ${updatingSituation === person.id ? 'opacity-50' : ''}`}
+                                      style={
+                                        isActive
+                                          ? {
+                                              backgroundColor: opt.color + '20',
+                                              color: opt.color,
+                                              '--tw-ring-color': opt.color,
+                                            } as React.CSSProperties
+                                          : undefined
+                                      }
                                       title={opt.label}
                                     >
                                       {opt.value}
@@ -1224,16 +1265,24 @@ export default function MyInterested() {
                                   );
                                 })}
                               </div>
-                              {getSituationOption(person.interestedSituation || person.interested_situation) && (
+                              {getSituationOption(
+                                person.interestedSituation || person.interested_situation
+                              ) && (
                                 <span className="text-xs text-muted-foreground ml-1">
-                                  {getSituationOption(person.interestedSituation || person.interested_situation)?.label}
+                                  {
+                                    getSituationOption(
+                                      person.interestedSituation || person.interested_situation
+                                    )?.label
+                                  }
                                 </span>
                               )}
                             </div>
 
                             {/* Inline Discipler Selector */}
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Discipulador:</span>
+                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                Discipulador:
+                              </span>
                               <Select
                                 value=""
                                 onValueChange={(missionaryId) => {
@@ -1445,7 +1494,7 @@ export default function MyInterested() {
                   rows={3}
                   placeholder="Explique por que você gostaria de discipular esta pessoa..."
                   value={discipleMessage}
-                  onChange={e => setDiscipleMessage(e.target.value)}
+                  onChange={(e) => setDiscipleMessage(e.target.value)}
                 />
               </div>
 
@@ -1507,7 +1556,7 @@ export default function MyInterested() {
                     rows={3}
                     placeholder="Adicione observações sobre sua decisão..."
                     value={adminNotes}
-                    onChange={e => setAdminNotes(e.target.value)}
+                    onChange={(e) => setAdminNotes(e.target.value)}
                   />
                 </div>
               </div>

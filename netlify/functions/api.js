@@ -11911,6 +11911,145 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // GET /api/settings/my-district/situation-levels - Obter níveis de situação do distrito
+    if (path === '/api/settings/my-district/situation-levels' && method === 'GET') {
+      try {
+        let userId = null;
+        const auth = requireAuth(event);
+        if (auth.isValid) {
+          userId = auth.user.id;
+        } else {
+          userId = event.headers['x-user-id'];
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+        
+        const users = await sql`
+          SELECT district_id FROM users WHERE id = ${userId} LIMIT 1
+        `;
+        
+        const districtId = users.length > 0 ? users[0].district_id : null;
+        
+        let levels = null;
+        if (districtId) {
+          try {
+            const result = await sql`
+              SELECT situation_levels FROM district_settings WHERE district_id = ${districtId} LIMIT 1
+            `;
+            if (result.length > 0 && result[0].situation_levels) {
+              levels = typeof result[0].situation_levels === 'string' 
+                ? JSON.parse(result[0].situation_levels) 
+                : result[0].situation_levels;
+            }
+          } catch (e) {
+            // Coluna pode não existir ainda
+          }
+        }
+        
+        // Retornar default se não houver config personalizada
+        if (!levels) {
+          levels = [
+            { value: 'A', label: 'Pronto para Batismo', color: '#10b981' },
+            { value: 'B', label: 'Detalhes Pessoais', color: '#3b82f6' },
+            { value: 'C', label: 'Estudando Bíblia', color: '#8b5cf6' },
+            { value: 'D', label: 'Quer Estudar', color: '#f97316' },
+            { value: 'E', label: 'Contato Inicial', color: '#6b7280' },
+          ];
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ districtId, levels })
+        };
+      } catch (error) {
+        console.error('Erro ao buscar níveis de situação:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao buscar níveis de situação' })
+        };
+      }
+    }
+    
+    // POST /api/settings/my-district/situation-levels - Salvar níveis de situação do distrito
+    if (path === '/api/settings/my-district/situation-levels' && method === 'POST') {
+      try {
+        let userId = null;
+        const auth = requireAuth(event);
+        if (auth.isValid) {
+          userId = auth.user.id;
+        } else {
+          userId = event.headers['x-user-id'];
+        }
+        
+        if (!userId) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Autenticação necessária' })
+          };
+        }
+        
+        const { levels } = JSON.parse(body || '{}');
+        
+        if (!levels || !Array.isArray(levels) || levels.length === 0) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'levels é obrigatório e deve ser um array não vazio' })
+          };
+        }
+        
+        const users = await sql`
+          SELECT district_id FROM users WHERE id = ${userId} LIMIT 1
+        `;
+        
+        if (users.length === 0 || !users[0].district_id) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Usuário não está associado a um distrito' })
+          };
+        }
+        
+        const districtId = users[0].district_id;
+        
+        // Garantir coluna existe
+        try {
+          await sql`ALTER TABLE district_settings ADD COLUMN IF NOT EXISTS situation_levels JSONB DEFAULT NULL`;
+        } catch (e) {
+          // Ignorar se já existe
+        }
+        
+        await sql`
+          INSERT INTO district_settings (district_id, situation_levels, updated_at)
+          VALUES (${districtId}, ${JSON.stringify(levels)}, NOW())
+          ON CONFLICT (district_id) 
+          DO UPDATE SET situation_levels = ${JSON.stringify(levels)}, updated_at = NOW()
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, message: 'Níveis de situação salvos' })
+        };
+      } catch (error) {
+        console.error('Erro ao salvar níveis de situação:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao salvar níveis de situação' })
+        };
+      }
+    }
+
     // Rota para igreja padrão
     if (path === '/api/settings/default-church' && method === 'GET') {
       return {
@@ -18508,7 +18647,7 @@ exports.handler = async (event, context) => {
       try {
         const token = path.split('/').pop();
         const parsedBody = JSON.parse(body || '{}');
-        const { name, password, phone, churches = [], district, excelData, churchValidation, dracmaConfig, gamificationConfig } = parsedBody;
+        const { name, password, phone, churches = [], district, excelData, churchValidation, dracmaConfig, gamificationConfig, situationLevels } = parsedBody;
 
         // Validar campos obrigatórios
         if (!password) {
@@ -18723,6 +18862,34 @@ exports.handler = async (event, context) => {
             console.log(`✅ Configuração de gamificação salva para distrito ${newDistrict.id}`);
           } catch (configError) {
             console.error(`⚠️ Erro ao salvar config de gamificação:`, configError.message);
+          }
+        }
+
+        // 5b. Salvar níveis de situação (se houver)
+        if (situationLevels && Array.isArray(situationLevels) && situationLevels.length > 0) {
+          try {
+            // Garantir tabela e coluna existem
+            try {
+              await sql`CREATE TABLE IF NOT EXISTS district_settings (
+                id SERIAL PRIMARY KEY,
+                district_id INTEGER UNIQUE NOT NULL,
+                settings JSONB DEFAULT '{}',
+                situation_levels JSONB DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+              )`;
+              await sql`ALTER TABLE district_settings ADD COLUMN IF NOT EXISTS situation_levels JSONB DEFAULT NULL`;
+            } catch (e) { /* ignorar */ }
+
+            await sql`
+              INSERT INTO district_settings (district_id, situation_levels, updated_at)
+              VALUES (${newDistrict.id}, ${JSON.stringify(situationLevels)}, NOW())
+              ON CONFLICT (district_id)
+              DO UPDATE SET situation_levels = ${JSON.stringify(situationLevels)}, updated_at = NOW()
+            `;
+            console.log(`✅ Níveis de situação salvos para distrito ${newDistrict.id}`);
+          } catch (sitError) {
+            console.error(`⚠️ Erro ao salvar níveis de situação:`, sitError.message);
           }
         }
 

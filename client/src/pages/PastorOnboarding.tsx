@@ -28,6 +28,7 @@ import { Step5Validation } from '@/components/pastor-onboarding/steps/Step5Valid
 // import { Step6DracmaConfig } from '@/components/pastor-onboarding/steps/Step6DracmaConfig'; // Desabilitado temporariamente
 import { Step7Password } from '@/components/pastor-onboarding/steps/Step7Password';
 import { Step8GamificationConfig } from '@/components/pastor-onboarding/steps/Step8GamificationConfig';
+import { StepSituationLevels } from '@/components/pastor-onboarding/steps/StepSituationLevels';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ import {
   ChurchValidation,
   // DracmaConfigData, // Desabilitado temporariamente
   GamificationConfigData,
+  SituationLevelData,
 } from '@/types/pastor-invite';
 
 export default function PastorOnboarding() {
@@ -159,6 +161,11 @@ export default function PastorOnboarding() {
 
   const handleStep6Next = (gamificationConfig: GamificationConfigData) => {
     updateStepData(6, { gamificationConfig });
+    nextStep();
+  };
+
+  const handleStep7Next = (situationLevels: SituationLevelData[]) => {
+    updateStepData(7, { situationLevels });
     nextStep();
   };
 
@@ -483,6 +490,14 @@ export default function PastorOnboarding() {
               )}
 
               {currentStep === 7 && (
+                <StepSituationLevels
+                  data={data.situationLevels}
+                  onNext={handleStep7Next}
+                  onBack={prevStep}
+                />
+              )}
+
+              {currentStep === 8 && (
                 <Step7Password
                   onSubmit={handleFinalSubmit}
                   onBack={prevStep}

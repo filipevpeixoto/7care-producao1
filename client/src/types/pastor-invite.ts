@@ -202,6 +202,12 @@ export interface GamificationConfigData {
   calculateOnApproval: boolean; // Se deve calcular pontos na aprovação
 }
 
+export interface SituationLevelData {
+  value: string;
+  label: string;
+  color: string; // hex color like '#10b981'
+}
+
 export interface OnboardingData {
   personal?: PersonalData;
   district?: DistrictData;
@@ -210,6 +216,7 @@ export interface OnboardingData {
   churchValidation?: ChurchValidation[];
   dracmaConfig?: DracmaConfigData;
   gamificationConfig?: GamificationConfigData;
+  situationLevels?: SituationLevelData[];
   completedSteps: number[];
   lastStepAt: string;
 }

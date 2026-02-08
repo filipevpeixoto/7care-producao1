@@ -24,10 +24,13 @@ import {
   Shield,
   Info,
   CheckCircle,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
+import { useSituationLevels } from '@/hooks/useSituationLevels';
+import { SituationLevelsConfig } from './SituationLevelsConfig';
 
 interface DistrictSettingsData {
   // Notificações
@@ -71,6 +74,46 @@ const defaultSettings: DistrictSettingsData = {
   show_member_contacts: false,
   show_attendance_reports: true,
 };
+
+function SituationLevelsTab() {
+  const { levels, isLoading, saveLevels, isSaving } = useSituationLevels();
+  const [localLevels, setLocalLevels] = useState(levels);
+  const { toast } = useToast();
+
+  // Sync when loaded
+  useEffect(() => {
+    setLocalLevels(levels);
+  }, [levels]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const handleSave = () => {
+    saveLevels(localLevels, {
+      onSuccess: () => {
+        toast({ title: 'Níveis de situação salvos com sucesso!' });
+      },
+      onError: () => {
+        toast({ title: 'Erro ao salvar níveis', variant: 'destructive' });
+      },
+    });
+  };
+
+  return (
+    <SituationLevelsConfig
+      levels={localLevels}
+      onChange={setLocalLevels}
+      onSave={handleSave}
+      isSaving={isSaving}
+      showSaveButton={true}
+    />
+  );
+}
 
 export function DistrictSettings() {
   const { user } = useAuth();
@@ -234,7 +277,7 @@ export function DistrictSettings() {
       </div>
 
       <Tabs defaultValue="notifications" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="notifications" className="text-xs sm:text-sm">
             <Bell className="h-4 w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Notificações</span>
@@ -250,6 +293,10 @@ export function DistrictSettings() {
           <TabsTrigger value="calendar" className="text-xs sm:text-sm">
             <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Calendário</span>
+          </TabsTrigger>
+          <TabsTrigger value="situations" className="text-xs sm:text-sm">
+            <Layers className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Situações</span>
           </TabsTrigger>
         </TabsList>
 
@@ -484,6 +531,11 @@ export function DistrictSettings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Situações */}
+        <TabsContent value="situations" className="space-y-4 mt-4">
+          <SituationLevelsTab />
         </TabsContent>
       </Tabs>
 
