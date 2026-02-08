@@ -292,7 +292,7 @@ export const MobileBottomNav = memo(() => {
           {finalItems.map((item, index) => {
             const isActive = index === activeIndex;
             const hasSubmenu = item.submenu && item.submenu.length > 0;
-            const isSubmenuButton = hasSubmenu && (item.title === 'Admin' || item.title === 'Pastoral');
+            const isSubmenuButton = hasSubmenu;
 
             // Se for botão com submenu (Admin ou Pastoral), renderizar dropdown
             if (isSubmenuButton) {
