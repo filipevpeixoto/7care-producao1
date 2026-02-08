@@ -202,7 +202,7 @@ function calculateScoreGroups(checkIns: CheckInRecord[], allUsers: MockUser[]) {
 
 async function runTests() {
   console.log('\n🙏 TESTE DO FLUXO COMPLETO DE CHECK-IN ESPIRITUAL (v2 - corrigido)');
-  console.log('📅 ' + new Date().toLocaleString('pt-BR'));
+  console.log(`📅 ${  new Date().toLocaleString('pt-BR')}`);
   console.log('👥 5 usuários simulados\n');
 
   const repo = new InMemoryCheckInRepository();
@@ -230,10 +230,7 @@ async function runTests() {
   });
   assert(validScoreAlias.success, 'Payload com "score" (alias) aceito');
   if (validScoreAlias.success) {
-    assert(
-      validScoreAlias.data.emotionalScore === 3,
-      'score=3 mapeado para emotionalScore=3'
-    );
+    assert(validScoreAlias.data.emotionalScore === 3, 'score=3 mapeado para emotionalScore=3');
   }
 
   // 1c. Payload com notes (alias de prayerRequest)
@@ -482,7 +479,10 @@ async function runTests() {
 
   const district1UserIds = users.filter((u) => u.districtId === 1).map((u) => u.id);
   const district1CheckIns = await repo.getByUserIds(district1UserIds);
-  assert(district1CheckIns.length === 4, `Distrito 1: 4 check-ins (obteve ${district1CheckIns.length})`);
+  assert(
+    district1CheckIns.length === 4,
+    `Distrito 1: 4 check-ins (obteve ${district1CheckIns.length})`
+  );
 
   const emptyCheckIns = await repo.getByUserIds([]);
   assert(emptyCheckIns.length === 0, 'getByUserIds([]) retorna 0');
@@ -497,11 +497,17 @@ async function runTests() {
   // Pedro enviou mood="Distante" sem score → calculateScoreGroups deve mapear para 1
   assert(allScores.scoreGroups['1'].count === 1, 'Score 1 (Distante): 1 (Pedro via mood)');
   assert(allScores.scoreGroups['2'].count === 1, 'Score 2 (Buscando): 1 (João)');
-  assert(allScores.scoreGroups['3'].count === 0, 'Score 3: 0 (Lucas tem mood custom, sem mapeamento)');
+  assert(
+    allScores.scoreGroups['3'].count === 0,
+    'Score 3: 0 (Lucas tem mood custom, sem mapeamento)'
+  );
   assert(allScores.scoreGroups['4'].count === 1, 'Score 4 (Frutificando): 1 (Ana)');
   assert(allScores.scoreGroups['5'].count === 1, 'Score 5 (Intimidade): 1 (Maria)');
   assert(allScores.total === 5, 'Total de usuários: 5');
-  assert(allScores.usersWithoutCheckIn === 0, `Sem check-in: 0 (obteve ${allScores.usersWithoutCheckIn})`);
+  assert(
+    allScores.usersWithoutCheckIn === 0,
+    `Sem check-in: 0 (obteve ${allScores.usersWithoutCheckIn})`
+  );
 
   // Simular dados 100% legados (só mood, sem emotionalScore)
   const legacyRepo = new InMemoryCheckInRepository();
@@ -587,7 +593,10 @@ async function runTests() {
   await repo.create(maria2Processed);
 
   const mariaAllCheckIns = await repo.getByUserId(1);
-  assert(mariaAllCheckIns.length === 2, `Maria tem 2 check-ins (obteve ${mariaAllCheckIns.length})`);
+  assert(
+    mariaAllCheckIns.length === 2,
+    `Maria tem 2 check-ins (obteve ${mariaAllCheckIns.length})`
+  );
   assert(mariaAllCheckIns[0].emotionalScore === 3, 'Mais recente: score 3');
   assert(mariaAllCheckIns[1].emotionalScore === 5, 'Anterior: score 5');
 

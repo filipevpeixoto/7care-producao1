@@ -26,11 +26,11 @@ export const strongPasswordSchema = z
   .string()
   .min(8, 'Senha deve ter no mínimo 8 caracteres')
   .max(128, 'Senha deve ter no máximo 128 caracteres')
-  .refine(password => /[a-z]/.test(password), 'Senha deve conter pelo menos uma letra minúscula')
-  .refine(password => /[A-Z]/.test(password), 'Senha deve conter pelo menos uma letra maiúscula')
-  .refine(password => /\d/.test(password), 'Senha deve conter pelo menos um número')
+  .refine((password) => /[a-z]/.test(password), 'Senha deve conter pelo menos uma letra minúscula')
+  .refine((password) => /[A-Z]/.test(password), 'Senha deve conter pelo menos uma letra maiúscula')
+  .refine((password) => /\d/.test(password), 'Senha deve conter pelo menos um número')
   .refine(
-    password => /[@$!%*?&]/.test(password),
+    (password) => /[@$!%*?&]/.test(password),
     'Senha deve conter pelo menos um caractere especial (@$!%*?&)'
   );
 
@@ -237,23 +237,25 @@ export const createPrayerSchema = z.object({
 // Schemas de Check-in Emocional
 // ============================================
 
-export const createEmotionalCheckInSchema = z.object({
-  userId: z.number().int().positive('ID do usuário inválido'),
-  emotionalScore: z.number().int().min(1).max(5).optional().nullable(),
-  score: z.number().int().min(1).max(5).optional().nullable(),
-  mood: z.string().optional().nullable(),
-  prayerRequest: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  isPrivate: z.boolean().default(false),
-  allowChurchMembers: z.boolean().default(true),
-}).transform(data => ({
-  userId: data.userId,
-  emotionalScore: data.emotionalScore ?? data.score ?? null,
-  mood: data.mood ?? null,
-  prayerRequest: data.prayerRequest ?? data.notes ?? null,
-  isPrivate: data.isPrivate,
-  allowChurchMembers: data.allowChurchMembers,
-}));
+export const createEmotionalCheckInSchema = z
+  .object({
+    userId: z.number().int().positive('ID do usuário inválido'),
+    emotionalScore: z.number().int().min(1).max(5).optional().nullable(),
+    score: z.number().int().min(1).max(5).optional().nullable(),
+    mood: z.string().optional().nullable(),
+    prayerRequest: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    isPrivate: z.boolean().default(false),
+    allowChurchMembers: z.boolean().default(true),
+  })
+  .transform((data) => ({
+    userId: data.userId,
+    emotionalScore: data.emotionalScore ?? data.score ?? null,
+    mood: data.mood ?? null,
+    prayerRequest: data.prayerRequest ?? data.notes ?? null,
+    isPrivate: data.isPrivate,
+    allowChurchMembers: data.allowChurchMembers,
+  }));
 
 // ============================================
 // Schemas de Configuração
@@ -323,7 +325,7 @@ export const userFilterSchema = z.object({
   church: z.string().optional(),
   isApproved: z
     .string()
-    .transform(val => val === 'true')
+    .transform((val) => val === 'true')
     .optional(),
 });
 

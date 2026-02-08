@@ -23,11 +23,11 @@ const SCORE_TO_MOOD: Record<number, string> = {
 };
 
 const MOOD_TO_SCORE: Record<string, number> = {
-  'Distante': 1,
-  'Buscando': 2,
-  'Enraizando': 3,
-  'Frutificando': 4,
-  'Intimidade': 5,
+  Distante: 1,
+  Buscando: 2,
+  Enraizando: 3,
+  Frutificando: 4,
+  Intimidade: 5,
 };
 
 export const spiritualRoutes = (app: Express): void => {
@@ -180,7 +180,8 @@ export const spiritualRoutes = (app: Express): void => {
 
       checkIns.forEach((checkIn) => {
         // Usa emotionalScore direto, ou mapeia mood → score para dados legados
-        const numericScore = checkIn.emotionalScore ?? (checkIn.mood ? (MOOD_TO_SCORE[checkIn.mood] ?? null) : null);
+        const numericScore =
+          checkIn.emotionalScore ?? (checkIn.mood ? (MOOD_TO_SCORE[checkIn.mood] ?? null) : null);
         const score = numericScore?.toString();
         if (score && scoreGroups[score as keyof typeof scoreGroups]) {
           scoreGroups[score as keyof typeof scoreGroups].count++;
