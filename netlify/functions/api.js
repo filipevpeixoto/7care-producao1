@@ -8364,91 +8364,47 @@ exports.handler = async (event, context) => {
       try {
         console.log('🔍 [PRAYERS] Iniciando busca de orações...');
         
-        // Obter parâmetros da query string
-        const queryString = event.queryStringParameters || {};
-        const userId = queryString.userId;
-        const userRole = queryString.userRole;
-        const userChurch = queryString.userChurch;
+        // Obter usuário autenticado via JWT
+        const authUser = event.user || null;
+        console.log(`🔍 [PRAYERS] Usuário autenticado: id=${authUser?.id}, role=${authUser?.role}`);
         
-        console.log(`🔍 [PRAYERS] Parâmetros: userId=${userId}, userRole=${userRole}, userChurch=${userChurch}`);
-        
-        // Verificar se a tabela existe e criar se necessário
-        try {
-          await sql`SELECT 1 FROM prayers LIMIT 1`;
-          console.log('✅ [PRAYERS] Tabela prayers existe');
-          
-          // Verificar se a coluna user_id existe, se não, adicionar
-          try {
-            await sql`SELECT user_id FROM prayers LIMIT 1`;
-            console.log('✅ [PRAYERS] Coluna user_id existe');
-          } catch (columnError) {
-            console.log('🔄 [PRAYERS] Coluna user_id não existe, adicionando coluna...');
-            await sql`ALTER TABLE prayers ADD COLUMN user_id INTEGER`;
-            await sql`ALTER TABLE prayers ADD COLUMN is_private BOOLEAN DEFAULT false`;
-            await sql`ALTER TABLE prayers ADD COLUMN allow_church_members BOOLEAN DEFAULT true`;
-            await sql`ALTER TABLE prayers ADD COLUMN is_answered BOOLEAN DEFAULT false`;
-            console.log('✅ [PRAYERS] Colunas adicionadas com sucesso');
+        // Buscar distrito do usuário autenticado
+        let userDistrictId = null;
+        if (authUser && authUser.id) {
+          const userRows = await sql`SELECT district_id FROM users WHERE id = ${authUser.id} LIMIT 1`;
+          if (userRows.length > 0) {
+            userDistrictId = userRows[0].district_id;
           }
-        } catch (tableError) {
-          console.log('📋 [PRAYERS] Criando tabela prayers...');
-          await sql`
-            CREATE TABLE prayers (
-              id SERIAL PRIMARY KEY,
-              user_id INTEGER NOT NULL,
-              title VARCHAR(255) NOT NULL,
-              description TEXT,
-              is_private BOOLEAN DEFAULT false,
-              allow_church_members BOOLEAN DEFAULT true,
-              is_answered BOOLEAN DEFAULT false,
-              status VARCHAR(20) DEFAULT 'active',
-              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-          `;
-          console.log('✅ [PRAYERS] Tabela prayers criada com sucesso');
         }
-
-        // Criar tabela de intercessores se não existir
-        try {
-          await sql`SELECT 1 FROM prayer_intercessors LIMIT 1`;
-          console.log('✅ [INTERCESSORS] Tabela prayer_intercessors existe');
-        } catch (tableError) {
-          console.log('📋 [INTERCESSORS] Criando tabela prayer_intercessors...');
-          await sql`
-            CREATE TABLE prayer_intercessors (
-              id SERIAL PRIMARY KEY,
-              prayer_id INTEGER NOT NULL,
-              intercessor_id INTEGER NOT NULL,
-              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-              UNIQUE(prayer_id, intercessor_id),
-              FOREIGN KEY (prayer_id) REFERENCES prayers(id) ON DELETE CASCADE,
-              FOREIGN KEY (intercessor_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-          `;
-          console.log('✅ [INTERCESSORS] Tabela prayer_intercessors criada com sucesso');
-        }
+        console.log(`🔍 [PRAYERS] Distrito do usuário: ${userDistrictId}`);
         
-        // Buscar orações
+        // Buscar orações com JOIN em requester_id (não user_id)
         let prayers;
-        if (userChurch && userChurch !== 'Sistema') {
-          console.log(`🔍 [PRAYERS] Buscando orações da igreja: ${userChurch}`);
+        if (authUser && isSuperAdmin(authUser)) {
+          // Superadmin vê todas
+          console.log('🔍 [PRAYERS] Buscando todas as orações (superadmin)');
           prayers = await sql`
-            SELECT p.*, u.name as requester_name, u.church
+            SELECT p.*, u.name as requester_name, u.church, u.profile_photo as requester_photo
             FROM prayers p
-            LEFT JOIN users u ON p.user_id = u.id
-            WHERE u.church = ${userChurch}
+            LEFT JOIN users u ON p.requester_id = u.id
             ORDER BY p.created_at DESC
-            LIMIT 50
+            LIMIT 100
+          `;
+        } else if (userDistrictId) {
+          // Pastor/usuário vê apenas do seu distrito
+          console.log(`🔍 [PRAYERS] Buscando orações do distrito: ${userDistrictId}`);
+          prayers = await sql`
+            SELECT p.*, u.name as requester_name, u.church, u.profile_photo as requester_photo
+            FROM prayers p
+            LEFT JOIN users u ON p.requester_id = u.id
+            WHERE p.district_id = ${userDistrictId}
+            ORDER BY p.created_at DESC
+            LIMIT 100
           `;
         } else {
-          console.log('🔍 [PRAYERS] Buscando todas as orações (admin/global)');
-          prayers = await sql`
-            SELECT p.*, u.name as requester_name, u.church
-            FROM prayers p
-            LEFT JOIN users u ON p.user_id = u.id
-            ORDER BY p.created_at DESC
-            LIMIT 50
-          `;
+          // Sem distrito definido, retorna vazio
+          console.log('🔍 [PRAYERS] Sem distrito, retornando vazio');
+          prayers = [];
         }
         
         console.log(`📊 [PRAYERS] Encontradas ${prayers.length} orações`);

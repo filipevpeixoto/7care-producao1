@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Heart, MessageCircle, Lock, Calendar, Search, Trash2 } from 'lucide-react';
@@ -94,7 +95,7 @@ const Prayers = () => {
       }
 
       const url = `/api/prayers`;
-      const response = await fetch(url);
+      const response = await fetchWithAuth(url);
 
       if (response.ok) {
         const rawData = await response.json();
@@ -105,8 +106,8 @@ const Prayers = () => {
           ...prayer,
           userName: prayer.requesterName || prayer.requester_name || 'Usuário',
           userChurch: prayer.requesterChurch || prayer.church || 'Igreja',
-          userProfilePhoto: prayer.requesterPhoto || prayer.profilePhoto || null,
-          userId: prayer.userId || prayer.user_id,
+          userProfilePhoto: prayer.requesterPhoto || prayer.requester_photo || prayer.profilePhoto || prayer.profile_photo || null,
+          userId: prayer.userId || prayer.user_id || prayer.requester_id,
           prayerRequest: prayer.title || prayer.prayerRequest || prayer.description || '',
           emotionalScore: prayer.emotionalScore || 0,
           isAnswered: prayer.isAnswered ?? prayer.is_answered ?? false,
@@ -169,9 +170,8 @@ const Prayers = () => {
         return;
       }
 
-      const response = await fetch(`/api/prayers/${prayerId}/answer`, {
+      const response = await fetchWithAuth(`/api/prayers/${prayerId}/answer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answeredBy: parseInt(user.id) }),
       });
 
@@ -227,8 +227,8 @@ const Prayers = () => {
 
       console.log(`🗑️ Frontend: Tentando excluir oração ${prayerId}`);
 
-      const response = await fetch(
-        `/api/prayers/${prayerId}?userId=${user.id}&userRole=${user.role}`,
+      const response = await fetchWithAuth(
+        `/api/prayers/${prayerId}`,
         {
           method: 'DELETE',
         }
@@ -268,7 +268,7 @@ const Prayers = () => {
     try {
       if (prayers.find(p => p.id === prayerId)?.isUserPraying) {
         // Remover intercessor
-        const response = await fetch(`/api/prayers/${prayerId}/intercessor/${user.id}`, {
+        const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessor/${user.id}`, {
           method: 'DELETE',
         });
 
@@ -282,9 +282,8 @@ const Prayers = () => {
         }
       } else {
         // Adicionar intercessor
-        const response = await fetch(`/api/prayers/${prayerId}/intercessor`, {
+        const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessor`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ intercessorId: user.id }),
         });
 
@@ -312,7 +311,7 @@ const Prayers = () => {
     // Sempre carregar, mesmo se já estiver carregado (para atualizações)
     setLoadingIntercessors(prev => ({ ...prev, [prayerId]: true }));
     try {
-      const response = await fetch(`/api/prayers/${prayerId}/intercessors`);
+      const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessors`);
       if (response.ok) {
         const data = await response.json();
         // Mapear dados da API para o formato esperado pelo frontend

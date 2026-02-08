@@ -82,7 +82,7 @@ export const prayerRoutes = (app: Express): void => {
 
       // Enriquecer com dados do usuário (nome, igreja, foto)
       const enrichedPrayers = await Promise.all(
-        prayers.map(async (prayer: Record<string, unknown>) => {
+        prayers.map(async (prayer: any) => {
           const prayerUserId = Number(prayer.userId);
           let requesterName = 'Usuário';
           let requesterChurch = '';
