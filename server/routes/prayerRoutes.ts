@@ -53,15 +53,14 @@ export const prayerRoutes = (app: Express): void => {
         requestingUser = await userRepo.getUserById(requestingUserId);
       }
 
-      let prayers = await prayerRepo.getAll();
+      let prayers;
 
-      // Filtrar por distrito se for pastor (não superadmin)
+      // Usar filtro DB-level por distrito se for pastor (não superadmin)
       if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
-        logger.info(`🙏 Filtrando orações por distrito: ${requestingUser.districtId}`);
-        prayers = prayers.filter(
-          (p) =>
-            p.districtId === requestingUser!.districtId || p.districtId === null
-        );
+        logger.info(`🙏 Buscando orações por distrito (DB-level): ${requestingUser.districtId}`);
+        prayers = await prayerRepo.getByDistrict(requestingUser.districtId);
+      } else {
+        prayers = await prayerRepo.getAll();
       }
 
       if (userId) {
@@ -123,10 +122,17 @@ export const prayerRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const prayerData = (req as ValidatedRequest<typeof createPrayerSchema._type>).validatedBody;
       logger.info(`Creating prayer request: ${prayerData.title}`);
+
+      // Obter districtId do usuário criador
+      const creatorUser = prayerData.userId ? await userRepo.getUserById(prayerData.userId) : null;
+      const districtId = creatorUser?.districtId ?? null;
+
       const prayer = await prayerRepo.create({
         ...prayerData,
         description: prayerData.description ?? null,
-      });
+        districtId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
       sendSuccess(res, prayer, 201, 'Pedido de oração criado');
     })
   );

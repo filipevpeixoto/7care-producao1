@@ -102,17 +102,25 @@ export class PointsRepository {
   }
 
   /**
-   * Reseta pontos de todos os usuários
+   * Reseta pontos dos usuários (filtrado por distrito se fornecido)
    */
-  async resetAllUserPoints(): Promise<{ success: boolean; message: string }> {
+  async resetAllUserPoints(districtId?: number): Promise<{ success: boolean; message: string }> {
     try {
-      await db.update(schema.users).set({
-        points: 0,
-        level: 'Iniciante',
-        updatedAt: new Date(),
-      });
-
-      return { success: true, message: 'Pontos resetados com sucesso' };
+      if (districtId) {
+        await db.update(schema.users).set({
+          points: 0,
+          level: 'Iniciante',
+          updatedAt: new Date(),
+        }).where(eq(schema.users.districtId, districtId));
+        return { success: true, message: `Pontos resetados com sucesso para o distrito ${districtId}` };
+      } else {
+        await db.update(schema.users).set({
+          points: 0,
+          level: 'Iniciante',
+          updatedAt: new Date(),
+        });
+        return { success: true, message: 'Pontos resetados com sucesso' };
+      }
     } catch (error) {
       logger.error('Erro ao resetar pontos dos usuários:', error);
       return { success: false, message: 'Erro ao resetar pontos' };

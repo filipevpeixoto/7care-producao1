@@ -95,7 +95,7 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
   const { toast } = useToast();
 
   const handleScoreSelect = (score: number) => {
-    setSpiritualState(prev => ({ ...prev, score }));
+    setSpiritualState((prev) => ({ ...prev, score }));
   };
 
   const handleSubmit = async () => {
@@ -161,7 +161,7 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
     <DialogWithModalTracking
       modalId="emotional-checkin-modal"
       open={isOpen}
-      onOpenChange={open => !open && onClose()}
+      onOpenChange={(open) => !open && onClose()}
     >
       <DialogContent
         className="sm:max-w-md w-[90vw]"
@@ -186,7 +186,7 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
           <div className="space-y-3">
             <Label className="text-base font-medium">Selecione sua nota espiritual:</Label>
             <div className="grid grid-cols-5 gap-2">
-              {spiritualLevels.map(level => (
+              {spiritualLevels.map((level) => (
                 <Popover key={level.score}>
                   <PopoverTrigger asChild>
                     <button
@@ -259,8 +259,8 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
               id="prayerRequest"
               placeholder="Compartilhe seu pedido de oração ou agradecimento..."
               value={spiritualState.prayerRequest}
-              onChange={e =>
-                setSpiritualState(prev => ({
+              onChange={(e) =>
+                setSpiritualState((prev) => ({
                   ...prev,
                   prayerRequest: e.target.value,
                 }))
@@ -277,8 +277,8 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
               <Checkbox
                 id="isPrivate"
                 checked={spiritualState.isPrivate}
-                onCheckedChange={checked =>
-                  setSpiritualState(prev => ({
+                onCheckedChange={(checked) =>
+                  setSpiritualState((prev) => ({
                     ...prev,
                     isPrivate: checked as boolean,
                   }))
@@ -294,8 +294,8 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
               <Checkbox
                 id="allowChurchMembers"
                 checked={spiritualState.allowChurchMembers}
-                onCheckedChange={checked =>
-                  setSpiritualState(prev => ({
+                onCheckedChange={(checked) =>
+                  setSpiritualState((prev) => ({
                     ...prev,
                     allowChurchMembers: checked as boolean,
                   }))

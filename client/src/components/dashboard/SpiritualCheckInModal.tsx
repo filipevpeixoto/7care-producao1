@@ -121,7 +121,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
   const { toast } = useToast();
 
   const handleScoreSelect = (score: number) => {
-    setSpiritualState(prev => ({ ...prev, score }));
+    setSpiritualState((prev) => ({ ...prev, score }));
   };
 
   // Toggle explanation panel
@@ -232,7 +232,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
 
             {/* Desktop Layout - Horizontal Cards */}
             <div className="hidden lg:grid lg:grid-cols-5 gap-4">
-              {spiritualLevels.map(level => (
+              {spiritualLevels.map((level) => (
                 <div key={level.score} className="relative">
                   <Card
                     className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
@@ -256,7 +256,9 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                           <div className={`font-semibold text-sm ${level.textColor}`}>
                             {level.label}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Nível {level.score}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Nível {level.score}
+                          </div>
                         </div>
                       </button>
 
@@ -275,7 +277,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
 
             {/* Mobile/Tablet Layout - Vertical Cards */}
             <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
-              {spiritualLevels.map(level => (
+              {spiritualLevels.map((level) => (
                 <div key={level.score} className="relative">
                   <Card
                     className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
@@ -299,7 +301,9 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                           <div className={`font-semibold text-base ${level.textColor}`}>
                             {level.label}
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">Nível {level.score}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            Nível {level.score}
+                          </div>
                         </div>
                       </button>
 
@@ -378,8 +382,8 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                   id="prayerRequest"
                   placeholder="Compartilhe seu pedido de oração, agradecimento ou testemunho..."
                   value={spiritualState.prayerRequest}
-                  onChange={e =>
-                    setSpiritualState(prev => ({
+                  onChange={(e) =>
+                    setSpiritualState((prev) => ({
                       ...prev,
                       prayerRequest: e.target.value,
                     }))
@@ -408,8 +412,8 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                     <Checkbox
                       id="isPrivate"
                       checked={spiritualState.isPrivate}
-                      onCheckedChange={checked =>
-                        setSpiritualState(prev => ({
+                      onCheckedChange={(checked) =>
+                        setSpiritualState((prev) => ({
                           ...prev,
                           isPrivate: checked as boolean,
                         }))
@@ -440,8 +444,8 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                     <Checkbox
                       id="allowChurchMembers"
                       checked={spiritualState.allowChurchMembers}
-                      onCheckedChange={checked =>
-                        setSpiritualState(prev => ({
+                      onCheckedChange={(checked) =>
+                        setSpiritualState((prev) => ({
                           ...prev,
                           allowChurchMembers: checked as boolean,
                         }))

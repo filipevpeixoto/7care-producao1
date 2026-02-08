@@ -10,12 +10,11 @@ import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createMeetingSchema } from '../schemas';
 import { isPastor } from '../utils/permissions';
-import { Church, User } from '../../shared/schema';
+import { User } from '../../shared/schema';
 
 export const meetingRoutes = (app: Express): void => {
   const meetingRepo = getRepository('meetingRepository');
   const userRepo = getRepository('userRepository');
-  const churchRepo = getRepository('churchRepository');
 
   /**
    * @swagger
@@ -48,24 +47,10 @@ export const meetingRoutes = (app: Express): void => {
 
       let meetings = await meetingRepo.getAll();
 
-      // Filtrar por distrito se for pastor
+      // Filtrar por distrito se for pastor - usando query eficiente
       if (isPastor(requestingUser) && requestingUser?.districtId) {
-        const districtChurches = await churchRepo.getChurchesByDistrict(requestingUser.districtId!);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        const allUsers = await userRepo.getAllUsers();
-
-        // IDs de usuários do distrito
-        const districtUserIds = new Set(
-          allUsers
-            .filter((u: User) => {
-              const churchName = u.church ?? '';
-              return (
-                districtChurchNames.includes(churchName) ||
-                u.districtId === requestingUser.districtId
-              );
-            })
-            .map((u: User) => u.id)
-        );
+        const districtUsers = await userRepo.getUsersByDistrictId(requestingUser.districtId);
+        const districtUserIds = new Set(districtUsers.map((u: User) => u.id));
 
         meetings = meetings.filter(
           m =>

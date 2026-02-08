@@ -28,6 +28,23 @@ export class PrayerRepository {
   }
 
   /**
+   * Busca orações por distrito
+   */
+  async getByDistrict(districtId: number): Promise<Prayer[]> {
+    try {
+      const prayers = await db
+        .select()
+        .from(schema.prayers)
+        .where(eq(schema.prayers.districtId, districtId))
+        .orderBy(desc(schema.prayers.createdAt));
+      return prayers.map(this.mapRecord);
+    } catch (error) {
+      logger.error('Erro ao buscar orações por distrito:', error);
+      return [];
+    }
+  }
+
+  /**
    * Busca oração por ID
    */
   async getById(id: number): Promise<Prayer | null> {
@@ -55,6 +72,7 @@ export class PrayerRepository {
           title: data.title,
           description: data.description,
           requesterId: data.userId,
+          districtId: (data as Record<string, unknown>).districtId as number | null ?? null,
           isPrivate: !data.isPublic,
           status: 'active',
         })
@@ -196,7 +214,7 @@ export class PrayerRepository {
     return {
       id: Number(record.id),
       userId: Number(record.requesterId),
-      districtId: record.districtId != null ? Number(record.districtId) : null,
+      districtId: record.districtId !== null && record.districtId !== undefined ? Number(record.districtId) : null,
       title: String(record.title || ''),
       description: record.description ? String(record.description) : null,
       isPublic: record.isPrivate === null ? true : !record.isPrivate,

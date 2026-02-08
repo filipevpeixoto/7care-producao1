@@ -75,15 +75,14 @@ export const eventRoutes = (app: Express): void => {
         requestingUser = await userRepo.getUserById(requestingUserId);
       }
 
-      let events = await eventRepo.getAllEvents();
+      let events;
 
-      // Filtrar por distrito se for pastor (não superadmin)
+      // Usar filtro DB-level por distrito se for pastor (não superadmin)
       if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
-        logger.info(`📆 Filtrando eventos por distrito: ${requestingUser.districtId}`);
-        events = events.filter(
-          (e: { districtId?: number | null }) =>
-            e.districtId === requestingUser!.districtId || e.districtId === null
-        );
+        logger.info(`📆 Buscando eventos por distrito (DB-level): ${requestingUser.districtId}`);
+        events = await eventRepo.getEventsByDistrict(requestingUser.districtId);
+      } else {
+        events = await eventRepo.getAllEvents();
       }
 
       if (church) {
@@ -158,6 +157,11 @@ export const eventRoutes = (app: Express): void => {
       const organizerId = resolveOrganizerId(req);
       const churchInfo = await resolveChurchInfo();
       const churchId = eventData.churchId ?? churchInfo.id;
+
+      // Obter districtId do usuário criador
+      const creatorUser = await userRepo.getUserById(organizerId);
+      const districtId = creatorUser?.districtId ?? null;
+
       const event = await eventRepo.createEvent({
         ...eventData,
         description: eventData.description ?? '',
@@ -169,7 +173,9 @@ export const eventRoutes = (app: Express): void => {
         church: eventData.church ?? churchInfo.name,
         organizerId: eventData.organizerId ?? organizerId,
         churchId,
-      });
+        districtId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
       sendSuccess(res, event, 201);
     })
   );
@@ -276,7 +282,19 @@ export const eventRoutes = (app: Express): void => {
   app.get(
     '/api/calendar/events',
     asyncHandler(async (req: Request, res: Response) => {
-      const events = await eventRepo.getAllEvents();
+      // Obter usuário logado para filtro por distrito
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      let requestingUser = null;
+      if (requestingUserId) {
+        requestingUser = await userRepo.getUserById(requestingUserId);
+      }
+
+      let events;
+      if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
+        events = await eventRepo.getEventsByDistrict(requestingUser.districtId);
+      } else {
+        events = await eventRepo.getAllEvents();
+      }
       sendSuccess(res, events);
     })
   );
@@ -306,6 +324,11 @@ export const eventRoutes = (app: Express): void => {
       const organizerId = resolveOrganizerId(req);
       const churchInfo = await resolveChurchInfo();
       const churchId = eventData?.churchId ?? churchInfo.id;
+
+      // Obter districtId do usuário criador
+      const creatorUser = await userRepo.getUserById(organizerId);
+      const districtId = creatorUser?.districtId ?? null;
+
       const event = await eventRepo.createEvent({
         ...eventData,
         description: eventData?.description ?? '',
@@ -317,7 +340,9 @@ export const eventRoutes = (app: Express): void => {
         church: eventData?.church ?? churchInfo.name,
         organizerId: eventData?.organizerId ?? organizerId,
         churchId,
-      });
+        districtId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
       sendSuccess(res, event, 201);
     })
   );

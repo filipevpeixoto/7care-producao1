@@ -24,6 +24,23 @@ export class EventRepository {
   }
 
   /**
+   * Busca eventos por distrito
+   */
+  async getEventsByDistrict(districtId: number): Promise<Event[]> {
+    try {
+      const events = await db
+        .select()
+        .from(schema.events)
+        .where(eq(schema.events.districtId, districtId))
+        .orderBy(desc(schema.events.date));
+      return events.map(this.mapEventRecord);
+    } catch (error) {
+      logger.error('Erro ao buscar eventos por distrito', error);
+      return [];
+    }
+  }
+
+  /**
    * Busca evento por ID
    */
   async getEventById(id: number): Promise<Event | null> {
@@ -54,6 +71,7 @@ export class EventRepository {
         endDate: eventData.endDate ? new Date(String(eventData.endDate)) : null,
         location: eventData.location ?? null,
         churchId: eventData.churchId ?? null,
+        districtId: (eventData as Record<string, unknown>).districtId ?? null,
         createdBy: eventData.createdBy ?? null,
         isRecurring: eventData.isRecurring ?? false,
         recurrencePattern: eventData.recurrencePattern ?? null,
@@ -63,6 +81,7 @@ export class EventRepository {
 
       const [event] = await db
         .insert(schema.events)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .values(insertData as any)
         .returning();
       return this.mapEventRecord(event);
@@ -183,6 +202,25 @@ export class EventRepository {
       return events.map(this.mapEventRecord);
     } catch (error) {
       logger.error('Erro ao buscar próximos eventos', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca próximos eventos por distrito
+   */
+  async getUpcomingEventsByDistrict(districtId: number, limit: number = 10): Promise<Event[]> {
+    try {
+      const today = new Date();
+      const events = await db
+        .select()
+        .from(schema.events)
+        .where(and(gte(schema.events.date, today), eq(schema.events.districtId, districtId)))
+        .orderBy(schema.events.date)
+        .limit(limit);
+      return events.map(this.mapEventRecord);
+    } catch (error) {
+      logger.error('Erro ao buscar próximos eventos por distrito', error);
       return [];
     }
   }

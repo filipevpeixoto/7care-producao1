@@ -36,6 +36,23 @@ export const messagingRoutes = (app: Express): void => {
     '/api/conversations/:userId',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = parseInt(req.params.userId);
+
+      // Verificar que o usuário autenticado só acessa suas próprias conversas
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      if (requestingUserId && requestingUserId !== userId) {
+        const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+        if (!requestingUser || (requestingUser.role !== 'superadmin' && requestingUser.role !== 'pastor')) {
+          return sendError(res, 'Sem permissão para acessar conversas de outro usuário', 403);
+        }
+        // Se for pastor, verificar se o usuário pertence ao mesmo distrito
+        if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+          const targetUser = await userRepo.getUserById(userId);
+          if (targetUser && targetUser.districtId !== requestingUser.districtId) {
+            return sendError(res, 'Sem permissão para acessar conversas de usuários de outro distrito', 403);
+          }
+        }
+      }
+
       const conversations = await conversationRepo.getByUserId(userId);
 
       // Enriquecer conversas com participantes e última mensagem
@@ -128,6 +145,15 @@ export const messagingRoutes = (app: Express): void => {
         return sendError(res, 'IDs dos usuários são obrigatórios', 400);
       }
 
+      // Verificar que o usuário autenticado é um dos participantes
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      if (requestingUserId && requestingUserId !== userId1 && requestingUserId !== userId2) {
+        const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+        if (!requestingUser || (requestingUser.role !== 'superadmin' && requestingUser.role !== 'pastor')) {
+          return sendError(res, 'Sem permissão para criar conversa entre outros usuários', 403);
+        }
+      }
+
       const conversation = await conversationRepo.getOrCreateDirect(userId1, userId2);
       sendSuccess(res, conversation);
     })
@@ -163,6 +189,20 @@ export const messagingRoutes = (app: Express): void => {
     '/api/conversations/:id/messages',
     asyncHandler(async (req: Request, res: Response) => {
       const conversationId = parseInt(req.params.id);
+
+      // Verificar que o usuário autenticado é participante da conversa
+      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      if (requestingUserId) {
+        const participants = await conversationRepo.getParticipants(conversationId);
+        const isParticipant = participants.some(p => p.userId === requestingUserId);
+        if (!isParticipant) {
+          const requestingUser = await userRepo.getUserById(requestingUserId);
+          if (!requestingUser || requestingUser.role !== 'superadmin') {
+            return sendError(res, 'Sem permissão para acessar esta conversa', 403);
+          }
+        }
+      }
+
       const messages = await messageRepo.getByConversationId(conversationId);
       sendSuccess(res, messages);
     })

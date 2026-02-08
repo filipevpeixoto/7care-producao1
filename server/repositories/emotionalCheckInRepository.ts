@@ -3,7 +3,7 @@
  * Métodos relacionados a check-ins emocionais
  */
 
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
@@ -51,6 +51,24 @@ export class EmotionalCheckInRepository {
   }
 
   /**
+   * Busca check-ins por IDs de usuários (para filtro por distrito)
+   */
+  async getByUserIds(userIds: number[]): Promise<EmotionalCheckIn[]> {
+    try {
+      if (userIds.length === 0) return [];
+      const checkIns = await db
+        .select()
+        .from(schema.emotionalCheckins)
+        .where(inArray(schema.emotionalCheckins.userId, userIds))
+        .orderBy(desc(schema.emotionalCheckins.createdAt));
+      return checkIns.map(checkIn => this.mapRecord(checkIn));
+    } catch (error) {
+      logger.error('Erro ao buscar check-ins por IDs de usuários:', error);
+      return [];
+    }
+  }
+
+  /**
    * Busca check-ins por ID do usuário
    */
   async getByUserId(userId: number): Promise<EmotionalCheckIn[]> {
@@ -84,12 +102,12 @@ export class EmotionalCheckInRepository {
     return {
       id: Number(record.id),
       userId: Number(record.userId ?? 0),
-      emotionalScore: record.emotionalScore == null ? null : Number(record.emotionalScore),
-      mood: record.mood == null ? null : String(record.mood),
-      prayerRequest: record.prayerRequest == null ? null : String(record.prayerRequest),
+      emotionalScore: record.emotionalScore === null || record.emotionalScore === undefined ? null : Number(record.emotionalScore),
+      mood: record.mood === null || record.mood === undefined ? null : String(record.mood),
+      prayerRequest: record.prayerRequest === null || record.prayerRequest === undefined ? null : String(record.prayerRequest),
       isPrivate: Boolean(record.isPrivate),
       allowChurchMembers:
-        record.allowChurchMembers == null ? true : Boolean(record.allowChurchMembers),
+        record.allowChurchMembers === null || record.allowChurchMembers === undefined ? true : Boolean(record.allowChurchMembers),
       createdAt: this.toDateString(record.createdAt),
       updatedAt: this.toDateString(record.updatedAt),
     };

@@ -210,6 +210,10 @@ export const calendarRoutes = (app: Express): void => {
       const organizerId = resolveOrganizerId(req);
       const churchId = await resolveChurchId();
 
+      // Obter districtId do usuário que está sincronizando
+      const creatorUser = await userRepo.getUserById(organizerId);
+      const districtId = creatorUser?.districtId ?? null;
+
       for (const row of events) {
         try {
           const eventData: Record<string, string> = {};
@@ -234,6 +238,7 @@ export const calendarRoutes = (app: Express): void => {
             isPublic: true,
             organizerId,
             churchId,
+            districtId,
           };
 
           await eventRepo.createEvent(event);

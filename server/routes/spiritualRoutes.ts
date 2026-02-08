@@ -9,13 +9,12 @@ import { logger } from '../utils/logger';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createEmotionalCheckInSchema } from '../schemas';
 import { isPastor } from '../utils/permissions';
-import { Church, User } from '../../shared/schema';
+import { User } from '../../shared/schema';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository } from '../container';
 
 export const spiritualRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
-  const churchRepo = getRepository('churchRepository');
   const emotionalRepo = getRepository('emotionalCheckInRepository');
 
   /**
@@ -100,33 +99,21 @@ export const spiritualRoutes = (app: Express): void => {
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
       const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
-      let checkIns = await emotionalRepo.getAll();
+      let checkIns;
 
-      // Filtrar por distrito se for pastor
+      // Filtrar por distrito se for pastor - usando query eficiente
       if (isPastor(requestingUser) && requestingUser?.districtId) {
-        const districtChurches = await churchRepo.getChurchesByDistrict(requestingUser.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        const allUsers = await userRepo.getAllUsers();
+        // Buscar IDs de usuários do distrito
+        const districtUsers = await userRepo.getUsersByDistrictId(requestingUser.districtId);
+        const districtUserIds = districtUsers.map((u: User) => u.id);
 
-        // IDs de usuários do distrito
-        const districtUserIds = new Set(
-          allUsers
-            .filter((u: User) => {
-              const churchName = u.church ?? '';
-              return (
-                districtChurchNames.includes(churchName) ||
-                u.districtId === requestingUser.districtId
-              );
-            })
-            .map((u: User) => u.id)
-        );
-
-        checkIns = checkIns.filter(
-          (c: { userId?: number }) => c.userId && districtUserIds.has(c.userId)
-        );
+        // Buscar check-ins apenas dos usuários do distrito
+        checkIns = await emotionalRepo.getByUserIds(districtUserIds);
         logger.info(
           `🏛️ Check-ins filtrados por distrito ${requestingUser.districtId}: ${checkIns.length} encontrados`
         );
+      } else {
+        checkIns = await emotionalRepo.getAll();
       }
 
       sendSuccess(res, checkIns);
@@ -149,29 +136,21 @@ export const spiritualRoutes = (app: Express): void => {
       const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
       const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
-      let checkIns = await emotionalRepo.getAll();
-      let allUsers = await userRepo.getAllUsers();
+      let checkIns;
+      let allUsers;
 
-      // Filtrar por distrito se for pastor
+      // Filtrar por distrito se for pastor - usando query eficiente
       if (isPastor(requestingUser) && requestingUser?.districtId) {
-        const districtChurches = await churchRepo.getChurchesByDistrict(requestingUser.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
+        // Buscar usuários do distrito
+        allUsers = await userRepo.getUsersByDistrictId(requestingUser.districtId);
+        const districtUserIds = allUsers.map((u: User) => u.id);
 
-        // Filtrar usuários do distrito
-        allUsers = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            districtChurchNames.includes(churchName) || u.districtId === requestingUser.districtId
-          );
-        });
-
-        // IDs de usuários do distrito
-        const districtUserIds = new Set(allUsers.map((u: User) => u.id));
-
-        checkIns = checkIns.filter(
-          (c: { userId?: number }) => c.userId && districtUserIds.has(c.userId)
-        );
+        // Buscar check-ins apenas dos usuários do distrito
+        checkIns = await emotionalRepo.getByUserIds(districtUserIds);
         logger.info(`🏛️ Scores filtrados por distrito ${requestingUser.districtId}`);
+      } else {
+        checkIns = await emotionalRepo.getAll();
+        allUsers = await userRepo.getAllUsers();
       }
 
       const scoreGroups = {
