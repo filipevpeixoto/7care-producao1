@@ -14,6 +14,22 @@ import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository } from '../container';
 import { getAuthUserId } from '../utils/authHelpers';
 
+const SCORE_TO_MOOD: Record<number, string> = {
+  1: 'Distante',
+  2: 'Buscando',
+  3: 'Enraizando',
+  4: 'Frutificando',
+  5: 'Intimidade',
+};
+
+const MOOD_TO_SCORE: Record<string, number> = {
+  'Distante': 1,
+  'Buscando': 2,
+  'Enraizando': 3,
+  'Frutificando': 4,
+  'Intimidade': 5,
+};
+
 export const spiritualRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const emotionalRepo = getRepository('emotionalCheckInRepository');
@@ -63,16 +79,16 @@ export const spiritualRoutes = (app: Express): void => {
         validatedData;
       logger.info(`Emotional check-in for user ${userId}`);
 
-      let finalScore = emotionalScore ?? null;
+      // Resolve score: usa emotionalScore direto, ou mapeia mood → score
+      const finalScore = emotionalScore ?? (mood ? (MOOD_TO_SCORE[mood] ?? null) : null);
 
-      if (mood) {
-        finalScore = null;
-      }
+      // Resolve mood: usa mood direto, ou mapeia score → mood
+      const finalMood = mood ?? (finalScore ? (SCORE_TO_MOOD[finalScore] ?? null) : null);
 
       const checkIn = await emotionalRepo.create({
         userId,
         emotionalScore: finalScore,
-        mood: mood ?? null,
+        mood: finalMood,
         prayerRequest: prayerRequest ?? null,
         isPrivate,
         allowChurchMembers,
@@ -163,7 +179,9 @@ export const spiritualRoutes = (app: Express): void => {
       };
 
       checkIns.forEach((checkIn) => {
-        const score = checkIn.emotionalScore?.toString();
+        // Usa emotionalScore direto, ou mapeia mood → score para dados legados
+        const numericScore = checkIn.emotionalScore ?? (checkIn.mood ? (MOOD_TO_SCORE[checkIn.mood] ?? null) : null);
+        const score = numericScore?.toString();
         if (score && scoreGroups[score as keyof typeof scoreGroups]) {
           scoreGroups[score as keyof typeof scoreGroups].count++;
         }

@@ -160,7 +160,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
         },
         body: JSON.stringify({
           userId: user?.id,
-          score: spiritualState.score,
+          emotionalScore: spiritualState.score,
           prayerRequest: spiritualState.prayerRequest,
           isPrivate: spiritualState.isPrivate,
           allowChurchMembers: spiritualState.allowChurchMembers,

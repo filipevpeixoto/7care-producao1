@@ -240,11 +240,20 @@ export const createPrayerSchema = z.object({
 export const createEmotionalCheckInSchema = z.object({
   userId: z.number().int().positive('ID do usuário inválido'),
   emotionalScore: z.number().int().min(1).max(5).optional().nullable(),
+  score: z.number().int().min(1).max(5).optional().nullable(),
   mood: z.string().optional().nullable(),
   prayerRequest: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
   isPrivate: z.boolean().default(false),
   allowChurchMembers: z.boolean().default(true),
-});
+}).transform(data => ({
+  userId: data.userId,
+  emotionalScore: data.emotionalScore ?? data.score ?? null,
+  mood: data.mood ?? null,
+  prayerRequest: data.prayerRequest ?? data.notes ?? null,
+  isPrivate: data.isPrivate,
+  allowChurchMembers: data.allowChurchMembers,
+}));
 
 // ============================================
 // Schemas de Configuração
