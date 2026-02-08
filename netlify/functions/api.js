@@ -175,9 +175,9 @@ exports.handler = async (event, context) => {
   const startTime = Date.now();
   
   // Configurar CORS
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
-    : [];
+  const defaultOrigins = 'https://7careadv.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
+    .split(',').map((origin) => origin.trim()).filter(Boolean);
   const requestOrigin = event.headers.origin || event.headers.Origin;
   let accessControlAllowOrigin = '*';
   if (process.env.NODE_ENV === 'production' && allowedOrigins.length > 0) {
@@ -186,8 +186,9 @@ exports.handler = async (event, context) => {
 
   const headers = {
     'Access-Control-Allow-Origin': accessControlAllowOrigin,
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id, x-user-role',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+    'Access-Control-Allow-Credentials': 'true',
     'Content-Type': 'application/json',
     'X-Request-ID': requestId
   };
