@@ -3,14 +3,15 @@
  * Endpoints relacionados a reuniões e agendamentos
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
 import { asyncHandler, sendSuccess, sendNotFound } from '../utils';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createMeetingSchema } from '../schemas';
 import { isPastor } from '../utils/permissions';
-import { User } from '../../shared/schema';
+import { type User } from '../../shared/schema';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const meetingRoutes = (app: Express): void => {
   const meetingRepo = getRepository('meetingRepository');
@@ -42,7 +43,7 @@ export const meetingRoutes = (app: Express): void => {
     '/api/meetings',
     asyncHandler(async (req: Request, res: Response) => {
       const { userId, status } = req.query;
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
       let meetings = await meetingRepo.getAll();
@@ -53,7 +54,7 @@ export const meetingRoutes = (app: Express): void => {
         const districtUserIds = new Set(districtUsers.map((u: User) => u.id));
 
         meetings = meetings.filter(
-          m =>
+          (m) =>
             (m.requesterId && districtUserIds.has(m.requesterId)) ||
             (m.assignedToId && districtUserIds.has(m.assignedToId))
         );
@@ -64,11 +65,11 @@ export const meetingRoutes = (app: Express): void => {
 
       if (userId) {
         const id = parseInt(String(userId), 10);
-        meetings = meetings.filter(m => m.requesterId === id || m.assignedToId === id);
+        meetings = meetings.filter((m) => m.requesterId === id || m.assignedToId === id);
       }
 
       if (status) {
-        meetings = meetings.filter(m => m.status === status);
+        meetings = meetings.filter((m) => m.status === status);
       }
 
       sendSuccess(res, meetings);

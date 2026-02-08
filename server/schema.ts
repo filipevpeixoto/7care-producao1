@@ -190,6 +190,7 @@ export const relationships = pgTable(
     id: serial('id').primaryKey(),
     interestedId: integer('interested_id').references(() => users.id),
     missionaryId: integer('missionary_id').references(() => users.id),
+    districtId: integer('district_id').references(() => districts.id),
     status: text('status').default('pending'),
     notes: text('notes'),
     createdAt: timestamp('created_at').defaultNow(),
@@ -199,6 +200,7 @@ export const relationships = pgTable(
     interestedIdx: index('relationships_interested_idx').on(table.interestedId),
     missionaryIdx: index('relationships_missionary_idx').on(table.missionaryId),
     statusIdx: index('relationships_status_idx').on(table.status),
+    districtIdx: index('relationships_district_idx').on(table.districtId),
   })
 );
 
@@ -215,6 +217,7 @@ export const meetings = pgTable(
     requesterId: integer('requester_id').references(() => users.id),
     assignedToId: integer('assigned_to_id').references(() => users.id),
     typeId: integer('type_id').references(() => meetingTypes.id),
+    districtId: integer('district_id').references(() => districts.id),
     priority: text('priority').default('medium'),
     isUrgent: boolean('is_urgent').default(false),
     status: text('status').default('pending'),
@@ -227,6 +230,7 @@ export const meetings = pgTable(
     statusIdx: index('meetings_status_idx').on(table.status),
     requesterIdx: index('meetings_requester_idx').on(table.requesterId),
     assignedToIdx: index('meetings_assigned_to_idx').on(table.assignedToId),
+    districtIdx: index('meetings_district_idx').on(table.districtId),
   })
 );
 
@@ -312,6 +316,7 @@ export const discipleshipRequests = pgTable(
     id: serial('id').primaryKey(),
     interestedId: integer('interested_id').references(() => users.id),
     missionaryId: integer('missionary_id').references(() => users.id),
+    districtId: integer('district_id').references(() => districts.id),
     status: text('status').default('pending'),
     notes: text('notes'),
     createdAt: timestamp('created_at').defaultNow(),
@@ -321,6 +326,7 @@ export const discipleshipRequests = pgTable(
     interestedIdx: index('discipleship_interested_idx').on(table.interestedId),
     missionaryIdx: index('discipleship_missionary_idx').on(table.missionaryId),
     statusIdx: index('discipleship_status_idx').on(table.status),
+    districtIdx: index('discipleship_requests_district_idx').on(table.districtId),
   })
 );
 
@@ -348,6 +354,7 @@ export const emotionalCheckins = pgTable(
   {
     id: serial('id').primaryKey(),
     userId: integer('user_id').references(() => users.id),
+    districtId: integer('district_id').references(() => districts.id),
     emotionalScore: integer('emotional_score'),
     mood: text('mood'),
     prayerRequest: text('prayer_request'),
@@ -359,6 +366,7 @@ export const emotionalCheckins = pgTable(
   },
   table => ({
     userIdx: index('emotional_checkins_user_idx').on(table.userId),
+    districtIdx: index('emotional_checkins_district_idx').on(table.districtId),
     createdAtIdx: index('emotional_checkins_created_at_idx').on(table.createdAt),
   })
 );

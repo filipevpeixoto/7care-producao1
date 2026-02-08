@@ -4,6 +4,7 @@ import type { UserRepository } from '../repositories/userRepository';
 import { hasAdminAccess } from '../utils/permissions';
 import { Express, Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { getAuthUserId } from '../utils/authHelpers';
 import {
   sendSuccess,
   sendNotFound,
@@ -127,10 +128,8 @@ const getErrorStack = (error: unknown): string | undefined => {
 };
 
 const parseHeaderUserId = (req: Request): number | null => {
-  const headerValue = req.headers['x-user-id'];
-  const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-  const parsed = rawValue ? parseInt(String(rawValue), 10) : NaN;
-  return Number.isNaN(parsed) ? null : parsed;
+  const userId = getAuthUserId(req);
+  return userId || null;
 };
 
 const parseIdValue = (value: unknown): number | null => {

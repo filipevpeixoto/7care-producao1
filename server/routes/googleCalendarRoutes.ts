@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { hasAdminAccess, isPastor } from '../utils/permissions';
 import { getRepository } from '../container';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const googleCalendarRoutes = (app: Express): void => {
   // NeonAdapter mantido apenas para GoogleCalendarService (TODO: refatorar service)
@@ -22,13 +23,11 @@ export const googleCalendarRoutes = (app: Express): void => {
    * Resolve user ID from headers
    */
   const resolveUserId = (req: Request): number => {
-    const headerValue = req.headers['x-user-id'];
-    const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-    const parsed = rawValue ? parseInt(String(rawValue), 10) : NaN;
-    if (Number.isNaN(parsed)) {
+    const userId = getAuthUserId(req);
+    if (!userId) {
       throw new Error('User ID não fornecido ou inválido');
     }
-    return parsed;
+    return userId;
   };
 
   /**

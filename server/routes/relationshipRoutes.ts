@@ -10,6 +10,7 @@ import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { createRelationshipSchema } from '../schemas';
 import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
+import { getAuthUserId, getAuthUserRole } from '../utils/authHelpers';
 
 export const relationshipRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -28,8 +29,8 @@ export const relationshipRoutes = (app: Express): void => {
   app.get(
     '/api/relationships',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as
+      const userId = String(getAuthUserId(req));
+      const userRole = getAuthUserRole(req) as
         | 'superadmin'
         | 'pastor'
         | 'member'
@@ -282,11 +283,11 @@ export const relationshipRoutes = (app: Express): void => {
     '/api/relationships/missionary/:missionaryId',
     asyncHandler(async (req: Request, res: Response) => {
       const missionaryId = parseInt(req.params.missionaryId);
-      const requestingUserId = req.headers['x-user-id'];
+      const requestingUserId = getAuthUserId(req);
 
       // Verificar permissões de acesso
       if (requestingUserId) {
-        const requestingUser = await userRepo.getUserById(parseInt(requestingUserId as string));
+        const requestingUser = await userRepo.getUserById(requestingUserId);
         const missionary = await userRepo.getUserById(missionaryId);
 
         if (!missionary) {

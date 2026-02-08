@@ -3,13 +3,14 @@
  * Endpoints relacionados ao calendário e integração com Google Drive
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { googleDriveConfigSchema } from '../schemas';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 import { isPastor } from '../utils/permissions';
 import { getRepository } from '../container';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const calendarRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -18,10 +19,7 @@ export const calendarRoutes = (app: Express): void => {
   const systemRepo = getRepository('systemRepository');
 
   const resolveOrganizerId = (req: Request): number => {
-    const headerValue = req.headers['x-user-id'];
-    const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-    const parsed = rawValue ? parseInt(String(rawValue), 10) : NaN;
-    return Number.isNaN(parsed) ? 1 : parsed;
+    return getAuthUserId(req) || 1;
   };
   const resolveChurchId = async (): Promise<number> => {
     const defaultChurch = await churchRepo.getDefaultChurch();
@@ -325,7 +323,7 @@ export const calendarRoutes = (app: Express): void => {
     '/api/activities',
     asyncHandler(async (req: Request, res: Response) => {
       // Obter usuário logado para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let requestingUser = null;
       if (requestingUserId) {
         requestingUser = await userRepo.getUserById(requestingUserId);
@@ -368,7 +366,7 @@ export const calendarRoutes = (app: Express): void => {
     '/api/activities',
     asyncHandler(async (req: Request, res: Response) => {
       const activityData = req.body;
-      const createdBy = parseInt((req.headers['x-user-id'] as string) || '0');
+      const createdBy = getAuthUserId(req);
       const activity = await systemRepo.createActivity({ ...activityData, createdBy });
       sendSuccess(res, activity, 201, 'Atividade criada');
     })

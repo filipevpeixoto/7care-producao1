@@ -72,7 +72,7 @@ export class PrayerRepository {
           title: data.title,
           description: data.description,
           requesterId: data.userId,
-          districtId: (data as Record<string, unknown>).districtId as number | null ?? null,
+          districtId: ((data as Record<string, unknown>).districtId as number | null) ?? null,
           isPrivate: !data.isPublic,
           status: 'active',
         })
@@ -170,7 +170,7 @@ export class PrayerRepository {
         .innerJoin(schema.users, eq(schema.prayerIntercessors.userId, schema.users.id))
         .where(eq(schema.prayerIntercessors.prayerId, prayerId));
 
-      return result.map(r => this.mapUserRecord(r.user));
+      return result.map((r) => this.mapUserRecord(r.user));
     } catch (error) {
       logger.error('Erro ao buscar intercessores:', error);
       return [];
@@ -190,7 +190,7 @@ export class PrayerRepository {
         .innerJoin(schema.prayers, eq(schema.prayerIntercessors.prayerId, schema.prayers.id))
         .where(eq(schema.prayerIntercessors.userId, userId));
 
-      return result.map(r => this.mapRecord(r.prayer));
+      return result.map((r) => this.mapRecord(r.prayer));
     } catch (error) {
       logger.error('Erro ao buscar orações do usuário:', error);
       return [];
@@ -214,7 +214,10 @@ export class PrayerRepository {
     return {
       id: Number(record.id),
       userId: Number(record.requesterId),
-      districtId: record.districtId !== null && record.districtId !== undefined ? Number(record.districtId) : null,
+      districtId:
+        record.districtId !== null && record.districtId !== undefined
+          ? Number(record.districtId)
+          : null,
       title: String(record.title || ''),
       description: record.description ? String(record.description) : null,
       isPublic: record.isPrivate === null ? true : !record.isPrivate,

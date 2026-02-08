@@ -14,6 +14,7 @@ import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache'
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
 import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const churchRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -41,7 +42,7 @@ export const churchRoutes = (app: Express): void => {
     '/api/churches',
     cacheMiddleware('churches', CACHE_TTL.CHURCHES),
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       let churches: Church[];

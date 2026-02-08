@@ -11,6 +11,7 @@ import { setDefaultChurchSchema } from '../schemas';
 import multer from 'multer';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository, getService } from '../container';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const settingsRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -242,7 +243,7 @@ export const settingsRoutes = (app: Express): void => {
   app.get(
     '/api/settings/my-district/points-config',
     asyncHandler(async (req: Request, res: Response) => {
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
 
       if (!requestingUserId) {
         return sendError(res, 'Usuário não autenticado', 401);
@@ -283,7 +284,7 @@ export const settingsRoutes = (app: Express): void => {
   app.post(
     '/api/settings/my-district/points-config',
     asyncHandler(async (req: Request, res: Response) => {
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
 
       if (!requestingUserId) {
         return sendError(res, 'Usuário não autenticado', 401);
@@ -334,7 +335,7 @@ export const settingsRoutes = (app: Express): void => {
   app.post(
     '/api/settings/my-district/points-config/reset',
     asyncHandler(async (req: Request, res: Response) => {
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
 
       if (!requestingUserId) {
         return sendError(res, 'Usuário não autenticado', 401);

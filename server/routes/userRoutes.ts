@@ -26,6 +26,7 @@ import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
 import { sendSuccess, sendCreated, sendError, sendNotFound } from '../utils/apiResponse';
 import { getRepository, getService } from '../container';
+import { getAuthUserId, getAuthUserRole } from '../utils/authHelpers';
 
 // Tipo para dados extras do usuário (para cálculo de pontos)
 interface UserExtraData {
@@ -280,7 +281,7 @@ export const userRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       logger.debug('🔍 [GET /api/users/chat-list] Buscando lista de usuários para chat');
 
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
 
       // Buscar dados do usuário que está fazendo a requisição
       let requestingUser = null;
@@ -323,7 +324,7 @@ export const userRoutes = (app: Express): void => {
       const limit = Math.min(5000, Math.max(1, parseInt(req.query.limit as string) || 5000)); // Máximo 5000
       const offset = (page - 1) * limit;
 
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
 
       logger.debug('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
 
@@ -379,8 +380,8 @@ export const userRoutes = (app: Express): void => {
       const totalPages = Math.ceil(totalUsers / limit);
 
       // Lógica especial para missionários
-      if (req.headers['x-user-role'] === 'missionary' || req.headers['x-user-id']) {
-        const missionaryId = parseInt((req.headers['x-user-id'] as string) || '0');
+      if (getAuthUserRole(req) === 'missionary' || getAuthUserId(req)) {
+        const missionaryId = getAuthUserId(req);
         const missionary = users.find(u => u.id === missionaryId);
 
         if (missionary && missionary.role === 'missionary') {
@@ -506,7 +507,7 @@ export const userRoutes = (app: Express): void => {
       }
 
       // Verificar permissões de acesso ao usuário
-      const requestingUserId = req.headers['x-user-id'];
+      const requestingUserId = getAuthUserId(req);
 
       // Requer autenticação para acessar dados de usuário
       if (!requestingUserId) {
@@ -516,7 +517,7 @@ export const userRoutes = (app: Express): void => {
         });
       }
 
-      const requestingUser = await userRepo.getUserById(parseInt(requestingUserId as string));
+      const requestingUser = await userRepo.getUserById(requestingUserId);
 
       if (!requestingUser) {
         return res.status(401).json({
@@ -892,8 +893,8 @@ export const userRoutes = (app: Express): void => {
   app.get(
     '/api/users/birthdays',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as string;
+      const userId = String(getAuthUserId(req));
+      const userRole = getAuthUserRole(req) as string;
 
       let userChurch: string | null = null;
 
@@ -983,7 +984,7 @@ export const userRoutes = (app: Express): void => {
   app.get(
     '/api/my-interested',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       if (!userId) {
         return sendError(res, 'Usuário não autenticado', 401);
       }
@@ -1352,7 +1353,7 @@ export const userRoutes = (app: Express): void => {
       }
 
       // Obter usuário que está fazendo a requisição para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let districtFilter: number | null = null;
 
       if (requestingUserId) {

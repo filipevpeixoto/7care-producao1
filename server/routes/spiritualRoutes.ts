@@ -3,15 +3,16 @@
  * Endpoints relacionados ao acompanhamento espiritual (check-in emocional)
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createEmotionalCheckInSchema } from '../schemas';
 import { isPastor } from '../utils/permissions';
-import { User } from '../../shared/schema';
+import { type User } from '../../shared/schema';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository } from '../container';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const spiritualRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -96,7 +97,7 @@ export const spiritualRoutes = (app: Express): void => {
   app.get(
     '/api/emotional-checkins/admin',
     asyncHandler(async (req: Request, res: Response) => {
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
       let checkIns;
@@ -133,7 +134,7 @@ export const spiritualRoutes = (app: Express): void => {
   app.get(
     '/api/spiritual-checkins/scores',
     asyncHandler(async (req: Request, res: Response) => {
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
       let checkIns;
@@ -161,15 +162,15 @@ export const spiritualRoutes = (app: Express): void => {
         '5': { count: 0, label: 'Intimidade', description: 'Muito próximo de Deus' },
       };
 
-      checkIns.forEach(checkIn => {
+      checkIns.forEach((checkIn) => {
         const score = checkIn.emotionalScore?.toString();
         if (score && scoreGroups[score as keyof typeof scoreGroups]) {
           scoreGroups[score as keyof typeof scoreGroups].count++;
         }
       });
 
-      const usersWithCheckIn = new Set(checkIns.map(c => c.userId));
-      const usersWithoutCheckIn = allUsers.filter(u => !usersWithCheckIn.has(u.id)).length;
+      const usersWithCheckIn = new Set(checkIns.map((c) => c.userId));
+      const usersWithoutCheckIn = allUsers.filter((u) => !usersWithCheckIn.has(u.id)).length;
 
       sendSuccess(res, {
         scoreGroups,

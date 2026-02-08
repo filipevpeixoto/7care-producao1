@@ -13,6 +13,7 @@ import { pastorInvites, users, districts, churches } from '../schema';
 import { requireAuth } from '../middleware';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
+import { getAuthUserId } from '../utils/authHelpers';
 import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from '../config/security';
 import { asyncHandler } from '../utils';
 import { readExcelFile, cleanupTempFile } from '../utils/excelUtils';
@@ -149,7 +150,7 @@ export const inviteRoutes = (app: Express): void => {
   app.get(
     '/api/churches/registered',
     asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const userId = req.headers['x-user-id'] as string;
+      const userId = String(getAuthUserId(req));
       const userRepo = getRepository('userRepository');
 
       let allChurches = await db

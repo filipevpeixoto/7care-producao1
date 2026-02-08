@@ -16,6 +16,7 @@ import {
   sendValidationError,
   sendInternalError,
 } from '../utils/apiResponse';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const districtRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -29,7 +30,7 @@ export const districtRoutes = (app: Express): void => {
     cacheMiddleware('districts', CACHE_TTL.DISTRICTS),
     async (req: Request, res: Response) => {
       try {
-        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const userId = getAuthUserId(req);
         const user = userId ? await userRepo.getUserById(userId) : null;
 
         if (isSuperAdmin(user)) {
@@ -67,7 +68,7 @@ export const districtRoutes = (app: Express): void => {
     async (req: Request, res: Response) => {
       try {
         const districtId = parseInt(req.params.id);
-        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const userId = getAuthUserId(req);
         const user = userId ? await userRepo.getUserById(userId) : null;
 
         const district = await sql`
@@ -100,7 +101,7 @@ export const districtRoutes = (app: Express): void => {
     invalidateCacheMiddleware('districts'),
     async (req: Request, res: Response) => {
       try {
-        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const userId = getAuthUserId(req);
         const user = userId ? await userRepo.getUserById(userId) : null;
 
         // Apenas pastores podem usar esta rota
@@ -186,7 +187,7 @@ export const districtRoutes = (app: Express): void => {
     validateBody(createDistrictSchema),
     async (req: Request, res: Response) => {
       try {
-        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const userId = getAuthUserId(req);
         const user = userId ? await userRepo.getUserById(userId) : null;
 
         if (!isSuperAdmin(user)) {
@@ -247,7 +248,7 @@ export const districtRoutes = (app: Express): void => {
     async (req: Request, res: Response) => {
       try {
         const districtId = (req as ValidatedRequest<typeof idParamSchema._type>).validatedParams.id;
-        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const userId = getAuthUserId(req);
         const user = userId ? await userRepo.getUserById(userId) : null;
 
         if (!isSuperAdmin(user)) {
@@ -334,7 +335,7 @@ export const districtRoutes = (app: Express): void => {
   app.delete('/api/districts/:id', async (req: Request, res: Response) => {
     try {
       const districtId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
@@ -384,7 +385,7 @@ export const districtRoutes = (app: Express): void => {
   app.get('/api/districts/:id/churches', async (req: Request, res: Response) => {
     try {
       const districtId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       // Verificar permissão - superadmin tem acesso a tudo, pastor apenas ao seu distrito
@@ -405,7 +406,7 @@ export const districtRoutes = (app: Express): void => {
   // Listar pastores (filtrado por permissão)
   app.get('/api/pastors', async (req: Request, res: Response) => {
     try {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (isSuperAdmin(user)) {
@@ -431,7 +432,7 @@ export const districtRoutes = (app: Express): void => {
   app.get('/api/pastors/:id', async (req: Request, res: Response) => {
     try {
       const pastorId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       const pastor = await sql`
@@ -460,7 +461,7 @@ export const districtRoutes = (app: Express): void => {
   // Criar pastor (apenas superadmin)
   app.post('/api/pastors', async (req: Request, res: Response) => {
     try {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
@@ -532,7 +533,7 @@ export const districtRoutes = (app: Express): void => {
   app.put('/api/pastors/:id', async (req: Request, res: Response) => {
     try {
       const pastorId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
@@ -585,7 +586,7 @@ export const districtRoutes = (app: Express): void => {
   app.delete('/api/pastors/:id', async (req: Request, res: Response) => {
     try {
       const pastorId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!canManagePastors(user)) {
@@ -622,7 +623,7 @@ export const districtRoutes = (app: Express): void => {
   // Listar igrejas sem distrito (apenas superadmin)
   app.get('/api/churches/unassigned', async (req: Request, res: Response) => {
     try {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
@@ -646,7 +647,7 @@ export const districtRoutes = (app: Express): void => {
   app.post('/api/districts/:id/churches', async (req: Request, res: Response) => {
     try {
       const districtId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
@@ -698,7 +699,7 @@ export const districtRoutes = (app: Express): void => {
   app.post('/api/districts/:id/churches/bulk', async (req: Request, res: Response) => {
     try {
       const districtId = parseInt(req.params.id);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
@@ -752,7 +753,7 @@ export const districtRoutes = (app: Express): void => {
     try {
       const districtId = parseInt(req.params.id);
       const churchId = parseInt(req.params.churchId);
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
@@ -793,7 +794,7 @@ export const districtRoutes = (app: Express): void => {
     async (req: Request, res: Response) => {
       try {
         const districtId = parseInt(req.params.id);
-        const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+        const userId = getAuthUserId(req);
         const user = userId ? await userRepo.getUserById(userId) : null;
 
         // Verificar se o distrito existe

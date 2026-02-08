@@ -8,6 +8,7 @@ import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository } from '../container';
+import { getAuthUserId } from '../utils/authHelpers';
 
 // Variáveis de controle do cleanup automático
 let autoCleanupInterval: NodeJS.Timeout | null = null;
@@ -285,12 +286,12 @@ export const systemRoutes = (app: Express): void => {
     '/api/system/clear-all',
     asyncHandler(async (req: Request, res: Response) => {
       // Verificar se o usuário é superadmin
-      const userId = req.headers['x-user-id'];
+      const userId = getAuthUserId(req);
       if (!userId) {
         return sendError(res, 'Usuário não autenticado', 401);
       }
 
-      const user = await userRepo.getUserById(Number(userId));
+      const user = await userRepo.getUserById(userId);
       if (!user || user.role !== 'superadmin') {
         return sendError(res, 'Apenas superadmin pode executar esta operação', 403);
       }

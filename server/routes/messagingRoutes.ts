@@ -3,13 +3,14 @@
  * Endpoints relacionados a mensagens e conversas
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createMessageSchema } from '../schemas';
 import { asyncHandler } from '../utils';
 import { sendSuccess, sendCreated, sendError } from '../utils/apiResponse';
 import { getRepository } from '../container';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const messagingRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -38,17 +39,26 @@ export const messagingRoutes = (app: Express): void => {
       const userId = parseInt(req.params.userId);
 
       // Verificar que o usuário autenticado só acessa suas próprias conversas
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       if (requestingUserId && requestingUserId !== userId) {
-        const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
-        if (!requestingUser || (requestingUser.role !== 'superadmin' && requestingUser.role !== 'pastor')) {
+        const requestingUser = requestingUserId
+          ? await userRepo.getUserById(requestingUserId)
+          : null;
+        if (
+          !requestingUser ||
+          (requestingUser.role !== 'superadmin' && requestingUser.role !== 'pastor')
+        ) {
           return sendError(res, 'Sem permissão para acessar conversas de outro usuário', 403);
         }
         // Se for pastor, verificar se o usuário pertence ao mesmo distrito
         if (requestingUser.role === 'pastor' && requestingUser.districtId) {
           const targetUser = await userRepo.getUserById(userId);
           if (targetUser && targetUser.districtId !== requestingUser.districtId) {
-            return sendError(res, 'Sem permissão para acessar conversas de usuários de outro distrito', 403);
+            return sendError(
+              res,
+              'Sem permissão para acessar conversas de usuários de outro distrito',
+              403
+            );
           }
         }
       }
@@ -57,7 +67,7 @@ export const messagingRoutes = (app: Express): void => {
 
       // Enriquecer conversas com participantes e última mensagem
       const enrichedConversations = await Promise.all(
-        conversations.map(async conv => {
+        conversations.map(async (conv) => {
           // Buscar participantes
           const participants = await conversationRepo.getParticipants(conv.id);
 
@@ -68,7 +78,7 @@ export const messagingRoutes = (app: Express): void => {
           // Para conversas diretas, usar o nome do outro participante
           let name = conv.title || 'Conversa';
           if (conv.type === 'direct' || conv.type === 'private') {
-            const otherParticipant = participants.find(p => p.userId !== userId);
+            const otherParticipant = participants.find((p) => p.userId !== userId);
             if (otherParticipant) {
               const otherUser = await userRepo.getUserById(otherParticipant.userId);
               name = otherUser?.name || 'Usuário';
@@ -80,7 +90,7 @@ export const messagingRoutes = (app: Express): void => {
             type: conv.type === 'private' ? 'direct' : conv.type || 'direct',
             name,
             avatar: undefined,
-            participants: participants.map(p => ({
+            participants: participants.map((p) => ({
               id: p.userId,
               name: p.userName || 'Usuário',
               role: 'user',
@@ -146,10 +156,15 @@ export const messagingRoutes = (app: Express): void => {
       }
 
       // Verificar que o usuário autenticado é um dos participantes
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       if (requestingUserId && requestingUserId !== userId1 && requestingUserId !== userId2) {
-        const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
-        if (!requestingUser || (requestingUser.role !== 'superadmin' && requestingUser.role !== 'pastor')) {
+        const requestingUser = requestingUserId
+          ? await userRepo.getUserById(requestingUserId)
+          : null;
+        if (
+          !requestingUser ||
+          (requestingUser.role !== 'superadmin' && requestingUser.role !== 'pastor')
+        ) {
           return sendError(res, 'Sem permissão para criar conversa entre outros usuários', 403);
         }
       }
@@ -191,10 +206,10 @@ export const messagingRoutes = (app: Express): void => {
       const conversationId = parseInt(req.params.id);
 
       // Verificar que o usuário autenticado é participante da conversa
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       if (requestingUserId) {
         const participants = await conversationRepo.getParticipants(conversationId);
-        const isParticipant = participants.some(p => p.userId === requestingUserId);
+        const isParticipant = participants.some((p) => p.userId === requestingUserId);
         if (!isParticipant) {
           const requestingUser = await userRepo.getUserById(requestingUserId);
           if (!requestingUser || requestingUser.role !== 'superadmin') {

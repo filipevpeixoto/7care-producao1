@@ -11,6 +11,7 @@ import { hasAdminAccess } from '../utils/permissions';
 import { asyncHandler } from '../utils';
 import { sendSuccess, sendCreated, sendError, sendNotFound } from '../utils/apiResponse';
 import { getRepository } from '../container';
+import { getAuthUserId, getAuthUserRole } from '../utils/authHelpers';
 
 export const discipleshipRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -43,8 +44,8 @@ export const discipleshipRoutes = (app: Express): void => {
     '/api/discipleship-requests',
     asyncHandler(async (req: Request, res: Response) => {
       const { missionaryId, status } = req.query;
-      const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as
+      const userId = String(getAuthUserId(req));
+      const userRole = getAuthUserRole(req) as
         | 'superadmin'
         | 'pastor'
         | 'member'

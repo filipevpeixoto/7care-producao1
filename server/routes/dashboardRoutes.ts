@@ -12,6 +12,7 @@ import { cacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
 import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const dashboardRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -54,7 +55,7 @@ export const dashboardRoutes = (app: Express): void => {
     '/api/dashboard/stats',
     cacheMiddleware('dashboard', CACHE_TTL.DASHBOARD),
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       const allEvents = await eventRepo.getAllEvents();
@@ -244,7 +245,7 @@ export const dashboardRoutes = (app: Express): void => {
   app.get(
     '/api/dashboard/visits',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       const allUsers = await userRepo.getAllUsers();

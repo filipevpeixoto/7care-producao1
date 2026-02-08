@@ -12,6 +12,7 @@ import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { securityHeadersMiddleware } from './middleware/securityHeaders';
 import { healthCheckRouter } from './middleware/healthCheck';
 import { inputSanitizationMiddleware } from './middleware/inputSanitization';
+import { optionalJwtAuth } from './middleware/jwtAuth';
 import { monitoringService } from './services/monitoringService';
 import { prometheusService } from './services/prometheusService';
 import { logger } from './utils/logger';
@@ -95,6 +96,11 @@ export function createApp(): express.Express {
 
   // Rate limiting global para API
   app.use('/api', apiLimiter);
+
+  // JWT auth opcional — tenta autenticar via Bearer token em todas as rotas /api/*
+  // Define req.userId, req.user, req.userRole se token válido estiver presente
+  // Não bloqueia se não houver token (usar requireJwtAuth para rotas protegidas)
+  app.use('/api', optionalJwtAuth);
 
   // Health Check endpoints
   app.use('/', healthCheckRouter);

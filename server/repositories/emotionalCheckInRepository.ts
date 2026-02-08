@@ -43,7 +43,7 @@ export class EmotionalCheckInRepository {
         .select()
         .from(schema.emotionalCheckins)
         .orderBy(desc(schema.emotionalCheckins.createdAt));
-      return checkIns.map(checkIn => this.mapRecord(checkIn));
+      return checkIns.map((checkIn) => this.mapRecord(checkIn));
     } catch (error) {
       logger.error('Erro ao buscar check-ins emocionais para admin:', error);
       return [];
@@ -61,7 +61,7 @@ export class EmotionalCheckInRepository {
         .from(schema.emotionalCheckins)
         .where(inArray(schema.emotionalCheckins.userId, userIds))
         .orderBy(desc(schema.emotionalCheckins.createdAt));
-      return checkIns.map(checkIn => this.mapRecord(checkIn));
+      return checkIns.map((checkIn) => this.mapRecord(checkIn));
     } catch (error) {
       logger.error('Erro ao buscar check-ins por IDs de usuários:', error);
       return [];
@@ -78,7 +78,7 @@ export class EmotionalCheckInRepository {
         .from(schema.emotionalCheckins)
         .where(eq(schema.emotionalCheckins.userId, userId))
         .orderBy(desc(schema.emotionalCheckins.createdAt));
-      return checkIns.map(checkIn => this.mapRecord(checkIn));
+      return checkIns.map((checkIn) => this.mapRecord(checkIn));
     } catch (error) {
       logger.error('Erro ao buscar check-ins do usuário:', error);
       return [];
@@ -102,12 +102,20 @@ export class EmotionalCheckInRepository {
     return {
       id: Number(record.id),
       userId: Number(record.userId ?? 0),
-      emotionalScore: record.emotionalScore === null || record.emotionalScore === undefined ? null : Number(record.emotionalScore),
+      emotionalScore:
+        record.emotionalScore === null || record.emotionalScore === undefined
+          ? null
+          : Number(record.emotionalScore),
       mood: record.mood === null || record.mood === undefined ? null : String(record.mood),
-      prayerRequest: record.prayerRequest === null || record.prayerRequest === undefined ? null : String(record.prayerRequest),
+      prayerRequest:
+        record.prayerRequest === null || record.prayerRequest === undefined
+          ? null
+          : String(record.prayerRequest),
       isPrivate: Boolean(record.isPrivate),
       allowChurchMembers:
-        record.allowChurchMembers === null || record.allowChurchMembers === undefined ? true : Boolean(record.allowChurchMembers),
+        record.allowChurchMembers === null || record.allowChurchMembers === undefined
+          ? true
+          : Boolean(record.allowChurchMembers),
       createdAt: this.toDateString(record.createdAt),
       updatedAt: this.toDateString(record.updatedAt),
     };

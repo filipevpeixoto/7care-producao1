@@ -11,6 +11,7 @@ import { isSuperAdmin, isPastor } from '../utils/permissions';
 import { User, Church, Event, District } from '../../shared/schema';
 import { asyncHandler } from '../utils';
 import { sendSuccess, sendError } from '../utils/apiResponse';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const reportsRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -111,7 +112,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/overview',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
@@ -270,7 +271,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/spiritual-funnel',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
@@ -338,7 +339,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/church-comparison',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
@@ -413,7 +414,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/engagement-analysis',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
@@ -513,7 +514,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/growth-trends',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
@@ -622,7 +623,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/missionary-performance',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
@@ -706,7 +707,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/district-comparison',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user)) {
@@ -812,7 +813,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/goals',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {
@@ -916,7 +917,7 @@ export const reportsRoutes = (app: Express): void => {
   app.get(
     '/api/reports/insights',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
 
       if (!isSuperAdmin(user) && !isPastor(user)) {

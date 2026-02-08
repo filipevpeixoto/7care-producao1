@@ -3,13 +3,14 @@
  * Endpoints relacionados a eventos e calendário
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
 import { asyncHandler, sendSuccess, sendError } from '../utils';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createEventSchema } from '../schemas';
 import { logger } from '../utils/logger';
 import { isPastor } from '../utils/permissions';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const eventRoutes = (app: Express): void => {
   const eventRepo = getRepository('eventRepository');
@@ -17,10 +18,7 @@ export const eventRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
 
   const resolveOrganizerId = (req: Request): number => {
-    const headerValue = req.headers['x-user-id'];
-    const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-    const parsed = rawValue ? parseInt(String(rawValue), 10) : NaN;
-    return Number.isNaN(parsed) ? 1 : parsed;
+    return getAuthUserId(req) || 1;
   };
   const resolveChurchInfo = async (): Promise<{ id: number; name: string }> => {
     const defaultChurch = await churchRepo.getDefaultChurch();
@@ -69,7 +67,7 @@ export const eventRoutes = (app: Express): void => {
       const { church, startDate, endDate } = req.query;
 
       // Obter usuário logado para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let requestingUser = null;
       if (requestingUserId) {
         requestingUser = await userRepo.getUserById(requestingUserId);
@@ -261,7 +259,7 @@ export const eventRoutes = (app: Express): void => {
       }
 
       // Outros roles têm tipos limitados
-      const limitedTypes = eventTypes.filter(t =>
+      const limitedTypes = eventTypes.filter((t) =>
         ['culto', 'estudo_biblico', 'visita'].includes(t.id)
       );
 
@@ -283,7 +281,7 @@ export const eventRoutes = (app: Express): void => {
     '/api/calendar/events',
     asyncHandler(async (req: Request, res: Response) => {
       // Obter usuário logado para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let requestingUser = null;
       if (requestingUserId) {
         requestingUser = await userRepo.getUserById(requestingUserId);

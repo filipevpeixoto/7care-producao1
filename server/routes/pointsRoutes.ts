@@ -13,6 +13,7 @@ import { pointsConfigSchema } from '../schemas';
 import { User } from '../../shared/schema';
 import { PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
 import { asyncHandler } from '../utils';
+import { getAuthUserId } from '../utils/authHelpers';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository, getService } from '../container';
 
@@ -469,7 +470,7 @@ export const pointsRoutes = (app: Express): void => {
       const config = (req as ValidatedRequest<typeof pointsConfigSchema._type>).validatedBody;
 
       // Obter usuário que está fazendo a requisição para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let districtFilter: number | null = null;
 
       if (requestingUserId) {
@@ -519,7 +520,7 @@ export const pointsRoutes = (app: Express): void => {
     '/api/system/points-config/reset',
     asyncHandler(async (req: Request, res: Response) => {
       // Obter usuário que está fazendo a requisição para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let districtFilter: number | null = null;
 
       if (requestingUserId) {
@@ -565,7 +566,7 @@ export const pointsRoutes = (app: Express): void => {
     '/api/users/recalculate-all-points',
     asyncHandler(async (req: Request, res: Response) => {
       // Obter usuário que está fazendo a requisição
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let requestingUser = null;
       let districtFilter: number | null = null;
 
@@ -697,7 +698,7 @@ export const pointsRoutes = (app: Express): void => {
       }
 
       // Obter usuário que está fazendo a requisição para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let districtFilter: number | null = null;
       let requestingUser = null;
 

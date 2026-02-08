@@ -11,6 +11,7 @@ import { asyncHandler } from '../utils';
 import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
 import { createTaskSchema, updateTaskSchema, idParamSchema } from '../schemas';
 import { sendSuccess, sendCreated, sendNotFound } from '../utils/apiResponse';
+import { getAuthUserId } from '../utils/authHelpers';
 
 /**
  * Registra as rotas de tarefas
@@ -26,7 +27,7 @@ export function taskRoutes(app: Express): void {
   app.get(
     '/api/tasks',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
 
       if (!userId) {
         return sendSuccess(res, { tasks: [] });
@@ -122,7 +123,7 @@ export function taskRoutes(app: Express): void {
       const { title, description, priority, status, dueDate, assignedToId, church } =
         validatedReq.validatedBody;
 
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
 
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -207,7 +208,7 @@ export function taskRoutes(app: Express): void {
     asyncHandler(async (req: Request, res: Response) => {
       const validatedReq = req as ValidatedRequest<typeof idParamSchema._type>;
       const taskId = validatedReq.validatedParams.id;
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
 
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -313,7 +314,7 @@ export function taskRoutes(app: Express): void {
     asyncHandler(async (req: Request, res: Response) => {
       const validatedReq = req as ValidatedRequest<typeof idParamSchema._type>;
       const taskId = validatedReq.validatedParams.id;
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
 
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -357,7 +358,7 @@ export function taskRoutes(app: Express): void {
   app.get(
     '/api/tasks/users',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
 
       if (!userId) {
         return sendSuccess(res, { users: [] });

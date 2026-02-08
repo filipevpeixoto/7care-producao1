@@ -3,13 +3,14 @@
  * Endpoints relacionados a pedidos de oração
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createPrayerSchema } from '../schemas';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 import { isPastor } from '../utils/permissions';
+import { getAuthUserId } from '../utils/authHelpers';
 
 export const prayerRoutes = (app: Express): void => {
   const prayerRepo = getRepository('prayerRepository');
@@ -47,7 +48,7 @@ export const prayerRoutes = (app: Express): void => {
       const { userId, isPublic, isAnswered } = req.query;
 
       // Obter usuário logado para filtro por distrito
-      const requestingUserId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const requestingUserId = getAuthUserId(req);
       let requestingUser = null;
       if (requestingUserId) {
         requestingUser = await userRepo.getUserById(requestingUserId);
@@ -203,7 +204,7 @@ export const prayerRoutes = (app: Express): void => {
       const id = parseInt(req.params.id);
 
       // Verificar permissão (apenas o criador ou admin pode remover)
-      const userId = parseInt((req.headers['x-user-id'] as string) || '0');
+      const userId = getAuthUserId(req);
       const prayer = await prayerRepo.getById(id);
 
       if (!prayer) {
