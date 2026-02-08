@@ -679,7 +679,7 @@ export default function MyInterested() {
     if (myActiveRelationship) {
       return {
         label: 'Discipulando',
-        color: 'bg-green-100 text-green-800',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
         icon: CheckCircle,
         missionaryId: myActiveRelationship.missionaryId,
         type: 'active',
@@ -698,7 +698,7 @@ export default function MyInterested() {
     if (myApprovedRequest) {
       return {
         label: 'Aprovado',
-        color: 'bg-blue-100 text-blue-800',
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
         icon: CheckCircle,
         missionaryId: myApprovedRequest.missionaryId,
         type: 'approved',
@@ -717,7 +717,7 @@ export default function MyInterested() {
     if (myPendingRequest) {
       return {
         label: 'Solicitado',
-        color: 'bg-yellow-100 text-yellow-800',
+        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
         icon: Clock,
         missionaryId: myPendingRequest.missionaryId,
         type: 'pending',
@@ -997,7 +997,7 @@ export default function MyInterested() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleRespondInvite(invite.id, 'rejected')}
-                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30"
                         disabled={updateRequestMutation.isPending}
                       >
                         <XCircle className="h-3 w-3 mr-1" />
@@ -1147,7 +1147,7 @@ export default function MyInterested() {
                             {/* Badge de autorização para administradores */}
                             {hasAdminAccess(user) && hasPendingRequestForAdmin(person.id) && (
                               <Badge
-                                className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer"
+                                className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:hover:bg-yellow-800 cursor-pointer"
                                 onClick={() => {
                                   const request = allRequests.find(
                                     (r: DiscipleshipRequest) => r.interestedId === person.id
@@ -1301,7 +1301,7 @@ export default function MyInterested() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="invite">
-                                    <div className="flex items-center gap-1 text-blue-600">
+                                    <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
                                       <Send className="h-3 w-3" />
                                       Convidar membro...
                                     </div>
@@ -1338,7 +1338,7 @@ export default function MyInterested() {
                               variant="outline"
                               size="sm"
                               disabled
-                              className="bg-yellow-50 border-yellow-200 text-yellow-700 cursor-not-allowed"
+                              className="bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-300 cursor-not-allowed"
                             >
                               <Clock className="h-3 w-3 mr-1" />
                               Solicitado
@@ -1351,7 +1351,7 @@ export default function MyInterested() {
                               variant="outline"
                               size="sm"
                               disabled
-                              className="bg-blue-50 border-blue-200 text-blue-700 cursor-not-allowed"
+                              className="bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 cursor-not-allowed"
                             >
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Aprovado
@@ -1364,7 +1364,7 @@ export default function MyInterested() {
                               variant="outline"
                               size="sm"
                               disabled
-                              className="bg-green-50 border-green-200 text-green-700 cursor-not-allowed"
+                              className="bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300 cursor-not-allowed"
                             >
                               <Users className="h-3 w-3 mr-1" />
                               Discipulando
@@ -1378,7 +1378,7 @@ export default function MyInterested() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleWhatsApp(person.phone, person.name)}
-                                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:border-green-800 dark:text-green-300"
                               >
                                 <MessageSquare className="h-3 w-3 mr-1" />
                                 WhatsApp
@@ -1388,7 +1388,7 @@ export default function MyInterested() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleOpenChat(person.id, person.name)}
-                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:border-blue-800 dark:text-blue-300"
                               >
                                 <MessageCircle className="h-3 w-3 mr-1" />
                                 Mensagem
@@ -1400,7 +1400,7 @@ export default function MyInterested() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleUnlinkDisciple(person.id)}
-                                  className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
+                                  className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:border-red-800 dark:text-red-300"
                                 >
                                   <X className="h-3 w-3 mr-1" />
                                   Desvincular
@@ -1412,7 +1412,7 @@ export default function MyInterested() {
 
                         {/* Mountain Progress - Apenas para interessados vinculados */}
                         {isMyInterested && (
-                          <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                          <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
                             {loadingPoints ? (
                               <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 bg-purple-200 rounded animate-pulse" />
@@ -1426,10 +1426,10 @@ export default function MyInterested() {
                               <div className="flex items-center gap-3">
                                 <MountIcon
                                   iconType={getLevelIcon(interestedPoints[person.id] || 0)}
-                                  className="h-8 w-8 text-purple-600"
+                                  className="h-8 w-8 text-purple-600 dark:text-purple-400"
                                 />
                                 <div className="flex-1">
-                                  <div className="text-sm font-medium text-purple-700">
+                                  <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
                                     {getMountName(interestedPoints[person.id] || 0)}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
@@ -1438,7 +1438,7 @@ export default function MyInterested() {
                                 </div>
                                 <Badge
                                   variant="outline"
-                                  className="text-xs border-purple-300 text-purple-700"
+                                  className="text-xs border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300"
                                 >
                                   Monte
                                 </Badge>
@@ -1490,7 +1490,7 @@ export default function MyInterested() {
               <div>
                 <label className="text-sm font-medium">Mensagem para o administrador:</label>
                 <textarea
-                  className="w-full mt-1 p-2 border rounded-md"
+                  className="w-full mt-1 p-2 border rounded-md bg-background text-foreground"
                   rows={3}
                   placeholder="Explique por que você gostaria de discipular esta pessoa..."
                   value={discipleMessage}
@@ -1552,7 +1552,7 @@ export default function MyInterested() {
                 <div>
                   <label className="text-sm font-medium">Notas do Administrador:</label>
                   <textarea
-                    className="w-full mt-1 p-2 border rounded-md"
+                    className="w-full mt-1 p-2 border rounded-md bg-background text-foreground"
                     rows={3}
                     placeholder="Adicione observações sobre sua decisão..."
                     value={adminNotes}
