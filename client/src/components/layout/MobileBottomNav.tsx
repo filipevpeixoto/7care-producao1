@@ -9,11 +9,13 @@ import {
   ChevronUp,
   LucideIcon,
   Mail,
+  Heart,
+  BookOpen,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
+import { hasAdminAccess, isSuperAdmin, isPastor } from '@/lib/permissions';
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { usePrefetch } from '@/hooks/usePrefetch';
 
@@ -87,13 +89,25 @@ export const MobileBottomNav = memo(() => {
           { title: 'Convites', path: '/pastor-invites', icon: Mail },
         ],
       });
+    } else if (isPastor(user)) {
+      // Para pastores, botão Pastoral com submenu
+      baseItems.push({
+        title: 'Pastoral',
+        icon: BookOpen,
+        path: '#',
+        roles: ['pastor'],
+        submenu: [
+          { title: 'Pedidos de Oração', path: '/prayers', icon: Heart },
+          { title: '7Mount', path: '/gamification', icon: Trophy },
+        ],
+      });
     } else {
       // Para outros usuários, manter o 7Mount
       baseItems.push({
         title: '7Mount',
         icon: Trophy,
         path: '/gamification',
-        roles: ['pastor', 'missionary', 'member', 'interested'],
+        roles: ['missionary', 'member', 'interested'],
         submenu: [],
       });
     }
@@ -160,12 +174,12 @@ export const MobileBottomNav = memo(() => {
     const newActiveIndex = findActiveIndex();
     setActiveIndex(newActiveIndex);
 
-    // Se estiver em uma rota de admin, abrir o menu
-    if (
-      location.pathname === '/districts' ||
-      location.pathname === '/pastors' ||
-      location.pathname === '/pastor-invites'
-    ) {
+    // Se estiver em uma rota de submenu (admin ou pastoral), abrir o menu
+    const submenuRoutes = [
+      '/districts', '/pastors', '/pastor-invites',
+      '/prayers', '/gamification',
+    ];
+    if (submenuRoutes.includes(location.pathname)) {
       setAdminMenuOpen(true);
     } else {
       setAdminMenuOpen(false);
@@ -279,13 +293,14 @@ export const MobileBottomNav = memo(() => {
           {finalItems.map((item, index) => {
             const isActive = index === activeIndex;
             const hasSubmenu = item.submenu && item.submenu.length > 0;
-            const isAdminButton = isSuperAdmin(user) && item.title === 'Admin';
+            const isSubmenuButton = hasSubmenu && (item.title === 'Admin' || item.title === 'Pastoral');
 
-            // Se for o botão de Admin com submenu, renderizar dropdown
-            if (isAdminButton && hasSubmenu) {
-              const isAdminRoute =
-                location.pathname === '/districts' || location.pathname === '/pastors';
-              const isActive = adminMenuOpen || isAdminRoute;
+            // Se for botão com submenu (Admin ou Pastoral), renderizar dropdown
+            if (isSubmenuButton) {
+              const isSubmenuRoute = item.submenu.some(
+                (sub: SubmenuItem) => sub.path === location.pathname
+              );
+              const isActive = adminMenuOpen || isSubmenuRoute;
 
               return (
                 <DropdownMenu
@@ -314,7 +329,7 @@ export const MobileBottomNav = memo(() => {
                       )}
                       <div className="flex flex-col items-center justify-center w-full h-full relative z-10">
                         <div className="relative">
-                          <Building2
+                          <item.icon
                             className={`w-5 h-5 mb-1 transition-all duration-300 ${iconClasses(isActive)}`}
                           />
                           {isActive && (
@@ -324,7 +339,7 @@ export const MobileBottomNav = memo(() => {
                         <span
                           className={`text-xs font-medium transition-all duration-300 ${textClasses(isActive)}`}
                         >
-                          Admin
+                          {item.title}
                         </span>
                       </div>
                     </button>
