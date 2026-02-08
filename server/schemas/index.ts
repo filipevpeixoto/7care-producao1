@@ -442,8 +442,7 @@ export const createTaskSchema = z.object({
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).default('pending'),
   assignedToId: z.number().int().positive().optional().nullable(),
-  createdById: z.number().int().positive('ID do criador inválido'),
-  relatedUserId: z.number().int().positive().optional().nullable(),
+  church: z.string().optional().nullable(),
 });
 
 export const updateTaskSchema = createTaskSchema.partial();

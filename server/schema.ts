@@ -727,6 +727,36 @@ export const automationConfig = pgTable(
   })
 );
 
+// Tabela de tarefas (por pastor/distrito)
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: serial('id').primaryKey(),
+    title: text('title').notNull(),
+    description: text('description'),
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    priority: varchar('priority', { length: 10 }).notNull().default('medium'),
+    dueDate: date('due_date'),
+    createdById: integer('created_by_id').notNull(),
+    assignedToId: integer('assigned_to_id'),
+    districtId: integer('district_id'),
+    church: text('church'),
+    tags: jsonb('tags').default([]),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  table => ({
+    createdByIdx: index('idx_tasks_created_by').on(table.createdById),
+    assignedToIdx: index('idx_tasks_assigned_to').on(table.assignedToId),
+    districtIdx: index('idx_tasks_district').on(table.districtId),
+    statusIdx: index('idx_tasks_status').on(table.status),
+    priorityIdx: index('idx_tasks_priority').on(table.priority),
+    dueDateIdx: index('idx_tasks_due_date').on(table.dueDate),
+    createdAtIdx: index('idx_tasks_created_at').on(table.createdAt),
+  })
+);
+
 // Exportar todas as tabelas
 export const schema = {
   districts,
@@ -763,4 +793,5 @@ export const schema = {
   expenseReceipts,
   automationConfig,
   googleCalendarTokens,
+  tasks,
 };
