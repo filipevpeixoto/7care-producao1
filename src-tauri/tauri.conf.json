@@ -5,9 +5,9 @@
   "identifier": "app.7care.desktop",
   "build": {
     "beforeDevCommand": "npm run dev:web",
-    "beforeBuildCommand": "npm run build:tauri",
+    "beforeBuildCommand": "",
     "devUrl": "http://localhost:3065",
-    "frontendDist": "../dist"
+    "frontendDist": "https://7careadv.netlify.app"
   },
   "app": {
     "windows": [
@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://7careadv.netlify.app https://*.netlify.app; img-src 'self' asset: http://asset.localhost https://7careadv.netlify.app data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'wasm-unsafe-eval'"
+      "csp": "default-src 'self' https://7careadv.netlify.app https://*.netlify.app; connect-src 'self' ipc: http://ipc.localhost https://7careadv.netlify.app https://*.netlify.app; img-src 'self' asset: http://asset.localhost https://7careadv.netlify.app https://*.netlify.app data: blob:; style-src 'self' 'unsafe-inline' https://7careadv.netlify.app https://*.netlify.app https://fonts.googleapis.com; font-src 'self' https://7careadv.netlify.app https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://7careadv.netlify.app https://*.netlify.app; worker-src 'self' blob:"
     }
   },
   "bundle": {
