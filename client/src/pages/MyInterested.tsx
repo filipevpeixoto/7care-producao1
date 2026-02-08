@@ -20,15 +20,19 @@ import {
   XCircle,
   RefreshCw,
   BookOpen,
+  UserPlus,
+  Send,
+  Mail,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { hasAdminAccess } from '@/lib/permissions';
+import { hasAdminAccess, isPastor } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getMountName, getLevelIcon } from '@/lib/gamification';
 import { MountIcon } from '@/components/ui/mount-icon';
+import { fetchWithAuth } from '@/lib/api';
 import {
   Select,
   SelectContent,
@@ -54,6 +58,7 @@ interface InterestedPerson {
   notes: string;
   source: 'evento' | 'indicacao' | 'online' | 'visita' | 'outro';
   interestedSituation?: string;
+  interested_situation?: string;
   interests?: string[];
 }
 
@@ -71,10 +76,24 @@ interface DiscipleshipRequest {
   missionaryId: number;
   interestedId: number;
   status: 'pending' | 'approved' | 'rejected';
+  type?: 'member-request' | 'pastor-invite';
+  invitedBy?: number;
   requestedAt: string;
+  createdAt?: string;
   notes: string;
   adminNotes?: string;
+  interestedName?: string;
+  missionaryName?: string;
 }
+
+// Situação do interessado (categorias A-E)
+const SITUATION_OPTIONS = [
+  { value: 'A', label: 'Pronto para Batismo', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' },
+  { value: 'B', label: 'Detalhes Pessoais', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+  { value: 'C', label: 'Estudando Bíblia', color: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200' },
+  { value: 'D', label: 'Quer Estudar', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+  { value: 'E', label: 'Contato Inicial', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' },
+] as const;
 
 export default function MyInterested() {
   const { user } = useAuth();
@@ -95,17 +114,23 @@ export default function MyInterested() {
   const [selectedRequest, setSelectedRequest] = useState<DiscipleshipRequest | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
 
+  // Estados para convite de pastor
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteInterested, setInviteInterested] = useState<InterestedPerson | null>(null);
+  const [selectedMissionaryId, setSelectedMissionaryId] = useState<string>('');
+
+  // Estado de situação sendo atualizada
+  const [updatingSituation, setUpdatingSituation] = useState<number | null>(null);
+
+  const isPastorUser = isPastor(user);
+
   // Buscar interessados da igreja do usuário logado
   const { data: churchInterested = [], isLoading: loadingChurch } = useQuery({
     queryKey: ['church-interested', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const response = await fetch('/api/my-interested', {
-        headers: {
-          'x-user-id': user.id.toString(),
-        },
-      });
+      const response = await fetchWithAuth('/api/my-interested');
       if (!response.ok) throw new Error('Erro ao buscar interessados da igreja');
       return response.json();
     },
@@ -119,12 +144,7 @@ export default function MyInterested() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const response = await fetch(`/api/relationships?missionaryId=${user.id}`, {
-        headers: {
-          'x-user-id': user.id.toString(),
-          'x-user-role': user.role || 'member',
-        },
-      });
+      const response = await fetchWithAuth(`/api/relationships?missionaryId=${user.id}`);
       if (!response.ok) throw new Error('Erro ao buscar relacionamentos');
       return response.json();
     },
@@ -137,12 +157,7 @@ export default function MyInterested() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const response = await fetch(`/api/discipleship-requests?missionaryId=${user.id}`, {
-        headers: {
-          'x-user-id': user.id.toString(),
-          'x-user-role': user.role || 'member',
-        },
-      });
+      const response = await fetchWithAuth(`/api/discipleship-requests?missionaryId=${user.id}`);
       if (!response.ok) throw new Error('Erro ao buscar solicitações');
       return response.json();
     },
@@ -150,16 +165,11 @@ export default function MyInterested() {
   });
 
   // Buscar todas as solicitações de discipulado (para ver status)
-  const { data: allRequests = [], isLoading: loadingAllRequests } = useQuery({
+  const { data: allRequests = [], isLoading: _loadingAllRequests } = useQuery({
     queryKey: ['all-discipleship-requests', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetch('/api/discipleship-requests', {
-        headers: {
-          'x-user-id': user.id.toString(),
-          'x-user-role': user.role || 'member',
-        },
-      });
+      const response = await fetchWithAuth('/api/discipleship-requests');
       if (!response.ok) throw new Error('Erro ao buscar solicitações');
       return response.json();
     },
@@ -167,16 +177,11 @@ export default function MyInterested() {
   });
 
   // Buscar TODOS os relacionamentos (para mostrar quem está discipulando cada interessado)
-  const { data: allRelationships = [], isLoading: loadingAllRelationships } = useQuery({
+  const { data: allRelationships = [], isLoading: _loadingAllRelationships } = useQuery({
     queryKey: ['all-relationships', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetch('/api/relationships', {
-        headers: {
-          'x-user-id': user.id.toString(),
-          'x-user-role': user.role || 'member',
-        },
-      });
+      const response = await fetchWithAuth('/api/relationships');
       if (!response.ok) throw new Error('Erro ao buscar relacionamentos');
       return response.json();
     },
@@ -184,16 +189,11 @@ export default function MyInterested() {
   });
 
   // Buscar TODOS os usuários (para mostrar nomes dos missionários)
-  const { data: allUsers = [], isLoading: loadingAllUsers } = useQuery({
+  const { data: allUsers = [], isLoading: _loadingAllUsers } = useQuery({
     queryKey: ['all-users', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user.id.toString(),
-          'x-user-role': user.role || 'member',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       return response.json();
     },
@@ -218,10 +218,10 @@ export default function MyInterested() {
       interestedId: number;
       status: string;
       notes: string;
+      type?: string;
     }) => {
-      const response = await fetch('/api/discipleship-requests', {
+      const response = await fetchWithAuth('/api/discipleship-requests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
@@ -259,9 +259,8 @@ export default function MyInterested() {
       status: 'approved' | 'rejected';
       adminNotes: string;
     }) => {
-      const response = await fetch(`/api/discipleship-requests/${requestId}`, {
+      const response = await fetchWithAuth(`/api/discipleship-requests/${requestId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status,
           adminNotes,
@@ -289,6 +288,104 @@ export default function MyInterested() {
       toast({
         title: '❌ Erro ao processar',
         description: error.message || 'Não foi possível processar a solicitação.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mutation para atualizar situação do interessado (pastor)
+  const updateSituationMutation = useMutation({
+    mutationFn: async ({ userId, situation }: { userId: number; situation: string }) => {
+      const response = await fetchWithAuth(`/api/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ interestedSituation: situation }),
+      });
+      if (!response.ok) throw new Error('Erro ao atualizar situação');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
+      setUpdatingSituation(null);
+      toast({
+        title: '✅ Situação atualizada!',
+        description: 'A situação do amigo foi atualizada com sucesso.',
+      });
+    },
+    onError: (error: Error) => {
+      setUpdatingSituation(null);
+      toast({
+        title: '❌ Erro ao atualizar situação',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mutation para vincular discipulador diretamente (pastor)
+  const directDiscipleMutation = useMutation({
+    mutationFn: async ({ interestedId, missionaryId }: { interestedId: number; missionaryId: number }) => {
+      const response = await fetchWithAuth(`/api/users/${interestedId}/disciple`, {
+        method: 'POST',
+        body: JSON.stringify({ missionaryId }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Erro ao vincular discipulador');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-relationships'] });
+      queryClient.invalidateQueries({ queryKey: ['relationships'] });
+      queryClient.invalidateQueries({ queryKey: ['all-discipleship-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
+      toast({
+        title: '✅ Discipulador vinculado!',
+        description: 'O discipulador foi vinculado com sucesso.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: '❌ Erro ao vincular',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mutation para pastor convidar membro a discipular um interessado
+  const pastorInviteMutation = useMutation({
+    mutationFn: async ({ interestedId, missionaryId }: { interestedId: number; missionaryId: number }) => {
+      const response = await fetchWithAuth('/api/discipleship-requests', {
+        method: 'POST',
+        body: JSON.stringify({
+          interestedId,
+          missionaryId,
+          type: 'pastor-invite',
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Erro ao enviar convite');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-discipleship-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['discipleship-requests'] });
+      setShowInviteModal(false);
+      setInviteInterested(null);
+      setSelectedMissionaryId('');
+      toast({
+        title: '✅ Convite enviado!',
+        description: 'O membro receberá o convite para discipular.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: '❌ Erro ao enviar convite',
+        description: error.message,
         variant: 'destructive',
       });
     },
@@ -329,8 +426,59 @@ export default function MyInterested() {
       (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' })
   );
 
+  // Lista de membros/missionários disponíveis para discipular (para pastores)
+  const availableMissionaries: UserMember[] = (allUsers || []).filter(
+    (u: UserMember) => u.role !== 'interested' && u.role !== 'pastor' && u.role !== 'superadmin' && u.id !== user?.id
+  ).sort((a: UserMember, b: UserMember) => 
+    (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+  );
+
+  // Convites de pastor pendentes para o membro logado (para aceitar/rejeitar)
+  const myPendingInvites: DiscipleshipRequest[] = (allRequests || []).filter(
+    (req: DiscipleshipRequest) =>
+      req.missionaryId === Number(user?.id) &&
+      req.type === 'pastor-invite' &&
+      req.status === 'pending'
+  );
+
+  // Obter situação do interessado
+  const getSituationOption = (situation?: string) => {
+    return SITUATION_OPTIONS.find(opt => opt.value === situation);
+  };
+
+  // Handler para atualizar situação
+  const handleSituationChange = (userId: number, situation: string) => {
+    setUpdatingSituation(userId);
+    updateSituationMutation.mutate({ userId, situation });
+  };
+
+  // Handler para abrir modal de convite
+  const handleOpenInvite = (person: InterestedPerson) => {
+    setInviteInterested(person);
+    setSelectedMissionaryId('');
+    setShowInviteModal(true);
+  };
+
+  // Handler para confirmar convite
+  const handleConfirmInvite = () => {
+    if (!inviteInterested || !selectedMissionaryId) return;
+    pastorInviteMutation.mutate({
+      interestedId: inviteInterested.id,
+      missionaryId: parseInt(selectedMissionaryId),
+    });
+  };
+
+  // Handler para membro aceitar/rejeitar convite de pastor
+  const handleRespondInvite = (requestId: number, status: 'approved' | 'rejected') => {
+    updateRequestMutation.mutate({
+      requestId,
+      status,
+      adminNotes: status === 'approved' ? 'Aceito pelo membro' : 'Recusado pelo membro',
+    });
+  };
+
   // Verificar se um interessado já tem solicitação pendente
-  const hasPendingRequest = (interestedId: number) => {
+  const _hasPendingRequest = (interestedId: number) => {
     return (allRequests || []).some(
       (req: DiscipleshipRequest) =>
         req.interestedId === interestedId &&
@@ -340,7 +488,7 @@ export default function MyInterested() {
   };
 
   // Verificar se um interessado já tem solicitação aprovada
-  const hasApprovedRequest = (interestedId: number) => {
+  const _hasApprovedRequest = (interestedId: number) => {
     return (allRequests || []).some(
       (req: DiscipleshipRequest) =>
         req.interestedId === interestedId &&
@@ -350,7 +498,7 @@ export default function MyInterested() {
   };
 
   // Verificar se um interessado já tem relacionamento ativo
-  const hasActiveRelationship = (interestedId: number) => {
+  const _hasActiveRelationship = (interestedId: number) => {
     return (myRelationships || []).some(
       (rel: Relationship) => rel.interestedId === interestedId && rel.status === 'active'
     );
@@ -391,38 +539,6 @@ export default function MyInterested() {
       interestedBase.find((u: InterestedPerson) => u.id === userId) ||
       allUsers.find((u: UserMember) => u.id === userId);
     return userInfo ? userInfo.name : `Usuário ${userId}`;
-  };
-
-  // Função para obter o nome do missionário que está discipulando
-  const getMissionaryName = (missionaryId: number) => {
-    // Buscar em todos os usuários da igreja
-    const missionary = churchInterested.find((u: InterestedPerson) => u.id === missionaryId);
-    if (missionary) return missionary.name;
-
-    // Se não encontrar na igreja, retornar ID do usuário
-    return `Usuário ${missionaryId}`;
-  };
-
-  // Função para obter o nome do missionário que está discipulando a partir do relacionamento
-  const getMissionaryNameFromRelationship = (interestedId: number) => {
-    // Buscar em todos os relacionamentos ativos (não apenas do usuário atual)
-    const activeRelationship = allRelationships.find(
-      (rel: ActiveRelationship) => rel.interestedId === interestedId && rel.status === 'active'
-    );
-
-    if (activeRelationship) {
-      // Usar o nome do missionário que já vem do backend
-      if (activeRelationship.missionaryName) {
-        // Extrair apenas o primeiro nome
-        const firstName = activeRelationship.missionaryName.split(' ')[0];
-        return firstName;
-      }
-
-      // Fallback para casos onde o nome não está disponível
-      return `Usuário ${activeRelationship.missionaryId}`;
-    }
-
-    return 'Desconhecido';
   };
 
   // Função para obter primeiros nomes de TODOS os discipuladores ativos de um interessado
@@ -470,7 +586,7 @@ export default function MyInterested() {
       }
 
       // Fazer a requisição para remover o relacionamento
-      const response = await fetch(`/api/relationships/${activeRelationship.id}`, {
+      const response = await fetchWithAuth(`/api/relationships/${activeRelationship.id}`, {
         method: 'DELETE',
       });
 
@@ -500,16 +616,6 @@ export default function MyInterested() {
 
   const confirmDiscipleRequest = () => {
     if (!selectedInterested || !user?.id || !discipleMessage.trim()) return;
-
-    // Log para debug
-    console.log('🔍 Dados para envio:', {
-      missionaryId: Number(user.id),
-      interestedId: selectedInterested.id,
-      notes: discipleMessage,
-      userType: typeof user.id,
-      interestedType: typeof selectedInterested.id,
-      messageType: typeof discipleMessage,
-    });
 
     createDiscipleRequestMutation.mutate({
       missionaryId: Number(user.id),
@@ -665,7 +771,7 @@ export default function MyInterested() {
   // Função para obter pontos do interessado (busca real da API)
   const getInterestedPoints = async (interestedId: number): Promise<number> => {
     try {
-      const response = await fetch(`/api/users/${interestedId}/points-details`);
+      const response = await fetchWithAuth(`/api/users/${interestedId}/points-details`);
       if (response.ok) {
         const data = await response.json();
         return data.points || 0;
@@ -852,6 +958,53 @@ export default function MyInterested() {
           </div>
         )}
 
+        {/* Convites Pendentes do Pastor (para membros) */}
+        {myPendingInvites.length > 0 && !isPastorUser && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+              <Mail className="h-4 w-4" />
+              Convites do Pastor ({myPendingInvites.length})
+            </h3>
+            {myPendingInvites.map((invite: DiscipleshipRequest) => (
+              <Card key={invite.id} className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        O pastor convidou você para discipular <strong>{invite.interestedName || getUserInfo(invite.interestedId)}</strong>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Recebido em {formatDate(invite.requestedAt || invite.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRespondInvite(invite.id, 'rejected')}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        disabled={updateRequestMutation.isPending}
+                      >
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Recusar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleRespondInvite(invite.id, 'approved')}
+                        className="bg-green-600 hover:bg-green-700"
+                        disabled={updateRequestMutation.isPending}
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Aceitar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
         {/* Loading States */}
         {(loadingChurch || loadingRelationships || loadingRequests || loadingPoints) && (
           <div className="text-center py-8">
@@ -866,10 +1019,6 @@ export default function MyInterested() {
             {(selectedTab === 'my' ? sortedMyInterested : sortedFilteredChurchInterested).map(
               (person: InterestedPerson) => {
                 const discipleStatus = getDiscipleStatus(person.id);
-                const canRequestDisciple =
-                  !hasPendingRequest(person.id) &&
-                  !hasApprovedRequest(person.id) &&
-                  !hasActiveRelationship(person.id);
                 const isMyInterested = selectedTab === 'my';
 
                 return (
@@ -905,6 +1054,13 @@ export default function MyInterested() {
                               <Badge className={discipleStatus.color}>
                                 <discipleStatus.icon className="h-3 w-3 mr-1" />
                                 {discipleStatus.label}
+                              </Badge>
+                            )}
+
+                            {/* Badge de situação (A-E) */}
+                            {(person.interestedSituation || person.interested_situation) && (
+                              <Badge className={getSituationOption(person.interestedSituation || person.interested_situation)?.color || 'bg-gray-100 text-gray-800'}>
+                                {person.interestedSituation || person.interested_situation}
                               </Badge>
                             )}
 
@@ -1040,6 +1196,76 @@ export default function MyInterested() {
                               </div>
                             )}
                           </>
+                        )}
+
+                        {/* Pastor Controls - Situação e Discipulador */}
+                        {isPastorUser && selectedTab === 'church' && (
+                          <div className="space-y-3 border-t pt-3">
+                            {/* Situação Selector (A-E) */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Situação:</span>
+                              <div className="flex gap-1 flex-wrap">
+                                {SITUATION_OPTIONS.map((opt) => {
+                                  const isActive = (person.interestedSituation || person.interested_situation) === opt.value;
+                                  return (
+                                    <button
+                                      key={opt.value}
+                                      onClick={() => handleSituationChange(person.id, opt.value)}
+                                      disabled={updatingSituation === person.id}
+                                      className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
+                                        isActive
+                                          ? opt.color + ' ring-2 ring-offset-1 ring-current'
+                                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                      } ${updatingSituation === person.id ? 'opacity-50' : ''}`}
+                                      title={opt.label}
+                                    >
+                                      {opt.value}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {getSituationOption(person.interestedSituation || person.interested_situation) && (
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  {getSituationOption(person.interestedSituation || person.interested_situation)?.label}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Inline Discipler Selector */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Discipulador:</span>
+                              <Select
+                                value=""
+                                onValueChange={(missionaryId) => {
+                                  if (missionaryId === 'invite') {
+                                    handleOpenInvite(person);
+                                    return;
+                                  }
+                                  directDiscipleMutation.mutate({
+                                    interestedId: person.id,
+                                    missionaryId: parseInt(missionaryId),
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-7 text-xs flex-1">
+                                  <SelectValue placeholder="Vincular discipulador..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="invite">
+                                    <div className="flex items-center gap-1 text-blue-600">
+                                      <Send className="h-3 w-3" />
+                                      Convidar membro...
+                                    </div>
+                                  </SelectItem>
+                                  {availableMissionaries.map((m: UserMember) => (
+                                    <SelectItem key={m.id} value={m.id.toString()}>
+                                      {m.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
                         )}
 
                         {/* Actions */}
@@ -1323,6 +1549,67 @@ export default function MyInterested() {
                     <>
                       <CheckCircle className="h-4 w-4 mr-1" />
                       Aprovar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Pastor Invite Modal */}
+      {showInviteModal && inviteInterested && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-blue-600" />
+                Convidar Discipulador
+              </CardTitle>
+              <CardDescription>
+                Convide um membro para discipular <strong>{inviteInterested.name}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Selecione o membro:</label>
+                <Select value={selectedMissionaryId} onValueChange={setSelectedMissionaryId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Escolha um membro..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableMissionaries.map((m: UserMember) => (
+                      <SelectItem key={m.id} value={m.id.toString()}>
+                        {m.name} {m.church ? `(${m.church})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                O membro receberá um convite e poderá aceitar ou recusar.
+              </p>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleConfirmInvite}
+                  disabled={!selectedMissionaryId || pastorInviteMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {pastorInviteMutation.isPending ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Enviando...
+                    </div>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-1" />
+                      Enviar Convite
                     </>
                   )}
                 </Button>

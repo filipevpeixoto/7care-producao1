@@ -7853,12 +7853,23 @@ exports.handler = async (event, context) => {
               interested_id INTEGER NOT NULL,
               missionary_id INTEGER NOT NULL,
               status VARCHAR(20) DEFAULT 'pending',
+              type VARCHAR(30) DEFAULT 'member-request',
+              invited_by INTEGER,
               message TEXT,
               admin_notes TEXT,
               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
           `;
+        }
+        
+        // Garantir que colunas type e invited_by existem
+        try {
+          await sql`SELECT type FROM discipleship_requests LIMIT 1`;
+        } catch (e) {
+          console.log('📋 Adicionando coluna type à tabela discipleship_requests...');
+          await sql`ALTER TABLE discipleship_requests ADD COLUMN IF NOT EXISTS type VARCHAR(30) DEFAULT 'member-request'`;
+          await sql`ALTER TABLE discipleship_requests ADD COLUMN IF NOT EXISTS invited_by INTEGER`;
         }
         
         const currentUser = await resolveCurrentUser(event, sql);
@@ -7874,6 +7885,8 @@ exports.handler = async (event, context) => {
                 dr.missionary_id as "missionaryId",
                 dr.status,
                 dr.notes,
+                COALESCE(dr.type, 'member-request') as "type",
+                dr.invited_by as "invitedBy",
                 dr.created_at as "createdAt",
                 dr.updated_at as "updatedAt",
                 ui.name as "interestedName",
@@ -7900,6 +7913,8 @@ exports.handler = async (event, context) => {
                 dr.missionary_id as "missionaryId",
                 dr.status,
                 dr.notes,
+                COALESCE(dr.type, 'member-request') as "type",
+                dr.invited_by as "invitedBy",
                 dr.created_at as "createdAt",
                 dr.updated_at as "updatedAt",
                 ui.name as "interestedName",
@@ -7922,6 +7937,8 @@ exports.handler = async (event, context) => {
               dr.missionary_id as "missionaryId",
               dr.status,
               dr.notes,
+              COALESCE(dr.type, 'member-request') as "type",
+              dr.invited_by as "invitedBy",
               dr.created_at as "createdAt",
               dr.updated_at as "updatedAt",
               ui.name as "interestedName",
@@ -7943,6 +7960,8 @@ exports.handler = async (event, context) => {
               dr.missionary_id as "missionaryId",
               dr.status,
               dr.notes,
+              COALESCE(dr.type, 'member-request') as "type",
+              dr.invited_by as "invitedBy",
               dr.created_at as "createdAt",
               dr.updated_at as "updatedAt",
               ui.name as "interestedName",
@@ -8115,9 +8134,23 @@ exports.handler = async (event, context) => {
     if (path === '/api/discipleship-requests' && method === 'POST') {
       try {
         const body = JSON.parse(event.body || '{}');
-        const { interestedId, missionaryId, message = '' } = body;
+        const { interestedId, missionaryId, message = '', type = 'member-request' } = body;
         
-        console.log('🔍 Criando pedido de discipulado:', { interestedId, missionaryId, message });
+        console.log('🔍 Criando pedido de discipulado:', { interestedId, missionaryId, message, type });
+        
+        // Para pastor-invite, o pastor (invitedBy) convida um membro (missionaryId) para discipular um interessado (interestedId)
+        let invitedBy = null;
+        if (type === 'pastor-invite') {
+          const currentUser = await resolveCurrentUser(event, sql);
+          if (!currentUser || !isPastor(currentUser)) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Apenas pastores podem enviar convites' })
+            };
+          }
+          invitedBy = currentUser.id;
+        }
         
         if (!interestedId || !missionaryId) {
         return {
@@ -8223,12 +8256,12 @@ exports.handler = async (event, context) => {
         
         let newRequest;
         try {
-          // Inserção sem coluna message
+          // Inserção com type e invited_by
           console.log('🔍 Criando pedido de discipulado...');
           newRequest = await sql`
-            INSERT INTO discipleship_requests (interested_id, missionary_id)
-            VALUES (${parseInt(interestedId)}, ${parseInt(missionaryId)})
-            RETURNING id, interested_id, missionary_id, status, created_at
+            INSERT INTO discipleship_requests (interested_id, missionary_id, type, invited_by)
+            VALUES (${parseInt(interestedId)}, ${parseInt(missionaryId)}, ${type}, ${invitedBy})
+            RETURNING id, interested_id, missionary_id, status, type, invited_by, created_at
           `;
           console.log('✅ Pedido criado com sucesso:', newRequest[0]);
         } catch (insertError) {
@@ -9011,41 +9044,54 @@ exports.handler = async (event, context) => {
     // Rota para meu interessados
     if (path === '/api/my-interested' && method === 'GET') {
       try {
-        // Obter ID do usuário do header
-        const userId = event.headers['x-user-id'];
+        // Usar JWT ou header para obter usuário
+        const currentUser = await resolveCurrentUser(event, sql);
         
-        if (!userId) {
+        if (!currentUser) {
           return {
             statusCode: 400,
             headers,
-            body: JSON.stringify({ error: 'ID do usuário é obrigatório' })
+            body: JSON.stringify({ error: 'Usuário não identificado' })
           };
         }
 
-        // Buscar dados do usuário para obter a igreja
-        const userData = await sql`SELECT church FROM users WHERE id = ${userId} LIMIT 1`;
+        const currentUserDistrictId = currentUser.district_id || null;
+        console.log(`🔍 Buscando interessados - User: ${currentUser.name}, Church: ${currentUser.church}, District: ${currentUserDistrictId}`);
+
+        let interested;
         
-        if (userData.length === 0) {
-          return {
-            statusCode: 404,
-            headers,
-            body: JSON.stringify({ error: 'Usuário não encontrado' })
-          };
+        // Para pastores com distrito, buscar interessados de todas as igrejas do distrito
+        if (isPastor(currentUser) && currentUserDistrictId) {
+          const districtChurchNames = await getDistrictChurchNames(sql, currentUserDistrictId);
+          if (districtChurchNames.length > 0) {
+            interested = await sql`
+              SELECT * FROM users 
+              WHERE role = 'interested' 
+              AND (church = ANY(${districtChurchNames}) OR district_id = ${currentUserDistrictId})
+              ORDER BY created_at DESC 
+              LIMIT 100
+            `;
+          } else {
+            interested = await sql`
+              SELECT * FROM users 
+              WHERE role = 'interested' 
+              AND district_id = ${currentUserDistrictId}
+              ORDER BY created_at DESC 
+              LIMIT 100
+            `;
+          }
+        } else {
+          // Para membros normais, buscar da mesma igreja
+          interested = await sql`
+            SELECT * FROM users 
+            WHERE role = 'interested' 
+            AND church = ${currentUser.church}
+            ORDER BY created_at DESC 
+            LIMIT 50
+          `;
         }
-
-        const userChurch = userData[0].church;
-        console.log(`🔍 Buscando interessados da igreja: ${userChurch}`);
-
-        // Buscar interessados da mesma igreja
-        const interested = await sql`
-          SELECT * FROM users 
-          WHERE role = 'interested' 
-          AND church = ${userChurch}
-          ORDER BY created_at DESC 
-          LIMIT 50
-        `;
         
-        console.log(`📊 Encontrados ${interested.length} interessados da igreja ${userChurch}`);
+        console.log(`📊 Encontrados ${interested.length} interessados`);
         
         return {
           statusCode: 200,
@@ -9173,6 +9219,16 @@ exports.handler = async (event, context) => {
         if (body.attendance !== undefined) {
           updateFields.push('attendance = $' + (updateValues.length + 1));
           updateValues.push(body.attendance);
+        }
+        
+        if (body.interestedSituation !== undefined || body.interested_situation !== undefined) {
+          updateFields.push('interested_situation = $' + (updateValues.length + 1));
+          updateValues.push(body.interestedSituation || body.interested_situation);
+        }
+        
+        if (body.districtId !== undefined || body.district_id !== undefined) {
+          updateFields.push('district_id = $' + (updateValues.length + 1));
+          updateValues.push(body.districtId || body.district_id);
         }
         
         if (updateFields.length === 0) {
@@ -9796,14 +9852,45 @@ exports.handler = async (event, context) => {
     // Rota para discipular usuário
     if (path.startsWith('/api/users/') && path.endsWith('/disciple') && method === 'POST') {
       try {
-        const userId = path.split('/')[3];
+        const interestedId = parseInt(path.split('/')[3]);
         const body = JSON.parse(event.body || '{}');
-        console.log('🔍 Discipling user:', userId, body);
+        const { missionaryId } = body;
+        console.log('🔍 Direct disciple assignment:', { interestedId, missionaryId });
+        
+        if (!missionaryId) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'missionaryId é obrigatório' })
+          };
+        }
+
+        // Verificar se já existe relacionamento ativo
+        const existing = await sql`
+          SELECT id FROM relationships 
+          WHERE interested_id = ${interestedId} AND missionary_id = ${parseInt(missionaryId)} AND status = 'active'
+          LIMIT 1
+        `;
+        if (existing.length > 0) {
+          return {
+            statusCode: 409,
+            headers,
+            body: JSON.stringify({ error: 'Já existe um vínculo ativo entre estes usuários' })
+          };
+        }
+
+        // Criar relacionamento ativo diretamente
+        const newRel = await sql`
+          INSERT INTO relationships (interested_id, missionary_id, status, notes, created_at, updated_at)
+          VALUES (${interestedId}, ${parseInt(missionaryId)}, 'active', 'Vínculo criado diretamente pelo pastor', NOW(), NOW())
+          RETURNING *
+        `;
+        console.log('✅ Relacionamento criado:', newRel[0].id);
         
         return {
-          statusCode: 200,
+          statusCode: 201,
           headers,
-          body: JSON.stringify({ success: true, message: 'Usuário discipulado com sucesso' })
+          body: JSON.stringify(newRel[0])
         };
       } catch (error) {
         console.error('❌ Disciple user error:', error);
