@@ -50,8 +50,8 @@ const spiritualLevels: SpiritualLevel[] = [
     description:
       'Quase não oro, minha Bíblia está fechada, e percebo que outras coisas têm ocupado o lugar de Deus na minha vida.',
     color: 'from-gray-400 to-gray-500',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-300',
+    bgColor: 'bg-gray-50 dark:bg-gray-800',
+    borderColor: 'border-gray-300 dark:border-gray-600',
     textColor: 'text-gray-700 dark:text-gray-300',
   },
   {
@@ -63,9 +63,9 @@ const spiritualLevels: SpiritualLevel[] = [
     description:
       'Sinto falta de Deus, faço algumas orações rápidas, ouço mensagens e até abro a Bíblia, mas ainda sem constância.',
     color: 'from-orange-400 to-orange-500',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-300',
-    textColor: 'text-orange-700',
+    bgColor: 'bg-orange-50 dark:bg-orange-950',
+    borderColor: 'border-orange-300 dark:border-orange-700',
+    textColor: 'text-orange-700 dark:text-orange-300',
   },
   {
     score: 3,
@@ -76,9 +76,9 @@ const spiritualLevels: SpiritualLevel[] = [
     description:
       'Já leio a Bíblia com mais frequência, encontro respostas, começo a praticar e percebo mudanças no meu coração.',
     color: 'from-green-400 to-green-500',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-300',
-    textColor: 'text-green-700',
+    bgColor: 'bg-green-50 dark:bg-green-950',
+    borderColor: 'border-green-300 dark:border-green-700',
+    textColor: 'text-green-700 dark:text-green-300',
   },
   {
     score: 4,
@@ -89,9 +89,9 @@ const spiritualLevels: SpiritualLevel[] = [
     description:
       'Minha fé começa a transbordar em atitudes, ajudo pessoas, testemunho de Cristo e inspiro outros a segui-lo.',
     color: 'from-blue-400 to-blue-500',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-300',
-    textColor: 'text-blue-700',
+    bgColor: 'bg-blue-50 dark:bg-blue-950',
+    borderColor: 'border-blue-300 dark:border-blue-700',
+    textColor: 'text-blue-700 dark:text-blue-300',
   },
   {
     score: 5,
@@ -102,9 +102,9 @@ const spiritualLevels: SpiritualLevel[] = [
     description:
       'Vivo em comunhão diária com Deus, oro constantemente, ouço Sua voz e procuro andar em plena sintonia com Ele.',
     color: 'from-purple-400 to-purple-500',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-300',
-    textColor: 'text-purple-700',
+    bgColor: 'bg-purple-50 dark:bg-purple-950',
+    borderColor: 'border-purple-300 dark:border-purple-700',
+    textColor: 'text-purple-700 dark:text-purple-300',
   },
 ];
 
@@ -203,7 +203,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
       >
         {/* Header */}
         <DialogHeader className="text-center pb-6">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full">
                 <Heart className="h-6 w-6 text-white" />
@@ -213,7 +213,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
             <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Como está sua vida espiritual hoje?
             </DialogTitle>
-            <p className="text-gray-600 mt-3">
+            <p className="text-gray-600 dark:text-gray-400 mt-3">
               Compartilhe sua situação espiritual e, se desejar, um pedido de oração
             </p>
           </div>
@@ -237,8 +237,8 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                   <Card
                     className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
                       spiritualState.score === level.score
-                        ? `ring-2 ring-blue-500 shadow-lg ${level.bgColor} border-blue-300`
-                        : 'hover:shadow-md border-gray-200'
+                        ? `ring-2 ring-blue-500 shadow-lg ${level.bgColor} border-blue-300 dark:border-blue-600`
+                        : 'hover:shadow-md border-gray-200 dark:border-gray-700'
                     }`}
                   >
                     <CardContent className="p-4 text-center">
@@ -256,7 +256,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                           <div className={`font-semibold text-sm ${level.textColor}`}>
                             {level.label}
                           </div>
-                          <div className="text-xs text-gray-500">Nível {level.score}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Nível {level.score}</div>
                         </div>
                       </button>
 
@@ -280,8 +280,8 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                   <Card
                     className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
                       spiritualState.score === level.score
-                        ? `ring-2 ring-blue-500 shadow-lg ${level.bgColor} border-blue-300`
-                        : 'hover:shadow-md border-gray-200'
+                        ? `ring-2 ring-blue-500 shadow-lg ${level.bgColor} border-blue-300 dark:border-blue-600`
+                        : 'hover:shadow-md border-gray-200 dark:border-gray-700'
                     }`}
                   >
                     <CardContent className="p-4">
@@ -299,7 +299,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                           <div className={`font-semibold text-base ${level.textColor}`}>
                             {level.label}
                           </div>
-                          <div className="text-sm text-gray-500">Nível {level.score}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">Nível {level.score}</div>
                         </div>
                       </button>
 
@@ -361,7 +361,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
           </div>
 
           {/* Prayer Request */}
-          <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+          <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
             <CardContent className="p-4">
               <div className="space-y-3">
                 <Label
@@ -385,7 +385,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                     }))
                   }
                   rows={4}
-                  className="resize-none border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                  className="resize-none border-blue-200 dark:border-blue-800 focus:border-blue-400 focus:ring-blue-400"
                 />
                 <div className="text-xs text-gray-500 text-right">
                   {(spiritualState.prayerRequest || '').length}/500 caracteres
@@ -395,16 +395,16 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
           </Card>
 
           {/* Privacy Settings */}
-          <Card className="border-gray-200">
+          <Card className="border-gray-200 dark:border-gray-700">
             <CardContent className="p-4">
               <div className="space-y-3">
                 <Label className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                  <Lock className="h-5 w-5 text-gray-600" />
+                  <Lock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                   Configurações de Privacidade
                 </Label>
 
                 <div className="space-y-3">
-                  <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <Checkbox
                       id="isPrivate"
                       checked={spiritualState.isPrivate}
@@ -433,8 +433,8 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
                   <div
                     className={`flex items-start space-x-3 p-3 rounded-lg transition-colors ${
                       spiritualState.isPrivate
-                        ? 'bg-gray-100 opacity-50'
-                        : 'bg-gray-50 hover:bg-gray-100'
+                        ? 'bg-gray-100 dark:bg-gray-800 opacity-50'
+                        : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Checkbox

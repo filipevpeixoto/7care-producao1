@@ -2776,7 +2776,11 @@
               </div>
               <div class="gamification__level">
                 <div class="gamification__level-icon">
-                  <img src="/mountain-5.png" alt="Monte Carmelo" style="width: 32px; height: 32px" />
+                  <img
+                    src="/mountain-5.png"
+                    alt="Monte Carmelo"
+                    style="width: 32px; height: 32px"
+                  />
                 </div>
                 <div class="gamification__level-info">
                   <div class="gamification__level-name">Monte Carmelo</div>
@@ -3379,7 +3383,9 @@
 
       // Buscar assets da ultima release ao carregar a pagina
       fetch(GITHUB_API)
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+          return r.json();
+        })
         .then(function (data) {
           if (data.assets) {
             releaseAssets = data.assets;
@@ -3398,7 +3404,9 @@
             });
           }
         })
-        .catch(function () { /* silencioso se offline */ });
+        .catch(function () {
+          /* silencioso se offline */
+        });
 
       function markAvailable(btnId) {
         var btn = document.getElementById(btnId);
@@ -3412,7 +3420,8 @@
           var name = releaseAssets[i].name.toLowerCase();
           switch (platform) {
             case 'windows':
-              if (name.endsWith('.exe') || name.endsWith('.msi')) return releaseAssets[i].browser_download_url;
+              if (name.endsWith('.exe') || name.endsWith('.msi'))
+                return releaseAssets[i].browser_download_url;
               break;
             case 'macos':
               if (name.endsWith('.dmg')) return releaseAssets[i].browser_download_url;
@@ -3437,7 +3446,14 @@
         } else {
           // Fallback: redirecionar para a pagina de releases
           var releasesUrl = 'https://github.com/' + GITHUB_REPO + '/releases/latest';
-          if (confirm('O instalador para ' + platform.charAt(0).toUpperCase() + platform.slice(1) + ' pode estar sendo gerado. Deseja ver todas as versoes disponiveis no GitHub?')) {
+          if (
+            confirm(
+              'O instalador para ' +
+                platform.charAt(0).toUpperCase() +
+                platform.slice(1) +
+                ' pode estar sendo gerado. Deseja ver todas as versoes disponiveis no GitHub?'
+            )
+          ) {
             window.open(releasesUrl, '_blank');
           }
         }
