@@ -64,7 +64,8 @@ export const prayerRoutes = (app: Express): void => {
         prayers = await prayerRepo.getAll();
       }
 
-      if (userId) {
+      // Só filtrar por userId se NÃO for admin/pastor (eles veem todas do escopo)
+      if (userId && requestingUser && !isPastor(requestingUser) && requestingUser.role !== 'superadmin') {
         const id = parseInt(userId as string);
         prayers = prayers.filter((p: { userId?: number }) => p.userId === id);
       }
@@ -79,7 +80,31 @@ export const prayerRoutes = (app: Express): void => {
         prayers = prayers.filter((p: { isAnswered?: boolean }) => p.isAnswered === answeredFilter);
       }
 
-      sendSuccess(res, prayers);
+      // Enriquecer com dados do usuário (nome, igreja, foto)
+      const enrichedPrayers = await Promise.all(
+        prayers.map(async (prayer: Record<string, unknown>) => {
+          const prayerUserId = Number(prayer.userId);
+          let requesterName = 'Usuário';
+          let requesterChurch = '';
+          let requesterPhoto = null;
+          if (prayerUserId) {
+            const requester = await userRepo.getUserById(prayerUserId);
+            if (requester) {
+              requesterName = requester.name || 'Usuário';
+              requesterChurch = requester.church || '';
+              requesterPhoto = requester.profilePhoto || null;
+            }
+          }
+          return {
+            ...prayer,
+            requesterName,
+            requesterChurch,
+            requesterPhoto,
+          };
+        })
+      );
+
+      sendSuccess(res, enrichedPrayers);
     })
   );
 

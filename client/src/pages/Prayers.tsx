@@ -93,7 +93,7 @@ const Prayers = () => {
         return;
       }
 
-      const url = `/api/prayers?userId=${user.id}&userRole=${user.role}&userChurch=${encodeURIComponent(String(user.church || ''))}`;
+      const url = `/api/prayers`;
       const response = await fetch(url);
 
       if (response.ok) {
@@ -103,15 +103,17 @@ const Prayers = () => {
         // Mapear dados da API para o formato esperado pelo frontend
         const mappedData = data.map((prayer: any) => ({
           ...prayer,
-          userName: prayer.requester_name || 'Usuário',
-          userChurch: prayer.church || 'Igreja',
-          userId: prayer.user_id,
-          emotionalScore: 0, // Default value
-          isAnswered: prayer.is_answered || false,
-          isPrivate: prayer.is_private || false,
-          allowChurchMembers: prayer.allow_church_members || true,
-          createdAt: prayer.created_at,
-          answeredAt: prayer.answered_at,
+          userName: prayer.requesterName || prayer.requester_name || 'Usuário',
+          userChurch: prayer.requesterChurch || prayer.church || 'Igreja',
+          userProfilePhoto: prayer.requesterPhoto || prayer.profilePhoto || null,
+          userId: prayer.userId || prayer.user_id,
+          prayerRequest: prayer.title || prayer.prayerRequest || prayer.description || '',
+          emotionalScore: prayer.emotionalScore || 0,
+          isAnswered: prayer.isAnswered ?? prayer.is_answered ?? false,
+          isPrivate: prayer.isPrivate ?? prayer.is_private ?? false,
+          allowChurchMembers: prayer.allowChurchMembers ?? prayer.allow_church_members ?? true,
+          createdAt: prayer.createdAt || prayer.created_at,
+          answeredAt: prayer.answeredAt || prayer.answered_at,
         }));
         setPrayers(mappedData);
 
