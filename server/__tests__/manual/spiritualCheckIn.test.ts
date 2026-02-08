@@ -202,7 +202,7 @@ function calculateScoreGroups(checkIns: CheckInRecord[], allUsers: MockUser[]) {
 
 async function runTests() {
   console.log('\n🙏 TESTE DO FLUXO COMPLETO DE CHECK-IN ESPIRITUAL (v2 - corrigido)');
-  console.log(`📅 ${  new Date().toLocaleString('pt-BR')}`);
+  console.log(`📅 ${new Date().toLocaleString('pt-BR')}`);
   console.log('👥 5 usuários simulados\n');
 
   const repo = new InMemoryCheckInRepository();
