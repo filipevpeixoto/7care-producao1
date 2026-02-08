@@ -10,12 +10,11 @@ import {
   LucideIcon,
   Mail,
   Heart,
-  BookOpen,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { hasAdminAccess, isSuperAdmin, isPastor } from '@/lib/permissions';
+import { isSuperAdmin, isPastor } from '@/lib/permissions';
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { usePrefetch } from '@/hooks/usePrefetch';
 
@@ -68,9 +67,9 @@ export const MobileBottomNav = memo(() => {
         submenu: [],
       },
       {
-        title: hasAdminAccess(user) ? 'Usuários' : 'Discipulado',
+        title: isSuperAdmin(user) ? 'Usuários' : isPastor(user) ? 'Discipulado' : 'Discipulado',
         icon: Users,
-        path: hasAdminAccess(user) ? '/users' : '/my-interested',
+        path: isSuperAdmin(user) ? '/users' : '/my-interested',
         roles: ['superadmin', 'pastor', 'missionary', 'member'],
         submenu: [],
       },
@@ -90,13 +89,14 @@ export const MobileBottomNav = memo(() => {
         ],
       });
     } else if (isPastor(user)) {
-      // Para pastores, botão Pastoral com submenu
+      // Para pastores, botão Distrito com submenu
       baseItems.push({
-        title: 'Pastoral',
-        icon: BookOpen,
+        title: 'Distrito',
+        icon: Building2,
         path: '#',
         roles: ['pastor'],
         submenu: [
+          { title: 'Usuários', path: '/users', icon: Users },
           { title: 'Pedidos de Oração', path: '/prayers', icon: Heart },
           { title: '7Mount', path: '/gamification', icon: Trophy },
         ],
@@ -174,12 +174,11 @@ export const MobileBottomNav = memo(() => {
     const newActiveIndex = findActiveIndex();
     setActiveIndex(newActiveIndex);
 
-    // Se estiver em uma rota de submenu (admin ou pastoral), abrir o menu
-    const submenuRoutes = [
-      '/districts', '/pastors', '/pastor-invites',
-      '/prayers', '/gamification',
-    ];
-    if (submenuRoutes.includes(location.pathname)) {
+    // Se estiver em uma rota de submenu, abrir o menu automaticamente
+    const allSubmenuRoutes = allowedItems
+      .filter(item => item.submenu && item.submenu.length > 0)
+      .flatMap(item => item.submenu.map((sub: SubmenuItem) => sub.path));
+    if (allSubmenuRoutes.includes(location.pathname)) {
       setAdminMenuOpen(true);
     } else {
       setAdminMenuOpen(false);
