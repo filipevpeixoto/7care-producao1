@@ -87,10 +87,7 @@ export function SituationLevelsConfig({
 
           {/* Levels */}
           {levels.map((level, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-[60px_1fr_50px_36px] gap-2 items-center"
-            >
+            <div key={index} className="grid grid-cols-[60px_1fr_50px_36px] gap-2 items-center">
               <Input
                 value={level.value}
                 onChange={(e) => updateLevel(index, 'value', e.target.value.toUpperCase())}

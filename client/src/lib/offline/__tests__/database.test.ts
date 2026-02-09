@@ -1,9 +1,9 @@
 /**
  * Testes para o banco de dados offline (IndexedDB)
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
   db,
@@ -22,13 +22,13 @@ import {
 } from '../database';
 
 // Mock do crypto
-jest.mock('../crypto', () => ({
-  encryptData: jest.fn((data: unknown) => Promise.resolve(JSON.stringify({ __mock: true, data }))),
-  decryptData: jest.fn((str: string) => {
+vi.mock('../crypto', () => ({
+  encryptData: vi.fn((data: unknown) => Promise.resolve(JSON.stringify({ __mock: true, data }))),
+  decryptData: vi.fn((str: string) => {
     const parsed = JSON.parse(str);
     return Promise.resolve(parsed.data || parsed);
   }),
-  hashData: jest.fn((data: string) => Promise.resolve(`mock-hash-${data.length}`)),
+  hashData: vi.fn((data: string) => Promise.resolve(`mock-hash-${data.length}`)),
 }));
 
 describe('Offline Database Module', () => {

@@ -1,7 +1,13 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Input } from './input';
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('Input', () => {
   it('renders correctly', () => {

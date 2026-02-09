@@ -3,8 +3,8 @@
  * Funções utilitárias para respostas de erro consistentes
  */
 
-import { Response } from 'express';
-import { ApiErrorResponse, ErrorCodes, ErrorCode } from '../types';
+import type { Response } from 'express';
+import { ErrorCodes, type ApiErrorResponse, type ErrorCode } from '../types';
 import { logger } from './logger';
 
 /**

@@ -1,9 +1,9 @@
 /**
  * Testes para o gerenciador de sincronização
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
   processQueue,
@@ -17,15 +17,15 @@ import {
 } from '../database';
 
 // Tipo para o mock do fetch
-type MockFetch = jest.MockedFunction<typeof fetch>;
+type MockFetch = MockedFunction<typeof fetch>;
 
 // Mock do fetch
-const mockFetch = jest.fn() as MockFetch;
+const mockFetch = vi.fn() as MockFetch;
 (global as unknown as { fetch: MockFetch }).fetch = mockFetch;
 
 describe('Sync Manager Module', () => {
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await db.syncQueue.clear();
     
     // Default mock para fetch
@@ -199,7 +199,7 @@ describe('Sync Manager Module', () => {
 
   describe('addSyncListener', () => {
     it('deve adicionar e remover listener', async () => {
-      const listener = jest.fn();
+      const listener = vi.fn();
       const unsubscribe = addSyncListener(listener);
       
       expect(typeof unsubscribe).toBe('function');
@@ -218,7 +218,7 @@ describe('Sync Manager Module', () => {
         value: true,
       });
 
-      const listener = jest.fn();
+      const listener = vi.fn();
       addSyncListener(listener);
 
       await addToSyncQueue({
@@ -238,11 +238,11 @@ describe('Sync Manager Module', () => {
 
   describe('setupAutoSync', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('deve configurar auto sync', () => {

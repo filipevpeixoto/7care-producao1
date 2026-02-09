@@ -3,8 +3,8 @@
  * Extende o tipo Request do Express com propriedades customizadas
  */
 
-import { Request } from 'express';
-import { User } from '@shared/schema';
+import type { Request } from 'express';
+import type { User } from '@shared/schema';
 
 /**
  * Request com userId autenticado

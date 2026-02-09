@@ -51,8 +51,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+type LocalUser = UserType & { photo?: string | null };
+
 interface UserCardProps {
-  user: UserType;
+  user: LocalUser;
   onClick?: () => void;
   onApprove?: () => void;
   onReject?: () => void;
@@ -62,7 +64,7 @@ interface UserCardProps {
   onScheduleVisit?: () => void;
   onDiscipleRequest?: () => void;
   showActions?: boolean;
-  relationshipsData?: Relationship[];
+  relationshipsData?: Array<Relationship & { missionaryName?: string | null }>;
   potentialMissionaries?: UserType[];
   hasPendingDiscipleRequest?: boolean;
 }
@@ -102,7 +104,7 @@ export function UserCardResponsive({
   potentialMissionaries: _potentialMissionaries = [],
   hasPendingDiscipleRequest = false,
 }: UserCardProps) {
-  const [localUser, setLocalUser] = useState<UserType>(user);
+  const [localUser, setLocalUser] = useState<LocalUser>(user);
   const [isMarkingVisit, setIsMarkingVisit] = useState(false);
   const [showMarkVisitModal, setShowMarkVisitModal] = useState(false);
   const [showPhotoPreview, setIsPhotoPreviewOpen] = useState(false);
@@ -147,16 +149,32 @@ export function UserCardResponsive({
     }
   }, [localUser?.id, currentUser]);
 
-  // Carregar discipuladores atuais
+  const getExtraDataObject = (value: LocalUser['extraData']): Record<string, unknown> => {
+    if (value && typeof value === 'object') {
+      return value as Record<string, unknown>;
+    }
+    return {};
+  };
+
   useEffect(() => {
     if (relationshipsData && localUser.role === 'interested') {
-      const userDiscipuladores = relationshipsData
-        .filter((rel) => rel.interestedId === localUser.id && rel.status === 'active')
-        .map((rel) => ({
-          id: rel.missionaryId,
-          name: rel.missionaryName || 'Usuário não encontrado',
-          relationshipId: rel.id,
-        }));
+      const userDiscipuladores: Discipulador[] = relationshipsData.flatMap((rel) => {
+        if (
+          rel.interestedId !== localUser.id ||
+          rel.status !== 'active' ||
+          typeof rel.missionaryId !== 'number'
+        ) {
+          return [];
+        }
+        const missionaryName = rel.missionaryName;
+        return [
+          {
+            id: rel.missionaryId,
+            name: typeof missionaryName === 'string' ? missionaryName : 'Usuário não encontrado',
+            relationshipId: rel.id,
+          },
+        ];
+      });
 
       setCurrentDiscipuladores(userDiscipuladores);
     }
@@ -167,12 +185,14 @@ export function UserCardResponsive({
   };
 
   const getPhotoUrl = () => {
-    if (!localUser.photo) return '';
-    if (localUser.photo.startsWith('http')) return localUser.photo;
-    return `/uploads/${localUser.photo}`;
+    const photo =
+      (localUser as LocalUser).photo || localUser.profilePhoto || localUser.avatarUrl || '';
+    if (!photo) return '';
+    if (photo.startsWith('http')) return photo;
+    return `/uploads/${photo}`;
   };
 
-  const isValidWhatsAppNumber = (phone: string) => {
+  const isValidWhatsAppNumber = (phone?: string | null) => {
     if (!phone) return false;
     const cleanPhone = phone.replace(/\D/g, '');
     return cleanPhone.length >= 10 && cleanPhone.length <= 15;
@@ -214,13 +234,17 @@ export function UserCardResponsive({
       if (response.ok) {
         const result = await response.json();
         // Atualizar o usuário local com os dados da resposta
-        setLocalUser((prev: typeof localUser) => ({
-          ...prev,
-          extraData: {
-            ...prev.extraData,
-            ...result.extraData,
-          },
-        }));
+        setLocalUser((prev: typeof localUser) => {
+          const prevExtraData = getExtraDataObject(prev.extraData);
+          const resultExtraData = getExtraDataObject(result.extraData);
+          return {
+            ...prev,
+            extraData: {
+              ...prevExtraData,
+              ...resultExtraData,
+            },
+          };
+        });
         toast({
           title: 'Visita marcada!',
           description: `Visita registrada para ${localUser.name}`,
@@ -255,13 +279,17 @@ export function UserCardResponsive({
       if (response.ok) {
         const result = await response.json();
         // Atualizar o usuário local com os dados da resposta
-        setLocalUser((prev: typeof localUser) => ({
-          ...prev,
-          extraData: {
-            ...prev.extraData,
-            ...result.extraData,
-          },
-        }));
+        setLocalUser((prev: typeof localUser) => {
+          const prevExtraData = getExtraDataObject(prev.extraData);
+          const resultExtraData = getExtraDataObject(result.extraData);
+          return {
+            ...prev,
+            extraData: {
+              ...prevExtraData,
+              ...resultExtraData,
+            },
+          };
+        });
         setShowMarkVisitModal(false);
         toast({
           title: 'Visita marcada!',
@@ -281,15 +309,23 @@ export function UserCardResponsive({
   };
 
   const isVisited = () => {
-    return localUser.extraData?.visited || false;
+    const extraData = getExtraDataObject(localUser.extraData);
+    const visited = extraData.visited;
+    return typeof visited === 'boolean' ? visited : Boolean(visited);
   };
 
   const getVisitCount = () => {
-    return localUser.extraData?.visitCount || 0;
+    const extraData = getExtraDataObject(localUser.extraData);
+    const visitCount = extraData.visitCount;
+    if (typeof visitCount === 'number') return visitCount;
+    if (typeof visitCount === 'string') return Number(visitCount) || 0;
+    return 0;
   };
 
   const getLastVisitDate = () => {
-    return localUser.extraData?.lastVisitDate;
+    const extraData = getExtraDataObject(localUser.extraData);
+    const lastVisitDate = extraData.lastVisitDate;
+    return typeof lastVisitDate === 'string' ? lastVisitDate : undefined;
   };
 
   const formatVisitDate = (dateString: string) => {

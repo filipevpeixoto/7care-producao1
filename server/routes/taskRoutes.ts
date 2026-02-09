@@ -4,11 +4,11 @@
  * Tarefas salvas no banco de dados, isoladas por pastor/distrito
  */
 
-import { Express, Request, Response } from 'express';
+import type { Express, Request, Response } from 'express';
 import { sql } from '../neonConfig';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../utils';
-import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
+import { validateBody, validateParams, type ValidatedRequest } from '../middleware/validation';
 import { createTaskSchema, updateTaskSchema, idParamSchema } from '../schemas';
 import { sendSuccess, sendCreated, sendNotFound } from '../utils/apiResponse';
 import { getAuthUserId } from '../utils/authHelpers';
@@ -86,7 +86,7 @@ export function taskRoutes(app: Express): void {
       }
 
       // Formatar resposta
-      const formattedTasks = tasks.map((t: any) => ({
+      const formattedTasks = tasks.map((t: Record<string, unknown>) => ({
         id: t.id,
         title: t.title,
         description: t.description || '',
@@ -165,12 +165,18 @@ export function taskRoutes(app: Express): void {
       let createdByName = '';
       let assignedToName = '';
 
-      const creatorResult = await sql`SELECT name FROM users WHERE id = ${userId}`;
-      if (creatorResult.length > 0) createdByName = creatorResult[0].name;
+      const creatorResult = (await sql`SELECT name FROM users WHERE id = ${userId}`) as Array<{
+        name: string;
+      }>;
+      const creatorName = creatorResult[0]?.name;
+      if (creatorName) createdByName = creatorName;
 
       if (assignedToId) {
-        const assigneeResult = await sql`SELECT name FROM users WHERE id = ${assignedToId}`;
-        if (assigneeResult.length > 0) assignedToName = assigneeResult[0].name;
+        const assigneeResult = (await sql`SELECT name FROM users WHERE id = ${assignedToId}`) as Array<{
+          name: string;
+        }>;
+        const assigneeName = assigneeResult[0]?.name;
+        if (assigneeName) assignedToName = assigneeName;
       }
 
       const formattedTask = {
@@ -193,7 +199,7 @@ export function taskRoutes(app: Express): void {
       };
 
       logger.info(`✅ Tarefa criada: ${task.id} - "${title}" (distrito: ${districtId})`);
-      sendCreated(res, formattedTask);
+      return sendCreated(res, formattedTask);
     })
   );
 
@@ -240,12 +246,12 @@ export function taskRoutes(app: Express): void {
       }
 
       const updates = req.body;
-      const completedAt =
-        updates.status === 'completed' && existingTask.status !== 'completed'
-          ? new Date().toISOString()
-          : updates.status !== 'completed'
-            ? null
-            : existingTask.completed_at;
+      let completedAt: string | null = existingTask.completed_at as string | null;
+      if (updates.status === 'completed' && existingTask.status !== 'completed') {
+        completedAt = new Date().toISOString();
+      } else if (updates.status !== 'completed') {
+        completedAt = null;
+      }
 
       const result = await sql`
         UPDATE tasks SET
@@ -272,12 +278,18 @@ export function taskRoutes(app: Express): void {
       let createdByName = '';
       let assignedToName = '';
 
-      const creatorResult = await sql`SELECT name FROM users WHERE id = ${task.created_by_id}`;
-      if (creatorResult.length > 0) createdByName = creatorResult[0].name;
+      const creatorResult = (await sql`SELECT name FROM users WHERE id = ${task.created_by_id}`) as Array<{
+        name: string;
+      }>;
+      const creatorName = creatorResult[0]?.name;
+      if (creatorName) createdByName = creatorName;
 
       if (task.assigned_to_id) {
-        const assigneeResult = await sql`SELECT name FROM users WHERE id = ${task.assigned_to_id}`;
-        if (assigneeResult.length > 0) assignedToName = assigneeResult[0].name;
+        const assigneeResult = (await sql`SELECT name FROM users WHERE id = ${task.assigned_to_id}`) as Array<{
+          name: string;
+        }>;
+        const assigneeName = assigneeResult[0]?.name;
+        if (assigneeName) assignedToName = assigneeName;
       }
 
       const formattedTask = {
@@ -374,27 +386,45 @@ export function taskRoutes(app: Express): void {
       }
 
       const currentUser = userResult[0];
-      let users;
+      let users: Array<{
+        id: number;
+        name: string;
+        email: string;
+        role: string;
+        church: string | null;
+      }>;
 
       if (currentUser.role === 'superadmin') {
         // Superadmin vê todos os usuários
-        users = await sql`
+        users = (await sql`
           SELECT id, name, email, role, church
           FROM users
           WHERE status = 'active' OR status IS NULL
           ORDER BY name ASC
           LIMIT 500
-        `;
+        `) as Array<{
+          id: number;
+          name: string;
+          email: string;
+          role: string;
+          church: string | null;
+        }>;
       } else if (currentUser.district_id) {
         // Pastor/membro: apenas usuários do seu distrito
-        users = await sql`
+        users = (await sql`
           SELECT id, name, email, role, church
           FROM users
           WHERE district_id = ${currentUser.district_id}
             AND (status = 'active' OR status IS NULL)
           ORDER BY name ASC
           LIMIT 500
-        `;
+        `) as Array<{
+          id: number;
+          name: string;
+          email: string;
+          role: string;
+          church: string | null;
+        }>;
       } else {
         users = [];
       }

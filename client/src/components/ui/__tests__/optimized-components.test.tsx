@@ -3,8 +3,10 @@
  * @module tests/components/optimized-components
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import {
   OptimizedCard,
@@ -16,19 +18,19 @@ import {
 
 // Mock dos componentes UI base
 vi.mock('../card', () => ({
-  Card: ({ children, className, onClick }: any) => (
+  Card: ({ children, className, onClick }: React.PropsWithChildren<{ className?: string; onClick?: () => void }>) => (
     <div data-testid="card" className={className} onClick={onClick}>
       {children}
     </div>
   ),
-  CardContent: ({ children }: any) => <div data-testid="card-content">{children}</div>,
-  CardDescription: ({ children }: any) => <p data-testid="card-description">{children}</p>,
-  CardHeader: ({ children, className }: any) => (
+  CardContent: ({ children }: React.PropsWithChildren) => <div data-testid="card-content">{children}</div>,
+  CardDescription: ({ children }: React.PropsWithChildren) => <p data-testid="card-description">{children}</p>,
+  CardHeader: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => (
     <div data-testid="card-header" className={className}>
       {children}
     </div>
   ),
-  CardTitle: ({ children, className }: any) => (
+  CardTitle: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => (
     <h3 data-testid="card-title" className={className}>
       {children}
     </h3>
@@ -36,7 +38,7 @@ vi.mock('../card', () => ({
 }));
 
 vi.mock('../badge', () => ({
-  Badge: ({ children, variant }: any) => (
+  Badge: ({ children, variant }: React.PropsWithChildren<{ variant?: string }>) => (
     <span data-testid="badge" data-variant={variant}>
       {children}
     </span>
@@ -44,18 +46,22 @@ vi.mock('../badge', () => ({
 }));
 
 vi.mock('../avatar', () => ({
-  Avatar: ({ children, className }: any) => (
+  Avatar: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => (
     <div data-testid="avatar" className={className}>
       {children}
     </div>
   ),
-  AvatarFallback: ({ children }: any) => <span data-testid="avatar-fallback">{children}</span>,
-  AvatarImage: ({ src, alt }: any) => <img data-testid="avatar-image" src={src} alt={alt} />,
+  AvatarFallback: ({ children }: React.PropsWithChildren) => <span data-testid="avatar-fallback">{children}</span>,
+  AvatarImage: ({ src, alt }: { src?: string; alt?: string }) => <img data-testid="avatar-image" src={src} alt={alt} />,
 }));
 
 vi.mock('../skeleton', () => ({
-  Skeleton: ({ className }: any) => <div data-testid="skeleton" className={className} />,
+  Skeleton: ({ className }: { className?: string }) => <div data-testid="skeleton" className={className} />,
 }));
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('OptimizedCard', () => {
   it('deve renderizar título', () => {
@@ -304,12 +310,11 @@ describe('OptimizedSearchInput', () => {
 
   it('deve atualizar valor local imediatamente', async () => {
     const handleChange = vi.fn();
-    const user = userEvent.setup({ delay: null });
 
     render(<OptimizedSearchInput value="" onChange={handleChange} />);
 
-    const input = screen.getByRole('textbox');
-    await user.type(input, 'test');
+    const input = screen.getByRole('searchbox');
+    fireEvent.change(input, { target: { value: 'test' } });
 
     expect(input).toHaveValue('test');
   });
@@ -319,7 +324,7 @@ describe('OptimizedSearchInput', () => {
 
     render(<OptimizedSearchInput value="" onChange={handleChange} debounceMs={300} />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('searchbox');
     fireEvent.change(input, { target: { value: 'search term' } });
 
     // Antes do debounce
@@ -336,7 +341,7 @@ describe('OptimizedSearchInput', () => {
 
     render(<OptimizedSearchInput value="" onChange={handleChange} debounceMs={300} />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('searchbox');
 
     fireEvent.change(input, { target: { value: 'first' } });
     vi.advanceTimersByTime(150);

@@ -1,9 +1,9 @@
 /**
  * Testes para funções de autenticação
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // Mock do localStorage
 const localStorageMock = (() => {

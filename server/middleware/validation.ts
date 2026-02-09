@@ -3,8 +3,9 @@
  * Middleware para validação de requests usando Zod
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError, ZodType } from 'zod';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Request, Response, NextFunction } from 'express';
+import type { ZodError, ZodType } from 'zod';
 import { ErrorCodes } from '../types';
 
 /**
@@ -37,7 +38,7 @@ const formatZodErrors = (error: ZodError): { field: string; message: string }[] 
  * });
  * ```
  */
-export const validateBody = <T>(schema: ZodSchema<T>) => {
+export const validateBody = <T>(schema: ZodType<T, any, any>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
       const result = schema.safeParse(req.body);
@@ -85,7 +86,7 @@ export const validateQuery = <T>(schema: ZodType<T, any, any>) => {
 
       // Substitui query pelos dados validados
       req.query = result.data as Record<string, string>;
-      (req as any).validatedQuery = result.data;
+      (req as ValidatedRequest<T>).validatedQuery = result.data;
       next();
     } catch (_error) {
       res.status(500).json({
@@ -116,7 +117,7 @@ export const validateParams = <T>(schema: ZodType<T, any, any>) => {
       }
 
       req.params = result.data as Record<string, string>;
-      (req as any).validatedParams = result.data;
+      (req as ValidatedRequest<T>).validatedParams = result.data;
       next();
     } catch (_error) {
       res.status(500).json({

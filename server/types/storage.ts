@@ -3,7 +3,7 @@
  * Tipos TypeScript para o NeonAdapter e interface IStorage
  */
 
-import {
+import type {
   User,
   Church,
   Event,

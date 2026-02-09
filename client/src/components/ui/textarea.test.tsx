@@ -1,7 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import React, { createRef } from 'react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Textarea } from './textarea';
-import { createRef } from 'react';
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('Textarea', () => {
   it('renders correctly', () => {

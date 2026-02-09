@@ -3,13 +3,18 @@
  * @module client/src/components/ui/__tests__/snapshots.test
  */
 
-import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/react';
+import React from 'react';
+import { describe, it, expect, afterEach } from 'vitest';
+import { render, cleanup } from '@testing-library/react';
 import { Button } from '../button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../card';
 import { Badge } from '../badge';
 import { Alert, AlertTitle, AlertDescription } from '../alert';
 import { Skeleton } from '../skeleton';
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('Snapshot Tests - Componentes UI', () => {
   describe('Button', () => {

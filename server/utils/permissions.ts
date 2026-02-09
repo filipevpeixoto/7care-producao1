@@ -2,7 +2,7 @@
  * Funções helper para verificação de permissões baseadas em roles
  */
 
-import { User } from '../../shared/schema';
+import type { User } from '../../shared/schema';
 
 // Tipo para verificação de permissões - aceita User completo ou parcial
 export type PermissionUser = Partial<User> | User;
@@ -123,4 +123,3 @@ export const canImportChurchesToDistrict = (
   if (isPastor(user) && user.districtId === districtId) return true;
   return false;
 };
-

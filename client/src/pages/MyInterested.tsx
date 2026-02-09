@@ -989,7 +989,7 @@ export default function MyInterested() {
                         <strong>{invite.interestedName || getUserInfo(invite.interestedId)}</strong>
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Recebido em {formatDate(invite.requestedAt || invite.createdAt)}
+                        Recebido em {formatDate(invite.requestedAt || invite.createdAt || '')}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -1080,7 +1080,7 @@ export default function MyInterested() {
                                   <Badge
                                     className="border-0 mb-1"
                                     style={{
-                                      backgroundColor: level.color + '20',
+                                      backgroundColor: `${level.color}20`,
                                       color: level.color,
                                     }}
                                     title={level.label}
@@ -1263,7 +1263,7 @@ export default function MyInterested() {
                                       style={
                                         isActive
                                           ? {
-                                              backgroundColor: opt.color + '20',
+                                              backgroundColor: `${opt.color}20`,
                                               color: opt.color,
                                               '--tw-ring-color': opt.color,
                                             } as React.CSSProperties

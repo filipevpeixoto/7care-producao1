@@ -3,7 +3,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import React, { Suspense, lazy, useEffect, useMemo, Component, ErrorInfo, ReactNode } from 'react';
+import React, { Suspense, lazy, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { Login } from './pages/Login';
 import { FirstAccessWelcome } from './components/auth/FirstAccessWelcome';
 import {
@@ -34,6 +34,7 @@ import './styles/view-transitions.css';
 
 // Retry wrapper for lazy imports — if a chunk fails to load (e.g. after deploy),
 // retry once and then force-reload the page so the browser fetches the new assets.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
   return lazy(() =>
     importFn().catch((err) => {
@@ -41,7 +42,7 @@ function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<an
       return importFn().catch((retryErr) => {
         console.error('[LazyLoad] Retry also failed — reloading page', retryErr);
         // Avoid infinite reload loop by checking a sessionStorage flag
-        const key = 'chunk_reload_' + window.location.pathname;
+        const key = `chunk_reload_${window.location.pathname}`;
         if (!sessionStorage.getItem(key)) {
           sessionStorage.setItem(key, '1');
           window.location.reload();
@@ -88,13 +89,10 @@ const NotFound = lazyWithRetry(() => import('./pages/NotFound'));
 // Loading component for lazy loaded pages - com skeleton específico por rota
 const PageLoader = () => {
   const location = useLocation();
-  const SkeletonComponent = useMemo(
-    () => getSkeletonForRoute(location.pathname),
-    [location.pathname]
-  );
+  const SkeletonComponent = getSkeletonForRoute(location.pathname);
   return (
     <div className="page-loading-fallback">
-      <SkeletonComponent />
+      {React.createElement(SkeletonComponent)}
     </div>
   );
 };
@@ -220,6 +218,7 @@ const RoutesWrapper = () => {
 };
 
 // Create optimized query client - exportado para uso global (ex: limpar cache no login/logout)
+// eslint-disable-next-line react-refresh/only-export-components
 export const queryClient = createQueryClient();
 
 // Wrapper para sincronização do role do usuário com o sistema offline
@@ -307,10 +306,7 @@ const App = () => {
 
     // Expor função de teste offline no window para debug
     if (typeof window !== 'undefined') {
-      (window as any).testOfflineData = testOfflineData;
-      console.log(
-        '🔍 Debug disponível: execute window.testOfflineData() para testar dados offline'
-      );
+      (window as unknown as Record<string, unknown>).testOfflineData = testOfflineData;
     }
 
     return () => {

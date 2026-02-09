@@ -3,7 +3,7 @@
  * Helpers para paginação consistente em toda a API
  */
 
-import { Request } from 'express';
+import type { Request } from 'express';
 
 export interface PaginationParams {
   page: number;

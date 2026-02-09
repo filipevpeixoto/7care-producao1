@@ -1,7 +1,7 @@
 /**
  * Extensão de tipos do Express para autenticação
  */
-import { User as SharedUser } from '../../shared/schema';
+import type { User as SharedUser } from '../../shared/schema';
 
 type UserRole =
   | 'superadmin'

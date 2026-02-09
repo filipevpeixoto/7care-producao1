@@ -1,9 +1,9 @@
 /**
  * Testes para o módulo de criptografia offline
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, beforeAll } from '@jest/globals';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { webcrypto } from 'crypto';
 import { encryptData, decryptData, isCryptoAvailable, clearEncryptionKey } from '../crypto';
 

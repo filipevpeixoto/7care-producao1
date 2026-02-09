@@ -7,7 +7,7 @@
  * @module utils/apiResponse
  */
 
-import { Response } from 'express';
+import type { Response } from 'express';
 import { ErrorCodes } from '../types';
 
 // ============ TIPOS ============

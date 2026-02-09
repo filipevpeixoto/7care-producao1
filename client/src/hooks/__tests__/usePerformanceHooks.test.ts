@@ -92,12 +92,18 @@ describe('usePerformanceHooks', () => {
   });
 
   describe('useThrottle', () => {
-    it('deve executar função imediatamente na primeira chamada', () => {
+    it('deve executar função após o delay na primeira chamada', () => {
       const fn = vi.fn();
       const { result } = renderHook(() => useThrottle(fn, 300));
 
       act(() => {
         result.current();
+      });
+
+      expect(fn).toHaveBeenCalledTimes(0);
+
+      act(() => {
+        vi.advanceTimersByTime(300);
       });
 
       expect(fn).toHaveBeenCalledTimes(1);
@@ -113,14 +119,13 @@ describe('usePerformanceHooks', () => {
         result.current();
       });
 
-      // Primeira chamada + uma programada para o final
-      expect(fn).toHaveBeenCalledTimes(1);
+      expect(fn).toHaveBeenCalledTimes(0);
 
       act(() => {
         vi.advanceTimersByTime(300);
       });
 
-      expect(fn).toHaveBeenCalledTimes(2);
+      expect(fn).toHaveBeenCalledTimes(1);
     });
 
     it('deve passar argumentos para a função', () => {
@@ -129,6 +134,10 @@ describe('usePerformanceHooks', () => {
 
       act(() => {
         result.current('arg1', 'arg2');
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(300);
       });
 
       expect(fn).toHaveBeenCalledWith('arg1', 'arg2');

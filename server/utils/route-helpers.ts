@@ -5,7 +5,7 @@
 
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { logger } from './logger';
-import { auditService, AuditContext } from '../services/auditService';
+import { auditService, type AuditContext } from '../services/auditService';
 
 /**
  * Tipos de erro HTTP comuns

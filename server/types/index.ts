@@ -3,8 +3,8 @@
  * Definições de tipos para Express, API responses, e entidades
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { User as SharedUser } from '../../shared/schema';
+import type { NextFunction, Request, Response } from 'express';
+import type { User as SharedUser } from '../../shared/schema';
 
 // ============================================
 // Tipos de Usuário e Autenticação

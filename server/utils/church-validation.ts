@@ -3,7 +3,7 @@
  * Algoritmo de similaridade de nomes
  */
 
-import {
+import type {
   SimilarChurch,
   ChurchValidationStatus,
   ValidationResult,

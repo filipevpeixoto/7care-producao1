@@ -4,6 +4,9 @@
  * Agrupa requisições de dados em lotes para otimizar performance
  */
 
+import type { NextFunction, Request, Response } from 'express';
+import { churchRepository } from '../repositories/churchRepository';
+import { userRepository } from '../repositories/userRepository';
 import { logger } from './logger';
 
 export interface DataLoaderOptions<K, V> {
@@ -165,9 +168,6 @@ export const createDataLoader = <K, V>(
 /**
  * DataLoaders prontos para uso
  */
-import { userRepository } from '../repositories/userRepository';
-import { churchRepository } from '../repositories/churchRepository';
-
 // Cache por request (deve ser criado a cada request)
 export const createRequestDataLoaders = () => ({
   userById: createDataLoader<number, unknown>(async ids => {
@@ -193,16 +193,9 @@ export const createRequestDataLoaders = () => ({
 
 export type RequestDataLoaders = ReturnType<typeof createRequestDataLoaders>;
 
-/**
- * Middleware Express para adicionar DataLoaders ao request
- */
-import type { Request, Response, NextFunction } from 'express';
-
-declare global {
-  namespace Express {
-    interface Request {
-      loaders?: RequestDataLoaders;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    loaders?: RequestDataLoaders;
   }
 }
 

@@ -7,7 +7,7 @@
  * @module utils/asyncHandler
  */
 
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { logger } from './logger';
 import { sendInternalError } from './apiResponse';
 

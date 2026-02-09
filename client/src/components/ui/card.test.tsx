@@ -1,6 +1,12 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import React from 'react';
+import { render, screen, cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './card';
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('Card Components', () => {
   describe('Card', () => {

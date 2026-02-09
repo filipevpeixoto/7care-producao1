@@ -1,11 +1,12 @@
 /**
  * Testes para componentes de eleição
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   ElectionStatusBadge,
   ElectionStatCard,
@@ -17,31 +18,31 @@ import {
 } from '../ElectionComponents';
 
 // Mock dos componentes UI
-jest.mock('@/components/ui/card', () => ({
-  Card: ({ children, className }: any) => <div className={className} data-testid="card">{children}</div>,
-  CardContent: ({ children }: any) => <div data-testid="card-content">{children}</div>,
-  CardDescription: ({ children }: any) => <p data-testid="card-description">{children}</p>,
-  CardHeader: ({ children }: any) => <div data-testid="card-header">{children}</div>,
-  CardTitle: ({ children, className }: any) => <h3 className={className} data-testid="card-title">{children}</h3>,
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => <div className={className} data-testid="card">{children}</div>,
+  CardContent: ({ children }: React.PropsWithChildren) => <div data-testid="card-content">{children}</div>,
+  CardDescription: ({ children }: React.PropsWithChildren) => <p data-testid="card-description">{children}</p>,
+  CardHeader: ({ children }: React.PropsWithChildren) => <div data-testid="card-header">{children}</div>,
+  CardTitle: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => <h3 className={className} data-testid="card-title">{children}</h3>,
 }));
 
-jest.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, variant, className }: any) => (
+vi.mock('@/components/ui/badge', () => ({
+  Badge: ({ children, variant, className }: React.PropsWithChildren<{ variant?: string; className?: string }>) => (
     <span data-testid="badge" data-variant={variant} className={className}>
       {children}
     </span>
   ),
 }));
 
-jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, variant, size }: any) => (
+vi.mock('@/components/ui/button', () => ({
+  Button: ({ children, onClick, variant, size }: React.PropsWithChildren<{ onClick?: () => void; variant?: string; size?: string }>) => (
     <button onClick={onClick} data-testid="button" data-variant={variant} data-size={size}>
       {children}
     </button>
   ),
 }));
 
-jest.mock('lucide-react', () => ({
+vi.mock('lucide-react', () => ({
   Vote: () => <span data-testid="icon-vote">Vote</span>,
   Clock: () => <span data-testid="icon-clock">Clock</span>,
   Users: () => <span data-testid="icon-users">Users</span>,
@@ -57,6 +58,10 @@ jest.mock('lucide-react', () => ({
   AlertCircle: () => <span data-testid="icon-alert">AlertCircle</span>,
   ArrowRight: () => <span data-testid="icon-arrow">ArrowRight</span>,
 }));
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('ElectionStatusBadge', () => {
   it('deve renderizar status "active" corretamente', () => {
@@ -161,7 +166,7 @@ describe('ElectionEmptyState', () => {
   });
 
   it('deve chamar action.onClick quando botão é clicado', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
     render(
       <ElectionEmptyState 
         title="Sem eleições" 
@@ -195,10 +200,10 @@ describe('ElectionListItem', () => {
   });
 
   it('deve chamar onView quando clicado', () => {
-    const handleView = jest.fn();
+    const handleView = vi.fn();
     render(<ElectionListItem election={mockElection} onView={handleView} />);
     
-    const viewButton = screen.getAllByTestId('button').find(btn => 
+    const viewButton = screen.getAllByTestId('button').find((btn: HTMLElement) => 
       btn.textContent?.includes('Ver')
     );
     if (viewButton) {
@@ -208,10 +213,10 @@ describe('ElectionListItem', () => {
   });
 
   it('deve chamar onDelete quando clicado', () => {
-    const handleDelete = jest.fn();
+    const handleDelete = vi.fn();
     render(<ElectionListItem election={mockElection} onDelete={handleDelete} />);
     
-    const deleteButton = screen.getAllByTestId('button').find(btn => 
+    const deleteButton = screen.getAllByTestId('button').find((btn: HTMLElement) => 
       btn.textContent?.includes('Excluir')
     );
     if (deleteButton) {
@@ -221,7 +226,7 @@ describe('ElectionListItem', () => {
   });
 
   it('deve mostrar botão Pausar para eleição ativa', () => {
-    const handlePause = jest.fn();
+    const handlePause = vi.fn();
     render(<ElectionListItem election={mockElection} onPause={handlePause} />);
     
     expect(screen.getByText(/Pausar/i)).toBeInTheDocument();
@@ -229,7 +234,7 @@ describe('ElectionListItem', () => {
 
   it('deve mostrar botão Iniciar para eleição em rascunho', () => {
     const draftElection = { ...mockElection, status: 'draft' as const };
-    const handleStart = jest.fn();
+    const handleStart = vi.fn();
     render(<ElectionListItem election={draftElection} onStart={handleStart} />);
     
     expect(screen.getByText(/Iniciar/i)).toBeInTheDocument();
@@ -237,9 +242,7 @@ describe('ElectionListItem', () => {
 
   it('não deve mostrar ações quando showActions=false', () => {
     render(<ElectionListItem election={mockElection} showActions={false} />);
-    
-    expect(screen.queryByText(/Ver/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Editar/)).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId('button')).toHaveLength(0);
   });
 });
 

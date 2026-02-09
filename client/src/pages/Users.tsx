@@ -81,10 +81,10 @@ export default function Users() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { levels: situationLevels } = useSituationLevels();
-  
+
   // Flag para verificar se auth está pronto (não está carregando E tem user)
   const isAuthReady = !authLoading && !!user?.id;
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -322,7 +322,7 @@ export default function Users() {
   // Funções para calcular contagens dos filtros
   const getMountainCount = (mountain: string) => {
     if (mountain === 'all') return users.length;
-    return users.filter(user => {
+    return users.filter((user) => {
       const points = user.points || 0;
       switch (mountain) {
         case 'vale':
@@ -350,21 +350,24 @@ export default function Users() {
   };
 
   const getInterestedSituationCount = (situation: string) => {
-    if (situation === 'all') return users.filter(u => u.role === 'interested').length;
-    if (situation === 'total') return users.filter(u => u.role === 'interested').length;
+    if (situation === 'all') return users.filter((u) => u.role === 'interested').length;
+    if (situation === 'total') return users.filter((u) => u.role === 'interested').length;
     if (situation === 'no-situation') {
-      return users.filter(u => u.role === 'interested' && !u.interestedSituation).length;
+      return users.filter((u) => u.role === 'interested' && !u.interestedSituation).length;
     }
-    return users.filter(u => u.role === 'interested' && u.interestedSituation === situation).length;
+    return users.filter((u) => u.role === 'interested' && u.interestedSituation === situation)
+      .length;
   };
 
   // Função para contar usuários por monte considerando restrições de missionários e discipuladores
   const getUsersCountByMountain = (mountainKey: string) => {
     // Verificar se o usuário atual é missionário OU é membro com relacionamentos ativos (discipulador)
     const isUserMissionary = user?.role === 'missionary';
-    const isUserDiscipulador = user?.role === 'member' && safeRelationshipsData.some(
-      (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.status === 'active'
-    );
+    const isUserDiscipulador =
+      user?.role === 'member' &&
+      safeRelationshipsData.some(
+        (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.status === 'active'
+      );
 
     if (isUserMissionary || isUserDiscipulador) {
       // Para missionários e discipuladores, contar apenas interessados vinculados
@@ -373,7 +376,10 @@ export default function Users() {
 
         // Verificar se o interessado está vinculado ao missionário/discipulador atual
         const isLinkedToMissionary = safeRelationshipsData.some(
-          (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.interestedId === u.id && rel.status === 'active'
+          (rel: Relationship) =>
+            rel.missionaryId === Number(user?.id) &&
+            rel.interestedId === u.id &&
+            rel.status === 'active'
         );
         if (!isLinkedToMissionary) return false;
 
@@ -536,15 +542,20 @@ export default function Users() {
 
       // Verificar se o usuário atual é missionário OU é membro com relacionamentos ativos (discipulador)
       const isUserMissionary = user?.role === 'missionary';
-      const isUserDiscipulador = user?.role === 'member' && safeRelationshipsData.some(
-        (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.status === 'active'
-      );
+      const isUserDiscipulador =
+        user?.role === 'member' &&
+        safeRelationshipsData.some(
+          (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.status === 'active'
+        );
 
       if (isUserMissionary || isUserDiscipulador) {
         if (u.role === 'interested') {
           // Verificar se o interessado está vinculado ao missionário/discipulador atual
           matchesMissionaryRestriction = safeRelationshipsData.some(
-            (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.interestedId === u.id && rel.status === 'active'
+            (rel: Relationship) =>
+              rel.missionaryId === Number(user?.id) &&
+              rel.interestedId === u.id &&
+              rel.status === 'active'
           );
         } else if (user?.id !== null && user?.id !== undefined && u.id === Number(user.id)) {
           // Missionário/discipulador pode ver seu próprio perfil
@@ -604,7 +615,7 @@ export default function Users() {
 
   const approveUserMutation = useMutation({
     mutationFn: (userId: number) =>
-      fetch(`/api/users/${userId}/approve`, { method: 'POST' }).then(res => res.json()),
+      fetch(`/api/users/${userId}/approve`, { method: 'POST' }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
       // Dispatch custom event to update dashboard
@@ -618,7 +629,7 @@ export default function Users() {
 
   const rejectUserMutation = useMutation({
     mutationFn: (userId: number) =>
-      fetch(`/api/users/${userId}/reject`, { method: 'POST' }).then(res => res.json()),
+      fetch(`/api/users/${userId}/reject`, { method: 'POST' }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
       // Dispatch custom event to update dashboard
@@ -645,7 +656,7 @@ export default function Users() {
         method: 'PUT',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' },
-      }).then(res => res.json()),
+      }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
       // Dispatch custom event to update dashboard
@@ -689,8 +700,7 @@ export default function Users() {
     onError: (error: unknown) => {
       toast({
         title: '❌ Erro ao criar usuário',
-        description:
-          error instanceof Error ? error.message : 'Não foi possível criar o usuário.',
+        description: error instanceof Error ? error.message : 'Não foi possível criar o usuário.',
         variant: 'destructive',
       });
     },
@@ -715,7 +725,7 @@ export default function Users() {
   };
 
   const handleCreateFormChange = (field: string, value: string) => {
-    setCreateFormData(prev => ({ ...prev, [field]: value }));
+    setCreateFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCreateUserSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -761,7 +771,7 @@ export default function Users() {
       setShowDeleteDialog(false);
       setUserToDelete(null);
     },
-    onError: error => {
+    onError: (error) => {
       toast({
         title: '❌ Erro ao excluir usuário',
         description: error.message || 'Não foi possível excluir o usuário.',
@@ -913,7 +923,7 @@ export default function Users() {
       ];
 
       // Invalidar todos os caches
-      cacheKeys.forEach(key => {
+      cacheKeys.forEach((key) => {
         queryClient.invalidateQueries({ queryKey: [key] });
       });
 
@@ -925,15 +935,15 @@ export default function Users() {
         'all-relationships',
       ];
 
-      criticalKeys.forEach(key => {
+      criticalKeys.forEach((key) => {
         queryClient.refetchQueries({ queryKey: [key] });
       });
 
       // Aguardar um pouco para garantir que as operações sejam concluídas
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Invalidar novamente para garantir sincronização
-      cacheKeys.forEach(key => {
+      cacheKeys.forEach((key) => {
         queryClient.invalidateQueries({ queryKey: [key] });
       });
 
@@ -1345,7 +1355,6 @@ export default function Users() {
               </CardContent>
             </Card>
           </div>
-
         </div>
 
         {/* Situação dos Amigos */}
@@ -1369,14 +1378,15 @@ export default function Users() {
                     borderColor: isActive ? level.color : `${level.color}30`,
                     color: isActive ? '#fff' : level.color,
                   }}
-                  onClick={() =>
-                    handleInterestedSituationClick(isActive ? 'all' : level.value)
-                  }
+                  onClick={() => handleInterestedSituationClick(isActive ? 'all' : level.value)}
                   title={`Clique para filtrar amigos ${level.label}`}
                 >
                   <CardContent className="p-3 text-center relative z-10">
                     <div className="text-xl font-bold mb-1">{count}</div>
-                    <div className="text-sm font-semibold mb-1" style={{ opacity: isActive ? 1 : 0.85 }}>
+                    <div
+                      className="text-sm font-semibold mb-1"
+                      style={{ opacity: isActive ? 1 : 0.85 }}
+                    >
                       {level.label}
                     </div>
                     <div className="text-xs" style={{ opacity: isActive ? 0.9 : 0.7 }}>
@@ -1408,7 +1418,9 @@ export default function Users() {
                   {getInterestedSituationCount('no-situation')}
                 </div>
                 <div className="text-sm font-semibold mb-1">Sem Situação Definida</div>
-                <div className="text-xs" style={{ opacity: 0.8 }}>Precisa de Acompanhamento</div>
+                <div className="text-xs" style={{ opacity: 0.8 }}>
+                  Precisa de Acompanhamento
+                </div>
               </CardContent>
             </Card>
 
@@ -1426,11 +1438,11 @@ export default function Users() {
               title="Clique para filtrar todos os amigos"
             >
               <CardContent className="p-3 text-center relative z-10">
-                <div className="text-xl font-bold mb-1">
-                  {getInterestedSituationCount('total')}
-                </div>
+                <div className="text-xl font-bold mb-1">{getInterestedSituationCount('total')}</div>
                 <div className="text-sm font-semibold mb-1">Total de Amigos</div>
-                <div className="text-xs" style={{ opacity: 0.8 }}>Todos os Tipos</div>
+                <div className="text-xs" style={{ opacity: 0.8 }}>
+                  Todos os Tipos
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1443,7 +1455,7 @@ export default function Users() {
             <Input
               placeholder="Buscar por nome ou email..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 sm:pl-10 text-xs sm:text-base h-8 sm:h-10"
               data-testid="input-search"
             />
@@ -1792,7 +1804,7 @@ export default function Users() {
         <DialogWithModalTracking
           modalId="create-user-modal"
           open={showCreateModal}
-          onOpenChange={open => !open && setShowCreateModal(false)}
+          onOpenChange={(open) => !open && setShowCreateModal(false)}
         >
           <DialogContent
             className="max-w-lg w-[95vw]"
@@ -1812,7 +1824,7 @@ export default function Users() {
                   <Input
                     id="create-name"
                     value={createFormData.name}
-                    onChange={e => handleCreateFormChange('name', e.target.value)}
+                    onChange={(e) => handleCreateFormChange('name', e.target.value)}
                     required
                   />
                 </div>
@@ -1822,7 +1834,7 @@ export default function Users() {
                     id="create-email"
                     type="email"
                     value={createFormData.email}
-                    onChange={e => handleCreateFormChange('email', e.target.value)}
+                    onChange={(e) => handleCreateFormChange('email', e.target.value)}
                     required
                   />
                 </div>
@@ -1831,7 +1843,7 @@ export default function Users() {
                   <Input
                     id="create-phone"
                     value={createFormData.phone}
-                    onChange={e => handleCreateFormChange('phone', e.target.value)}
+                    onChange={(e) => handleCreateFormChange('phone', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1839,14 +1851,14 @@ export default function Users() {
                   <Input
                     id="create-church"
                     value={createFormData.church}
-                    onChange={e => handleCreateFormChange('church', e.target.value)}
+                    onChange={(e) => handleCreateFormChange('church', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="create-role">Perfil</Label>
                   <Select
                     value={createFormData.role}
-                    onValueChange={value => handleCreateFormChange('role', value)}
+                    onValueChange={(value) => handleCreateFormChange('role', value)}
                   >
                     <SelectTrigger id="create-role">
                       <SelectValue placeholder="Selecione o perfil" />
@@ -1878,16 +1890,12 @@ export default function Users() {
                     type="password"
                     minLength={6}
                     value={createFormData.password}
-                    onChange={e => handleCreateFormChange('password', e.target.value)}
+                    onChange={(e) => handleCreateFormChange('password', e.target.value)}
                   />
                 </div>
               </div>
               <DialogFooter className="gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateModal(false)}
-                >
+                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={createUserMutation.isPending}>
@@ -1945,7 +1953,7 @@ export default function Users() {
                 <textarea
                   id="disciple-message"
                   value={discipleMessage}
-                  onChange={e => setDiscipleMessage(e.target.value)}
+                  onChange={(e) => setDiscipleMessage(e.target.value)}
                   className="col-span-3 min-h-[100px] p-3 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Digite sua mensagem de solicitação..."
                 />
@@ -1987,15 +1995,17 @@ export default function Users() {
                     <div>
                       <span className="font-medium text-muted-foreground">Missionário:</span>
                       <div className="font-medium">
-                        {usersWithDiscipleRequests.find(u => u.id === selectedRequest.missionaryId)
-                          ?.name || `Usuário ${selectedRequest.missionaryId}`}
+                        {usersWithDiscipleRequests.find(
+                          (u) => u.id === selectedRequest.missionaryId
+                        )?.name || `Usuário ${selectedRequest.missionaryId}`}
                       </div>
                     </div>
                     <div>
                       <span className="font-medium text-muted-foreground">Amigo:</span>
                       <div className="font-medium">
-                        {usersWithDiscipleRequests.find(u => u.id === selectedRequest.interestedId)
-                          ?.name || `Usuário ${selectedRequest.interestedId}`}
+                        {usersWithDiscipleRequests.find(
+                          (u) => u.id === selectedRequest.interestedId
+                        )?.name || `Usuário ${selectedRequest.interestedId}`}
                       </div>
                     </div>
                   </div>
@@ -2015,7 +2025,7 @@ export default function Users() {
                     <label className="text-sm font-medium">Notas do Administrador:</label>
                     <textarea
                       value={adminNotes}
-                      onChange={e => setAdminNotes(e.target.value)}
+                      onChange={(e) => setAdminNotes(e.target.value)}
                       className="w-full mt-1 p-2 border rounded-md"
                       rows={3}
                       placeholder="Adicione observações sobre sua decisão..."
@@ -2032,7 +2042,10 @@ export default function Users() {
                 {selectedRequest.status === 'approved' && (
                   <AlertDialogAction
                     onClick={() => {
-                      if (selectedRequest.interestedId !== null && selectedRequest.interestedId !== undefined) {
+                      if (
+                        selectedRequest.interestedId !== null &&
+                        selectedRequest.interestedId !== undefined
+                      ) {
                         handleRemoveActiveDisciple(selectedRequest.interestedId);
                       }
                     }}

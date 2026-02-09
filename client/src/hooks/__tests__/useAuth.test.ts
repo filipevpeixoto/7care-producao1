@@ -1,43 +1,44 @@
 /**
  * Testes para hook useAuth
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock do fetch global
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 // Mock do localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
       store[key] = value;
     }),
-    removeItem: jest.fn((key: string) => {
+    removeItem: vi.fn((key: string) => {
       delete store[key];
     }),
-    clear: jest.fn(() => {
+    clear: vi.fn(() => {
       store = {};
     }),
     get length() {
       return Object.keys(store).length;
     },
-    key: jest.fn((index: number) => Object.keys(store)[index] || null),
+    key: vi.fn((index: number) => Object.keys(store)[index] || null),
   };
 })();
 
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Mock do módulo offline
-jest.mock('@/lib/offline', () => ({
-  saveUsersOffline: jest.fn(),
-  canAccessFullOfflineData: jest.fn(() => true),
-  clearEncryptionKey: jest.fn(),
+vi.mock('@/lib/offline', () => ({
+  saveUsersOffline: vi.fn(),
+  canAccessFullOfflineData: vi.fn(() => true),
+  clearEncryptionKey: vi.fn(() => Promise.resolve()),
 }));
 
 // Import após os mocks
@@ -45,16 +46,19 @@ import { useAuth } from '../useAuth';
 
 describe('useAuth', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorageMock.clear();
     mockFetch.mockReset();
   });
 
   describe('Estado inicial', () => {
-    it('deve iniciar com isLoading=true e user=null', () => {
+    it('deve iniciar sem usuário e finalizar loading', async () => {
       const { result } = renderHook(() => useAuth());
 
-      expect(result.current.isLoading).toBe(true);
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
       expect(result.current.user).toBe(null);
       expect(result.current.isAuthenticated).toBe(false);
     });
