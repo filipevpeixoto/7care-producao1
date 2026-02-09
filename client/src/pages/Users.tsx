@@ -618,6 +618,10 @@ export default function Users() {
       fetch(`/api/users/${userId}/approve`, { method: 'POST' }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      // Sincronizar com MyInterested
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       // Dispatch custom event to update dashboard
       window.dispatchEvent(new CustomEvent('user-approved'));
       toast({
@@ -632,6 +636,10 @@ export default function Users() {
       fetch(`/api/users/${userId}/reject`, { method: 'POST' }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      // Sincronizar com MyInterested
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       // Dispatch custom event to update dashboard
       window.dispatchEvent(new CustomEvent('user-rejected'));
       toast({
@@ -659,6 +667,10 @@ export default function Users() {
       }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      // Sincronizar com MyInterested
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       // Dispatch custom event to update dashboard
       window.dispatchEvent(new CustomEvent('user-updated'));
       toast({
@@ -691,6 +703,9 @@ export default function Users() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
+      // Sincronizar com MyInterested
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       toast({
         title: '✅ Usuário criado',
         description: 'O usuário foi criado com sucesso.',
@@ -764,6 +779,10 @@ export default function Users() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/with-points'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      // Sincronizar com MyInterested
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       toast({
         title: '✅ Usuário excluído',
         description: 'Usuário excluído com sucesso!',
@@ -797,6 +816,9 @@ export default function Users() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      // Sincronizar com MyInterested
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       toast({
         title: '✅ Solicitação enviada',
         description: 'Solicitação de discipulado enviada com sucesso!',

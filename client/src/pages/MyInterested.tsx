@@ -413,6 +413,23 @@ export default function MyInterested() {
         }
       );
 
+      // Sincronizar com a página Users (query key diferente)
+      queryClient.setQueryData(['/api/users', user?.id], (old: InterestedPerson[] | undefined) => {
+        if (!old) return old;
+        return old.map((person) =>
+          person.id === variables.userId
+            ? {
+                ...person,
+                interestedSituation: variables.situation,
+                interested_situation: variables.situation,
+              }
+            : person
+        );
+      });
+
+      // Invalidar query do Users para garantir sincronização
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+
       setUpdatingSituation(null);
       toast({
         title: '✅ Situação atualizada!',
