@@ -860,28 +860,28 @@ export default function MyInterested() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.totalMy}</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalMy}</div>
               <div className="text-sm text-muted-foreground">Meus</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.totalChurch}</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.totalChurch}</div>
               <div className="text-sm text-muted-foreground">Da Igreja</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">{stats.pendingRequests}</div>
+              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pendingRequests}</div>
               <div className="text-sm text-muted-foreground">Pendentes</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">{stats.approvedRequests}</div>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.approvedRequests}</div>
               <div className="text-sm text-muted-foreground">Aprovados</div>
             </CardContent>
           </Card>
@@ -1415,12 +1415,12 @@ export default function MyInterested() {
                           <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
                             {loadingPoints ? (
                               <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 bg-purple-200 rounded animate-pulse" />
+                                <div className="h-8 w-8 bg-purple-200 dark:bg-purple-800 rounded animate-pulse" />
                                 <div className="flex-1">
-                                  <div className="h-4 bg-purple-200 rounded animate-pulse mb-1" />
-                                  <div className="h-3 bg-purple-200 rounded animate-pulse w-20" />
+                                  <div className="h-4 bg-purple-200 dark:bg-purple-800 rounded animate-pulse mb-1" />
+                                  <div className="h-3 bg-purple-200 dark:bg-purple-800 rounded animate-pulse w-20" />
                                 </div>
-                                <div className="h-5 w-12 bg-purple-200 rounded animate-pulse" />
+                                <div className="h-5 w-12 bg-purple-200 dark:bg-purple-800 rounded animate-pulse" />
                               </div>
                             ) : (
                               <div className="flex items-center gap-3">
@@ -1520,7 +1520,7 @@ export default function MyInterested() {
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-yellow-600" />
+                <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                 Autorizar Discipulado
               </CardTitle>
               <CardDescription>Aprove ou rejeite a solicitação de discipulado</CardDescription>
@@ -1613,7 +1613,7 @@ export default function MyInterested() {
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-blue-600" />
+                <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 Convidar Discipulador
               </CardTitle>
               <CardDescription>
