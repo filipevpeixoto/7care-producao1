@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   User as UserIcon,
@@ -28,6 +28,7 @@ import { ScheduleVisitModal } from '@/components/users/ScheduleVisitModal';
 import { ResponsiveStatsBadges } from '@/components/users/ResponsiveStatsBadges';
 import { ExportMenu } from '@/components/users/ExportMenu';
 import { useToast } from '@/hooks/use-toast';
+import { useSituationLevels } from '@/hooks/useSituationLevels';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -59,12 +60,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User as UserType, Relationship, DiscipleshipRequest, Church } from '@shared/schema';
+import type { User as UserType, Relationship, DiscipleshipRequest, Church } from '@shared/schema';
 
 // Dados mockados removidos - agora usando apenas dados reais da API
 
 type UserWithDiscipleRequest = UserType & { hasPendingDiscipleRequest: boolean };
-type UserExtraData = Record<string, unknown>;
 type DiscipleshipRequestWithAdminNotes = DiscipleshipRequest & {
   adminNotes?: string;
   processedBy?: number;
@@ -75,28 +75,12 @@ type DiscipleshipRequestWithAdminNotes = DiscipleshipRequest & {
   notes?: string;
 };
 
-const getUserExtraData = (userData: UserType): UserExtraData => {
-  if (!userData.extraData) {
-    return {};
-  }
-  if (typeof userData.extraData === 'string') {
-    try {
-      return JSON.parse(userData.extraData) as UserExtraData;
-    } catch {
-      return {};
-    }
-  }
-  if (typeof userData.extraData === 'object') {
-    return userData.extraData as UserExtraData;
-  }
-  return {};
-};
-
 export default function Users() {
-  const { user, realUser, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   useUserPoints();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { levels: situationLevels } = useSituationLevels();
   
   // Flag para verificar se auth está pronto (não está carregando E tem user)
   const isAuthReady = !authLoading && !!user?.id;
@@ -150,22 +134,12 @@ export default function Users() {
     queryKey: ['/api/users', user?.id],
     queryFn: async () => {
       try {
-        // DEBUG: Mostrar informações do usuário logado
-        console.log('🔍 DEBUG - user do useAuth():', JSON.stringify({
-          id: user?.id,
-          name: user?.name,
-          role: user?.role,
-          districtId: user?.districtId
-        }));
-        console.log('🔄 Buscando usuários da API...');
-        // Buscar com limite alto para pegar todos os usuários (máximo 500 por request)
-        // IMPORTANTE: Enviar o ID do usuário atual (user), não do admin (realUser)
+        // IMPORTANTE: Enviar o ID do usuário atual (user), não do admin
         // para que o filtro de distrito funcione corretamente durante impersonação
         const headers = {
           'x-user-id': user?.id?.toString() || '',
           'x-user-role': user?.role || '',
         };
-        console.log('📤 DEBUG - Headers enviados:', JSON.stringify(headers));
         const response = await fetch('/api/users?limit=5000', { headers });
         if (!response.ok) {
           throw new Error('Falha ao carregar usuários');
@@ -173,11 +147,9 @@ export default function Users() {
         const data = await response.json();
         // A API pode retornar { data: [], pagination: {} } ou array diretamente
         const users = Array.isArray(data) ? data : data?.data || [];
-        const total = data?.pagination?.total || users.length;
-        console.log(`✅ ${users.length} usuários carregados (total: ${total})`);
         return users as UserType[];
-      } catch (error) {
-        console.error('❌ Erro ao carregar usuários:', error);
+      } catch (_error) {
+        console.error('Erro ao carregar usuários:', _error);
         return [];
       }
     },
@@ -197,7 +169,6 @@ export default function Users() {
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['all-relationships', user?.id],
     queryFn: async () => {
-      console.log('🔍 Buscando relacionamentos via API...');
       try {
         const response = await fetch('/api/relationships', {
           headers: {
@@ -206,16 +177,14 @@ export default function Users() {
           },
         });
         if (!response.ok) {
-          console.log('❌ Erro ao buscar relacionamentos:', response.status);
           return [];
         }
         const data = await response.json();
         // A API pode retornar { data: [] } ou array diretamente
         const relationships = Array.isArray(data) ? data : data?.data || [];
-        console.log('🔍 Relacionamentos encontrados:', relationships.length);
         return relationships;
-      } catch (error) {
-        console.error('❌ Erro ao buscar relacionamentos:', error);
+      } catch (_error) {
+        console.error('Erro ao buscar relacionamentos:', _error);
         return [];
       }
     },
@@ -382,29 +351,11 @@ export default function Users() {
 
   const getInterestedSituationCount = (situation: string) => {
     if (situation === 'all') return users.filter(u => u.role === 'interested').length;
-    return users.filter(user => {
-      if (user.role !== 'interested') return false;
-      // Usar campo direto interestedSituation ao invés de extraData
-      const situationData = user.interestedSituation || '';
-      switch (situation) {
-        case 'A':
-          return situationData === 'A';
-        case 'B':
-          return situationData === 'B';
-        case 'C':
-          return situationData === 'C';
-        case 'D':
-          return situationData === 'D';
-        case 'E':
-          return situationData === 'E';
-        case 'no-situation':
-          return !situationData || situationData === '';
-        case 'total':
-          return true;
-        default:
-          return false;
-      }
-    }).length;
+    if (situation === 'total') return users.filter(u => u.role === 'interested').length;
+    if (situation === 'no-situation') {
+      return users.filter(u => u.role === 'interested' && !u.interestedSituation).length;
+    }
+    return users.filter(u => u.role === 'interested' && u.interestedSituation === situation).length;
   };
 
   // Função para contar usuários por monte considerando restrições de missionários e discipuladores
@@ -595,7 +546,7 @@ export default function Users() {
           matchesMissionaryRestriction = safeRelationshipsData.some(
             (rel: Relationship) => rel.missionaryId === Number(user?.id) && rel.interestedId === u.id && rel.status === 'active'
           );
-        } else if (user?.id != null && u.id === Number(user.id)) {
+        } else if (user?.id !== null && user?.id !== undefined && u.id === Number(user.id)) {
           // Missionário/discipulador pode ver seu próprio perfil
           matchesMissionaryRestriction = true;
         } else {
@@ -926,16 +877,8 @@ export default function Users() {
         (req: DiscipleshipRequest) => req.interestedId === interestedId && req.status === 'approved'
       );
 
-      console.log(
-        `🔍 Rejeitando ${allApprovedRequests.length} solicitações aprovadas para interessado ${interestedId}`
-      );
-
       // Rejeitar cada solicitação aprovada
       for (const request of allApprovedRequests) {
-        console.log(
-          `🔍 Rejeitando solicitação ID ${request.id} do missionário ${request.missionaryId}`
-        );
-
         const rejectResponse = await fetch(`/api/discipleship-requests/${request.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -946,12 +889,7 @@ export default function Users() {
         });
 
         if (!rejectResponse.ok) {
-          console.error(
-            `❌ Erro ao rejeitar solicitação ${request.id}:`,
-            await rejectResponse.text()
-          );
-        } else {
-          console.log(`✅ Solicitação ${request.id} rejeitada com sucesso`);
+          console.error(`Erro ao rejeitar solicitação ${request.id}:`, await rejectResponse.text());
         }
       }
 
@@ -962,8 +900,6 @@ export default function Users() {
       });
 
       if (!response.ok) throw new Error('Erro ao remover discipulado');
-
-      console.log('🔍 Relacionamento ativo removido, invalidando caches...');
 
       // Atualizar cache de forma mais agressiva e abrangente
       const cacheKeys = [
@@ -979,7 +915,6 @@ export default function Users() {
       // Invalidar todos os caches
       cacheKeys.forEach(key => {
         queryClient.invalidateQueries({ queryKey: [key] });
-        console.log(`🔍 Cache invalidado: ${key}`);
       });
 
       // Forçar refetch imediato de dados críticos
@@ -992,7 +927,6 @@ export default function Users() {
 
       criticalKeys.forEach(key => {
         queryClient.refetchQueries({ queryKey: [key] });
-        console.log(`🔍 Refetch forçado: ${key}`);
       });
 
       // Aguardar um pouco para garantir que as operações sejam concluídas
@@ -1002,8 +936,6 @@ export default function Users() {
       cacheKeys.forEach(key => {
         queryClient.invalidateQueries({ queryKey: [key] });
       });
-
-      console.log('✅ Cache atualizado com sucesso');
 
       // Mostrar toast de sucesso
       toast({
@@ -1056,7 +988,7 @@ export default function Users() {
             }
           }
         }
-      } catch (error) {
+      } catch {
         // Silenciar erro - não é crítico
       }
     };
@@ -1414,335 +1346,94 @@ export default function Users() {
             </Card>
           </div>
 
-          {/* Points Overview Stats */}
-          {false && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              <Card className="group relative bg-gradient-to-r from-blue-50 to-blue-100 border-blue-300/50 hover:shadow-md transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardContent className="p-2 sm:p-3 text-center relative z-10">
-                  <div className="text-lg sm:text-xl font-bold text-blue-700 mb-1">
-                    {filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0).length}
-                  </div>
-                  <div className="text-xs sm:text-sm font-semibold text-blue-600 mb-1">
-                    Com Pontos
-                  </div>
-                  <div className="text-xs text-blue-500">
-                    {filteredAndSortedUsers.length > 0
-                      ? (
-                          (filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0)
-                            .length /
-                            filteredAndSortedUsers.length) *
-                          100
-                        ).toFixed(1)
-                      : '0'}
-                    %
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="group relative bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-300/50 hover:shadow-md transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardContent className="p-2 sm:p-3 text-center relative z-10">
-                  <div className="text-lg sm:text-xl font-bold text-emerald-700 mb-1">
-                    {filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0).length > 0
-                      ? Math.round(
-                          filteredAndSortedUsers.reduce(
-                            (sum: number, u: UserType) => sum + (u.points || 0),
-                            0
-                          ) /
-                            filteredAndSortedUsers.filter((u: UserType) => (u.points || 0) > 0)
-                              .length
-                        )
-                      : 0}
-                  </div>
-                  <div className="text-xs sm:text-sm font-semibold text-emerald-600 mb-1">
-                    Média
-                  </div>
-                  <div className="text-xs text-emerald-500">Por Usuário</div>
-                </CardContent>
-              </Card>
-              <Card className="group relative bg-gradient-to-r from-indigo-50 to-indigo-100 border-indigo-300/50 hover:shadow-md transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-400/10 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardContent className="p-2 sm:p-3 text-center relative z-10">
-                  <div className="text-lg sm:text-xl font-bold text-indigo-700 mb-1">
-                    {filteredAndSortedUsers.length > 0
-                      ? Math.max(...filteredAndSortedUsers.map((u: UserType) => u.points || 0))
-                      : 0}
-                  </div>
-                  <div className="text-xs sm:text-sm font-semibold text-indigo-600 mb-1">Maior</div>
-                  <div className="text-xs text-indigo-500">Recorde</div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
 
-        {/* Situação dos Amigos - COMENTADO PARA SIMPLIFICAR */}
-        <div
-          className="space-y-4 mt-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-slate-200/50 shadow-sm"
-          style={{ display: 'none' }}
-        >
+        {/* Situação dos Amigos */}
+        <div className="space-y-4 mt-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Heart className="h-5 w-5 text-red-500 drop-shadow-sm" />
               Situação dos Amigos
             </h3>
           </div>
-          {false && (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
+            {situationLevels.map((level) => {
+              const isActive = interestedSituationFilter === level.value;
+              const count = getInterestedSituationCount(level.value);
+              return (
                 <Card
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
-                    interestedSituationFilter === 'A'
-                      ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/25 border-0'
-                      : 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-300/50 hover:from-emerald-100 hover:to-emerald-200 hover:border-emerald-400'
-                  }`}
+                  key={level.value}
+                  className="group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg border"
+                  style={{
+                    backgroundColor: isActive ? level.color : `${level.color}10`,
+                    borderColor: isActive ? level.color : `${level.color}30`,
+                    color: isActive ? '#fff' : level.color,
+                  }}
                   onClick={() =>
-                    handleInterestedSituationClick(interestedSituationFilter === 'A' ? 'all' : 'A')
+                    handleInterestedSituationClick(isActive ? 'all' : level.value)
                   }
-                  title="Clique para filtrar amigos Pronto para Batismo"
+                  title={`Clique para filtrar amigos ${level.label}`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <CardContent className="p-3 text-center relative z-10">
-                    <div
-                      className={`text-xl font-bold mb-1 ${interestedSituationFilter === 'A' ? 'text-white' : 'text-emerald-700'}`}
-                    >
-                      {
-                        filteredAndSortedUsers.filter(
-                          (u: UserType) => u.role === 'interested' && u.interestedSituation === 'A'
-                        ).length
-                      }
+                    <div className="text-xl font-bold mb-1">{count}</div>
+                    <div className="text-sm font-semibold mb-1" style={{ opacity: isActive ? 1 : 0.85 }}>
+                      {level.label}
                     </div>
-                    <div
-                      className={`text-sm font-semibold mb-1 ${interestedSituationFilter === 'A' ? 'text-white' : 'text-emerald-600'}`}
-                    >
-                      Pronto para Batismo
-                    </div>
-                    <div
-                      className={`text-xs ${interestedSituationFilter === 'A' ? 'text-white/90' : 'text-emerald-500'}`}
-                    >
-                      Tipo A
+                    <div className="text-xs" style={{ opacity: isActive ? 0.9 : 0.7 }}>
+                      Tipo {level.value}
                     </div>
                   </CardContent>
                 </Card>
+              );
+            })}
+          </div>
 
-                <Card
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
-                    interestedSituationFilter === 'B'
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25 border-0'
-                      : 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-300/50 hover:from-blue-100 hover:to-blue-200 hover:border-blue-400'
-                  }`}
-                  onClick={() =>
-                    handleInterestedSituationClick(interestedSituationFilter === 'B' ? 'all' : 'B')
-                  }
-                  title="Clique para filtrar amigos Detalhes Pessoais"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <CardContent className="p-3 text-center relative z-10">
-                    <div
-                      className={`text-xl font-bold mb-1 ${interestedSituationFilter === 'B' ? 'text-white' : 'text-blue-700'}`}
-                    >
-                      {
-                        filteredAndSortedUsers.filter(
-                          (u: UserType) => u.role === 'interested' && u.interestedSituation === 'B'
-                        ).length
-                      }
-                    </div>
-                    <div
-                      className={`text-sm font-semibold mb-1 ${interestedSituationFilter === 'B' ? 'text-white' : 'text-blue-600'}`}
-                    >
-                      Detalhes Pessoais
-                    </div>
-                    <div
-                      className={`text-xs ${interestedSituationFilter === 'B' ? 'text-white/90' : 'text-blue-500'}`}
-                    >
-                      Tipo B
-                    </div>
-                  </CardContent>
-                </Card>
+          {/* Cards adicionais para amigos sem situação definida e total */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+            <Card
+              className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
+                interestedSituationFilter === 'no-situation'
+                  ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/25 border-0'
+                  : 'bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-300/50 dark:border-yellow-700/50 hover:bg-yellow-100 dark:hover:bg-yellow-900'
+              }`}
+              onClick={() =>
+                handleInterestedSituationClick(
+                  interestedSituationFilter === 'no-situation' ? 'all' : 'no-situation'
+                )
+              }
+              title="Clique para filtrar amigos sem situação definida"
+            >
+              <CardContent className="p-3 text-center relative z-10">
+                <div className="text-xl font-bold mb-1">
+                  {getInterestedSituationCount('no-situation')}
+                </div>
+                <div className="text-sm font-semibold mb-1">Sem Situação Definida</div>
+                <div className="text-xs" style={{ opacity: 0.8 }}>Precisa de Acompanhamento</div>
+              </CardContent>
+            </Card>
 
-                <Card
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
-                    interestedSituationFilter === 'C'
-                      ? 'bg-gradient-to-r from-violet-600 to-violet-700 text-white shadow-lg shadow-violet-500/25 border-0'
-                      : 'bg-gradient-to-r from-violet-50 to-violet-100 text-violet-700 border-violet-300/50 hover:from-violet-100 hover:to-violet-200 hover:border-violet-400'
-                  }`}
-                  onClick={() =>
-                    handleInterestedSituationClick(interestedSituationFilter === 'C' ? 'all' : 'C')
-                  }
-                  title="Clique para filtrar amigos Estudando Bíblia"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-violet-400/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <CardContent className="p-3 text-center relative z-10">
-                    <div
-                      className={`text-xl font-bold mb-1 ${interestedSituationFilter === 'C' ? 'text-white' : 'text-violet-700'}`}
-                    >
-                      {
-                        filteredAndSortedUsers.filter(
-                          (u: UserType) => u.role === 'interested' && u.interestedSituation === 'C'
-                        ).length
-                      }
-                    </div>
-                    <div
-                      className={`text-sm font-semibold mb-1 ${interestedSituationFilter === 'C' ? 'text-white' : 'text-violet-600'}`}
-                    >
-                      Estudando Bíblia
-                    </div>
-                    <div
-                      className={`text-xs ${interestedSituationFilter === 'C' ? 'text-white/90' : 'text-violet-500'}`}
-                    >
-                      Tipo C
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
-                    interestedSituationFilter === 'D'
-                      ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg shadow-orange-500/25 border-0'
-                      : 'bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border-orange-300/50 hover:from-orange-100 hover:to-orange-200 hover:border-orange-400'
-                  }`}
-                  onClick={() =>
-                    handleInterestedSituationClick(interestedSituationFilter === 'D' ? 'all' : 'D')
-                  }
-                  title="Clique para filtrar amigos Quer Estudar"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <CardContent className="p-3 text-center relative z-10">
-                    <div
-                      className={`text-xl font-bold mb-1 ${interestedSituationFilter === 'D' ? 'text-white' : 'text-orange-700'}`}
-                    >
-                      {
-                        filteredAndSortedUsers.filter(
-                          (u: UserType) => u.role === 'interested' && u.interestedSituation === 'D'
-                        ).length
-                      }
-                    </div>
-                    <div
-                      className={`text-sm font-semibold mb-1 ${interestedSituationFilter === 'D' ? 'text-white' : 'text-orange-600'}`}
-                    >
-                      Quer Estudar
-                    </div>
-                    <div
-                      className={`text-xs ${interestedSituationFilter === 'D' ? 'text-white/90' : 'text-orange-500'}`}
-                    >
-                      Tipo D
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
-                    interestedSituationFilter === 'E'
-                      ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/25 border-0'
-                      : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-300/50 hover:from-gray-100 hover:to-gray-200 hover:border-gray-400'
-                  }`}
-                  onClick={() =>
-                    handleInterestedSituationClick(interestedSituationFilter === 'E' ? 'all' : 'E')
-                  }
-                  title="Clique para filtrar amigos Contato Inicial"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-400/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <CardContent className="p-3 text-center relative z-10">
-                    <div
-                      className={`text-xl font-bold mb-1 ${interestedSituationFilter === 'E' ? 'text-white' : 'text-gray-700'}`}
-                    >
-                      {
-                        filteredAndSortedUsers.filter(
-                          (u: UserType) => u.role === 'interested' && u.interestedSituation === 'E'
-                        ).length
-                      }
-                    </div>
-                    <div
-                      className={`text-sm font-semibold mb-1 ${interestedSituationFilter === 'E' ? 'text-white' : 'text-gray-600'}`}
-                    >
-                      Contato Inicial
-                    </div>
-                    <div
-                      className={`text-xs ${interestedSituationFilter === 'E' ? 'text-white/90' : 'text-gray-500'}`}
-                    >
-                      Tipo E
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Cards adicionais para amigos sem situação definida e total */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                <Card
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
-                    interestedSituationFilter === 'no-situation'
-                      ? 'bg-gradient-to-r from-yellow-600 to-yellow-700 text-white shadow-lg shadow-yellow-500/25 border-0'
-                      : 'bg-gradient-to-r from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-300/50 hover:from-yellow-100 hover:to-yellow-200 hover:border-yellow-400'
-                  }`}
-                  onClick={() =>
-                    handleInterestedSituationClick(
-                      interestedSituationFilter === 'no-situation' ? 'all' : 'no-situation'
-                    )
-                  }
-                  title="Clique para filtrar amigos sem situação definida"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <CardContent className="p-3 text-center relative z-10">
-                    <div
-                      className={`text-xl font-bold mb-1 ${interestedSituationFilter === 'no-situation' ? 'text-white' : 'text-yellow-700'}`}
-                    >
-                      {
-                        filteredAndSortedUsers.filter(
-                          (u: UserType) => u.role === 'interested' && !u.interestedSituation
-                        ).length
-                      }
-                    </div>
-                    <div
-                      className={`text-sm font-semibold mb-1 ${interestedSituationFilter === 'no-situation' ? 'text-white' : 'text-yellow-600'}`}
-                    >
-                      Sem Situação Definida
-                    </div>
-                    <div
-                      className={`text-xs ${interestedSituationFilter === 'no-situation' ? 'text-white/90' : 'text-yellow-500'}`}
-                    >
-                      Precisa de Acompanhamento
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
-                    interestedSituationFilter === 'total'
-                      ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-500/25 border-0'
-                      : 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-red-300/50 hover:from-red-100 hover:to-red-200 hover:border-red-400'
-                  }`}
-                  onClick={() =>
-                    handleInterestedSituationClick(
-                      interestedSituationFilter === 'total' ? 'all' : 'total'
-                    )
-                  }
-                  title="Clique para filtrar todos os amigos"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <CardContent className="p-3 text-center relative z-10">
-                    <div
-                      className={`text-xl font-bold mb-1 ${interestedSituationFilter === 'total' ? 'text-white' : 'text-red-700'}`}
-                    >
-                      {
-                        filteredAndSortedUsers.filter((u: UserType) => u.role === 'interested')
-                          .length
-                      }
-                    </div>
-                    <div
-                      className={`text-sm font-semibold mb-1 ${interestedSituationFilter === 'total' ? 'text-white' : 'text-red-600'}`}
-                    >
-                      Total de Amigos
-                    </div>
-                    <div
-                      className={`text-xs ${interestedSituationFilter === 'total' ? 'text-white/90' : 'text-red-500'}`}
-                    >
-                      Todos os Tipos
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
+            <Card
+              className={`group relative cursor-pointer transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg ${
+                interestedSituationFilter === 'total'
+                  ? 'bg-red-600 text-white shadow-lg shadow-red-500/25 border-0'
+                  : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-300/50 dark:border-red-700/50 hover:bg-red-100 dark:hover:bg-red-900'
+              }`}
+              onClick={() =>
+                handleInterestedSituationClick(
+                  interestedSituationFilter === 'total' ? 'all' : 'total'
+                )
+              }
+              title="Clique para filtrar todos os amigos"
+            >
+              <CardContent className="p-3 text-center relative z-10">
+                <div className="text-xl font-bold mb-1">
+                  {getInterestedSituationCount('total')}
+                </div>
+                <div className="text-sm font-semibold mb-1">Total de Amigos</div>
+                <div className="text-xs" style={{ opacity: 0.8 }}>Todos os Tipos</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Search and Filters - Ultra Minimalista Mobile */}
@@ -1882,18 +1573,11 @@ export default function Users() {
                   <SelectItem value="all">
                     Todas as Situações ({getInterestedSituationCount('all')})
                   </SelectItem>
-                  <SelectItem value="A">
-                    Pronto para Batismo (A) ({getInterestedSituationCount('A')})
-                  </SelectItem>
-                  <SelectItem value="B">
-                    Detalhes Pessoais (B) ({getInterestedSituationCount('B')})
-                  </SelectItem>
-                  <SelectItem value="C">
-                    Estudando Bíblia (C) ({getInterestedSituationCount('C')})
-                  </SelectItem>
-                  <SelectItem value="D">
-                    Iniciante (D) ({getInterestedSituationCount('D')})
-                  </SelectItem>
+                  {situationLevels.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label} ({level.value}) ({getInterestedSituationCount(level.value)})
+                    </SelectItem>
+                  ))}
                   <SelectItem value="no-situation">
                     Sem Situação ({getInterestedSituationCount('no-situation')})
                   </SelectItem>
@@ -2348,7 +2032,7 @@ export default function Users() {
                 {selectedRequest.status === 'approved' && (
                   <AlertDialogAction
                     onClick={() => {
-                      if (selectedRequest.interestedId != null) {
+                      if (selectedRequest.interestedId !== null && selectedRequest.interestedId !== undefined) {
                         handleRemoveActiveDisciple(selectedRequest.interestedId);
                       }
                     }}

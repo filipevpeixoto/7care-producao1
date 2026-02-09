@@ -1,9 +1,8 @@
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, GripVertical, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import type { SituationLevel } from '@/hooks/useSituationLevels';
 
 const DEFAULT_LEVELS: SituationLevel[] = [
@@ -31,8 +30,6 @@ export function SituationLevelsConfig({
   showSaveButton = true,
   compact = false,
 }: SituationLevelsConfigProps) {
-  const [_dragIndex, _setDragIndex] = useState<number | null>(null);
-
   const updateLevel = (index: number, field: keyof SituationLevel, value: string) => {
     const updated = [...levels];
     updated[index] = { ...updated[index], [field]: value };
@@ -81,8 +78,7 @@ export function SituationLevelsConfig({
       <CardContent className={compact ? 'p-0' : ''}>
         <div className="space-y-3">
           {/* Header */}
-          <div className="grid grid-cols-[40px_60px_1fr_50px_36px] gap-2 text-xs font-medium text-muted-foreground px-1">
-            <span></span>
+          <div className="grid grid-cols-[60px_1fr_50px_36px] gap-2 text-xs font-medium text-muted-foreground px-1">
             <span>Código</span>
             <span>Descrição</span>
             <span>Cor</span>
@@ -93,12 +89,8 @@ export function SituationLevelsConfig({
           {levels.map((level, index) => (
             <div
               key={index}
-              className="grid grid-cols-[40px_60px_1fr_50px_36px] gap-2 items-center"
+              className="grid grid-cols-[60px_1fr_50px_36px] gap-2 items-center"
             >
-              <div className="flex items-center justify-center text-muted-foreground cursor-grab">
-                <GripVertical className="h-4 w-4" />
-              </div>
-
               <Input
                 value={level.value}
                 onChange={(e) => updateLevel(index, 'value', e.target.value.toUpperCase())}
