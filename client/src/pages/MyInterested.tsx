@@ -339,35 +339,45 @@ export default function MyInterested() {
     },
     onMutate: async ({ userId, situation }) => {
       // Atualização otimista: atualiza UI imediatamente
-      await queryClient.cancelQueries({ queryKey: ['church-interested'] });
-      await queryClient.cancelQueries({ queryKey: ['all-users'] });
+      await queryClient.cancelQueries({ queryKey: ['church-interested', user?.id] });
+      await queryClient.cancelQueries({ queryKey: ['all-users', user?.id] });
 
-      const previousChurch = queryClient.getQueryData(['church-interested']);
-      const previousAll = queryClient.getQueryData(['all-users']);
+      const previousChurch = queryClient.getQueryData(['church-interested', user?.id]);
+      const previousAll = queryClient.getQueryData(['all-users', user?.id]);
 
       // Atualizar cache localmente
-      queryClient.setQueryData(['church-interested'], (old: InterestedPerson[] | undefined) => {
-        if (!old) return old;
-        return old.map((person) =>
-          person.id === userId
-            ? { ...person, interestedSituation: situation, interested_situation: situation }
-            : person
-        );
-      });
+      queryClient.setQueryData(
+        ['church-interested', user?.id],
+        (old: InterestedPerson[] | undefined) => {
+          if (!old) return old;
+          return old.map((person) =>
+            person.id === userId
+              ? { ...person, interestedSituation: situation, interested_situation: situation }
+              : person
+          );
+        }
+      );
 
-      queryClient.setQueryData(['all-users'], (old: InterestedPerson[] | undefined) => {
-        if (!old) return old;
-        return old.map((person) =>
-          person.id === userId
-            ? { ...person, interestedSituation: situation, interested_situation: situation }
-            : person
-        );
-      });
+      queryClient.setQueryData(
+        ['all-users', user?.id, isAdmin],
+        (old: InterestedPerson[] | undefined) => {
+          if (!old) return old;
+          return old.map((person) =>
+            person.id === userId
+              ? { ...person, interestedSituation: situation, interested_situation: situation }
+              : person
+          );
+        }
+      );
 
       return { previousChurch, previousAll };
     },
-    onSuccess: (data) => {
-      console.warn('✅ Situação atualizada com sucesso!', data);
+    onSuccess: (data, variables) => {
+      console.warn('✅ Situação atualizada com sucesso!', {
+        responseData: data,
+        userId: variables.userId,
+        situation: variables.situation,
+      });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       setUpdatingSituation(null);
@@ -380,10 +390,10 @@ export default function MyInterested() {
       console.error('❌ Erro ao atualizar situação:', error);
       // Reverter mudanças otimistas em caso de erro
       if (context?.previousChurch) {
-        queryClient.setQueryData(['church-interested'], context.previousChurch);
+        queryClient.setQueryData(['church-interested', user?.id], context.previousChurch);
       }
       if (context?.previousAll) {
-        queryClient.setQueryData(['all-users'], context.previousAll);
+        queryClient.setQueryData(['all-users', user?.id, isAdmin], context.previousAll);
       }
       setUpdatingSituation(null);
       toast({
@@ -1244,6 +1254,19 @@ export default function MyInterested() {
                   const currentSituation =
                     person.interestedSituation || person.interested_situation;
                   const situationLevel = getSituationOption(currentSituation);
+
+                  // Debug: Log para verificar dados
+                  if (person.id === updatingSituation) {
+                    console.warn('🔍 Debug pessoa sendo atualizada:', {
+                      personId: person.id,
+                      name: person.name,
+                      interestedSituation: person.interestedSituation,
+                      interested_situation: person.interested_situation,
+                      currentSituation,
+                      situationLevel,
+                      allLevels: situationLevels,
+                    });
+                  }
 
                   return (
                     <Card
