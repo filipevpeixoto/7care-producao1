@@ -40,6 +40,9 @@ import { MarkVisitModal } from './MarkVisitModal';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
+import { useSituationLevels } from '@/hooks/useSituationLevels';
+import { fetchWithAuth } from '@/lib/api';
+import { type Relationship, type User as UserType } from '@shared/schema';
 import {
   Dialog,
   DialogContent,
@@ -49,7 +52,7 @@ import {
 } from '@/components/ui/dialog';
 
 interface UserCardProps {
-  user: any;
+  user: UserType;
   onClick?: () => void;
   onApprove?: () => void;
   onReject?: () => void;
@@ -59,10 +62,30 @@ interface UserCardProps {
   onScheduleVisit?: () => void;
   onDiscipleRequest?: () => void;
   showActions?: boolean;
-  relationshipsData?: any[];
-  potentialMissionaries?: any[];
+  relationshipsData?: Relationship[];
+  potentialMissionaries?: UserType[];
   hasPendingDiscipleRequest?: boolean;
 }
+
+type Discipulador = {
+  id: number;
+  name: string;
+  relationshipId: number;
+};
+
+type VisitHistoryItem = {
+  id?: number | string;
+  visit_date: string;
+};
+
+type SpiritualCheckIn = {
+  score: number;
+  notes?: string | null;
+};
+
+type SpiritualData = {
+  checkIns: SpiritualCheckIn[];
+};
 
 export function UserCardResponsive({
   user,
@@ -79,36 +102,26 @@ export function UserCardResponsive({
   potentialMissionaries: _potentialMissionaries = [],
   hasPendingDiscipleRequest = false,
 }: UserCardProps) {
-  const [localUser, setLocalUser] = useState(user);
+  const [localUser, setLocalUser] = useState<UserType>(user);
   const [isMarkingVisit, setIsMarkingVisit] = useState(false);
   const [showMarkVisitModal, setShowMarkVisitModal] = useState(false);
   const [showPhotoPreview, setIsPhotoPreviewOpen] = useState(false);
   const [showVisitHistory, setShowVisitHistory] = useState(false);
-  const [visitHistory, setVisitHistory] = useState<any[]>([]);
+  const [visitHistory, setVisitHistory] = useState<VisitHistoryItem[]>([]);
   const [openSituationPopover, setOpenSituationPopover] = useState(false);
   const [selectedSituation, setSelectedSituation] = useState(localUser.interestedSituation || '');
-  const [userSpiritual, setUserSpiritual] = useState<any>(null);
-  const [currentDiscipuladores, setCurrentDiscipuladores] = useState<any[]>([]);
+  const [userSpiritual, setUserSpiritual] = useState<SpiritualData | null>(null);
+  const [currentDiscipuladores, setCurrentDiscipuladores] = useState<Discipulador[]>([]);
 
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
 
-  // Situações disponíveis para interessados
-  const situations = [
-    { value: 'new', label: 'Novo Amigo', description: 'Primeiro contato' },
-    { value: 'contacted', label: 'Contatado', description: 'Já foi contatado' },
-    { value: 'meeting_scheduled', label: 'Reunião Agendada', description: 'Reunião marcada' },
-    { value: 'meeting_done', label: 'Reunião Realizada', description: 'Primeira reunião feita' },
-    { value: 'follow_up', label: 'Acompanhamento', description: 'Em processo de discipulado' },
-    { value: 'baptized', label: 'Batizado', description: 'Já foi batizado' },
-    { value: 'member', label: 'Membro', description: 'Tornou-se membro da igreja' },
-    { value: 'inactive', label: 'Inativo', description: 'Não responde mais' },
-    { value: 'rejected', label: 'Rejeitou', description: 'Não tem interesse' },
-  ];
+  const { levels: situationLevels } = useSituationLevels();
 
   // Atualizar usuário local quando prop mudar
   useEffect(() => {
     setLocalUser(user);
+    setSelectedSituation(user.interestedSituation || '');
   }, [user]);
 
   // Carregar check-in espiritual do usuário
@@ -121,10 +134,10 @@ export function UserCardResponsive({
           // A API retorna um array de check-ins, pegar o mais recente
           const checkIns = Array.isArray(data) ? data : [];
           if (checkIns.length > 0) {
-            setUserSpiritual(checkIns[0]);
+            setUserSpiritual({ checkIns });
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Silenciar erro - não é crítico
       }
     };
@@ -132,32 +145,24 @@ export function UserCardResponsive({
     if (localUser?.id && hasAdminAccess(currentUser)) {
       loadSpiritualCheckIn();
     }
-  }, [localUser?.id, currentUser?.role]);
+  }, [localUser?.id, currentUser]);
 
   // Carregar discipuladores atuais
   useEffect(() => {
-    console.log('🔍 UserCardResponsive - Carregando discipuladores:', {
-      relationshipsData: relationshipsData?.length,
-      localUserRole: localUser.role,
-      localUserId: localUser.id,
-      relationshipsDataSample: relationshipsData?.slice(0, 2),
-    });
-
     if (relationshipsData && localUser.role === 'interested') {
       const userDiscipuladores = relationshipsData
-        .filter(rel => rel.interestedId === localUser.id && rel.status === 'active')
-        .map(rel => ({
+        .filter((rel) => rel.interestedId === localUser.id && rel.status === 'active')
+        .map((rel) => ({
           id: rel.missionaryId,
           name: rel.missionaryName || 'Usuário não encontrado',
           relationshipId: rel.id,
         }));
 
-      console.log('🔍 UserCardResponsive - Discipuladores encontrados:', userDiscipuladores);
       setCurrentDiscipuladores(userDiscipuladores);
     }
   }, [relationshipsData, localUser.id, localUser.role]);
 
-  const handleDiscipuladoresChange = (newDiscipuladores: any[]) => {
+  const handleDiscipuladoresChange = (newDiscipuladores: Discipulador[]) => {
     setCurrentDiscipuladores(newDiscipuladores);
   };
 
@@ -243,7 +248,7 @@ export function UserCardResponsive({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          visitDate: visitDate,
+          visitDate,
         }),
       });
 
@@ -376,11 +381,8 @@ export function UserCardResponsive({
 
   const handleSituationChange = async (newSituation: string) => {
     try {
-      const response = await fetch(`/api/users/${localUser.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetchWithAuth(`/api/users/${localUser.id}`, {
+        method: 'PUT',
         body: JSON.stringify({
           interestedSituation: newSituation,
         }),
@@ -390,9 +392,10 @@ export function UserCardResponsive({
         setLocalUser((prev: typeof localUser) => ({ ...prev, interestedSituation: newSituation }));
         setSelectedSituation(newSituation);
         setOpenSituationPopover(false);
+        const selected = situationLevels.find((s) => s.value === newSituation);
         toast({
           title: 'Situação atualizada!',
-          description: `Situação do amigo atualizada para: ${situations.find(s => s.value === newSituation)?.label}`,
+          description: `Situação do amigo atualizada para: ${selected?.label || newSituation}`,
         });
       } else {
         throw new Error('Erro ao atualizar situação');
@@ -407,17 +410,67 @@ export function UserCardResponsive({
     }
   };
 
+  const isAdminRole = localUser.role === 'superadmin' || localUser.role === 'pastor';
+  const isMissionaryRole = localUser.role.includes('missionary');
+  const isMemberRole = localUser.role.includes('member');
+  let roleBorderClass = 'border-l-orange-500';
+  if (isAdminRole) {
+    roleBorderClass = 'border-l-blue-500';
+  } else if (isMissionaryRole) {
+    roleBorderClass = 'border-l-purple-500';
+  } else if (isMemberRole) {
+    roleBorderClass = 'border-l-green-500';
+  }
+
+  const visitCount = getVisitCount();
+  const hasBeenVisited = isVisited();
+  const visitButtonVariantClass = hasBeenVisited
+    ? 'text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-800/40 dark:text-green-400 border border-green-200 dark:border-green-700/50'
+    : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-700/50';
+  const visitButtonPaddingClass = hasBeenVisited && visitCount > 1 ? 'px-2' : 'w-7 px-0';
+  const visitButtonTitle = hasBeenVisited
+    ? '🖱️ Clique: atualizar data da visita'
+    : 'Marcar visita como realizada';
+  let visitButtonContent = <Square className="h-3 w-3" />;
+  if (isMarkingVisit) {
+    visitButtonContent = (
+      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
+    );
+  } else if (hasBeenVisited) {
+    visitButtonContent = (
+      <div className="flex items-center gap-1">
+        <CheckSquare className="h-3 w-3" />
+        {visitCount > 1 && <span className="text-[10px] font-medium">{visitCount}x</span>}
+      </div>
+    );
+  }
+
+  let statusBadgeClass =
+    'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-600/50';
+  let statusLabel = 'Rejeitado';
+  if (localUser.status === 'active' || localUser.status === 'approved') {
+    statusBadgeClass =
+      'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-600/50';
+    statusLabel = 'Ativo';
+  } else if (localUser.status === 'pending') {
+    statusBadgeClass =
+      'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-600/50';
+    statusLabel = 'Pendente';
+  } else if (localUser.status === 'inactive') {
+    statusBadgeClass =
+      'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/50 dark:text-gray-300 dark:border-gray-600/50';
+    statusLabel = 'Inativo';
+  }
+
   return (
     <Card
       className={`cursor-pointer transition-all duration-200 hover:shadow-md dark:hover:shadow-slate-700/50 border-l-4 ${
-        localUser.role === 'superadmin' || localUser.role === 'pastor'
-          ? 'border-l-blue-500'
-          : localUser.role.includes('missionary')
-            ? 'border-l-purple-500'
-            : localUser.role.includes('member')
-              ? 'border-l-green-500'
-              : 'border-l-orange-500'
-      } ${isVisited() ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50' : 'bg-card'}`}
+        roleBorderClass
+      } ${
+        hasBeenVisited
+          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50'
+          : 'bg-card'
+      }`}
       onClick={onClick}
     >
       <CardContent className="p-3 sm:p-4">
@@ -428,7 +481,7 @@ export function UserCardResponsive({
             <div className="flex-shrink-0">
               <Avatar
                 className="h-10 w-10 sm:h-12 sm:w-12 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all duration-200"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   if (hasAdminAccess(currentUser)) {
                     setIsPhotoPreviewOpen(true);
@@ -461,48 +514,29 @@ export function UserCardResponsive({
 
                 {/* Botões de ação - Horizontal ao lado do nome */}
                 {showActions && (
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {/* Botão de Marcar Visita */}
                     <Button
                       size="sm"
                       variant="ghost"
                       disabled={isMarkingVisit}
                       className={`h-7 transition-all duration-200 rounded-full ${
-                        isVisited()
-                          ? 'text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-800/40 dark:text-green-400 border border-green-200 dark:border-green-700/50'
-                          : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-700/50'
-                      } ${isMarkingVisit ? 'opacity-50 cursor-not-allowed' : ''} ${
-                        isVisited() && getVisitCount() > 1 ? 'px-2' : 'w-7 px-0'
-                      }`}
-                      onClick={e => {
+                        visitButtonVariantClass
+                      } ${isMarkingVisit ? 'opacity-50 cursor-not-allowed' : ''} ${visitButtonPaddingClass}`}
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleVisitButtonClick();
                       }}
-                      title={
-                        isVisited()
-                          ? '🖱️ Clique: atualizar data da visita'
-                          : 'Marcar visita como realizada'
-                      }
+                      title={visitButtonTitle}
                     >
-                      {isMarkingVisit ? (
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
-                      ) : isVisited() ? (
-                        <div className="flex items-center gap-1">
-                          <CheckSquare className="h-3 w-3" />
-                          {getVisitCount() > 1 && (
-                            <span className="text-[10px] font-medium">{getVisitCount()}x</span>
-                          )}
-                        </div>
-                      ) : (
-                        <Square className="h-3 w-3" />
-                      )}
+                      {visitButtonContent}
                     </Button>
 
                     <Button
                       size="sm"
                       variant="ghost"
                       className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30 rounded-full border border-green-200 dark:border-green-700/50"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         onView?.();
                       }}
@@ -524,7 +558,7 @@ export function UserCardResponsive({
                       size="sm"
                       variant="ghost"
                       className="h-7 w-7 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30 rounded-full border border-purple-200 dark:border-purple-700/50"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         onScheduleVisit?.();
                       }}
@@ -538,7 +572,7 @@ export function UserCardResponsive({
                         size="sm"
                         variant="ghost"
                         className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30 rounded-full border border-green-200 dark:border-green-700/50"
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           handleWhatsApp();
                         }}
@@ -552,7 +586,7 @@ export function UserCardResponsive({
                       size="sm"
                       variant="ghost"
                       className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 rounded-full border border-red-200 dark:border-red-700/50"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         onDelete?.();
                       }}
@@ -603,23 +637,9 @@ export function UserCardResponsive({
                 {/* Badge de status */}
                 <Badge
                   variant="outline"
-                  className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 ${
-                    localUser.status === 'active' || localUser.status === 'approved'
-                      ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-600/50'
-                      : localUser.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-600/50'
-                        : localUser.status === 'inactive'
-                          ? 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/50 dark:text-gray-300 dark:border-gray-600/50'
-                          : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-600/50'
-                  }`}
+                  className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 ${statusBadgeClass}`}
                 >
-                  {localUser.status === 'active' || localUser.status === 'approved'
-                    ? 'Ativo'
-                    : localUser.status === 'pending'
-                      ? 'Pendente'
-                      : localUser.status === 'inactive'
-                        ? 'Inativo'
-                        : 'Rejeitado'}
+                  {statusLabel}
                 </Badge>
 
                 {/* Badge de autorização de discipulado - apenas para interessados com solicitação pendente */}
@@ -627,7 +647,7 @@ export function UserCardResponsive({
                   <Badge
                     variant="outline"
                     className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-600/50 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
-                    onClick={e => {
+                    onClick={(e) => {
                       e.stopPropagation();
                       onDiscipleRequest?.();
                     }}
@@ -710,13 +730,14 @@ export function UserCardResponsive({
                     role="combobox"
                     aria-expanded={openSituationPopover}
                     className="w-[200px] justify-between text-xs h-7"
-                    onClick={e => {
+                    onClick={(e) => {
                       e.stopPropagation();
                       setOpenSituationPopover(!openSituationPopover);
                     }}
                   >
                     {selectedSituation
-                      ? situations.find(situation => situation.value === selectedSituation)?.label
+                      ? situationLevels.find((situation) => situation.value === selectedSituation)
+                          ?.label
                       : 'Selecionar situação...'}
                     <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                   </Button>
@@ -743,11 +764,11 @@ export function UserCardResponsive({
                     <CommandEmpty>Nenhuma situação encontrada.</CommandEmpty>
                     <CommandGroup>
                       <CommandList>
-                        {situations.map(situation => (
+                        {situationLevels.map((situation) => (
                           <CommandItem
                             key={situation.value}
                             value={situation.value}
-                            onSelect={currentValue => {
+                            onSelect={(currentValue) => {
                               handleSituationChange(currentValue);
                             }}
                             className="text-xs"
@@ -761,7 +782,7 @@ export function UserCardResponsive({
                             <div className="flex flex-col">
                               <span className="font-medium">{situation.label}</span>
                               <span className="text-xs text-muted-foreground">
-                                {situation.description}
+                                {situation.value}
                               </span>
                             </div>
                           </CommandItem>
@@ -774,34 +795,46 @@ export function UserCardResponsive({
 
               <Badge
                 variant="outline"
-                className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-600/50"
+                className="text-[10px] px-1.5 py-0.5"
+                style={
+                  selectedSituation
+                    ? {
+                        backgroundColor: `${
+                          situationLevels.find((level) => level.value === selectedSituation)?.color
+                        }20`,
+                        color: situationLevels.find((level) => level.value === selectedSituation)
+                          ?.color,
+                        borderColor: situationLevels.find(
+                          (level) => level.value === selectedSituation
+                        )?.color,
+                      }
+                    : undefined
+                }
               >
-                {localUser.interestedSituation || 'Não definida'}
+                {selectedSituation || 'Não definida'}
               </Badge>
             </div>
           )}
 
           {/* Informações de Gamificação - Monte e Pontuação */}
-          {true && (
-            <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100 dark:border-slate-700">
-              <div className="flex items-center gap-1">
-                <Star className="h-3 w-3 text-yellow-500" />
-                <span className="text-[10px] sm:text-xs font-medium">
-                  {localUser.points || 0} pts
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <MountIcon iconType={getLevelIcon(localUser.points || 0)} className="h-3 w-3" />
-                <span
-                  className="text-[10px] sm:text-xs font-medium"
-                  title={getLevelName(localUser.points || 0)}
-                >
-                  {getMountName(localUser.points || 0)}
-                </span>
-              </div>
+          <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100 dark:border-slate-700">
+            <div className="flex items-center gap-1">
+              <Star className="h-3 w-3 text-yellow-500" />
+              <span className="text-[10px] sm:text-xs font-medium">
+                {localUser.points || 0} pts
+              </span>
             </div>
-          )}
+
+            <div className="flex items-center gap-1">
+              <MountIcon iconType={getLevelIcon(localUser.points || 0)} className="h-3 w-3" />
+              <span
+                className="text-[10px] sm:text-xs font-medium"
+                title={getLevelName(localUser.points || 0)}
+              >
+                {getMountName(localUser.points || 0)}
+              </span>
+            </div>
+          </div>
 
           {/* Indicador de Estado Espiritual - Apenas para admins */}
           {hasAdminAccess(currentUser) && (
@@ -811,7 +844,7 @@ export function UserCardResponsive({
                 <span className="text-[10px] sm:text-xs font-medium">Check-in Espiritual:</span>
               </div>
 
-              {userSpiritual && userSpiritual.checkIns && userSpiritual.checkIns.length > 0 ? (
+              {userSpiritual?.checkIns && userSpiritual.checkIns.length > 0 ? (
                 <div className="flex items-center gap-1">
                   {(() => {
                     const latestCheckIn = userSpiritual.checkIns[0];
