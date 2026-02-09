@@ -494,24 +494,25 @@ const Prayers = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-3">
-                  {/* Estado Espiritual */}
-                  <div className="flex items-center gap-2">
+                  {/* Estado Espiritual + Último Check-in */}
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-2xl">
                       {
-                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]
-                          ?.emoji
+                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]?.emoji
                       }
                     </span>
                     <Badge
                       className={
-                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]
-                          ?.color
+                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]?.color
                       }
                     >
                       {
-                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]
-                          ?.label
+                        spiritualEmojis[prayer.emotionalScore as keyof typeof spiritualEmojis]?.label
                       }
+                    </Badge>
+                    {/* Badge de último check-in */}
+                    <Badge className="bg-gray-200 text-gray-700 dark:bg-gray-900 dark:text-gray-200 ml-2" variant="outline">
+                      Último check-in: {formatDate(prayer.createdAt)}
                     </Badge>
                   </div>
 
