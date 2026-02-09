@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -195,14 +195,22 @@ export default function MyInterested() {
 
   // Base de interessados conforme perfil: admin vê TODOS (de todas as igrejas)
   const isAdmin = hasAdminAccess(user);
-  const interestedBase: InterestedPerson[] = isAdmin
-    ? ((allUsers || []).filter((u: UserMember) => u.role === 'interested') as InterestedPerson[])
-    : churchInterested || [];
+  const interestedBase: InterestedPerson[] = useMemo(
+    () =>
+      isAdmin
+        ? ((allUsers || []).filter((u: UserMember) => u.role === 'interested') as InterestedPerson[])
+        : churchInterested || [],
+    [isAdmin, allUsers, churchInterested]
+  );
 
   // Lista de igrejas disponíveis (para admin)
-  const availableChurches: string[] = Array.from(
-    new Set((interestedBase || []).map((p: InterestedPerson) => p.church).filter(Boolean))
-  ).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { sensitivity: 'base' }));
+  const availableChurches: string[] = useMemo(
+    () =>
+      Array.from(
+        new Set((interestedBase || []).map((p: InterestedPerson) => p.church).filter(Boolean))
+      ).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { sensitivity: 'base' })),
+    [interestedBase]
+  );
 
   // Mutation para criar solicitação de discipulado
   const createDiscipleRequestMutation = useMutation({
@@ -397,38 +405,52 @@ export default function MyInterested() {
   });
 
   // Filtrar interessados baseado na busca e status
-  const filteredChurchInterested = interestedBase.filter((person: InterestedPerson) => {
-    const matchesSearch =
-      person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || person.status === selectedStatus;
-    const matchesChurch = !isAdmin || selectedChurch === 'all' || person.church === selectedChurch;
+  const filteredChurchInterested = useMemo(
+    () =>
+      interestedBase.filter((person: InterestedPerson) => {
+        const matchesSearch =
+          person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          person.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = selectedStatus === 'all' || person.status === selectedStatus;
+        const matchesChurch = !isAdmin || selectedChurch === 'all' || person.church === selectedChurch;
 
-    return matchesSearch && matchesStatus && matchesChurch;
-  });
+        return matchesSearch && matchesStatus && matchesChurch;
+      }),
+    [interestedBase, searchTerm, selectedStatus, selectedChurch, isAdmin]
+  );
 
   // Obter interessados vinculados ao usuário logado
-  const myInterested = isAdmin
-    ? []
-    : myRelationships
-        .map((rel: Relationship) => {
-          const interested = interestedBase.find(
-            (p: InterestedPerson) => p.id === rel.interestedId
-          );
-          return interested ? { ...interested, relationship: rel } : null;
-        })
-        .filter(Boolean);
+  const myInterested = useMemo(
+    () =>
+      isAdmin
+        ? []
+        : myRelationships
+            .map((rel: Relationship) => {
+              const interested = interestedBase.find(
+                (p: InterestedPerson) => p.id === rel.interestedId
+              );
+              return interested ? { ...interested, relationship: rel } : null;
+            })
+            .filter(Boolean),
+    [isAdmin, myRelationships, interestedBase]
+  );
 
   // Ordenar interessados por nome (ordem alfabética) - usar spread para não mutar original
-  const sortedMyInterested = [...(myInterested || [])].sort(
-    (a: InterestedPerson, b: InterestedPerson) =>
-      (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' })
+  const sortedMyInterested = useMemo(
+    () =>
+      [...(myInterested || [])].sort((a: InterestedPerson, b: InterestedPerson) =>
+        (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' })
+      ),
+    [myInterested]
   );
 
   // Ordenar interessados da igreja por nome (ordem alfabética) - usar spread para não mutar original
-  const sortedFilteredChurchInterested = [...(filteredChurchInterested || [])].sort(
-    (a: InterestedPerson, b: InterestedPerson) =>
-      (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' })
+  const sortedFilteredChurchInterested = useMemo(
+    () =>
+      [...(filteredChurchInterested || [])].sort((a: InterestedPerson, b: InterestedPerson) =>
+        (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' })
+      ),
+    [filteredChurchInterested]
   );
 
   // Lista de membros/missionários disponíveis para discipular (para pastores)
@@ -794,6 +816,9 @@ export default function MyInterested() {
   };
 
   // Hook para buscar pontos de múltiplos interessados
+  // DESABILITADO: Esta query causa problemas de performance com muitos usuários
+  // pois faz requisições HTTP seriais para cada interessado
+  // Para reativar, mude enabled para: myInterested.length > 0 && myInterested.length <= 10
   const { data: interestedPoints = {}, isLoading: loadingPoints } = useQuery({
     queryKey: [
       'interested-points',
@@ -811,7 +836,8 @@ export default function MyInterested() {
 
       return pointsMap;
     },
-    enabled: myInterested.length > 0,
+    // DESABILITADO para melhorar performance
+    enabled: false,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
@@ -860,28 +886,36 @@ export default function MyInterested() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalMy}</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {stats.totalMy}
+              </div>
               <div className="text-sm text-muted-foreground">Meus</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.totalChurch}</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {stats.totalChurch}
+              </div>
               <div className="text-sm text-muted-foreground">Da Igreja</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pendingRequests}</div>
+              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                {stats.pendingRequests}
+              </div>
               <div className="text-sm text-muted-foreground">Pendentes</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.approvedRequests}</div>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {stats.approvedRequests}
+              </div>
               <div className="text-sm text-muted-foreground">Aprovados</div>
             </CardContent>
           </Card>
@@ -1021,7 +1055,7 @@ export default function MyInterested() {
         )}
 
         {/* Loading States */}
-        {(loadingChurch || loadingRelationships || loadingRequests || loadingPoints) && (
+        {(loadingChurch || loadingRelationships || loadingRequests) && (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             <p className="mt-2 text-muted-foreground">Carregando...</p>
@@ -1029,7 +1063,7 @@ export default function MyInterested() {
         )}
 
         {/* Interested List */}
-        {!loadingChurch && !loadingRelationships && !loadingRequests && !loadingPoints && (
+        {!loadingChurch && !loadingRelationships && !loadingRequests && (
           <div className="space-y-4">
             {(selectedTab === 'my' ? sortedMyInterested : sortedFilteredChurchInterested).map(
               (person: InterestedPerson) => {
@@ -1073,35 +1107,35 @@ export default function MyInterested() {
                             )}
 
                             {/* Badge de situação */}
-                            {(person.interestedSituation || person.interested_situation) && (() => {
-                              const level = getSituationOption(person.interestedSituation || person.interested_situation);
-                              return level ? (
-                                <div className="flex flex-col items-end">
-                                  <Badge
-                                    className="border-0 mb-1"
-                                    style={{
-                                      backgroundColor: `${level.color}20`,
-                                      color: level.color,
-                                    }}
-                                    title={level.label}
-                                  >
-                                    {level.value}
-                                  </Badge>
-                                  <span
-                                    className="text-xs font-medium"
-                                    style={{ color: level.color }}
-                                  >
-                                    {level.label}
-                                  </span>
-                                  <span
-                                    className="text-xs"
-                                    style={{ color: level.color }}
-                                  >
-                                    {level.label || 'Situação do amigo'}
-                                  </span>
-                                </div>
-                              ) : null;
-                            })()}
+                            {(person.interestedSituation || person.interested_situation) &&
+                              (() => {
+                                const level = getSituationOption(
+                                  person.interestedSituation || person.interested_situation
+                                );
+                                return level ? (
+                                  <div className="flex flex-col items-end">
+                                    <Badge
+                                      className="border-0 mb-1"
+                                      style={{
+                                        backgroundColor: `${level.color}20`,
+                                        color: level.color,
+                                      }}
+                                      title={level.label}
+                                    >
+                                      {level.value}
+                                    </Badge>
+                                    <span
+                                      className="text-xs font-medium"
+                                      style={{ color: level.color }}
+                                    >
+                                      {level.label}
+                                    </span>
+                                    <span className="text-xs" style={{ color: level.color }}>
+                                      {level.label || 'Situação do amigo'}
+                                    </span>
+                                  </div>
+                                ) : null;
+                              })()}
 
                             {/* Informação de quem está discipulando (apenas na aba Da Igreja) */}
                             {selectedTab === 'church' && (
@@ -1262,11 +1296,11 @@ export default function MyInterested() {
                                       } ${updatingSituation === person.id ? 'opacity-50' : ''}`}
                                       style={
                                         isActive
-                                          ? {
+                                          ? ({
                                               backgroundColor: `${opt.color}20`,
                                               color: opt.color,
                                               '--tw-ring-color': opt.color,
-                                            } as React.CSSProperties
+                                            } as React.CSSProperties)
                                           : undefined
                                       }
                                       title={opt.label}
