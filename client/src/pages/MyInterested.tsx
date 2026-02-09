@@ -323,129 +323,62 @@ export default function MyInterested() {
   // Mutation para atualizar situação do interessado (pastor)
   const updateSituationMutation = useMutation({
     mutationFn: async ({ userId, situation }: { userId: number; situation: string }) => {
-      console.warn('📡 Enviando requisição PUT:', { 
-        userId, 
-        situation,
-        endpoint: `/api/users/${userId}`,
-        body: { interestedSituation: situation }
-      });
-      
       const response = await fetchWithAuth(`/api/users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify({ interestedSituation: situation }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Erro na resposta:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
+        console.error('❌ Erro PUT situação:', response.status, errorText);
         throw new Error(`Erro ao atualizar situação: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.warn('✅ Resposta da API completa:', {
-        data,
-        userId,
-        situationEnviada: situation,
-        situationRetornada: data?.interestedSituation || data?.user?.interestedSituation,
-      });
-      
-      return data;
+      // Retornar com a situação garantida (fallback para o valor enviado)
+      return { ...data, _confirmedSituation: data?.user?.interestedSituation || data?.user?.interested_situation || situation };
     },
     onMutate: async ({ userId, situation }) => {
-      // Atualização otimista: atualiza UI imediatamente
-      await queryClient.cancelQueries({ queryKey: ['church-interested', user?.id] });
-      await queryClient.cancelQueries({ queryKey: ['all-users', user?.id] });
+      // Cancelar refetch em andamento para evitar conflito
+      await queryClient.cancelQueries({ queryKey: ['church-interested'] });
+      await queryClient.cancelQueries({ queryKey: ['all-users'] });
 
       const previousChurch = queryClient.getQueryData(['church-interested', user?.id]);
-      const previousAll = queryClient.getQueryData(['all-users', user?.id]);
+      const previousAll = queryClient.getQueryData(['all-users', user?.id, isAdmin]);
 
-      // Atualizar cache localmente
-      queryClient.setQueryData(
-        ['church-interested', user?.id],
-        (old: InterestedPerson[] | undefined) => {
-          if (!old) return old;
-          return old.map((person) =>
-            person.id === userId
-              ? { ...person, interestedSituation: situation, interested_situation: situation }
-              : person
-          );
-        }
-      );
+      // Atualização otimista: atualizar ambos os caches
+      const updateFn = (old: InterestedPerson[] | undefined) => {
+        if (!old) return old;
+        return old.map((person) =>
+          person.id === userId
+            ? { ...person, interestedSituation: situation, interested_situation: situation }
+            : person
+        );
+      };
 
-      queryClient.setQueryData(
-        ['all-users', user?.id, isAdmin],
-        (old: InterestedPerson[] | undefined) => {
-          if (!old) return old;
-          return old.map((person) =>
-            person.id === userId
-              ? { ...person, interestedSituation: situation, interested_situation: situation }
-              : person
-          );
-        }
-      );
+      queryClient.setQueryData(['church-interested', user?.id], updateFn);
+      queryClient.setQueryData(['all-users', user?.id, isAdmin], updateFn);
 
       return { previousChurch, previousAll };
     },
     onSuccess: (data, variables) => {
-      console.warn('✅ Situação atualizada com sucesso!', {
-        responseData: data,
-        userId: variables.userId,
-        situation: variables.situation,
-        userFromData: data?.user || data,
-      });
+      const confirmedSituation = data._confirmedSituation;
 
-      // Garantir que a resposta da API tem o campo atualizado
-      const updatedUser = data?.user || data;
-      const confirmedSituation = updatedUser?.interestedSituation || variables.situation;
+      // Confirmar cache com dados do servidor (sem disparar refetch)
+      const updateFn = (old: InterestedPerson[] | undefined) => {
+        if (!old) return old;
+        return old.map((person) =>
+          person.id === variables.userId
+            ? { ...person, interestedSituation: confirmedSituation, interested_situation: confirmedSituation }
+            : person
+        );
+      };
 
-      console.warn('🔍 Dados de confirmação:', {
-        confirmedSituation,
-        updatedUserData: updatedUser,
-      });
+      queryClient.setQueryData(['church-interested', user?.id], updateFn);
+      queryClient.setQueryData(['all-users', user?.id, isAdmin], updateFn);
 
-      // Atualizar cache de MyInterested
-      queryClient.setQueryData(
-        ['church-interested', user?.id],
-        (old: InterestedPerson[] | undefined) => {
-          if (!old) return old;
-          return old.map((person) =>
-            person.id === variables.userId
-              ? {
-                  ...person,
-                  interestedSituation: confirmedSituation,
-                  interested_situation: confirmedSituation,
-                }
-              : person
-          );
-        }
-      );
-
-      queryClient.setQueryData(
-        ['all-users', user?.id, isAdmin],
-        (old: InterestedPerson[] | undefined) => {
-          if (!old) return old;
-          return old.map((person) =>
-            person.id === variables.userId
-              ? {
-                  ...person,
-                  interestedSituation: confirmedSituation,
-                  interested_situation: confirmedSituation,
-                }
-              : person
-          );
-        }
-      );
-
-      // Sincronizar com a página Users - FORÇAR refetch imediato
-      queryClient.invalidateQueries({ queryKey: ['/api/users'], refetchType: 'active' });
-      
-      // Também invalidar as queries do MyInterested para garantir dados frescos
-      queryClient.invalidateQueries({ queryKey: ['all-users'], refetchType: 'active' });
-      queryClient.invalidateQueries({ queryKey: ['church-interested'], refetchType: 'active' });
+      // Sincronizar APENAS a página Users (query key diferente) — NÃO invalidar os caches desta página
+      queryClient.invalidateQueries({ queryKey: ['/api/users'], refetchType: 'none' });
 
       setUpdatingSituation(null);
       toast({
@@ -453,9 +386,9 @@ export default function MyInterested() {
         description: 'A situação do amigo foi atualizada com sucesso.',
       });
     },
-    onError: (error: Error, variables, context) => {
+    onError: (error: Error, _variables, context) => {
       console.error('❌ Erro ao atualizar situação:', error);
-      // Reverter mudanças otimistas em caso de erro
+      // Reverter mudanças otimistas
       if (context?.previousChurch) {
         queryClient.setQueryData(['church-interested', user?.id], context.previousChurch);
       }
@@ -1045,7 +978,7 @@ export default function MyInterested() {
     };
 
     window.addEventListener('situation-levels-updated', handleSituationLevelsUpdate);
-    
+
     return () => {
       window.removeEventListener('situation-levels-updated', handleSituationLevelsUpdate);
     };

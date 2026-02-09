@@ -9269,30 +9269,32 @@ exports.handler = async (event, context) => {
         console.log('🔍 Campos para atualizar:', updateFields);
         console.log('🔍 Valores:', updateValues);
         
-        let result;
         if (updateFields.length > 0) {
           // Adicionar userId aos valores
-        updateValues.push(userId);
+          updateValues.push(userId);
         
-          // Construir query com placeholders corretos e RETURNING * para devolver dados atualizados
-          const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${updateValues.length} RETURNING *`;
+          // Construir query com placeholders corretos
+          const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${updateValues.length}`;
           console.log('🔍 Query SQL:', query);
           console.log('🔍 Valores finais:', updateValues);
           
-          result = await sql.unsafe(query, updateValues);
-          console.log('🔍 Resultado da atualização:', result);
+          await sql.unsafe(query, updateValues);
+          console.log(`✅ UPDATE executado para userId=${userId}`);
         } else {
           console.log('ℹ️ Nenhum campo para atualizar');
         }
         
-        console.log(`✅ Usuário ${userId} atualizado com sucesso`);
+        // SELECT separado para garantir dados atualizados (RETURNING pode falhar no Neon HTTP)
+        const updatedRows = await sql`SELECT * FROM users WHERE id = ${userId} LIMIT 1`;
+        const updatedRow = updatedRows.length > 0 ? updatedRows[0] : null;
         
-        // Retornar dados do usuário atualizado (com camelCase para o frontend)
-        const updatedRow = result && result.length > 0 ? result[0] : null;
+        console.log(`✅ Usuário ${userId} atualizado. interested_situation=${updatedRow?.interested_situation}`);
+        
+        // Mapear snake_case → camelCase para o frontend
         const userResponse = updatedRow ? {
           ...updatedRow,
-          interestedSituation: updatedRow.interested_situation,
-          districtId: updatedRow.district_id,
+          interestedSituation: updatedRow.interested_situation || null,
+          districtId: updatedRow.district_id || null,
           createdAt: updatedRow.created_at,
           updatedAt: updatedRow.updated_at,
           extraData: updatedRow.extra_data,
