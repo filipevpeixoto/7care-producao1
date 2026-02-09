@@ -111,7 +111,7 @@ export function UserCardResponsive({
   const [showVisitHistory, setShowVisitHistory] = useState(false);
   const [visitHistory, setVisitHistory] = useState<VisitHistoryItem[]>([]);
   const [openSituationPopover, setOpenSituationPopover] = useState(false);
-  const [selectedSituation, setSelectedSituation] = useState(localUser.interestedSituation || '');
+  const [selectedSituation, setSelectedSituation] = useState(localUser.interestedSituation || (localUser as any).interested_situation || '');
   const [userSpiritual, setUserSpiritual] = useState<SpiritualData | null>(null);
   const [currentDiscipuladores, setCurrentDiscipuladores] = useState<Discipulador[]>([]);
 
@@ -123,7 +123,7 @@ export function UserCardResponsive({
   // Atualizar usuário local quando prop mudar
   useEffect(() => {
     setLocalUser(user);
-    setSelectedSituation(user.interestedSituation || '');
+    setSelectedSituation(user.interestedSituation || (user as any).interested_situation || '');
   }, [user]);
 
   // Carregar check-in espiritual do usuário

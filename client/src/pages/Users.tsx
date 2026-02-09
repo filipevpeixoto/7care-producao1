@@ -353,9 +353,9 @@ export default function Users() {
     if (situation === 'all') return users.filter((u) => u.role === 'interested').length;
     if (situation === 'total') return users.filter((u) => u.role === 'interested').length;
     if (situation === 'no-situation') {
-      return users.filter((u) => u.role === 'interested' && !u.interestedSituation).length;
+      return users.filter((u) => u.role === 'interested' && !(u.interestedSituation || (u as any).interested_situation)).length;
     }
-    return users.filter((u) => u.role === 'interested' && u.interestedSituation === situation)
+    return users.filter((u) => u.role === 'interested' && (u.interestedSituation || (u as any).interested_situation) === situation)
       .length;
   };
 
@@ -528,12 +528,12 @@ export default function Users() {
       let matchesInterestedSituation = true;
       if (interestedSituationFilter !== 'all') {
         if (interestedSituationFilter === 'no-situation') {
-          matchesInterestedSituation = u.role === 'interested' && !u.interestedSituation;
+          matchesInterestedSituation = u.role === 'interested' && !(u.interestedSituation || (u as any).interested_situation);
         } else if (interestedSituationFilter === 'total') {
           matchesInterestedSituation = u.role === 'interested';
         } else {
           matchesInterestedSituation =
-            u.role === 'interested' && u.interestedSituation === interestedSituationFilter;
+            u.role === 'interested' && (u.interestedSituation || (u as any).interested_situation) === interestedSituationFilter;
         }
       }
 

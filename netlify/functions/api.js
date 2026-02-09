@@ -1576,10 +1576,19 @@ exports.handler = async (event, context) => {
         
         console.log(`📊 Usuários processados: ${processedUsers.length}`);
         
+        // Mapear para incluir campos camelCase que o frontend espera
+        const finalUsers = processedUsers.map(u => ({
+          ...u,
+          interestedSituation: u.interested_situation,
+          districtId: u.district_id,
+          createdAt: u.created_at,
+          updatedAt: u.updated_at,
+        }));
+        
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify(processedUsers)
+          body: JSON.stringify(finalUsers)
         };
       } catch (error) {
         console.error('❌ Erro ao buscar usuários:', error);
@@ -1650,7 +1659,11 @@ exports.handler = async (event, context) => {
         
         const processedUser = {
           ...user,
-          extraData: extraData
+          extraData: extraData,
+          interestedSituation: user.interested_situation,
+          districtId: user.district_id,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at,
         };
         
         return {
@@ -9093,10 +9106,20 @@ exports.handler = async (event, context) => {
         
         console.log(`📊 Encontrados ${interested.length} interessados`);
         
+        // Mapear para incluir campos camelCase que o frontend espera
+        const mappedInterested = interested.map(row => ({
+          ...row,
+          interestedSituation: row.interested_situation,
+          districtId: row.district_id,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          extraData: row.extra_data,
+        }));
+        
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify(interested)
+          body: JSON.stringify(mappedInterested)
         };
       } catch (error) {
         console.error('❌ My interested error:', error);
@@ -9251,8 +9274,8 @@ exports.handler = async (event, context) => {
           // Adicionar userId aos valores
         updateValues.push(userId);
         
-          // Construir query com placeholders corretos
-          const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${updateValues.length}`;
+          // Construir query com placeholders corretos e RETURNING * para devolver dados atualizados
+          const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${updateValues.length} RETURNING *`;
           console.log('🔍 Query SQL:', query);
           console.log('🔍 Valores finais:', updateValues);
           
@@ -9264,10 +9287,21 @@ exports.handler = async (event, context) => {
         
         console.log(`✅ Usuário ${userId} atualizado com sucesso`);
         
+        // Retornar dados do usuário atualizado (com camelCase para o frontend)
+        const updatedRow = result && result.length > 0 ? result[0] : null;
+        const userResponse = updatedRow ? {
+          ...updatedRow,
+          interestedSituation: updatedRow.interested_situation,
+          districtId: updatedRow.district_id,
+          createdAt: updatedRow.created_at,
+          updatedAt: updatedRow.updated_at,
+          extraData: updatedRow.extra_data,
+        } : null;
+        
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ success: true, message: 'Usuário atualizado com sucesso' })
+          body: JSON.stringify({ success: true, message: 'Usuário atualizado com sucesso', user: userResponse })
         };
       } catch (error) {
         console.error('❌ Update user error:', error);
