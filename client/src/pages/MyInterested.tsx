@@ -101,6 +101,10 @@ export default function MyInterested() {
   const [selectedInterested, setSelectedInterested] = useState<InterestedPerson | null>(null);
   const [discipleMessage, setDiscipleMessage] = useState('');
   const [selectedChurch, setSelectedChurch] = useState<string>('all');
+  
+  // PAGINAÇÃO para grandes listas (300+ amigos)
+  const [itemsPerPage] = useState(50); // Renderizar 50 por vez
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Estados para autorização de discipulado (admin)
   const [showAuthorizationModal, setShowAuthorizationModal] = useState(false);
@@ -115,7 +119,9 @@ export default function MyInterested() {
   // Estado de situação sendo atualizada
   const [updatingSituation, setUpdatingSituation] = useState<number | null>(null);
 
+  // Definir permissões ANTES das queries que as usam
   const isPastorUser = isPastor(user);
+  const isAdmin = hasAdminAccess(user);
 
   // Buscar interessados da igreja do usuário logado
   const { data: churchInterested = [], isLoading: loadingChurch } = useQuery({
@@ -210,17 +216,24 @@ export default function MyInterested() {
 
   // Base de interessados conforme perfil: admin vê TODOS (de todas as igrejas)
   // OTIMIZADO: Para admin, allUsers já vem filtrado com ?role=interested
-  const isAdmin = hasAdminAccess(user);
-  const interestedBase: InterestedPerson[] = useMemo(
-    () => (isAdmin ? allUsers : churchInterested || []),
-    [isAdmin, allUsers, churchInterested]
-  );
+  const interestedBase: InterestedPerson[] = useMemo(() => {
+    try {
+      return isAdmin ? (allUsers || []) : (churchInterested || []);
+    } catch (error) {
+      console.error('Error in interestedBase:', error);
+      return [];
+    }
+  }, [isAdmin, allUsers, churchInterested]);
 
   // Lista de igrejas disponíveis (para admin)
   const availableChurches: string[] = useMemo(
     () =>
       Array.from(
-        new Set((interestedBase || []).map((p: InterestedPerson) => p.church).filter(Boolean))
+        new Set(
+          (interestedBase || [])
+            .map((p: InterestedPerson) => p?.church)
+            .filter((church): church is string => Boolean(church))
+        )
       ).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { sensitivity: 'base' })),
     [interestedBase]
   );
@@ -310,14 +323,22 @@ export default function MyInterested() {
   // Mutation para atualizar situação do interessado (pastor)
   const updateSituationMutation = useMutation({
     mutationFn: async ({ userId, situation }: { userId: number; situation: string }) => {
+      console.warn('📡 Enviando requisição PUT:', { userId, situation });
       const response = await fetchWithAuth(`/api/users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify({ interestedSituation: situation }),
       });
-      if (!response.ok) throw new Error('Erro ao atualizar situação');
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Erro na resposta:', response.status, errorText);
+        throw new Error(`Erro ao atualizar situação: ${response.status}`);
+      }
+      const data = await response.json();
+      console.warn('✅ Resposta da API:', data);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.warn('✅ Situação atualizada com sucesso!', data);
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['church-interested'] });
       setUpdatingSituation(null);
@@ -327,6 +348,7 @@ export default function MyInterested() {
       });
     },
     onError: (error: Error) => {
+      console.error('❌ Erro ao atualizar situação:', error);
       setUpdatingSituation(null);
       toast({
         title: '❌ Erro ao atualizar situação',
@@ -420,10 +442,12 @@ export default function MyInterested() {
   // Filtrar interessados baseado na busca e status
   const filteredChurchInterested = useMemo(
     () =>
-      interestedBase.filter((person: InterestedPerson) => {
+      (interestedBase || []).filter((person: InterestedPerson) => {
+        if (!person) return false;
+        
         const matchesSearch =
-          person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          person.email.toLowerCase().includes(searchTerm.toLowerCase());
+          person.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          person.email?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = selectedStatus === 'all' || person.status === selectedStatus;
         const matchesChurch =
           !isAdmin || selectedChurch === 'all' || person.church === selectedChurch;
@@ -438,10 +462,12 @@ export default function MyInterested() {
     () =>
       isAdmin
         ? []
-        : myRelationships
+        : (myRelationships || [])
             .map((rel: Relationship) => {
-              const interested = interestedBase.find(
-                (p: InterestedPerson) => p.id === rel.interestedId
+              if (!rel?.interestedId) return null;
+              
+              const interested = (interestedBase || []).find(
+                (p: InterestedPerson) => p?.id === rel.interestedId
               );
               return interested ? { ...interested, relationship: rel } : null;
             })
@@ -452,18 +478,22 @@ export default function MyInterested() {
   // Ordenar interessados por nome (ordem alfabética) - usar spread para não mutar original
   const sortedMyInterested = useMemo(
     () =>
-      [...(myInterested || [])].sort((a: InterestedPerson, b: InterestedPerson) =>
-        (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' })
-      ),
+      [...(myInterested || [])].sort((a: InterestedPerson, b: InterestedPerson) => {
+        const nameA = a?.name || '';
+        const nameB = b?.name || '';
+        return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+      }),
     [myInterested]
   );
 
   // Ordenar interessados da igreja por nome (ordem alfabética) - usar spread para não mutar original
   const sortedFilteredChurchInterested = useMemo(
     () =>
-      [...(filteredChurchInterested || [])].sort((a: InterestedPerson, b: InterestedPerson) =>
-        (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' })
-      ),
+      [...(filteredChurchInterested || [])].sort((a: InterestedPerson, b: InterestedPerson) => {
+        const nameA = a?.name || '';
+        const nameB = b?.name || '';
+        return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+      }),
     [filteredChurchInterested]
   );
 
@@ -487,8 +517,10 @@ export default function MyInterested() {
   // OTIMIZAÇÃO: Maps pré-calculados para evitar N+1 loops na renderização
   const activeRelationshipsMap = useMemo(() => {
     const map = new Map<number, ActiveRelationship[]>();
-    (allRelationships || []).forEach((rel: ActiveRelationship) => {
-      if (rel.status === 'active') {
+    if (!allRelationships || !Array.isArray(allRelationships)) return map;
+    
+    allRelationships.forEach((rel: ActiveRelationship) => {
+      if (rel?.status === 'active' && rel?.interestedId) {
         const existing = map.get(rel.interestedId) || [];
         map.set(rel.interestedId, [...existing, rel]);
       }
@@ -498,8 +530,10 @@ export default function MyInterested() {
 
   const approvedRequestsSet = useMemo(() => {
     const set = new Set<number>();
-    (allRequests || []).forEach((req: DiscipleshipRequest) => {
-      if (req.status === 'approved') {
+    if (!allRequests || !Array.isArray(allRequests)) return set;
+    
+    allRequests.forEach((req: DiscipleshipRequest) => {
+      if (req?.status === 'approved' && req?.interestedId) {
         set.add(req.interestedId);
       }
     });
@@ -508,8 +542,10 @@ export default function MyInterested() {
 
   const pendingRequestsSet = useMemo(() => {
     const set = new Set<number>();
-    (allRequests || []).forEach((req: DiscipleshipRequest) => {
-      if (req.status === 'pending') {
+    if (!allRequests || !Array.isArray(allRequests)) return set;
+    
+    allRequests.forEach((req: DiscipleshipRequest) => {
+      if (req?.status === 'pending' && req?.interestedId) {
         set.add(req.interestedId);
       }
     });
@@ -518,8 +554,10 @@ export default function MyInterested() {
 
   const missionaryNamesMap = useMemo(() => {
     const map = new Map<number, string[]>();
-    (allRelationships || []).forEach((rel: ActiveRelationship) => {
-      if (rel.status === 'active' && rel.missionaryName) {
+    if (!allRelationships || !Array.isArray(allRelationships)) return map;
+    
+    allRelationships.forEach((rel: ActiveRelationship) => {
+      if (rel?.status === 'active' && rel?.missionaryName && rel?.interestedId) {
         const existing = map.get(rel.interestedId) || [];
         const firstName = rel.missionaryName.split(' ')[0];
         if (!existing.includes(firstName)) {
@@ -531,11 +569,15 @@ export default function MyInterested() {
   }, [allRelationships]);
 
   // Convites de pastor pendentes para o membro logado (para aceitar/rejeitar)
-  const myPendingInvites: DiscipleshipRequest[] = (allRequests || []).filter(
-    (req: DiscipleshipRequest) =>
-      req.missionaryId === Number(user?.id) &&
-      req.type === 'pastor-invite' &&
-      req.status === 'pending'
+  const myPendingInvites: DiscipleshipRequest[] = useMemo(
+    () =>
+      (allRequests || []).filter(
+        (req: DiscipleshipRequest) =>
+          req?.missionaryId === Number(user?.id) &&
+          req?.type === 'pastor-invite' &&
+          req?.status === 'pending'
+      ),
+    [allRequests, user?.id]
   );
 
   // Obter situação do interessado
@@ -545,6 +587,7 @@ export default function MyInterested() {
 
   // Handler para atualizar situação
   const handleSituationChange = (userId: number, situation: string) => {
+    console.warn('🔄 Atualizando situação:', { userId, situation, isPastorUser, selectedTab });
     setUpdatingSituation(userId);
     updateSituationMutation.mutate({ userId, situation });
   };
@@ -631,10 +674,21 @@ export default function MyInterested() {
 
   // Função para obter informações do usuário
   const getUserInfo = (userId: number) => {
-    const userInfo =
-      interestedBase.find((u: InterestedPerson) => u.id === userId) ||
-      allUsers.find((u: UserMember) => u.id === userId);
-    return userInfo ? userInfo.name : `Usuário ${userId}`;
+    if (!userId) return 'Usuário desconhecido';
+    
+    // Buscar primeiro em interessados
+    const interested = interestedBase?.find((u: InterestedPerson) => u.id === userId);
+    if (interested) return interested.name;
+    
+    // Buscar em todos os usuários (para pastores)
+    const fromAllUsers = allUsers?.find((u: UserMember) => u.id === userId);
+    if (fromAllUsers) return fromAllUsers.name;
+    
+    // Buscar em membros (para dropdown de pastor)
+    const fromMembers = allMembersForInvite?.find((u: UserMember) => u.id === userId);
+    if (fromMembers) return fromMembers.name;
+    
+    return `Usuário ${userId}`;
   };
 
   // Função para obter primeiros nomes de TODOS os discipuladores ativos de um interessado
@@ -834,6 +888,42 @@ export default function MyInterested() {
       setSelectedTab('church');
     }
   }, [isAdmin, selectedTab]);
+
+  // Reset página quando mudar filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedStatus, selectedChurch, selectedTab]);
+
+  // Debug: Log informações importantes
+  useEffect(() => {
+    console.warn('📊 Estado MyInterested:', {
+      isPastorUser,
+      isAdmin,
+      selectedTab,
+      situationLevelsCount: situationLevels.length,
+      situationLevels: situationLevels.map(l => l.value),
+      currentList: currentList.length,
+    });
+  }, [isPastorUser, isAdmin, selectedTab, situationLevels, currentList]);
+
+  // PAGINAÇÃO: Pegar apenas items da página atual (evita renderizar 300+ cards de uma vez)
+  const paginatedMyInterested = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sortedMyInterested.slice(startIndex, endIndex);
+  }, [sortedMyInterested, currentPage, itemsPerPage]);
+
+  const paginatedChurchInterested = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sortedFilteredChurchInterested.slice(startIndex, endIndex);
+  }, [sortedFilteredChurchInterested, currentPage, itemsPerPage]);
+
+  // Calcular total de páginas
+  const totalPagesMyInterested = Math.ceil(sortedMyInterested.length / itemsPerPage);
+  const totalPagesChurch = Math.ceil(sortedFilteredChurchInterested.length / itemsPerPage);
+  const totalPages = selectedTab === 'my' ? totalPagesMyInterested : totalPagesChurch;
+  const currentList = selectedTab === 'my' ? paginatedMyInterested : paginatedChurchInterested;
 
   // Função para abrir WhatsApp
   const handleWhatsApp = (phone: string, name: string) => {
@@ -1112,15 +1202,17 @@ export default function MyInterested() {
         {/* Interested List */}
         {!loadingChurch && !loadingRelationships && !loadingRequests && (
           <div className="space-y-4">
-            {(selectedTab === 'my' ? sortedMyInterested : sortedFilteredChurchInterested).map(
-              (person: InterestedPerson) => {
-                const discipleStatus = getDiscipleStatus(person.id);
-                const isMyInterested = selectedTab === 'my';
+            {currentList
+              .filter((person: InterestedPerson) => person && person.id) // Extra filter para segurança
+              .map((person: InterestedPerson) => {
+                try {
+                  const discipleStatus = getDiscipleStatus(person.id);
+                  const isMyInterested = selectedTab === 'my';
 
-                return (
-                  <Card key={person.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="space-y-4">
+                  return (
+                    <Card key={person.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="space-y-4">
                         {/* Header */}
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
@@ -1321,6 +1413,11 @@ export default function MyInterested() {
                                 Situação:
                               </span>
                               <div className="flex gap-1 flex-wrap">
+                                {situationLevels.length === 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Carregando níveis...
+                                  </span>
+                                )}
                                 {situationLevels.map((opt) => {
                                   const isActive =
                                     (person.interestedSituation || person.interested_situation) ===
@@ -1328,13 +1425,20 @@ export default function MyInterested() {
                                   return (
                                     <button
                                       key={opt.value}
-                                      onClick={() => handleSituationChange(person.id, opt.value)}
+                                      onClick={() => {
+                                        console.warn('🔘 Botão clicado:', { 
+                                          personId: person.id, 
+                                          optValue: opt.value,
+                                          currentSituation: person.interestedSituation || person.interested_situation 
+                                        });
+                                        handleSituationChange(person.id, opt.value);
+                                      }}
                                       disabled={updatingSituation === person.id}
                                       className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
                                         isActive
                                           ? 'ring-2 ring-offset-1'
                                           : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                                      } ${updatingSituation === person.id ? 'opacity-50' : ''}`}
+                                      } ${updatingSituation === person.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                       style={
                                         isActive
                                           ? ({
@@ -1536,8 +1640,53 @@ export default function MyInterested() {
                     </CardContent>
                   </Card>
                 );
+                } catch (error) {
+                  console.error('Error rendering person card:', error, person);
+                  // Retorna card de erro ao invés de quebrar toda a página
+                  return (
+                    <Card key={person?.id || Math.random()} className="border-red-200 bg-red-50/50 dark:bg-red-950/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-sm">Erro ao carregar: {person?.name || 'Desconhecido'}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
               }
             )}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loadingChurch && !loadingRelationships && !loadingRequests && totalPages > 1 && (
+          <div className="flex items-center justify-between border-t pt-4">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, selectedTab === 'my' ? sortedMyInterested.length : sortedFilteredChurchInterested.length)} de{' '}
+              {selectedTab === 'my' ? sortedMyInterested.length : sortedFilteredChurchInterested.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm px-3">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Próxima
+              </Button>
+            </div>
           </div>
         )}
 
