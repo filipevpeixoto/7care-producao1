@@ -5,16 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 import 'fake-indexeddb/auto';
-import {
-  processQueue,
-  forceSync,
-  addSyncListener,
-  setupAutoSync,
-} from '../syncManager';
-import {
-  db,
-  addToSyncQueue,
-} from '../database';
+import { processQueue, forceSync, addSyncListener, setupAutoSync } from '../syncManager';
+import { db, addToSyncQueue } from '../database';
 
 // Tipo para o mock do fetch
 type MockFetch = MockedFunction<typeof fetch>;
@@ -27,7 +19,7 @@ describe('Sync Manager Module', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await db.syncQueue.clear();
-    
+
     // Default mock para fetch
     mockFetch.mockResolvedValue({
       ok: true,
@@ -38,7 +30,7 @@ describe('Sync Manager Module', () => {
   describe('processQueue', () => {
     it('deve processar fila vazia sem erros', async () => {
       const result = await processQueue();
-      
+
       expect(result.success).toBe(0);
       expect(result.failed).toBe(0);
     });
@@ -53,12 +45,15 @@ describe('Sync Manager Module', () => {
       });
 
       const result = await processQueue();
-      
+
       expect(result.success).toBe(1);
       expect(result.failed).toBe(0);
-      expect(mockFetch).toHaveBeenCalledWith('/api/users', expect.objectContaining({
-        method: 'POST',
-      }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/users',
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
     });
 
     it('deve processar item de atualização', async () => {
@@ -72,11 +67,14 @@ describe('Sync Manager Module', () => {
       });
 
       const result = await processQueue();
-      
+
       expect(result.success).toBe(1);
-      expect(mockFetch).toHaveBeenCalledWith('/api/events/5', expect.objectContaining({
-        method: 'PUT',
-      }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/events/5',
+        expect.objectContaining({
+          method: 'PUT',
+        })
+      );
     });
 
     it('deve processar item de exclusão', async () => {
@@ -90,11 +88,14 @@ describe('Sync Manager Module', () => {
       });
 
       const result = await processQueue();
-      
+
       expect(result.success).toBe(1);
-      expect(mockFetch).toHaveBeenCalledWith('/api/tasks/10', expect.objectContaining({
-        method: 'DELETE',
-      }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/tasks/10',
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
     });
 
     it('deve lidar com falha na requisição', async () => {
@@ -118,7 +119,7 @@ describe('Sync Manager Module', () => {
       });
 
       const result = await processQueue();
-      
+
       expect(result.success).toBe(0);
       expect(result.failed).toBe(1);
     });
@@ -131,7 +132,7 @@ describe('Sync Manager Module', () => {
         endpoint: '/api/users',
         method: 'POST',
       });
-      
+
       await addToSyncQueue({
         type: 'create',
         entity: 'users',
@@ -141,16 +142,16 @@ describe('Sync Manager Module', () => {
       });
 
       await processQueue();
-      
+
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      
+
       // Verificar ordem das chamadas
       const firstCall = mockFetch.mock.calls[0] as [string, RequestInit];
       const secondCall = mockFetch.mock.calls[1] as [string, RequestInit];
-      
+
       const firstBody = JSON.parse(firstCall[1].body as string);
       const secondBody = JSON.parse(secondCall[1].body as string);
-      
+
       expect(firstBody.order).toBe(1);
       expect(secondBody.order).toBe(2);
     });
@@ -175,7 +176,7 @@ describe('Sync Manager Module', () => {
       });
 
       const result = await forceSync();
-      
+
       expect(result.success).toBe(1);
     });
 
@@ -191,7 +192,7 @@ describe('Sync Manager Module', () => {
       });
 
       const result = await forceSync();
-      
+
       expect(result.success).toBe(0);
       expect(mockFetch).not.toHaveBeenCalled();
     });
@@ -201,12 +202,12 @@ describe('Sync Manager Module', () => {
     it('deve adicionar e remover listener', async () => {
       const listener = vi.fn();
       const unsubscribe = addSyncListener(listener);
-      
+
       expect(typeof unsubscribe).toBe('function');
-      
+
       // Remover listener
       unsubscribe();
-      
+
       // Deve funcionar sem erros
       expect(() => unsubscribe()).not.toThrow();
     });
@@ -230,7 +231,7 @@ describe('Sync Manager Module', () => {
       });
 
       await processQueue();
-      
+
       // Listener deve ser chamado com status
       expect(listener).toHaveBeenCalled();
     });

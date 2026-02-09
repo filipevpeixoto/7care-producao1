@@ -19,7 +19,7 @@ describe('User Points Calculation', () => {
 
         return activities.reduce((total, activity) => {
           const points = pointsConfig[activity.type] || 0;
-          return total + (points * activity.value);
+          return total + points * activity.value;
         }, 0);
       };
 
@@ -65,13 +65,11 @@ describe('User Points Calculation', () => {
 
         return activities.reduce((total, activity) => {
           const points = pointsConfig[activity.type] || 0;
-          return total + (points * activity.value);
+          return total + points * activity.value;
         }, 0);
       };
 
-      const activities = [
-        { type: 'unknown', value: 10 },
-      ];
+      const activities = [{ type: 'unknown', value: 10 }];
 
       expect(calculatePoints(activities)).toBe(0);
     });
@@ -176,7 +174,7 @@ describe('User Points Calculation', () => {
       };
 
       const allPoints = [100, 500, 250, 150, 300];
-      
+
       expect(calculateRankPosition(500, allPoints)).toBe(1);
       expect(calculateRankPosition(300, allPoints)).toBe(2);
       expect(calculateRankPosition(100, allPoints)).toBe(5);
@@ -189,7 +187,7 @@ describe('User Points Calculation', () => {
       };
 
       const allPoints = [100, 200, 200, 300];
-      
+
       expect(calculateRankPosition(300, allPoints)).toBe(1);
       expect(calculateRankPosition(200, allPoints)).toBe(2); // Primeiro 200
       expect(calculateRankPosition(100, allPoints)).toBe(4);
@@ -238,13 +236,16 @@ describe('Points Configuration', () => {
 describe('Points Aggregation', () => {
   it('deve agregar pontos por período', () => {
     type PointEntry = { date: string; points: number };
-    
+
     const aggregateByMonth = (entries: PointEntry[]): Record<string, number> => {
-      return entries.reduce((acc, entry) => {
-        const month = entry.date.substring(0, 7);
-        acc[month] = (acc[month] || 0) + entry.points;
-        return acc;
-      }, {} as Record<string, number>);
+      return entries.reduce(
+        (acc, entry) => {
+          const month = entry.date.substring(0, 7);
+          acc[month] = (acc[month] || 0) + entry.points;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
     };
 
     const entries: PointEntry[] = [

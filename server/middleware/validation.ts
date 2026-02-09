@@ -21,7 +21,7 @@ export interface ValidatedRequest<T> extends Request {
  * Formata erros do Zod para resposta amigável
  */
 const formatZodErrors = (error: ZodError): { field: string; message: string }[] => {
-  return error.errors.map(err => ({
+  return error.errors.map((err) => ({
     field: err.path.join('.') || 'body',
     message: err.message,
   }));
@@ -150,7 +150,7 @@ export const combineValidations = (
     for (const validator of validators) {
       let hasError = false;
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         validator(req, res, (err?: unknown) => {
           if (err) {
             hasError = true;

@@ -342,10 +342,7 @@ export type AuthenticatedMiddleware = (
 /**
  * Handler de rota Express
  */
-export type RouteHandler = (
-  req: Request,
-  res: Response
-) => void | Promise<void>;
+export type RouteHandler = (req: Request, res: Response) => void | Promise<void>;
 
 /**
  * Handler de rota autenticado
@@ -381,10 +378,10 @@ export const ErrorCodes = {
   DATABASE_ERROR: 'DATABASE_ERROR',
 
   // Rate Limiting
-  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED'
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
 } as const;
 
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 // Re-export storage types
 export * from './storage';

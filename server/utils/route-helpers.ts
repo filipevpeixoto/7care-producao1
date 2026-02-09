@@ -52,7 +52,7 @@ export const asyncHandler = (
   fn: (req: Request, res: Response, next: NextFunction) => Promise<void | Response>
 ): RequestHandler => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res, next)).catch(error => {
+    Promise.resolve(fn(req, res, next)).catch((error) => {
       logger.error('Async handler error', error);
       next(error);
     });
@@ -193,7 +193,7 @@ export const validateRequired = (
   body: Record<string, unknown>,
   fields: string[]
 ): { valid: boolean; missing: string[] } => {
-  const missing = fields.filter(field => {
+  const missing = fields.filter((field) => {
     const value = body[field];
     return value === undefined || value === null || value === '';
   });

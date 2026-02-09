@@ -198,7 +198,9 @@ export default function MyInterested() {
   const interestedBase: InterestedPerson[] = useMemo(
     () =>
       isAdmin
-        ? ((allUsers || []).filter((u: UserMember) => u.role === 'interested') as InterestedPerson[])
+        ? ((allUsers || []).filter(
+            (u: UserMember) => u.role === 'interested'
+          ) as InterestedPerson[])
         : churchInterested || [],
     [isAdmin, allUsers, churchInterested]
   );
@@ -412,7 +414,8 @@ export default function MyInterested() {
           person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           person.email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = selectedStatus === 'all' || person.status === selectedStatus;
-        const matchesChurch = !isAdmin || selectedChurch === 'all' || person.church === selectedChurch;
+        const matchesChurch =
+          !isAdmin || selectedChurch === 'all' || person.church === selectedChurch;
 
         return matchesSearch && matchesStatus && matchesChurch;
       }),

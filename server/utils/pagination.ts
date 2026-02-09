@@ -47,7 +47,8 @@ export function extractPaginationParams(
     parseInt(req.query.page as string) || defaults?.page || PAGINATION_LIMITS.DEFAULT_PAGE
   );
 
-  const requestedLimit = parseInt(req.query.limit as string) || defaults?.limit || PAGINATION_LIMITS.DEFAULT_LIMIT;
+  const requestedLimit =
+    parseInt(req.query.limit as string) || defaults?.limit || PAGINATION_LIMITS.DEFAULT_LIMIT;
   const limit = Math.min(
     Math.max(PAGINATION_LIMITS.MIN_LIMIT, requestedLimit),
     PAGINATION_LIMITS.MAX_LIMIT
@@ -65,11 +66,7 @@ export function extractPaginationParams(
 /**
  * Cria metadados de paginação
  */
-export function createPaginationMeta(
-  page: number,
-  limit: number,
-  total: number
-): PaginationMeta {
+export function createPaginationMeta(page: number, limit: number, total: number): PaginationMeta {
   const totalPages = Math.ceil(total / limit);
 
   return {
@@ -100,11 +97,7 @@ export function createPaginatedResponse<T>(
 /**
  * Pagina um array em memória (para casos onde não há paginação no DB)
  */
-export function paginateArray<T>(
-  items: T[],
-  page: number,
-  limit: number
-): PaginatedResponse<T> {
+export function paginateArray<T>(items: T[], page: number, limit: number): PaginatedResponse<T> {
   const total = items.length;
   const offset = (page - 1) * limit;
   const paginatedItems = items.slice(offset, offset + limit);

@@ -8,7 +8,7 @@
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://7careadv.netlify.app/**" }
+        { "url": "https://7care.netlify.app/**" }
       ]
     }
   ]

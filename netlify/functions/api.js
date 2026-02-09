@@ -175,7 +175,7 @@ exports.handler = async (event, context) => {
   const startTime = Date.now();
   
   // Configurar CORS
-  const defaultOrigins = 'https://7careadv.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
+  const defaultOrigins = 'https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
     .split(',').map((origin) => origin.trim()).filter(Boolean);
   const requestOrigin = event.headers.origin || event.headers.Origin;
@@ -5037,7 +5037,7 @@ exports.handler = async (event, context) => {
               credentials: {
                 email: "admin.teste@7care.test",
                 password: "teste123456",
-                loginUrl: "https://meu7care.netlify.app",
+                loginUrl: "https://7care.netlify.app",
                 instructions: "Abra a URL acima e faça login"
               }
             })
@@ -5062,7 +5062,7 @@ exports.handler = async (event, context) => {
             credentials: {
               email: "admin.teste@7care.test",
               password: "teste123456",
-              loginUrl: "https://meu7care.netlify.app",
+              loginUrl: "https://7care.netlify.app",
               instructions: "Clique no link acima e faça login com as credenciais fornecidas"
             }
           })
@@ -18278,7 +18278,7 @@ exports.handler = async (event, context) => {
           RETURNING *
         `;
 
-        const APP_URL = process.env.APP_URL || 'https://7careadv.netlify.app';
+        const APP_URL = process.env.APP_URL || 'https://7care.netlify.app';
         const link = `${APP_URL}/convite-pastor.html?token=${token}`;
         const directLink = `${APP_URL}/pastor-onboarding/${token}`;
 

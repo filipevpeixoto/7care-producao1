@@ -87,12 +87,12 @@ export function findSimilarChurches(
   const normalizedExcelName = normalizeChurchName(excelName);
 
   return registeredChurches
-    .map(church => ({
+    .map((church) => ({
       id: church.id,
       name: church.name,
       similarity: calculateSimilarity(normalizedExcelName, normalizeChurchName(church.name)),
     }))
-    .filter(c => c.similarity >= threshold)
+    .filter((c) => c.similarity >= threshold)
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, 3); // Top 3 sugestões
 }
@@ -105,10 +105,10 @@ export function validateExcelChurches(
   registeredChurches: Church[],
   memberCountByChurch: Record<string, number>
 ): ValidationResult[] {
-  return excelChurchNames.map(excelChurchName => {
+  return excelChurchNames.map((excelChurchName) => {
     // Busca exata (case-insensitive e normalizada)
     const exactMatch = registeredChurches.find(
-      c => normalizeChurchName(c.name) === normalizeChurchName(excelChurchName)
+      (c) => normalizeChurchName(c.name) === normalizeChurchName(excelChurchName)
     );
 
     if (exactMatch) {
@@ -150,7 +150,7 @@ export function extractChurchesFromExcel(excelData: Array<{ igreja: string }>): 
 } {
   const memberCount: Record<string, number> = {};
 
-  excelData.forEach(row => {
+  excelData.forEach((row) => {
     if (row.igreja) {
       memberCount[row.igreja] = (memberCount[row.igreja] || 0) + 1;
     }

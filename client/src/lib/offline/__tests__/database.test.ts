@@ -50,28 +50,28 @@ describe('Offline Database Module', () => {
 
     it('deve salvar usuários com permissão de admin', async () => {
       await saveUsersOffline(mockUsers as any, 'superadmin');
-      
+
       const count = await db.users.count();
       expect(count).toBe(2);
     });
 
     it('não deve salvar usuários sem permissão', async () => {
       await saveUsersOffline(mockUsers as any, 'member');
-      
+
       const count = await db.users.count();
       expect(count).toBe(0);
     });
 
     it('deve salvar usuários com permissão de pastor', async () => {
       await saveUsersOffline(mockUsers as any, 'pastor');
-      
+
       const count = await db.users.count();
       expect(count).toBe(2);
     });
 
     it('deve recuperar usuários salvos', async () => {
       await saveUsersOffline(mockUsers as any, 'superadmin');
-      
+
       const retrieved = await getUsersOffline();
       expect(retrieved.length).toBe(2);
     });
@@ -85,14 +85,14 @@ describe('Offline Database Module', () => {
 
     it('deve salvar eventos', async () => {
       await saveEventsOffline(mockEvents as any);
-      
+
       const count = await db.events.count();
       expect(count).toBe(2);
     });
 
     it('deve recuperar eventos salvos', async () => {
       await saveEventsOffline(mockEvents as any);
-      
+
       const retrieved = await getEventsOffline();
       expect(retrieved.length).toBe(2);
     });
@@ -106,14 +106,14 @@ describe('Offline Database Module', () => {
 
     it('deve salvar tarefas', async () => {
       await saveTasksOffline(mockTasks as any);
-      
+
       const count = await db.tasks.count();
       expect(count).toBe(2);
     });
 
     it('deve recuperar tarefas salvas', async () => {
       await saveTasksOffline(mockTasks as any);
-      
+
       const retrieved = await getTasksOffline();
       expect(retrieved.length).toBe(2);
     });
@@ -130,7 +130,7 @@ describe('Offline Database Module', () => {
       });
 
       expect(id).toBeDefined();
-      
+
       const queue = await getSyncQueue();
       expect(queue.length).toBe(1);
       expect(queue[0].type).toBe('create');
@@ -148,7 +148,7 @@ describe('Offline Database Module', () => {
       });
 
       await removeSyncQueueItem(id);
-      
+
       const count = await getSyncQueueCount();
       expect(count).toBe(0);
     });
@@ -161,7 +161,7 @@ describe('Offline Database Module', () => {
         endpoint: '/api/tasks',
         method: 'POST',
       });
-      
+
       await addToSyncQueue({
         type: 'delete',
         entity: 'tasks',
@@ -183,10 +183,10 @@ describe('Offline Database Module', () => {
         endpoint: '/api/users',
         method: 'POST',
       });
-      
+
       // Pequeno delay para garantir ordem
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       await addToSyncQueue({
         type: 'update',
         entity: 'users',
@@ -205,7 +205,7 @@ describe('Offline Database Module', () => {
   describe('Storage Management', () => {
     it('deve retornar uso de armazenamento', async () => {
       const { used, limit } = await getStorageUsage();
-      
+
       expect(typeof used).toBe('number');
       expect(typeof limit).toBe('number');
       expect(limit).toBeGreaterThan(0);
@@ -216,7 +216,7 @@ describe('Offline Database Module', () => {
       await db.users.add({
         id: 999,
         data: 'old_data',
-        syncedAt: Date.now() - (8 * 24 * 60 * 60 * 1000), // 8 dias atrás
+        syncedAt: Date.now() - 8 * 24 * 60 * 60 * 1000, // 8 dias atrás
         isModified: false,
         checksum: 'test-checksum',
         modifiedAt: Date.now(),
@@ -224,7 +224,7 @@ describe('Offline Database Module', () => {
       });
 
       await cleanExpiredData();
-      
+
       const user = await db.users.get(999);
       expect(user).toBeUndefined();
     });

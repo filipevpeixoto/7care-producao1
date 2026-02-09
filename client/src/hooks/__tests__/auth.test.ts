@@ -10,9 +10,15 @@ const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
   };
 })();
 
@@ -45,7 +51,7 @@ describe('Funções de Autenticação', () => {
 
       const stored = localStorage.getItem('7care_user');
       const user = stored ? JSON.parse(stored) : null;
-      
+
       expect(user).toEqual(mockUser);
       expect(user.id).toBe(1);
       expect(user.role).toBe('member');
@@ -68,16 +74,15 @@ describe('Funções de Autenticação', () => {
   describe('Permissões', () => {
     it('deve identificar superadmin corretamente', () => {
       const isSuperAdmin = (role: string) => role === 'superadmin';
-      
+
       expect(isSuperAdmin('superadmin')).toBe(true);
       expect(isSuperAdmin('pastor')).toBe(false);
       expect(isSuperAdmin('member')).toBe(false);
     });
 
     it('deve identificar acesso admin (superadmin ou pastor)', () => {
-      const hasAdminAccess = (role: string) => 
-        role === 'superadmin' || role === 'pastor';
-      
+      const hasAdminAccess = (role: string) => role === 'superadmin' || role === 'pastor';
+
       expect(hasAdminAccess('superadmin')).toBe(true);
       expect(hasAdminAccess('pastor')).toBe(true);
       expect(hasAdminAccess('member')).toBe(false);
@@ -113,7 +118,7 @@ describe('Token Management', () => {
   it('deve armazenar token corretamente', () => {
     const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test';
     localStorage.setItem('7care_token', token);
-    
+
     expect(localStorage.getItem('7care_token')).toBe(token);
   });
 

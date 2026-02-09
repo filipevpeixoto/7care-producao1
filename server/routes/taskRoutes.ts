@@ -172,9 +172,10 @@ export function taskRoutes(app: Express): void {
       if (creatorName) createdByName = creatorName;
 
       if (assignedToId) {
-        const assigneeResult = (await sql`SELECT name FROM users WHERE id = ${assignedToId}`) as Array<{
-          name: string;
-        }>;
+        const assigneeResult =
+          (await sql`SELECT name FROM users WHERE id = ${assignedToId}`) as Array<{
+            name: string;
+          }>;
         const assigneeName = assigneeResult[0]?.name;
         if (assigneeName) assignedToName = assigneeName;
       }
@@ -278,16 +279,18 @@ export function taskRoutes(app: Express): void {
       let createdByName = '';
       let assignedToName = '';
 
-      const creatorResult = (await sql`SELECT name FROM users WHERE id = ${task.created_by_id}`) as Array<{
-        name: string;
-      }>;
+      const creatorResult =
+        (await sql`SELECT name FROM users WHERE id = ${task.created_by_id}`) as Array<{
+          name: string;
+        }>;
       const creatorName = creatorResult[0]?.name;
       if (creatorName) createdByName = creatorName;
 
       if (task.assigned_to_id) {
-        const assigneeResult = (await sql`SELECT name FROM users WHERE id = ${task.assigned_to_id}`) as Array<{
-          name: string;
-        }>;
+        const assigneeResult =
+          (await sql`SELECT name FROM users WHERE id = ${task.assigned_to_id}`) as Array<{
+            name: string;
+          }>;
         const assigneeName = assigneeResult[0]?.name;
         if (assigneeName) assignedToName = assigneeName;
       }

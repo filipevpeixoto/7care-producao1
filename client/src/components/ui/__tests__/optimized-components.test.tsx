@@ -18,13 +18,21 @@ import {
 
 // Mock dos componentes UI base
 vi.mock('../card', () => ({
-  Card: ({ children, className, onClick }: React.PropsWithChildren<{ className?: string; onClick?: () => void }>) => (
+  Card: ({
+    children,
+    className,
+    onClick,
+  }: React.PropsWithChildren<{ className?: string; onClick?: () => void }>) => (
     <div data-testid="card" className={className} onClick={onClick}>
       {children}
     </div>
   ),
-  CardContent: ({ children }: React.PropsWithChildren) => <div data-testid="card-content">{children}</div>,
-  CardDescription: ({ children }: React.PropsWithChildren) => <p data-testid="card-description">{children}</p>,
+  CardContent: ({ children }: React.PropsWithChildren) => (
+    <div data-testid="card-content">{children}</div>
+  ),
+  CardDescription: ({ children }: React.PropsWithChildren) => (
+    <p data-testid="card-description">{children}</p>
+  ),
   CardHeader: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => (
     <div data-testid="card-header" className={className}>
       {children}
@@ -51,12 +59,18 @@ vi.mock('../avatar', () => ({
       {children}
     </div>
   ),
-  AvatarFallback: ({ children }: React.PropsWithChildren) => <span data-testid="avatar-fallback">{children}</span>,
-  AvatarImage: ({ src, alt }: { src?: string; alt?: string }) => <img data-testid="avatar-image" src={src} alt={alt} />,
+  AvatarFallback: ({ children }: React.PropsWithChildren) => (
+    <span data-testid="avatar-fallback">{children}</span>
+  ),
+  AvatarImage: ({ src, alt }: { src?: string; alt?: string }) => (
+    <img data-testid="avatar-image" src={src} alt={alt} />
+  ),
 }));
 
 vi.mock('../skeleton', () => ({
-  Skeleton: ({ className }: { className?: string }) => <div data-testid="skeleton" className={className} />,
+  Skeleton: ({ className }: { className?: string }) => (
+    <div data-testid="skeleton" className={className} />
+  ),
 }));
 
 afterEach(() => {

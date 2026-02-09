@@ -79,11 +79,7 @@ export interface ExtendedWindow extends Window {
       data?: Record<string, unknown>;
     }) => void;
   };
-  gtag?: (
-    command: string,
-    action: string,
-    params: Record<string, unknown>
-  ) => void;
+  gtag?: (command: string, action: string, params: Record<string, unknown>) => void;
   testOfflineData?: unknown;
 }
 

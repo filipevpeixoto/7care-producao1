@@ -33,8 +33,8 @@ export class DataLoader<K, V> {
   constructor(options: DataLoaderOptions<K, V>) {
     this.batchLoadFn = options.batchLoadFn;
     this.maxBatchSize = options.maxBatchSize || 100;
-    this.batchScheduleFn = options.batchScheduleFn || (cb => process.nextTick(cb));
-    this.cacheKeyFn = options.cacheKeyFn || (key => String(key));
+    this.batchScheduleFn = options.batchScheduleFn || ((cb) => process.nextTick(cb));
+    this.cacheKeyFn = options.cacheKeyFn || ((key) => String(key));
     this.cache = options.cacheMap || new Map();
   }
 
@@ -75,7 +75,7 @@ export class DataLoader<K, V> {
    * Carrega múltiplos valores
    */
   async loadMany(keys: K[]): Promise<(V | null)[]> {
-    return Promise.all(keys.map(key => this.load(key)));
+    return Promise.all(keys.map((key) => this.load(key)));
   }
 
   /**
@@ -118,7 +118,7 @@ export class DataLoader<K, V> {
 
     if (batch.length === 0) return;
 
-    const keys = batch.map(item => item.key);
+    const keys = batch.map((item) => item.key);
 
     try {
       const values = await this.batchLoadFn(keys);
@@ -128,7 +128,7 @@ export class DataLoader<K, V> {
         const error = new Error(
           `DataLoader batch function returned ${values.length} results for ${keys.length} keys`
         );
-        batch.forEach(item => item.reject(error));
+        batch.forEach((item) => item.reject(error));
         return;
       }
 
@@ -144,7 +144,7 @@ export class DataLoader<K, V> {
       });
     } catch (error) {
       logger.error('DataLoader batch error', error);
-      batch.forEach(item => {
+      batch.forEach((item) => {
         item.reject(error instanceof Error ? error : new Error(String(error)));
         this.cache.delete(this.cacheKeyFn(item.key));
       });
@@ -170,23 +170,23 @@ export const createDataLoader = <K, V>(
  */
 // Cache por request (deve ser criado a cada request)
 export const createRequestDataLoaders = () => ({
-  userById: createDataLoader<number, unknown>(async ids => {
-    const users = await Promise.all(ids.map(id => userRepository.getUserById(id)));
+  userById: createDataLoader<number, unknown>(async (ids) => {
+    const users = await Promise.all(ids.map((id) => userRepository.getUserById(id)));
     return users;
   }),
 
-  userByEmail: createDataLoader<string, unknown>(async emails => {
-    const users = await Promise.all(emails.map(email => userRepository.getUserByEmail(email)));
+  userByEmail: createDataLoader<string, unknown>(async (emails) => {
+    const users = await Promise.all(emails.map((email) => userRepository.getUserByEmail(email)));
     return users;
   }),
 
-  churchById: createDataLoader<number, unknown>(async ids => {
-    const churches = await Promise.all(ids.map(id => churchRepository.getChurchById(id)));
+  churchById: createDataLoader<number, unknown>(async (ids) => {
+    const churches = await Promise.all(ids.map((id) => churchRepository.getChurchById(id)));
     return churches;
   }),
 
-  churchByCode: createDataLoader<string, unknown>(async codes => {
-    const churches = await Promise.all(codes.map(code => churchRepository.getChurchByCode(code)));
+  churchByCode: createDataLoader<string, unknown>(async (codes) => {
+    const churches = await Promise.all(codes.map((code) => churchRepository.getChurchByCode(code)));
     return churches;
   }),
 });

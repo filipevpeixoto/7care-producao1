@@ -19,15 +19,33 @@ import {
 
 // Mock dos componentes UI
 vi.mock('@/components/ui/card', () => ({
-  Card: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => <div className={className} data-testid="card">{children}</div>,
-  CardContent: ({ children }: React.PropsWithChildren) => <div data-testid="card-content">{children}</div>,
-  CardDescription: ({ children }: React.PropsWithChildren) => <p data-testid="card-description">{children}</p>,
-  CardHeader: ({ children }: React.PropsWithChildren) => <div data-testid="card-header">{children}</div>,
-  CardTitle: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => <h3 className={className} data-testid="card-title">{children}</h3>,
+  Card: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => (
+    <div className={className} data-testid="card">
+      {children}
+    </div>
+  ),
+  CardContent: ({ children }: React.PropsWithChildren) => (
+    <div data-testid="card-content">{children}</div>
+  ),
+  CardDescription: ({ children }: React.PropsWithChildren) => (
+    <p data-testid="card-description">{children}</p>
+  ),
+  CardHeader: ({ children }: React.PropsWithChildren) => (
+    <div data-testid="card-header">{children}</div>
+  ),
+  CardTitle: ({ children, className }: React.PropsWithChildren<{ className?: string }>) => (
+    <h3 className={className} data-testid="card-title">
+      {children}
+    </h3>
+  ),
 }));
 
 vi.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, variant, className }: React.PropsWithChildren<{ variant?: string; className?: string }>) => (
+  Badge: ({
+    children,
+    variant,
+    className,
+  }: React.PropsWithChildren<{ variant?: string; className?: string }>) => (
     <span data-testid="badge" data-variant={variant} className={className}>
       {children}
     </span>
@@ -35,7 +53,12 @@ vi.mock('@/components/ui/badge', () => ({
 }));
 
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, variant, size }: React.PropsWithChildren<{ onClick?: () => void; variant?: string; size?: string }>) => (
+  Button: ({
+    children,
+    onClick,
+    variant,
+    size,
+  }: React.PropsWithChildren<{ onClick?: () => void; variant?: string; size?: string }>) => (
     <button onClick={onClick} data-testid="button" data-variant={variant} data-size={size}>
       {children}
     </button>
@@ -101,22 +124,16 @@ describe('ElectionStatusBadge', () => {
 
 describe('ElectionStatCard', () => {
   it('deve renderizar título e valor', () => {
-    render(
-      <ElectionStatCard 
-        title="Total de Votos" 
-        value={150} 
-        icon={<span>📊</span>} 
-      />
-    );
+    render(<ElectionStatCard title="Total de Votos" value={150} icon={<span>📊</span>} />);
     expect(screen.getByText('Total de Votos')).toBeInTheDocument();
     expect(screen.getByText('150')).toBeInTheDocument();
   });
 
   it('deve renderizar descrição quando fornecida', () => {
     render(
-      <ElectionStatCard 
-        title="Eleitores" 
-        value={50} 
+      <ElectionStatCard
+        title="Eleitores"
+        value={50}
         icon={<span>👥</span>}
         description="Membros habilitados"
       />
@@ -125,13 +142,7 @@ describe('ElectionStatCard', () => {
   });
 
   it('deve aceitar valor string', () => {
-    render(
-      <ElectionStatCard 
-        title="Status" 
-        value="Ativa" 
-        icon={<span>✓</span>}
-      />
-    );
+    render(<ElectionStatCard title="Status" value="Ativa" icon={<span>✓</span>} />);
     expect(screen.getByText('Ativa')).toBeInTheDocument();
   });
 });
@@ -157,10 +168,7 @@ describe('ElectionEmptyState', () => {
 
   it('deve renderizar descrição quando fornecida', () => {
     render(
-      <ElectionEmptyState 
-        title="Sem eleições" 
-        description="Crie uma nova eleição para começar"
-      />
+      <ElectionEmptyState title="Sem eleições" description="Crie uma nova eleição para começar" />
     );
     expect(screen.getByText('Crie uma nova eleição para começar')).toBeInTheDocument();
   });
@@ -168,12 +176,12 @@ describe('ElectionEmptyState', () => {
   it('deve chamar action.onClick quando botão é clicado', () => {
     const handleClick = vi.fn();
     render(
-      <ElectionEmptyState 
-        title="Sem eleições" 
+      <ElectionEmptyState
+        title="Sem eleições"
         action={{ label: 'Criar Eleição', onClick: handleClick }}
       />
     );
-    
+
     fireEvent.click(screen.getByText('Criar Eleição'));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
@@ -192,7 +200,7 @@ describe('ElectionListItem', () => {
 
   it('deve renderizar informações da eleição', () => {
     render(<ElectionListItem election={mockElection} />);
-    
+
     expect(screen.getByText('Eleição de Diáconos')).toBeInTheDocument();
     expect(screen.getByText('Igreja Central')).toBeInTheDocument();
     expect(screen.getByText('5 eleitores')).toBeInTheDocument();
@@ -202,10 +210,10 @@ describe('ElectionListItem', () => {
   it('deve chamar onView quando clicado', () => {
     const handleView = vi.fn();
     render(<ElectionListItem election={mockElection} onView={handleView} />);
-    
-    const viewButton = screen.getAllByTestId('button').find((btn: HTMLElement) => 
-      btn.textContent?.includes('Ver')
-    );
+
+    const viewButton = screen
+      .getAllByTestId('button')
+      .find((btn: HTMLElement) => btn.textContent?.includes('Ver'));
     if (viewButton) {
       fireEvent.click(viewButton);
       expect(handleView).toHaveBeenCalledTimes(1);
@@ -215,10 +223,10 @@ describe('ElectionListItem', () => {
   it('deve chamar onDelete quando clicado', () => {
     const handleDelete = vi.fn();
     render(<ElectionListItem election={mockElection} onDelete={handleDelete} />);
-    
-    const deleteButton = screen.getAllByTestId('button').find((btn: HTMLElement) => 
-      btn.textContent?.includes('Excluir')
-    );
+
+    const deleteButton = screen
+      .getAllByTestId('button')
+      .find((btn: HTMLElement) => btn.textContent?.includes('Excluir'));
     if (deleteButton) {
       fireEvent.click(deleteButton);
       expect(handleDelete).toHaveBeenCalledTimes(1);
@@ -228,7 +236,7 @@ describe('ElectionListItem', () => {
   it('deve mostrar botão Pausar para eleição ativa', () => {
     const handlePause = vi.fn();
     render(<ElectionListItem election={mockElection} onPause={handlePause} />);
-    
+
     expect(screen.getByText(/Pausar/i)).toBeInTheDocument();
   });
 
@@ -236,7 +244,7 @@ describe('ElectionListItem', () => {
     const draftElection = { ...mockElection, status: 'draft' as const };
     const handleStart = vi.fn();
     render(<ElectionListItem election={draftElection} onStart={handleStart} />);
-    
+
     expect(screen.getByText(/Iniciar/i)).toBeInTheDocument();
   });
 
@@ -250,7 +258,7 @@ describe('formatDate', () => {
   it('deve formatar data corretamente', () => {
     const date = '2024-01-15T10:30:00Z';
     const formatted = formatDate(date);
-    
+
     // Verificar se contém os elementos esperados (pode variar por timezone)
     expect(formatted).toMatch(/\d{2}\/\d{2}\/\d{4}/);
     expect(formatted).toMatch(/\d{2}:\d{2}/);
@@ -261,7 +269,7 @@ describe('formatShortDate', () => {
   it('deve formatar data curta corretamente', () => {
     const date = '2024-01-15T10:30:00Z';
     const formatted = formatShortDate(date);
-    
+
     // Verificar formato dd/mm/yyyy
     expect(formatted).toMatch(/\d{2}\/\d{2}\/\d{4}/);
     // Não deve conter hora

@@ -57,7 +57,7 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
         description: 'Development server'
       },
       {
-        url: 'https://meu7care.netlify.app',
+        url: 'https://7care.netlify.app',
         description: 'Production server'
       }
     ],

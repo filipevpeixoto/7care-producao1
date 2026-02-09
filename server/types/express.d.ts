@@ -3,13 +3,7 @@
  */
 import type { User as SharedUser } from '../../shared/schema';
 
-type UserRole =
-  | 'superadmin'
-  | 'pastor'
-  | 'member'
-  | 'interested'
-  | 'missionary'
-  | 'admin_readonly';
+type UserRole = 'superadmin' | 'pastor' | 'member' | 'interested' | 'missionary' | 'admin_readonly';
 
 declare global {
   namespace Express {

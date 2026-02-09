@@ -21,7 +21,7 @@ export const sendError = (
     success: false,
     error: message,
     code: code || ErrorCodes.INTERNAL_ERROR,
-    ...(details && process.env.NODE_ENV === 'development' ? { details } : {})
+    ...(details && process.env.NODE_ENV === 'development' ? { details } : {}),
   };
 
   res.status(statusCode).json(errorResponse);
@@ -30,11 +30,7 @@ export const sendError = (
 /**
  * Trata erro genérico e envia resposta apropriada
  */
-export const handleError = (
-  res: Response,
-  error: unknown,
-  context: string
-): void => {
+export const handleError = (res: Response, error: unknown, context: string): void => {
   logger.error(`[${context}]`, error);
 
   // Determinar mensagem de erro
@@ -76,30 +72,21 @@ export const handleError = (
 /**
  * Resposta para recurso não encontrado
  */
-export const handleNotFound = (
-  res: Response,
-  resource: string
-): void => {
+export const handleNotFound = (res: Response, resource: string): void => {
   sendError(res, 404, `${resource} not found`, ErrorCodes.NOT_FOUND);
 };
 
 /**
  * Resposta para requisição inválida
  */
-export const handleBadRequest = (
-  res: Response,
-  message: string
-): void => {
+export const handleBadRequest = (res: Response, message: string): void => {
   sendError(res, 400, message, ErrorCodes.VALIDATION_ERROR);
 };
 
 /**
  * Resposta para acesso negado
  */
-export const handleForbidden = (
-  res: Response,
-  message: string = 'Access denied'
-): void => {
+export const handleForbidden = (res: Response, message: string = 'Access denied'): void => {
   sendError(res, 403, message, ErrorCodes.FORBIDDEN);
 };
 
@@ -116,19 +103,14 @@ export const handleUnauthorized = (
 /**
  * Resposta para conflito (recurso já existe)
  */
-export const handleConflict = (
-  res: Response,
-  message: string
-): void => {
+export const handleConflict = (res: Response, message: string): void => {
   sendError(res, 409, message, ErrorCodes.CONFLICT);
 };
 
 /**
  * Resposta para rate limit excedido
  */
-export const handleRateLimit = (
-  res: Response
-): void => {
+export const handleRateLimit = (res: Response): void => {
   sendError(res, 429, 'Too many requests. Please try again later.', ErrorCodes.RATE_LIMIT_EXCEEDED);
 };
 

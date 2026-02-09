@@ -28,7 +28,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 /**
  * Resolve um path relativo de API para URL completa quando necessário.
  * No browser, '/api/users' continua '/api/users'.
- * No Tauri, '/api/users' vira 'https://7careadv.netlify.app/api/users'.
+ * No Tauri, '/api/users' vira 'https://7care.netlify.app/api/users'.
  */
 export function resolveApiUrl(url: string): string {
   if (!API_BASE_URL) return url;
@@ -111,8 +111,6 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   // Debug log para verificar se token existe
   if (!token) {
     console.warn('[fetchWithAuth] Token JWT não encontrado no localStorage. URL:', url);
-  } else {
-    console.log('[fetchWithAuth] Token JWT encontrado. URL:', url);
   }
 
   const headers = {
