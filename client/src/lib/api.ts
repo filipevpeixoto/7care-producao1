@@ -167,7 +167,7 @@ function calculateBackoff(attempt: number, initialDelayMs: number, maxDelayMs: n
  * @returns Promise que resolve após o tempo
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

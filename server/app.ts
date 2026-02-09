@@ -3,7 +3,7 @@
  * Configuração compartilhada do Express entre index.ts e index.prod.ts
  */
 
-import express, { type Request, Response, NextFunction } from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
 import { apiLimiter } from './middleware/rateLimiter';
@@ -63,7 +63,7 @@ export function createApp(): express.Express {
       'https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
       .split(',')
-      .map(origin => origin.trim())
+      .map((origin) => origin.trim())
       .filter(Boolean);
     const origin = req.headers.origin;
 

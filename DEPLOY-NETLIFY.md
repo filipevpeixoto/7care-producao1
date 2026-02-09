@@ -20,6 +20,7 @@ netlify sites:create --name 7care
 **Selecione:** `viatrip-viagens's team` (use setas ↑↓ e Enter)
 
 O comando irá criar o site e retornar:
+
 - Site ID
 - URL: https://7care.netlify.app
 
@@ -114,6 +115,7 @@ open https://7care.netlify.app
 ```
 
 **Endpoints para testar:**
+
 - 🌐 Frontend: https://7care.netlify.app
 - 🔌 API Health: https://7care.netlify.app/api/health
 - 📊 API Docs: https://7care.netlify.app/api-docs (se Swagger configurado)
@@ -194,6 +196,7 @@ npm run dev
 ### ❌ Site mostra página em branco
 
 **Solução:**
+
 1. Verifique o console do navegador (F12)
 2. Certifique-se que `dist/` foi criado corretamente no build
 3. Execute: `npm run build && netlify deploy --prod`
@@ -201,6 +204,7 @@ npm run dev
 ### ❌ API retorna 404
 
 **Solução:**
+
 1. Verifique se as Netlify Functions foram deployadas
 2. Confira a pasta `netlify/functions/`
 3. Teste diretamente: `https://7care.netlify.app/.netlify/functions/api`

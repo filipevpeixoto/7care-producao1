@@ -44,22 +44,22 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
       contact: {
         name: '7Care Support',
         email: 'suporte@7care.com.br',
-        url: 'https://7care.com.br'
+        url: 'https://7care.com.br',
       },
       license: {
         name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT'
-      }
+        url: 'https://opensource.org/licenses/MIT',
+      },
     },
     servers: [
       {
         url: 'http://localhost:5000',
-        description: 'Development server'
+        description: 'Development server',
       },
       {
         url: 'https://7care.netlify.app',
-        description: 'Production server'
-      }
+        description: 'Production server',
+      },
     ],
     components: {
       securitySchemes: {
@@ -67,14 +67,14 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
           type: 'apiKey',
           in: 'header',
           name: 'x-user-id',
-          description: 'User ID for authentication'
+          description: 'User ID for authentication',
         },
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT token for API access'
-        }
+          description: 'JWT token for API access',
+        },
       },
       schemas: {
         // ==================== USUÁRIOS ====================
@@ -84,32 +84,74 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
           properties: {
             id: { type: 'integer', description: 'ID único do usuário', example: 1 },
             name: { type: 'string', description: 'Nome completo', example: 'João Silva' },
-            email: { type: 'string', format: 'email', description: 'Email único', example: 'joao@email.com' },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'Email único',
+              example: 'joao@email.com',
+            },
             role: {
               type: 'string',
-              enum: ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'],
+              enum: [
+                'superadmin',
+                'pastor',
+                'member',
+                'interested',
+                'missionary',
+                'admin_readonly',
+              ],
               description: 'Papel do usuário no sistema',
-              example: 'member'
+              example: 'member',
             },
             church: { type: 'string', description: 'Nome da igreja', example: 'Igreja Central' },
             churchCode: { type: 'string', description: 'Código da igreja', example: 'CENTRAL01' },
-            districtId: { type: 'integer', nullable: true, description: 'ID do distrito', example: 1 },
+            districtId: {
+              type: 'integer',
+              nullable: true,
+              description: 'ID do distrito',
+              example: 1,
+            },
             isApproved: { type: 'boolean', description: 'Se usuário foi aprovado', example: true },
-            status: { type: 'string', enum: ['active', 'inactive', 'pending'], description: 'Status do usuário', example: 'active' },
+            status: {
+              type: 'string',
+              enum: ['active', 'inactive', 'pending'],
+              description: 'Status do usuário',
+              example: 'active',
+            },
             firstAccess: { type: 'boolean', description: 'Primeiro acesso', example: false },
             points: { type: 'integer', description: 'Pontos de gamificação', example: 1500 },
             level: { type: 'string', description: 'Nível de gamificação', example: 'Ouro' },
-            phone: { type: 'string', nullable: true, description: 'Telefone', example: '(11) 99999-9999' },
-            birthDate: { type: 'string', format: 'date', nullable: true, description: 'Data de nascimento' },
+            phone: {
+              type: 'string',
+              nullable: true,
+              description: 'Telefone',
+              example: '(11) 99999-9999',
+            },
+            birthDate: {
+              type: 'string',
+              format: 'date',
+              nullable: true,
+              description: 'Data de nascimento',
+            },
             address: { type: 'string', nullable: true, description: 'Endereço completo' },
             photo: { type: 'string', nullable: true, description: 'URL da foto de perfil' },
-            baptismDate: { type: 'string', format: 'date', nullable: true, description: 'Data de batismo' },
-            conversionDate: { type: 'string', format: 'date', nullable: true, description: 'Data de conversão' },
+            baptismDate: {
+              type: 'string',
+              format: 'date',
+              nullable: true,
+              description: 'Data de batismo',
+            },
+            conversionDate: {
+              type: 'string',
+              format: 'date',
+              nullable: true,
+              description: 'Data de conversão',
+            },
             disciplerId: { type: 'integer', nullable: true, description: 'ID do discipulador' },
             createdAt: { type: 'string', format: 'date-time', description: 'Data de criação' },
-            updatedAt: { type: 'string', format: 'date-time', description: 'Data de atualização' }
+            updatedAt: { type: 'string', format: 'date-time', description: 'Data de atualização' },
           },
-          required: ['name', 'email', 'role']
+          required: ['name', 'email', 'role'],
         },
         CreateUserRequest: {
           type: 'object',
@@ -121,9 +163,9 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             role: { type: 'string', enum: ['member', 'interested'], example: 'member' },
             church: { type: 'string', example: 'Igreja Central' },
             churchCode: { type: 'string', example: 'CENTRAL01' },
-            phone: { type: 'string', nullable: true, example: '(11) 99999-9999' }
+            phone: { type: 'string', nullable: true, example: '(11) 99999-9999' },
           },
-          required: ['name', 'email', 'password', 'church', 'churchCode']
+          required: ['name', 'email', 'password', 'church', 'churchCode'],
         },
         UpdateUserRequest: {
           type: 'object',
@@ -133,8 +175,8 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             phone: { type: 'string', nullable: true },
             address: { type: 'string', nullable: true },
             birthDate: { type: 'string', format: 'date', nullable: true },
-            photo: { type: 'string', nullable: true }
-          }
+            photo: { type: 'string', nullable: true },
+          },
         },
         UserList: {
           type: 'object',
@@ -142,10 +184,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             users: { type: 'array', items: { $ref: '#/components/schemas/User' } },
             total: { type: 'integer', description: 'Total de usuários', example: 342 },
             page: { type: 'integer', description: 'Página atual', example: 1 },
-            limit: { type: 'integer', description: 'Itens por página', example: 20 }
-          }
+            limit: { type: 'integer', description: 'Itens por página', example: 20 },
+          },
         },
-        
+
         // ==================== IGREJAS ====================
         Church: {
           type: 'object',
@@ -155,14 +197,19 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             name: { type: 'string', example: 'Igreja Central' },
             code: { type: 'string', example: 'CENTRAL01' },
             address: { type: 'string', nullable: true, example: 'Rua Principal, 100' },
-            email: { type: 'string', format: 'email', nullable: true, example: 'contato@igreja.com' },
+            email: {
+              type: 'string',
+              format: 'email',
+              nullable: true,
+              example: 'contato@igreja.com',
+            },
             phone: { type: 'string', nullable: true, example: '(11) 3333-3333' },
             pastor: { type: 'string', nullable: true, description: 'Nome do pastor responsável' },
             districtId: { type: 'integer', nullable: true, description: 'ID do distrito' },
             memberCount: { type: 'integer', description: 'Número de membros', example: 150 },
             createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' }
-          }
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
         },
         CreateChurchRequest: {
           type: 'object',
@@ -172,11 +219,11 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             address: { type: 'string', nullable: true },
             email: { type: 'string', format: 'email', nullable: true },
             phone: { type: 'string', nullable: true },
-            districtId: { type: 'integer', nullable: true }
+            districtId: { type: 'integer', nullable: true },
           },
-          required: ['name', 'code']
+          required: ['name', 'code'],
         },
-        
+
         // ==================== DISTRITOS ====================
         District: {
           type: 'object',
@@ -189,8 +236,8 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             description: { type: 'string', nullable: true, example: 'Região norte da cidade' },
             churchCount: { type: 'integer', description: 'Número de igrejas', example: 5 },
             createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' }
-          }
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
         },
         CreateDistrictRequest: {
           type: 'object',
@@ -198,11 +245,11 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             name: { type: 'string', minLength: 2, maxLength: 100 },
             code: { type: 'string', minLength: 2, maxLength: 20 },
             pastorId: { type: 'integer', nullable: true },
-            description: { type: 'string', nullable: true }
+            description: { type: 'string', nullable: true },
           },
-          required: ['name', 'code']
+          required: ['name', 'code'],
         },
-        
+
         // ==================== EVENTOS ====================
         Event: {
           type: 'object',
@@ -212,16 +259,34 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             title: { type: 'string', example: 'Culto de Domingo' },
             description: { type: 'string', nullable: true, example: 'Culto dominical às 19h' },
             date: { type: 'string', format: 'date-time', description: 'Data e hora de início' },
-            endDate: { type: 'string', format: 'date-time', nullable: true, description: 'Data e hora de término' },
+            endDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              description: 'Data e hora de término',
+            },
             location: { type: 'string', nullable: true, example: 'Templo principal' },
-            type: { type: 'string', enum: ['culto', 'reuniao', 'evento', 'treinamento', 'outro'], example: 'culto' },
+            type: {
+              type: 'string',
+              enum: ['culto', 'reuniao', 'evento', 'treinamento', 'outro'],
+              example: 'culto',
+            },
             color: { type: 'string', nullable: true, example: '#3B82F6' },
-            capacity: { type: 'integer', nullable: true, description: 'Capacidade máxima', example: 200 },
+            capacity: {
+              type: 'integer',
+              nullable: true,
+              description: 'Capacidade máxima',
+              example: 200,
+            },
             isRecurring: { type: 'boolean', description: 'Se é evento recorrente', example: true },
-            recurrenceRule: { type: 'string', nullable: true, description: 'Regra de recorrência RRULE' },
+            recurrenceRule: {
+              type: 'string',
+              nullable: true,
+              description: 'Regra de recorrência RRULE',
+            },
             createdBy: { type: 'integer', nullable: true, description: 'ID do criador' },
-            churchId: { type: 'integer', nullable: true, description: 'ID da igreja' }
-          }
+            churchId: { type: 'integer', nullable: true, description: 'ID da igreja' },
+          },
         },
         CreateEventRequest: {
           type: 'object',
@@ -234,11 +299,11 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             type: { type: 'string', enum: ['culto', 'reuniao', 'evento', 'treinamento', 'outro'] },
             color: { type: 'string', nullable: true },
             capacity: { type: 'integer', nullable: true },
-            isRecurring: { type: 'boolean' }
+            isRecurring: { type: 'boolean' },
           },
-          required: ['title', 'date', 'type']
+          required: ['title', 'date', 'type'],
         },
-        
+
         // ==================== REUNIÕES ====================
         Meeting: {
           type: 'object',
@@ -249,12 +314,16 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             date: { type: 'string', format: 'date-time' },
             location: { type: 'string', nullable: true },
             leaderId: { type: 'integer', description: 'ID do líder' },
-            attendees: { type: 'array', items: { type: 'integer' }, description: 'IDs dos participantes' },
+            attendees: {
+              type: 'array',
+              items: { type: 'integer' },
+              description: 'IDs dos participantes',
+            },
             notes: { type: 'string', nullable: true },
-            churchId: { type: 'integer', nullable: true }
-          }
+            churchId: { type: 'integer', nullable: true },
+          },
         },
-        
+
         // ==================== MENSAGENS/CHAT ====================
         Message: {
           type: 'object',
@@ -263,12 +332,16 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             id: { type: 'integer', example: 1 },
             content: { type: 'string', example: 'Olá! Tudo bem?' },
             senderId: { type: 'integer', description: 'ID do remetente' },
-            recipientId: { type: 'integer', nullable: true, description: 'ID do destinatário (null se for grupo)' },
+            recipientId: {
+              type: 'integer',
+              nullable: true,
+              description: 'ID do destinatário (null se for grupo)',
+            },
             conversationId: { type: 'integer', description: 'ID da conversa' },
             isRead: { type: 'boolean', example: false },
             readAt: { type: 'string', format: 'date-time', nullable: true },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
         Conversation: {
           type: 'object',
@@ -280,18 +353,18 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             participants: { type: 'array', items: { type: 'integer' } },
             lastMessage: { $ref: '#/components/schemas/Message' },
             unreadCount: { type: 'integer', example: 3 },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
         SendMessageRequest: {
           type: 'object',
           properties: {
             content: { type: 'string', minLength: 1, maxLength: 5000 },
-            conversationId: { type: 'integer' }
+            conversationId: { type: 'integer' },
           },
-          required: ['content', 'conversationId']
+          required: ['content', 'conversationId'],
         },
-        
+
         // ==================== NOTIFICAÇÕES ====================
         Notification: {
           type: 'object',
@@ -299,15 +372,19 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
           properties: {
             id: { type: 'integer', example: 1 },
             userId: { type: 'integer', description: 'ID do usuário destinatário' },
-            type: { type: 'string', enum: ['info', 'warning', 'success', 'error', 'message', 'event'], example: 'info' },
+            type: {
+              type: 'string',
+              enum: ['info', 'warning', 'success', 'error', 'message', 'event'],
+              example: 'info',
+            },
             title: { type: 'string', example: 'Nova mensagem' },
             message: { type: 'string', example: 'Você recebeu uma nova mensagem.' },
             isRead: { type: 'boolean', example: false },
             link: { type: 'string', nullable: true, description: 'Link para ação relacionada' },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
-        
+
         // ==================== ORAÇÕES ====================
         Prayer: {
           type: 'object',
@@ -321,19 +398,19 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             isAnswered: { type: 'boolean', example: false },
             prayerCount: { type: 'integer', description: 'Número de pessoas orando', example: 15 },
             createdAt: { type: 'string', format: 'date-time' },
-            answeredAt: { type: 'string', format: 'date-time', nullable: true }
-          }
+            answeredAt: { type: 'string', format: 'date-time', nullable: true },
+          },
         },
         CreatePrayerRequest: {
           type: 'object',
           properties: {
             title: { type: 'string', minLength: 2, maxLength: 200 },
             description: { type: 'string', maxLength: 2000 },
-            isPublic: { type: 'boolean' }
+            isPublic: { type: 'boolean' },
           },
-          required: ['title', 'description']
+          required: ['title', 'description'],
         },
-        
+
         // ==================== TAREFAS ====================
         Task: {
           type: 'object',
@@ -342,14 +419,22 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             id: { type: 'integer', example: 1 },
             title: { type: 'string', example: 'Preparar estudo bíblico' },
             description: { type: 'string', nullable: true },
-            status: { type: 'string', enum: ['pending', 'in_progress', 'completed', 'cancelled'], example: 'pending' },
-            priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'], example: 'medium' },
+            status: {
+              type: 'string',
+              enum: ['pending', 'in_progress', 'completed', 'cancelled'],
+              example: 'pending',
+            },
+            priority: {
+              type: 'string',
+              enum: ['low', 'medium', 'high', 'urgent'],
+              example: 'medium',
+            },
             dueDate: { type: 'string', format: 'date-time', nullable: true },
             assignedTo: { type: 'integer', nullable: true, description: 'ID do responsável' },
             createdBy: { type: 'integer', description: 'ID do criador' },
             completedAt: { type: 'string', format: 'date-time', nullable: true },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
         CreateTaskRequest: {
           type: 'object',
@@ -358,11 +443,11 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             description: { type: 'string', nullable: true },
             priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
             dueDate: { type: 'string', format: 'date-time', nullable: true },
-            assignedTo: { type: 'integer', nullable: true }
+            assignedTo: { type: 'integer', nullable: true },
           },
-          required: ['title']
+          required: ['title'],
         },
-        
+
         // ==================== ELEIÇÕES ====================
         Election: {
           type: 'object',
@@ -373,13 +458,17 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             description: { type: 'string', nullable: true },
             startDate: { type: 'string', format: 'date-time' },
             endDate: { type: 'string', format: 'date-time' },
-            status: { type: 'string', enum: ['draft', 'active', 'closed', 'cancelled'], example: 'active' },
+            status: {
+              type: 'string',
+              enum: ['draft', 'active', 'closed', 'cancelled'],
+              example: 'active',
+            },
             candidates: { type: 'array', items: { $ref: '#/components/schemas/Candidate' } },
             totalVotes: { type: 'integer', example: 150 },
             churchId: { type: 'integer', nullable: true },
             createdBy: { type: 'integer' },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
         Candidate: {
           type: 'object',
@@ -389,8 +478,8 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             userId: { type: 'integer', description: 'ID do usuário candidato' },
             electionId: { type: 'integer' },
             votes: { type: 'integer', example: 45 },
-            position: { type: 'string', nullable: true, example: 'Diácono' }
-          }
+            position: { type: 'string', nullable: true, example: 'Diácono' },
+          },
         },
         Vote: {
           type: 'object',
@@ -400,8 +489,8 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             electionId: { type: 'integer' },
             candidateId: { type: 'integer' },
             voterId: { type: 'integer' },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
         CreateElectionRequest: {
           type: 'object',
@@ -410,19 +499,23 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             description: { type: 'string', nullable: true },
             startDate: { type: 'string', format: 'date-time' },
             endDate: { type: 'string', format: 'date-time' },
-            candidates: { type: 'array', items: { type: 'integer' }, description: 'IDs dos candidatos' }
+            candidates: {
+              type: 'array',
+              items: { type: 'integer' },
+              description: 'IDs dos candidatos',
+            },
           },
-          required: ['title', 'startDate', 'endDate', 'candidates']
+          required: ['title', 'startDate', 'endDate', 'candidates'],
         },
         CastVoteRequest: {
           type: 'object',
           properties: {
             electionId: { type: 'integer' },
-            candidateId: { type: 'integer' }
+            candidateId: { type: 'integer' },
           },
-          required: ['electionId', 'candidateId']
+          required: ['electionId', 'candidateId'],
         },
-        
+
         // ==================== GAMIFICAÇÃO ====================
         PointsConfig: {
           type: 'object',
@@ -432,8 +525,8 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             criteria: { type: 'string', example: 'hasPhoto' },
             points: { type: 'integer', example: 100 },
             description: { type: 'string', example: 'Pontos por ter foto de perfil' },
-            isActive: { type: 'boolean' }
-          }
+            isActive: { type: 'boolean' },
+          },
         },
         UserPoints: {
           type: 'object',
@@ -450,13 +543,13 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
                 isApproved: { type: 'integer', example: 200 },
                 isBaptized: { type: 'integer', example: 300 },
                 eventsAttended: { type: 'integer', example: 400 },
-                disciplesCount: { type: 'integer', example: 450 }
-              }
+                disciplesCount: { type: 'integer', example: 450 },
+              },
             },
-            rank: { type: 'integer', description: 'Posição no ranking', example: 15 }
-          }
+            rank: { type: 'integer', description: 'Posição no ranking', example: 15 },
+          },
         },
-        
+
         // ==================== DISCIPULADO ====================
         DiscipleshipRequest: {
           type: 'object',
@@ -465,13 +558,17 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             id: { type: 'integer' },
             requesterId: { type: 'integer', description: 'ID do solicitante' },
             disciplerId: { type: 'integer', description: 'ID do discipulador' },
-            status: { type: 'string', enum: ['pending', 'accepted', 'rejected'], example: 'pending' },
+            status: {
+              type: 'string',
+              enum: ['pending', 'accepted', 'rejected'],
+              example: 'pending',
+            },
             message: { type: 'string', nullable: true },
             createdAt: { type: 'string', format: 'date-time' },
-            respondedAt: { type: 'string', format: 'date-time', nullable: true }
-          }
+            respondedAt: { type: 'string', format: 'date-time', nullable: true },
+          },
         },
-        
+
         // ==================== RELACIONAMENTOS ====================
         Relationship: {
           type: 'object',
@@ -480,12 +577,16 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             id: { type: 'integer' },
             userId: { type: 'integer' },
             relatedUserId: { type: 'integer' },
-            type: { type: 'string', enum: ['family', 'friend', 'mentor', 'disciple'], example: 'mentor' },
+            type: {
+              type: 'string',
+              enum: ['family', 'friend', 'mentor', 'disciple'],
+              example: 'mentor',
+            },
             status: { type: 'string', enum: ['pending', 'active', 'inactive'], example: 'active' },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
-        
+
         // ==================== DASHBOARD ====================
         DashboardStats: {
           type: 'object',
@@ -498,10 +599,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             prayerRequests: { type: 'integer', example: 45 },
             averagePoints: { type: 'number', example: 1250.5 },
             topUsers: { type: 'array', items: { $ref: '#/components/schemas/User' } },
-            recentActivity: { type: 'array', items: { type: 'object' } }
-          }
+            recentActivity: { type: 'array', items: { type: 'object' } },
+          },
         },
-        
+
         // ==================== RESPOSTAS PADRÃO ====================
         ApiResponse: {
           type: 'object',
@@ -509,8 +610,8 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
           properties: {
             success: { type: 'boolean', example: true },
             data: { type: 'object', description: 'Dados da resposta' },
-            message: { type: 'string', example: 'Operação realizada com sucesso' }
-          }
+            message: { type: 'string', example: 'Operação realizada com sucesso' },
+          },
         },
         ErrorResponse: {
           type: 'object',
@@ -519,8 +620,12 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             success: { type: 'boolean', example: false },
             error: { type: 'string', example: 'Recurso não encontrado' },
             code: { type: 'string', example: 'NOT_FOUND' },
-            details: { type: 'array', items: { type: 'object' }, description: 'Detalhes adicionais do erro' }
-          }
+            details: {
+              type: 'array',
+              items: { type: 'object' },
+              description: 'Detalhes adicionais do erro',
+            },
+          },
         },
         ValidationError: {
           type: 'object',
@@ -535,11 +640,11 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
                 type: 'object',
                 properties: {
                   field: { type: 'string', example: 'email' },
-                  message: { type: 'string', example: 'Email inválido' }
-                }
-              }
-            }
-          }
+                  message: { type: 'string', example: 'Email inválido' },
+                },
+              },
+            },
+          },
         },
         PaginatedResponse: {
           type: 'object',
@@ -555,10 +660,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
                 total: { type: 'integer', example: 342 },
                 totalPages: { type: 'integer', example: 18 },
                 hasNext: { type: 'boolean', example: true },
-                hasPrev: { type: 'boolean', example: false }
-              }
-            }
-          }
+                hasPrev: { type: 'boolean', example: false },
+              },
+            },
+          },
         },
         LoginRequest: {
           type: 'object',
@@ -566,8 +671,8 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
           required: ['email', 'password'],
           properties: {
             email: { type: 'string', format: 'email', example: 'usuario@email.com' },
-            password: { type: 'string', example: '******' }
-          }
+            password: { type: 'string', example: '******' },
+          },
         },
         LoginResponse: {
           type: 'object',
@@ -575,10 +680,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
           properties: {
             success: { type: 'boolean', example: true },
             user: { $ref: '#/components/schemas/User' },
-            token: { type: 'string', description: 'JWT token (se aplicável)' }
-          }
+            token: { type: 'string', description: 'JWT token (se aplicável)' },
+          },
         },
-        
+
         // ==================== UPLOAD ====================
         FileUpload: {
           type: 'object',
@@ -588,10 +693,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             filename: { type: 'string', example: 'foto_perfil.jpg' },
             mimetype: { type: 'string', example: 'image/jpeg' },
             size: { type: 'integer', example: 102400 },
-            url: { type: 'string', example: '/uploads/0030864ef77ac39a1ecfdd2f25d56fb9' }
-          }
+            url: { type: 'string', example: '/uploads/0030864ef77ac39a1ecfdd2f25d56fb9' },
+          },
         },
-        
+
         // ==================== VISITAS ====================
         Visit: {
           type: 'object',
@@ -601,10 +706,14 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             userId: { type: 'integer' },
             eventId: { type: 'integer', nullable: true },
             date: { type: 'string', format: 'date-time' },
-            type: { type: 'string', enum: ['culto', 'celula', 'reuniao', 'evento'], example: 'culto' },
+            type: {
+              type: 'string',
+              enum: ['culto', 'celula', 'reuniao', 'evento'],
+              example: 'culto',
+            },
             notes: { type: 'string', nullable: true },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
+            createdAt: { type: 'string', format: 'date-time' },
+          },
         },
         MarkVisitRequest: {
           type: 'object',
@@ -612,10 +721,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
             userId: { type: 'integer' },
             eventId: { type: 'integer', nullable: true },
             date: { type: 'string', format: 'date-time' },
-            type: { type: 'string', enum: ['culto', 'celula', 'reuniao', 'evento'] }
+            type: { type: 'string', enum: ['culto', 'celula', 'reuniao', 'evento'] },
           },
-          required: ['userId', 'date', 'type']
-        }
+          required: ['userId', 'date', 'type'],
+        },
       },
       responses: {
         NotFound: {
@@ -626,10 +735,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
               example: {
                 success: false,
                 error: 'Recurso não encontrado',
-                code: 'NOT_FOUND'
-              }
-            }
-          }
+                code: 'NOT_FOUND',
+              },
+            },
+          },
         },
         Unauthorized: {
           description: 'Não autenticado',
@@ -639,10 +748,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
               example: {
                 success: false,
                 error: 'Autenticação necessária',
-                code: 'UNAUTHORIZED'
-              }
-            }
-          }
+                code: 'UNAUTHORIZED',
+              },
+            },
+          },
         },
         Forbidden: {
           description: 'Acesso negado',
@@ -652,18 +761,18 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
               example: {
                 success: false,
                 error: 'Você não tem permissão para esta ação',
-                code: 'FORBIDDEN'
-              }
-            }
-          }
+                code: 'FORBIDDEN',
+              },
+            },
+          },
         },
         BadRequest: {
           description: 'Requisição inválida',
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/ValidationError' }
-            }
-          }
+              schema: { $ref: '#/components/schemas/ValidationError' },
+            },
+          },
         },
         TooManyRequests: {
           description: 'Muitas requisições',
@@ -673,10 +782,10 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
               example: {
                 success: false,
                 error: 'Muitas requisições. Tente novamente em alguns minutos.',
-                code: 'RATE_LIMIT_EXCEEDED'
-              }
-            }
-          }
+                code: 'RATE_LIMIT_EXCEEDED',
+              },
+            },
+          },
         },
         InternalError: {
           description: 'Erro interno do servidor',
@@ -686,11 +795,11 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
               example: {
                 success: false,
                 error: 'Erro interno do servidor',
-                code: 'INTERNAL_ERROR'
-              }
-            }
-          }
-        }
+                code: 'INTERNAL_ERROR',
+              },
+            },
+          },
+        },
       },
       parameters: {
         userId: {
@@ -698,53 +807,53 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
           in: 'path',
           required: true,
           schema: { type: 'integer' },
-          description: 'ID do usuário'
+          description: 'ID do usuário',
         },
         churchId: {
           name: 'churchId',
           in: 'path',
           required: true,
           schema: { type: 'integer' },
-          description: 'ID da igreja'
+          description: 'ID da igreja',
         },
         eventId: {
           name: 'eventId',
           in: 'path',
           required: true,
           schema: { type: 'integer' },
-          description: 'ID do evento'
+          description: 'ID do evento',
         },
         page: {
           name: 'page',
           in: 'query',
           schema: { type: 'integer', default: 1 },
-          description: 'Número da página'
+          description: 'Número da página',
         },
         limit: {
           name: 'limit',
           in: 'query',
           schema: { type: 'integer', default: 20, maximum: 100 },
-          description: 'Itens por página'
+          description: 'Itens por página',
         },
         search: {
           name: 'search',
           in: 'query',
           schema: { type: 'string' },
-          description: 'Termo de busca'
+          description: 'Termo de busca',
         },
         sortBy: {
           name: 'sortBy',
           in: 'query',
           schema: { type: 'string' },
-          description: 'Campo para ordenação'
+          description: 'Campo para ordenação',
         },
         sortOrder: {
           name: 'sortOrder',
           in: 'query',
           schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
-          description: 'Direção da ordenação'
-        }
-      }
+          description: 'Direção da ordenação',
+        },
+      },
     },
     tags: [
       { name: 'System', description: '🔧 System health and status endpoints' },
@@ -765,16 +874,16 @@ A API usa autenticação baseada em sessão com header \`x-user-id\`.
       { name: 'Dashboard', description: '📊 Dashboard statistics' },
       { name: 'Settings', description: '⚙️ System settings' },
       { name: 'Upload', description: '📤 File upload endpoints' },
-      { name: 'Visits', description: '📋 Visit/attendance tracking' }
+      { name: 'Visits', description: '📋 Visit/attendance tracking' },
     ],
-    security: [{ userId: [] }]
+    security: [{ userId: [] }],
   },
   apis: [
     './server/routes/*.ts',
     './server/electionRoutes.ts',
     './server/districtRoutes.ts',
-    './server/importRoutes.ts'
-  ]
+    './server/importRoutes.ts',
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

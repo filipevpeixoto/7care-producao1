@@ -182,26 +182,37 @@ export default function MyInterested() {
   });
 
   // Buscar TODOS os usuários (para mostrar nomes dos missionários)
+  // Para admin: busca apenas interessados para otimizar performance
   const { data: allUsers = [], isLoading: _loadingAllUsers } = useQuery({
-    queryKey: ['all-users', user?.id],
+    queryKey: ['all-users', user?.id, isAdmin],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/users');
+      // Admin busca apenas interessados para melhor performance
+      const endpoint = isAdmin ? '/api/users?role=interested' : '/api/users';
+      const response = await fetchWithAuth(endpoint);
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       return response.json();
     },
     enabled: !!user?.id,
   });
 
+  // Buscar membros/missionários (apenas para pastores que precisam do dropdown)
+  const { data: allMembersForInvite = [] } = useQuery({
+    queryKey: ['all-members-for-invite', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const response = await fetchWithAuth('/api/users');
+      if (!response.ok) throw new Error('Erro ao buscar membros');
+      return response.json();
+    },
+    enabled: !!user?.id && isPastorUser,
+  });
+
   // Base de interessados conforme perfil: admin vê TODOS (de todas as igrejas)
+  // OTIMIZADO: Para admin, allUsers já vem filtrado com ?role=interested
   const isAdmin = hasAdminAccess(user);
   const interestedBase: InterestedPerson[] = useMemo(
-    () =>
-      isAdmin
-        ? ((allUsers || []).filter(
-            (u: UserMember) => u.role === 'interested'
-          ) as InterestedPerson[])
-        : churchInterested || [],
+    () => (isAdmin ? allUsers : churchInterested || []),
     [isAdmin, allUsers, churchInterested]
   );
 
@@ -457,17 +468,67 @@ export default function MyInterested() {
   );
 
   // Lista de membros/missionários disponíveis para discipular (para pastores)
-  const availableMissionaries: UserMember[] = (allUsers || [])
-    .filter(
-      (u: UserMember) =>
-        u.role !== 'interested' &&
-        u.role !== 'pastor' &&
-        u.role !== 'superadmin' &&
-        u.id !== user?.id
-    )
-    .sort((a: UserMember, b: UserMember) =>
-      (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
-    );
+  const availableMissionaries: UserMember[] = useMemo(
+    () =>
+      (allMembersForInvite || [])
+        .filter(
+          (u: UserMember) =>
+            u.role !== 'interested' &&
+            u.role !== 'pastor' &&
+            u.role !== 'superadmin' &&
+            u.id !== user?.id
+        )
+        .sort((a: UserMember, b: UserMember) =>
+          (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+        ),
+    [allMembersForInvite, user?.id]
+  );
+
+  // OTIMIZAÇÃO: Maps pré-calculados para evitar N+1 loops na renderização
+  const activeRelationshipsMap = useMemo(() => {
+    const map = new Map<number, ActiveRelationship[]>();
+    (allRelationships || []).forEach((rel: ActiveRelationship) => {
+      if (rel.status === 'active') {
+        const existing = map.get(rel.interestedId) || [];
+        map.set(rel.interestedId, [...existing, rel]);
+      }
+    });
+    return map;
+  }, [allRelationships]);
+
+  const approvedRequestsSet = useMemo(() => {
+    const set = new Set<number>();
+    (allRequests || []).forEach((req: DiscipleshipRequest) => {
+      if (req.status === 'approved') {
+        set.add(req.interestedId);
+      }
+    });
+    return set;
+  }, [allRequests]);
+
+  const pendingRequestsSet = useMemo(() => {
+    const set = new Set<number>();
+    (allRequests || []).forEach((req: DiscipleshipRequest) => {
+      if (req.status === 'pending') {
+        set.add(req.interestedId);
+      }
+    });
+    return set;
+  }, [allRequests]);
+
+  const missionaryNamesMap = useMemo(() => {
+    const map = new Map<number, string[]>();
+    (allRelationships || []).forEach((rel: ActiveRelationship) => {
+      if (rel.status === 'active' && rel.missionaryName) {
+        const existing = map.get(rel.interestedId) || [];
+        const firstName = rel.missionaryName.split(' ')[0];
+        if (!existing.includes(firstName)) {
+          map.set(rel.interestedId, [...existing, firstName]);
+        }
+      }
+    });
+    return map;
+  }, [allRelationships]);
 
   // Convites de pastor pendentes para o membro logado (para aceitar/rejeitar)
   const myPendingInvites: DiscipleshipRequest[] = (allRequests || []).filter(
@@ -541,10 +602,9 @@ export default function MyInterested() {
   };
 
   // Verificar se um interessado tem solicitação pendente (para administradores)
+  // OTIMIZADO: Usa Set pré-calculado
   const hasPendingRequestForAdmin = (interestedId: number) => {
-    return (allRequests || []).some(
-      (req: DiscipleshipRequest) => req.interestedId === interestedId && req.status === 'pending'
-    );
+    return pendingRequestsSet.has(interestedId);
   };
 
   const handleDiscipleRequest = (person: InterestedPerson) => {
@@ -578,23 +638,9 @@ export default function MyInterested() {
   };
 
   // Função para obter primeiros nomes de TODOS os discipuladores ativos de um interessado
+  // OTIMIZADO: Usa Map pré-calculado ao invés de fazer filter toda vez
   const getMissionaryFirstNames = (interestedId: number): string[] => {
-    const activeRelationships = allRelationships.filter(
-      (rel: ActiveRelationship) => rel.interestedId === interestedId && rel.status === 'active'
-    );
-
-    const firstNames = activeRelationships.map((rel: ActiveRelationship) => {
-      // Usar o nome do missionário que já vem do backend
-      if (rel.missionaryName) {
-        return rel.missionaryName.split(' ')[0];
-      }
-
-      // Fallback para casos onde o nome não está disponível
-      return `Usuário ${rel.missionaryId}`;
-    });
-
-    // Remover duplicados mantendo a ordem
-    return Array.from(new Set(firstNames));
+    return missionaryNamesMap.get(interestedId) || [];
   };
 
   // Função para desvincular relacionamento de discipulado
@@ -755,17 +801,15 @@ export default function MyInterested() {
   };
 
   // Função para verificar se o interessado já tem algum relacionamento ativo (para exibição na aba Da Igreja)
+  // OTIMIZADO: Usa Map pré-calculado
   const hasAnyActiveRelationship = (interestedId: number) => {
-    return (allRelationships || []).some(
-      (rel: Relationship) => rel.interestedId === interestedId && rel.status === 'active'
-    );
+    return activeRelationshipsMap.has(interestedId);
   };
 
   // Função para verificar se o interessado já tem alguma solicitação aprovada (para exibição na aba Da Igreja)
+  // OTIMIZADO: Usa Set pré-calculado
   const hasAnyApprovedRequest = (interestedId: number) => {
-    return (allRequests || []).some(
-      (req: DiscipleshipRequest) => req.interestedId === interestedId && req.status === 'approved'
-    );
+    return approvedRequestsSet.has(interestedId);
   };
 
   const formatDate = (dateString: string) => {
@@ -1167,10 +1211,7 @@ export default function MyInterested() {
                                   )}
 
                                 {/* Mostrar se há solicitação pendente */}
-                                {allRequests.some(
-                                  (req: DiscipleshipRequest) =>
-                                    req.interestedId === person.id && req.status === 'pending'
-                                ) && (
+                                {pendingRequestsSet.has(person.id) && (
                                   <div className="mb-1">
                                     <span className="font-medium">Solicitação pendente</span>
                                   </div>
@@ -1179,10 +1220,7 @@ export default function MyInterested() {
                                 {/* Mostrar se não há nenhum status */}
                                 {!hasAnyActiveRelationship(person.id) &&
                                   !hasAnyApprovedRequest(person.id) &&
-                                  !allRequests.some(
-                                    (req: DiscipleshipRequest) =>
-                                      req.interestedId === person.id && req.status === 'pending'
-                                  ) && (
+                                  !pendingRequestsSet.has(person.id) && (
                                     <div className="mb-1">
                                       <span className="font-medium">
                                         Disponível para discipulado
