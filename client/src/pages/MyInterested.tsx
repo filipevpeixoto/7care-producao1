@@ -1241,12 +1241,13 @@ export default function MyInterested() {
                 try {
                   const discipleStatus = getDiscipleStatus(person.id);
                   const isMyInterested = selectedTab === 'my';
-                  const currentSituation = person.interestedSituation || person.interested_situation;
+                  const currentSituation =
+                    person.interestedSituation || person.interested_situation;
                   const situationLevel = getSituationOption(currentSituation);
 
                   return (
-                    <Card 
-                      key={`${person.id}-${currentSituation || 'no-situation'}`} 
+                    <Card
+                      key={`${person.id}-${currentSituation || 'no-situation'}`}
                       className="hover:shadow-md transition-shadow"
                     >
                       <CardContent className="p-4">
