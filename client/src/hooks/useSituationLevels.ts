@@ -27,8 +27,10 @@ export function useSituationLevels() {
     queryFn: async () => {
       const response = await fetchWithAuth('/api/settings/my-district/situation-levels');
       if (!response.ok) throw new Error('Erro ao buscar níveis de situação');
-      const data = await response.json();
-      return (data.levels as SituationLevel[]) || DEFAULT_LEVELS;
+      const json = await response.json();
+      // Suporta formato padronizado { success, data: { levels } } e legado { levels }
+      const responseData = json.data ?? json;
+      return (responseData.levels as SituationLevel[]) || DEFAULT_LEVELS;
     },
     staleTime: 10 * 60 * 1000, // 10 min cache
   });

@@ -228,6 +228,101 @@ export const settingsRoutes = (app: Express): void => {
     })
   );
 
+  // ========== SITUATION LEVELS (per district) ==========
+
+  /**
+   * @swagger
+   * /api/settings/my-district/situation-levels:
+   *   get:
+   *     summary: Obtém níveis de situação do distrito do usuário
+   *     tags: [Settings]
+   *     security:
+   *       - userId: []
+   *     responses:
+   *       200:
+   *         description: Níveis de situação do distrito
+   */
+  app.get(
+    '/api/settings/my-district/situation-levels',
+    asyncHandler(async (req: Request, res: Response) => {
+      const requestingUserId = getAuthUserId(req);
+
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 404);
+      }
+
+      const districtId = requestingUser.districtId;
+
+      if (!districtId) {
+        // Sem distrito, retorna níveis padrão
+        return sendSuccess(res, { levels: null });
+      }
+
+      const stored = await systemRepo.getDistrictSetting(districtId, 'situation_levels');
+
+      sendSuccess(res, { levels: stored ?? null });
+    })
+  );
+
+  /**
+   * @swagger
+   * /api/settings/my-district/situation-levels:
+   *   post:
+   *     summary: Salva níveis de situação do distrito do usuário
+   *     tags: [Settings]
+   *     security:
+   *       - userId: []
+   *     responses:
+   *       200:
+   *         description: Níveis de situação salvos
+   */
+  app.post(
+    '/api/settings/my-district/situation-levels',
+    asyncHandler(async (req: Request, res: Response) => {
+      const requestingUserId = getAuthUserId(req);
+
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 404);
+      }
+
+      if (requestingUser.role !== 'pastor' && requestingUser.role !== 'superadmin') {
+        return sendError(res, 'Apenas pastores podem configurar níveis de situação', 403);
+      }
+
+      const districtId = requestingUser.districtId;
+
+      if (!districtId) {
+        return sendError(res, 'Usuário não possui distrito associado', 400);
+      }
+
+      const { levels } = req.body;
+
+      if (!Array.isArray(levels)) {
+        return sendError(res, 'Formato inválido: levels deve ser um array', 400);
+      }
+
+      await systemRepo.saveDistrictSetting(districtId, 'situation_levels', levels);
+
+      logger.info(`Situation levels saved for district ${districtId} by user ${requestingUserId}`);
+
+      sendSuccess(res, { levels }, 200, 'Níveis de situação salvos com sucesso');
+    })
+  );
+
+  // ========== POINTS CONFIG ==========
+
   /**
    * @swagger
    * /api/settings/my-district/points-config:

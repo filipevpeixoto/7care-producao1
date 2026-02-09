@@ -3,7 +3,7 @@
  * Métodos relacionados a configurações do sistema
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
@@ -193,6 +193,68 @@ export class SystemRepository {
     }
   }
 
+  // ========== DISTRICT SETTINGS ==========
+
+  /**
+   * Busca configuração de um distrito por chave
+   */
+  async getDistrictSetting(districtId: number, key: string): Promise<unknown | null> {
+    try {
+      const [setting] = await db
+        .select()
+        .from(schema.districtSettings)
+        .where(
+          and(
+            eq(schema.districtSettings.districtId, districtId),
+            eq(schema.districtSettings.key, key)
+          )
+        )
+        .limit(1);
+
+      return setting?.value ?? null;
+    } catch (error) {
+      logger.error(`Erro ao buscar district setting ${key} para distrito ${districtId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Salva configuração de um distrito por chave
+   */
+  async saveDistrictSetting(districtId: number, key: string, value: unknown): Promise<void> {
+    try {
+      const existing = await db
+        .select()
+        .from(schema.districtSettings)
+        .where(
+          and(
+            eq(schema.districtSettings.districtId, districtId),
+            eq(schema.districtSettings.key, key)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db
+          .update(schema.districtSettings)
+          .set({
+            value: value as Record<string, unknown>,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.districtSettings.id, existing[0].id));
+      } else {
+        await db.insert(schema.districtSettings).values({
+          districtId,
+          key,
+          value: value as Record<string, unknown>,
+        });
+      }
+    } catch (error) {
+      logger.error(`Erro ao salvar district setting ${key} para distrito ${districtId}:`, error);
+      throw error;
+    }
+  }
+
   // ========== GOOGLE DRIVE CONFIG ==========
 
   /**
@@ -253,12 +315,12 @@ export class SystemRepository {
       return stored.map((item: Record<string, unknown>) => ({
         id: Number(item.id ?? 0),
         title: String(item.title ?? ''),
-        description: item.description == null ? null : String(item.description),
-        imageUrl: item.imageUrl == null ? '' : String(item.imageUrl),
-        date: item.date == null ? null : String(item.date),
-        active: item.active == null ? true : Boolean(item.active),
-        order: item.order == null ? 0 : Number(item.order),
-        districtId: item.districtId == null ? null : Number(item.districtId),
+        description: item.description === null || item.description === undefined ? null : String(item.description),
+        imageUrl: item.imageUrl === null || item.imageUrl === undefined ? '' : String(item.imageUrl),
+        date: item.date === null || item.date === undefined ? null : String(item.date),
+        active: item.active === null || item.active === undefined ? true : Boolean(item.active),
+        order: item.order === null || item.order === undefined ? 0 : Number(item.order),
+        districtId: item.districtId === null || item.districtId === undefined ? null : Number(item.districtId),
       }));
     }
     return [];

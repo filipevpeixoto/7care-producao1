@@ -1097,7 +1097,7 @@ export default function MyInterested() {
                                     className="text-xs"
                                     style={{ color: level.color }}
                                   >
-                                    {level.description || 'Situação do amigo'}
+                                    {level.label || 'Situação do amigo'}
                                   </span>
                                 </div>
                               ) : null;
