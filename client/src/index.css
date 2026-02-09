@@ -153,6 +153,7 @@ All colors MUST be HSL.
 
   /* Fix for modal scroll issues */
   body {
+    @apply bg-background text-foreground;
     overflow-x: hidden;
   }
 
