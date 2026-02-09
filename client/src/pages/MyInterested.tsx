@@ -1073,14 +1073,12 @@ export default function MyInterested() {
                             )}
 
                             {/* Badge de situação */}
-                            {(person.interestedSituation || person.interested_situation) &&
-                              (() => {
-                                const level = getSituationOption(
-                                  person.interestedSituation || person.interested_situation
-                                );
-                                return level ? (
+                            {(person.interestedSituation || person.interested_situation) && (() => {
+                              const level = getSituationOption(person.interestedSituation || person.interested_situation);
+                              return level ? (
+                                <div className="flex flex-col items-end">
                                   <Badge
-                                    className="border-0"
+                                    className="border-0 mb-1"
                                     style={{
                                       backgroundColor: level.color + '20',
                                       color: level.color,
@@ -1089,8 +1087,21 @@ export default function MyInterested() {
                                   >
                                     {level.value}
                                   </Badge>
-                                ) : null;
-                              })()}
+                                  <span
+                                    className="text-xs font-medium"
+                                    style={{ color: level.color }}
+                                  >
+                                    {level.label}
+                                  </span>
+                                  <span
+                                    className="text-xs"
+                                    style={{ color: level.color }}
+                                  >
+                                    {level.description || 'Situação do amigo'}
+                                  </span>
+                                </div>
+                              ) : null;
+                            })()}
 
                             {/* Informação de quem está discipulando (apenas na aba Da Igreja) */}
                             {selectedTab === 'church' && (
