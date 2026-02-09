@@ -180,6 +180,21 @@ export function UserCardResponsive({
     }
   }, [relationshipsData, localUser.id, localUser.role]);
 
+  // Escutar mudanças nas configurações de situação
+  useEffect(() => {
+    const handleSituationLevelsUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.warn('🔄 Configurações de situação atualizadas em UserCard, novas configurações:', customEvent.detail);
+      // O hook useSituationLevels já vai receber os novos dados automaticamente via React Query
+    };
+
+    window.addEventListener('situation-levels-updated', handleSituationLevelsUpdate);
+    
+    return () => {
+      window.removeEventListener('situation-levels-updated', handleSituationLevelsUpdate);
+    };
+  }, []);
+
   const handleDiscipuladoresChange = (newDiscipuladores: Discipulador[]) => {
     setCurrentDiscipuladores(newDiscipuladores);
   };

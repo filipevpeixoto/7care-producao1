@@ -1038,6 +1038,21 @@ export default function Users() {
     };
   }, [isRecalculating, queryClient, toast]);
 
+  // Escutar mudanças nas configurações de situação e forçar atualização
+  useEffect(() => {
+    const handleSituationLevelsUpdate = () => {
+      console.warn('🔄 Configurações de situação atualizadas em Users, forçando refresh...');
+      queryClient.invalidateQueries({ queryKey: ['situation-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    };
+
+    window.addEventListener('situation-levels-updated', handleSituationLevelsUpdate);
+    
+    return () => {
+      window.removeEventListener('situation-levels-updated', handleSituationLevelsUpdate);
+    };
+  }, [queryClient]);
+
   const confirmDeleteUser = () => {
     if (userToDelete) {
       deleteUserMutation.mutate(userToDelete.id);

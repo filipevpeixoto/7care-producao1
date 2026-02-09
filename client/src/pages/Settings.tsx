@@ -1336,8 +1336,10 @@ export default function Settings() {
           return {
             // Campos básicos
             name: row.Nome || row.nome || row.name || 'Usuário Importado',
-            // Email: usar apenas email válido da planilha, backend gera único se necessário
-            email: row.Email || row.email || undefined,
+            email:
+              row.Email ||
+              row.email ||
+              `${(row.Nome || row.nome || 'usuario').toLowerCase().replace(/\s+/g, '.')}@igreja.com`,
             password: '123456', // Default password
             role: getRole(row.Tipo || row.tipo || row.role),
 

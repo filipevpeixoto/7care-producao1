@@ -22,6 +22,7 @@ export function useSituationLevels() {
     data: levels = DEFAULT_LEVELS,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['situation-levels'],
     queryFn: async () => {
@@ -32,7 +33,8 @@ export function useSituationLevels() {
       const responseData = json.data ?? json;
       return (responseData.levels as SituationLevel[]) || DEFAULT_LEVELS;
     },
-    staleTime: 10 * 60 * 1000, // 10 min cache
+    staleTime: 30 * 1000, // 30 segundos - mais curto para refletir mudanças mais rápido
+    refetchOnMount: true, // Sempre buscar ao montar componente
   });
 
   const saveMutation = useMutation({
@@ -44,8 +46,21 @@ export function useSituationLevels() {
       if (!response.ok) throw new Error('Erro ao salvar níveis de situação');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Atualizar cache imediatamente com os novos valores
+      queryClient.setQueryData(['situation-levels'], variables);
+      
+      // Invalidar todas as queries que podem usar essas informações
       queryClient.invalidateQueries({ queryKey: ['situation-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
+      
+      // Dispatch evento customizado para notificar outros componentes
+      window.dispatchEvent(new CustomEvent('situation-levels-updated', { detail: variables }));
+      
+      // Forçar refetch para garantir que todos os componentes atualizem
+      await refetch();
     },
   });
 

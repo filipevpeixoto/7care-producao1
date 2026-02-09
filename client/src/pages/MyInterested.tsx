@@ -1018,6 +1018,22 @@ export default function MyInterested() {
     });
   }, [isPastorUser, isAdmin, selectedTab, situationLevels, currentList]);
 
+  // Escutar mudanças nas configurações de situação e forçar atualização
+  useEffect(() => {
+    const handleSituationLevelsUpdate = () => {
+      console.warn('🔄 Configurações de situação atualizadas, forçando refresh...');
+      queryClient.invalidateQueries({ queryKey: ['situation-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
+    };
+
+    window.addEventListener('situation-levels-updated', handleSituationLevelsUpdate);
+    
+    return () => {
+      window.removeEventListener('situation-levels-updated', handleSituationLevelsUpdate);
+    };
+  }, [queryClient]);
+
   // Função para abrir WhatsApp
   const handleWhatsApp = (phone: string, name: string) => {
     const cleanPhone = phone.replace(/\D/g, '');

@@ -206,57 +206,55 @@ export const BirthdayCard = ({
 
   // Filtrar aniversariantes de hoje apenas do mês corrente
   const todayInCurrentMonth = birthdaysToday.filter(user => {
-    // Extrair mês diretamente da string para evitar problemas de fuso horário
-    let datePart = user.birthDate;
-    if (user.birthDate.includes('T')) {
-      datePart = user.birthDate.split('T')[0];
-    }
-    const [_year, month] = datePart.split('-');
-    const birthMonth = parseInt(month) - 1; // Mês começa em 0
-    
+    const birthDate = new Date(user.birthDate);
     const today = new Date();
-    return birthMonth === today.getMonth();
+    return birthDate.getMonth() === today.getMonth();
   });
 
   // Sort other birthdays chronologically (excluding today's)
   const otherBirthdays = birthdaysThisMonth
     .filter(user => !isToday(user.birthDate))
     .sort((a, b) => {
-      // Extrair dia diretamente da string para evitar problemas de fuso horário
-      let dayA = 0, dayB = 0;
-      
-      // Parse de a.birthDate
-      if (a.birthDate) {
-        let datePart = a.birthDate;
-        if (a.birthDate.includes('T')) {
-          datePart = a.birthDate.split('T')[0];
+      // Evita problemas de fuso horário criando as datas de forma explícita
+      const dateA = new Date(a.birthDate);
+      const dateB = new Date(b.birthDate);
+
+      // Se as datas forem inválidas, tenta parsear manualmente
+      let dayA = 0,
+        dayB = 0;
+
+      if (!isNaN(dateA.getTime())) {
+        dayA = dateA.getDate();
+      } else if (a.birthDate && typeof a.birthDate === 'string' && a.birthDate.includes('/')) {
+        const parts = a.birthDate.split('/');
+        if (parts.length === 3) {
+          dayA = parseInt(parts[0]);
         }
-        if (datePart.includes('-')) {
-          const parts = datePart.split('-');
-          dayA = parseInt(parts[2]);
-        } else if (a.birthDate.includes('/')) {
-          const parts = a.birthDate.split('/');
-          if (parts.length >= 1) {
-            dayA = parseInt(parts[0]);
-          }
-        }
+      } else if (
+        a.birthDate &&
+        typeof a.birthDate === 'string' &&
+        a.birthDate.includes('-') &&
+        a.birthDate.match(/^\d{4}-\d{2}-\d{2}$/)
+      ) {
+        const parts = a.birthDate.split('-');
+        dayA = parseInt(parts[2]);
       }
-      
-      // Parse de b.birthDate
-      if (b.birthDate) {
-        let datePart = b.birthDate;
-        if (b.birthDate.includes('T')) {
-          datePart = b.birthDate.split('T')[0];
+
+      if (!isNaN(dateB.getTime())) {
+        dayB = dateB.getDate();
+      } else if (b.birthDate && typeof b.birthDate === 'string' && b.birthDate.includes('/')) {
+        const parts = b.birthDate.split('/');
+        if (parts.length === 3) {
+          dayB = parseInt(parts[0]);
         }
-        if (datePart.includes('-')) {
-          const parts = datePart.split('-');
-          dayB = parseInt(parts[2]);
-        } else if (b.birthDate.includes('/')) {
-          const parts = b.birthDate.split('/');
-          if (parts.length >= 1) {
-            dayB = parseInt(parts[0]);
-          }
-        }
+      } else if (
+        b.birthDate &&
+        typeof b.birthDate === 'string' &&
+        b.birthDate.includes('-') &&
+        b.birthDate.match(/^\d{4}-\d{2}-\d{2}$/)
+      ) {
+        const parts = b.birthDate.split('-');
+        dayB = parseInt(parts[2]);
       }
 
       return dayA - dayB;
