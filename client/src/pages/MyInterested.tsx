@@ -378,8 +378,41 @@ export default function MyInterested() {
         userId: variables.userId,
         situation: variables.situation,
       });
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
+
+      // Atualizar cache com a resposta da API ao invés de invalidar
+      // Isso evita que os dados sumam enquanto recarrega
+      queryClient.setQueryData(
+        ['church-interested', user?.id],
+        (old: InterestedPerson[] | undefined) => {
+          if (!old) return old;
+          return old.map((person) =>
+            person.id === variables.userId
+              ? {
+                  ...person,
+                  interestedSituation: variables.situation,
+                  interested_situation: variables.situation,
+                }
+              : person
+          );
+        }
+      );
+
+      queryClient.setQueryData(
+        ['all-users', user?.id, isAdmin],
+        (old: InterestedPerson[] | undefined) => {
+          if (!old) return old;
+          return old.map((person) =>
+            person.id === variables.userId
+              ? {
+                  ...person,
+                  interestedSituation: variables.situation,
+                  interested_situation: variables.situation,
+                }
+              : person
+          );
+        }
+      );
+
       setUpdatingSituation(null);
       toast({
         title: '✅ Situação atualizada!',
