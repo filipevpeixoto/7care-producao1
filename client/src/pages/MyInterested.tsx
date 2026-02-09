@@ -101,7 +101,7 @@ export default function MyInterested() {
   const [selectedInterested, setSelectedInterested] = useState<InterestedPerson | null>(null);
   const [discipleMessage, setDiscipleMessage] = useState('');
   const [selectedChurch, setSelectedChurch] = useState<string>('all');
-  
+
   // PAGINAÇÃO para grandes listas (300+ amigos)
   const [itemsPerPage] = useState(50); // Renderizar 50 por vez
   const [currentPage, setCurrentPage] = useState(1);
@@ -218,7 +218,7 @@ export default function MyInterested() {
   // OTIMIZADO: Para admin, allUsers já vem filtrado com ?role=interested
   const interestedBase: InterestedPerson[] = useMemo(() => {
     try {
-      return isAdmin ? (allUsers || []) : (churchInterested || []);
+      return isAdmin ? allUsers || [] : churchInterested || [];
     } catch (error) {
       console.error('Error in interestedBase:', error);
       return [];
@@ -444,7 +444,7 @@ export default function MyInterested() {
     () =>
       (interestedBase || []).filter((person: InterestedPerson) => {
         if (!person) return false;
-        
+
         const matchesSearch =
           person.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           person.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -465,7 +465,7 @@ export default function MyInterested() {
         : (myRelationships || [])
             .map((rel: Relationship) => {
               if (!rel?.interestedId) return null;
-              
+
               const interested = (interestedBase || []).find(
                 (p: InterestedPerson) => p?.id === rel.interestedId
               );
@@ -518,7 +518,7 @@ export default function MyInterested() {
   const activeRelationshipsMap = useMemo(() => {
     const map = new Map<number, ActiveRelationship[]>();
     if (!allRelationships || !Array.isArray(allRelationships)) return map;
-    
+
     allRelationships.forEach((rel: ActiveRelationship) => {
       if (rel?.status === 'active' && rel?.interestedId) {
         const existing = map.get(rel.interestedId) || [];
@@ -531,7 +531,7 @@ export default function MyInterested() {
   const approvedRequestsSet = useMemo(() => {
     const set = new Set<number>();
     if (!allRequests || !Array.isArray(allRequests)) return set;
-    
+
     allRequests.forEach((req: DiscipleshipRequest) => {
       if (req?.status === 'approved' && req?.interestedId) {
         set.add(req.interestedId);
@@ -543,7 +543,7 @@ export default function MyInterested() {
   const pendingRequestsSet = useMemo(() => {
     const set = new Set<number>();
     if (!allRequests || !Array.isArray(allRequests)) return set;
-    
+
     allRequests.forEach((req: DiscipleshipRequest) => {
       if (req?.status === 'pending' && req?.interestedId) {
         set.add(req.interestedId);
@@ -555,7 +555,7 @@ export default function MyInterested() {
   const missionaryNamesMap = useMemo(() => {
     const map = new Map<number, string[]>();
     if (!allRelationships || !Array.isArray(allRelationships)) return map;
-    
+
     allRelationships.forEach((rel: ActiveRelationship) => {
       if (rel?.status === 'active' && rel?.missionaryName && rel?.interestedId) {
         const existing = map.get(rel.interestedId) || [];
@@ -675,19 +675,19 @@ export default function MyInterested() {
   // Função para obter informações do usuário
   const getUserInfo = (userId: number) => {
     if (!userId) return 'Usuário desconhecido';
-    
+
     // Buscar primeiro em interessados
     const interested = interestedBase?.find((u: InterestedPerson) => u.id === userId);
     if (interested) return interested.name;
-    
+
     // Buscar em todos os usuários (para pastores)
     const fromAllUsers = allUsers?.find((u: UserMember) => u.id === userId);
     if (fromAllUsers) return fromAllUsers.name;
-    
+
     // Buscar em membros (para dropdown de pastor)
     const fromMembers = allMembersForInvite?.find((u: UserMember) => u.id === userId);
     if (fromMembers) return fromMembers.name;
-    
+
     return `Usuário ${userId}`;
   };
 
@@ -894,18 +894,6 @@ export default function MyInterested() {
     setCurrentPage(1);
   }, [searchTerm, selectedStatus, selectedChurch, selectedTab]);
 
-  // Debug: Log informações importantes
-  useEffect(() => {
-    console.warn('📊 Estado MyInterested:', {
-      isPastorUser,
-      isAdmin,
-      selectedTab,
-      situationLevelsCount: situationLevels.length,
-      situationLevels: situationLevels.map(l => l.value),
-      currentList: currentList.length,
-    });
-  }, [isPastorUser, isAdmin, selectedTab, situationLevels, currentList]);
-
   // PAGINAÇÃO: Pegar apenas items da página atual (evita renderizar 300+ cards de uma vez)
   const paginatedMyInterested = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -924,6 +912,18 @@ export default function MyInterested() {
   const totalPagesChurch = Math.ceil(sortedFilteredChurchInterested.length / itemsPerPage);
   const totalPages = selectedTab === 'my' ? totalPagesMyInterested : totalPagesChurch;
   const currentList = selectedTab === 'my' ? paginatedMyInterested : paginatedChurchInterested;
+
+  // Debug: Log informações importantes
+  useEffect(() => {
+    console.warn('📊 Estado MyInterested:', {
+      isPastorUser,
+      isAdmin,
+      selectedTab,
+      situationLevelsCount: situationLevels.length,
+      situationLevels: situationLevels.map((l) => l.value),
+      currentList: currentList.length,
+    });
+  }, [isPastorUser, isAdmin, selectedTab, situationLevels, currentList]);
 
   // Função para abrir WhatsApp
   const handleWhatsApp = (phone: string, name: string) => {
@@ -1213,449 +1213,457 @@ export default function MyInterested() {
                     <Card key={person.id} className="hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
                         <div className="space-y-4">
-                        {/* Header */}
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src="" />
-                              <AvatarFallback className="bg-primary text-white">
-                                {person.name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
+                          {/* Header */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarImage src="" />
+                                <AvatarFallback className="bg-primary text-white">
+                                  {person.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
 
-                            <div>
-                              <h3 className="font-semibold">{person.name}</h3>
-                              {isMyInterested && (
-                                <p className="text-sm text-muted-foreground">{person.email}</p>
-                              )}
+                              <div>
+                                <h3 className="font-semibold">{person.name}</h3>
+                                {isMyInterested && (
+                                  <p className="text-sm text-muted-foreground">{person.email}</p>
+                                )}
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="flex flex-col gap-2 items-end">
-                            {isMyInterested && (
-                              <Badge className={getStatusColor(person.status)}>
-                                {getStatusLabel(person.status)}
-                              </Badge>
-                            )}
+                            <div className="flex flex-col gap-2 items-end">
+                              {isMyInterested && (
+                                <Badge className={getStatusColor(person.status)}>
+                                  {getStatusLabel(person.status)}
+                                </Badge>
+                              )}
 
-                            {discipleStatus && (
-                              <Badge className={discipleStatus.color}>
-                                <discipleStatus.icon className="h-3 w-3 mr-1" />
-                                {discipleStatus.label}
-                              </Badge>
-                            )}
+                              {discipleStatus && (
+                                <Badge className={discipleStatus.color}>
+                                  <discipleStatus.icon className="h-3 w-3 mr-1" />
+                                  {discipleStatus.label}
+                                </Badge>
+                              )}
 
-                            {/* Badge de situação */}
-                            {(person.interestedSituation || person.interested_situation) &&
-                              (() => {
-                                const level = getSituationOption(
-                                  person.interestedSituation || person.interested_situation
-                                );
-                                return level ? (
-                                  <div className="flex flex-col items-end">
-                                    <Badge
-                                      className="border-0 mb-1"
-                                      style={{
-                                        backgroundColor: `${level.color}20`,
-                                        color: level.color,
-                                      }}
-                                      title={level.label}
-                                    >
-                                      {level.value}
-                                    </Badge>
-                                    <span
-                                      className="text-xs font-medium"
-                                      style={{ color: level.color }}
-                                    >
-                                      {level.label}
-                                    </span>
-                                    <span className="text-xs" style={{ color: level.color }}>
-                                      {level.label || 'Situação do amigo'}
-                                    </span>
-                                  </div>
-                                ) : null;
-                              })()}
-
-                            {/* Informação de quem está discipulando (apenas na aba Da Igreja) */}
-                            {selectedTab === 'church' && (
-                              <div className="text-xs text-muted-foreground text-right">
-                                {/* Mostrar se há relacionamento ativo */}
-                                {hasAnyActiveRelationship(person.id) && (
-                                  <div className="mb-1 flex items-center gap-1 justify-end">
-                                    <span className="font-medium mr-1">Discipulado por:</span>
-                                    {getMissionaryFirstNames(person.id).map((name, idx) => (
+                              {/* Badge de situação */}
+                              {(person.interestedSituation || person.interested_situation) &&
+                                (() => {
+                                  const level = getSituationOption(
+                                    person.interestedSituation || person.interested_situation
+                                  );
+                                  return level ? (
+                                    <div className="flex flex-col items-end">
                                       <Badge
-                                        key={idx}
-                                        className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                        className="border-0 mb-1"
+                                        style={{
+                                          backgroundColor: `${level.color}20`,
+                                          color: level.color,
+                                        }}
+                                        title={level.label}
                                       >
-                                        {name}
+                                        {level.value}
                                       </Badge>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* Mostrar se há solicitação aprovada */}
-                                {hasAnyApprovedRequest(person.id) &&
-                                  !hasAnyActiveRelationship(person.id) && (
-                                    <div className="mb-1">
-                                      <span className="font-medium">Aprovado para discipulado</span>
-                                    </div>
-                                  )}
-
-                                {/* Mostrar se há solicitação pendente */}
-                                {pendingRequestsSet.has(person.id) && (
-                                  <div className="mb-1">
-                                    <span className="font-medium">Solicitação pendente</span>
-                                  </div>
-                                )}
-
-                                {/* Mostrar se não há nenhum status */}
-                                {!hasAnyActiveRelationship(person.id) &&
-                                  !hasAnyApprovedRequest(person.id) &&
-                                  !pendingRequestsSet.has(person.id) && (
-                                    <div className="mb-1">
-                                      <span className="font-medium">
-                                        Disponível para discipulado
+                                      <span
+                                        className="text-xs font-medium"
+                                        style={{ color: level.color }}
+                                      >
+                                        {level.label}
+                                      </span>
+                                      <span className="text-xs" style={{ color: level.color }}>
+                                        {level.label || 'Situação do amigo'}
                                       </span>
                                     </div>
+                                  ) : null;
+                                })()}
+
+                              {/* Informação de quem está discipulando (apenas na aba Da Igreja) */}
+                              {selectedTab === 'church' && (
+                                <div className="text-xs text-muted-foreground text-right">
+                                  {/* Mostrar se há relacionamento ativo */}
+                                  {hasAnyActiveRelationship(person.id) && (
+                                    <div className="mb-1 flex items-center gap-1 justify-end">
+                                      <span className="font-medium mr-1">Discipulado por:</span>
+                                      {getMissionaryFirstNames(person.id).map((name, idx) => (
+                                        <Badge
+                                          key={idx}
+                                          className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                        >
+                                          {name}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   )}
-                              </div>
-                            )}
 
-                            {/* Badge de autorização para administradores */}
-                            {hasAdminAccess(user) && hasPendingRequestForAdmin(person.id) && (
-                              <Badge
-                                className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:hover:bg-yellow-800 cursor-pointer"
-                                onClick={() => {
-                                  const request = allRequests.find(
-                                    (r: DiscipleshipRequest) => r.interestedId === person.id
-                                  );
-                                  if (request) openAuthorizationModal(request);
-                                }}
-                              >
-                                <Clock className="h-3 w-3 mr-1" />
-                                Autorizar
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+                                  {/* Mostrar se há solicitação aprovada */}
+                                  {hasAnyApprovedRequest(person.id) &&
+                                    !hasAnyActiveRelationship(person.id) && (
+                                      <div className="mb-1">
+                                        <span className="font-medium">
+                                          Aprovado para discipulado
+                                        </span>
+                                      </div>
+                                    )}
 
-                        {/* Contact Info - Apenas para interessados vinculados */}
-                        {isMyInterested && (
-                          <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                <span>{person.phone}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                <span>{person.address}</span>
-                              </div>
-                            </div>
+                                  {/* Mostrar se há solicitação pendente */}
+                                  {pendingRequestsSet.has(person.id) && (
+                                    <div className="mb-1">
+                                      <span className="font-medium">Solicitação pendente</span>
+                                    </div>
+                                  )}
 
-                            {/* Church */}
-                            <div className="text-sm text-muted-foreground">
-                              <strong>Igreja:</strong> {person.church}
-                            </div>
-
-                            {/* Study Progress */}
-                            {person.studiesCompleted > 0 && (
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                  <span>Progresso dos Estudos</span>
-                                  <span>
-                                    {person.studiesCompleted}/{person.totalStudies}
-                                  </span>
+                                  {/* Mostrar se não há nenhum status */}
+                                  {!hasAnyActiveRelationship(person.id) &&
+                                    !hasAnyApprovedRequest(person.id) &&
+                                    !pendingRequestsSet.has(person.id) && (
+                                      <div className="mb-1">
+                                        <span className="font-medium">
+                                          Disponível para discipulado
+                                        </span>
+                                      </div>
+                                    )}
                                 </div>
-                                <div className="bg-muted rounded-full h-2">
-                                  <div
-                                    className="bg-green-600 h-2 rounded-full"
-                                    style={{
-                                      width: `${(person.studiesCompleted / person.totalStudies) * 100}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )}
+                              )}
 
-                            {/* Interests */}
-                            <div className="flex flex-wrap gap-1">
-                              {person.interests?.map((interest, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {interest}
+                              {/* Badge de autorização para administradores */}
+                              {hasAdminAccess(user) && hasPendingRequestForAdmin(person.id) && (
+                                <Badge
+                                  className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:hover:bg-yellow-800 cursor-pointer"
+                                  onClick={() => {
+                                    const request = allRequests.find(
+                                      (r: DiscipleshipRequest) => r.interestedId === person.id
+                                    );
+                                    if (request) openAuthorizationModal(request);
+                                  }}
+                                >
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Autorizar
                                 </Badge>
-                              ))}
-                            </div>
-
-                            {/* Notes */}
-                            {person.notes && (
-                              <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                                <strong>Observações:</strong> {person.notes}
-                              </div>
-                            )}
-
-                            {/* Last Contact */}
-                            {person.lastContact && (
-                              <div className="text-xs text-muted-foreground border-t pt-2">
-                                Último contato: {formatDate(person.lastContact)}
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                        {/* Pastor Controls - Situação e Discipulador */}
-                        {isPastorUser && selectedTab === 'church' && (
-                          <div className="space-y-3 border-t pt-3">
-                            {/* Situação Selector */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                Situação:
-                              </span>
-                              <div className="flex gap-1 flex-wrap">
-                                {situationLevels.length === 0 && (
-                                  <span className="text-xs text-muted-foreground">
-                                    Carregando níveis...
-                                  </span>
-                                )}
-                                {situationLevels.map((opt) => {
-                                  const isActive =
-                                    (person.interestedSituation || person.interested_situation) ===
-                                    opt.value;
-                                  return (
-                                    <button
-                                      key={opt.value}
-                                      onClick={() => {
-                                        console.warn('🔘 Botão clicado:', { 
-                                          personId: person.id, 
-                                          optValue: opt.value,
-                                          currentSituation: person.interestedSituation || person.interested_situation 
-                                        });
-                                        handleSituationChange(person.id, opt.value);
-                                      }}
-                                      disabled={updatingSituation === person.id}
-                                      className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
-                                        isActive
-                                          ? 'ring-2 ring-offset-1'
-                                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                                      } ${updatingSituation === person.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                      style={
-                                        isActive
-                                          ? ({
-                                              backgroundColor: `${opt.color}20`,
-                                              color: opt.color,
-                                              '--tw-ring-color': opt.color,
-                                            } as React.CSSProperties)
-                                          : undefined
-                                      }
-                                      title={opt.label}
-                                    >
-                                      {opt.value}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                              {getSituationOption(
-                                person.interestedSituation || person.interested_situation
-                              ) && (
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  {
-                                    getSituationOption(
-                                      person.interestedSituation || person.interested_situation
-                                    )?.label
-                                  }
-                                </span>
                               )}
                             </div>
-
-                            {/* Inline Discipler Selector */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                Discipulador:
-                              </span>
-                              <Select
-                                value=""
-                                onValueChange={(missionaryId) => {
-                                  if (missionaryId === 'invite') {
-                                    handleOpenInvite(person);
-                                    return;
-                                  }
-                                  directDiscipleMutation.mutate({
-                                    interestedId: person.id,
-                                    missionaryId: parseInt(missionaryId),
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="h-7 text-xs flex-1">
-                                  <SelectValue placeholder="Vincular discipulador..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="invite">
-                                    <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                                      <Send className="h-3 w-3" />
-                                      Convidar membro...
-                                    </div>
-                                  </SelectItem>
-                                  {availableMissionaries.map((m: UserMember) => (
-                                    <SelectItem key={m.id} value={m.id.toString()}>
-                                      {m.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
                           </div>
-                        )}
 
-                        {/* Actions */}
-                        <div className="flex flex-wrap gap-2">
-                          {/* Botão "Discipular" - sempre disponível se não há nenhum status de discipulado */}
-                          {!discipleStatus && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleDiscipleRequest(person)}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <Target className="h-3 w-3 mr-1" />
-                              Discipular
-                            </Button>
-                          )}
-
-                          {/* Botão "Solicitado" quando há solicitação pendente com o usuário atual */}
-                          {discipleStatus?.type === 'pending' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled
-                              className="bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-300 cursor-not-allowed"
-                            >
-                              <Clock className="h-3 w-3 mr-1" />
-                              Solicitado
-                            </Button>
-                          )}
-
-                          {/* Botão "Aprovado" quando a solicitação foi aprovada com o usuário atual */}
-                          {discipleStatus?.type === 'approved' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled
-                              className="bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 cursor-not-allowed"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Aprovado
-                            </Button>
-                          )}
-
-                          {/* Botão "Discipulando" quando há relacionamento ativo com o usuário atual */}
-                          {discipleStatus?.type === 'active' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled
-                              className="bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300 cursor-not-allowed"
-                            >
-                              <Users className="h-3 w-3 mr-1" />
-                              Discipulando
-                            </Button>
-                          )}
-
-                          {/* Botões adicionais apenas para interessados vinculados */}
+                          {/* Contact Info - Apenas para interessados vinculados */}
                           {isMyInterested && (
                             <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleWhatsApp(person.phone, person.name)}
-                                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:border-green-800 dark:text-green-300"
-                              >
-                                <MessageSquare className="h-3 w-3 mr-1" />
-                                WhatsApp
-                              </Button>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4" />
+                                  <span>{person.phone}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{person.address}</span>
+                                </div>
+                              </div>
 
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenChat(person.id, person.name)}
-                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:border-blue-800 dark:text-blue-300"
-                              >
-                                <MessageCircle className="h-3 w-3 mr-1" />
-                                Mensagem
-                              </Button>
+                              {/* Church */}
+                              <div className="text-sm text-muted-foreground">
+                                <strong>Igreja:</strong> {person.church}
+                              </div>
 
-                              {/* Botão "Desvincular" apenas para interessados que estão sendo discipulados */}
-                              {discipleStatus?.type === 'active' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleUnlinkDisciple(person.id)}
-                                  className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:border-red-800 dark:text-red-300"
-                                >
-                                  <X className="h-3 w-3 mr-1" />
-                                  Desvincular
-                                </Button>
+                              {/* Study Progress */}
+                              {person.studiesCompleted > 0 && (
+                                <div className="space-y-2">
+                                  <div className="flex justify-between text-sm">
+                                    <span>Progresso dos Estudos</span>
+                                    <span>
+                                      {person.studiesCompleted}/{person.totalStudies}
+                                    </span>
+                                  </div>
+                                  <div className="bg-muted rounded-full h-2">
+                                    <div
+                                      className="bg-green-600 h-2 rounded-full"
+                                      style={{
+                                        width: `${(person.studiesCompleted / person.totalStudies) * 100}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Interests */}
+                              <div className="flex flex-wrap gap-1">
+                                {person.interests?.map((interest, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {interest}
+                                  </Badge>
+                                ))}
+                              </div>
+
+                              {/* Notes */}
+                              {person.notes && (
+                                <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                                  <strong>Observações:</strong> {person.notes}
+                                </div>
+                              )}
+
+                              {/* Last Contact */}
+                              {person.lastContact && (
+                                <div className="text-xs text-muted-foreground border-t pt-2">
+                                  Último contato: {formatDate(person.lastContact)}
+                                </div>
                               )}
                             </>
                           )}
-                        </div>
 
-                        {/* Mountain Progress - Apenas para interessados vinculados */}
-                        {isMyInterested && (
-                          <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
-                            {loadingPoints ? (
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 bg-purple-200 dark:bg-purple-800 rounded animate-pulse" />
-                                <div className="flex-1">
-                                  <div className="h-4 bg-purple-200 dark:bg-purple-800 rounded animate-pulse mb-1" />
-                                  <div className="h-3 bg-purple-200 dark:bg-purple-800 rounded animate-pulse w-20" />
+                          {/* Pastor Controls - Situação e Discipulador */}
+                          {isPastorUser && selectedTab === 'church' && (
+                            <div className="space-y-3 border-t pt-3">
+                              {/* Situação Selector */}
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                  Situação:
+                                </span>
+                                <div className="flex gap-1 flex-wrap">
+                                  {situationLevels.length === 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      Carregando níveis...
+                                    </span>
+                                  )}
+                                  {situationLevels.map((opt) => {
+                                    const isActive =
+                                      (person.interestedSituation ||
+                                        person.interested_situation) === opt.value;
+                                    return (
+                                      <button
+                                        key={opt.value}
+                                        onClick={() => {
+                                          console.warn('🔘 Botão clicado:', {
+                                            personId: person.id,
+                                            optValue: opt.value,
+                                            currentSituation:
+                                              person.interestedSituation ||
+                                              person.interested_situation,
+                                          });
+                                          handleSituationChange(person.id, opt.value);
+                                        }}
+                                        disabled={updatingSituation === person.id}
+                                        className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
+                                          isActive
+                                            ? 'ring-2 ring-offset-1'
+                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                        } ${updatingSituation === person.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                        style={
+                                          isActive
+                                            ? ({
+                                                backgroundColor: `${opt.color}20`,
+                                                color: opt.color,
+                                                '--tw-ring-color': opt.color,
+                                              } as React.CSSProperties)
+                                            : undefined
+                                        }
+                                        title={opt.label}
+                                      >
+                                        {opt.value}
+                                      </button>
+                                    );
+                                  })}
                                 </div>
-                                <div className="h-5 w-12 bg-purple-200 dark:bg-purple-800 rounded animate-pulse" />
+                                {getSituationOption(
+                                  person.interestedSituation || person.interested_situation
+                                ) && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    {
+                                      getSituationOption(
+                                        person.interestedSituation || person.interested_situation
+                                      )?.label
+                                    }
+                                  </span>
+                                )}
                               </div>
-                            ) : (
-                              <div className="flex items-center gap-3">
-                                <MountIcon
-                                  iconType={getLevelIcon(interestedPoints[person.id] || 0)}
-                                  className="h-8 w-8 text-purple-600 dark:text-purple-400"
-                                />
-                                <div className="flex-1">
-                                  <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                                    {getMountName(interestedPoints[person.id] || 0)}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {interestedPoints[person.id] || 0} pontos
-                                  </div>
-                                </div>
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300"
+
+                              {/* Inline Discipler Selector */}
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                  Discipulador:
+                                </span>
+                                <Select
+                                  value=""
+                                  onValueChange={(missionaryId) => {
+                                    if (missionaryId === 'invite') {
+                                      handleOpenInvite(person);
+                                      return;
+                                    }
+                                    directDiscipleMutation.mutate({
+                                      interestedId: person.id,
+                                      missionaryId: parseInt(missionaryId),
+                                    });
+                                  }}
                                 >
-                                  Monte
-                                </Badge>
+                                  <SelectTrigger className="h-7 text-xs flex-1">
+                                    <SelectValue placeholder="Vincular discipulador..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="invite">
+                                      <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                                        <Send className="h-3 w-3" />
+                                        Convidar membro...
+                                      </div>
+                                    </SelectItem>
+                                    {availableMissionaries.map((m: UserMember) => (
+                                      <SelectItem key={m.id} value={m.id.toString()}>
+                                        {m.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          <div className="flex flex-wrap gap-2">
+                            {/* Botão "Discipular" - sempre disponível se não há nenhum status de discipulado */}
+                            {!discipleStatus && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleDiscipleRequest(person)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Target className="h-3 w-3 mr-1" />
+                                Discipular
+                              </Button>
+                            )}
+
+                            {/* Botão "Solicitado" quando há solicitação pendente com o usuário atual */}
+                            {discipleStatus?.type === 'pending' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-300 cursor-not-allowed"
+                              >
+                                <Clock className="h-3 w-3 mr-1" />
+                                Solicitado
+                              </Button>
+                            )}
+
+                            {/* Botão "Aprovado" quando a solicitação foi aprovada com o usuário atual */}
+                            {discipleStatus?.type === 'approved' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 cursor-not-allowed"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Aprovado
+                              </Button>
+                            )}
+
+                            {/* Botão "Discipulando" quando há relacionamento ativo com o usuário atual */}
+                            {discipleStatus?.type === 'active' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300 cursor-not-allowed"
+                              >
+                                <Users className="h-3 w-3 mr-1" />
+                                Discipulando
+                              </Button>
+                            )}
+
+                            {/* Botões adicionais apenas para interessados vinculados */}
+                            {isMyInterested && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleWhatsApp(person.phone, person.name)}
+                                  className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:border-green-800 dark:text-green-300"
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                  WhatsApp
+                                </Button>
+
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenChat(person.id, person.name)}
+                                  className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:border-blue-800 dark:text-blue-300"
+                                >
+                                  <MessageCircle className="h-3 w-3 mr-1" />
+                                  Mensagem
+                                </Button>
+
+                                {/* Botão "Desvincular" apenas para interessados que estão sendo discipulados */}
+                                {discipleStatus?.type === 'active' && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleUnlinkDisciple(person.id)}
+                                    className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:border-red-800 dark:text-red-300"
+                                  >
+                                    <X className="h-3 w-3 mr-1" />
+                                    Desvincular
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
+
+                          {/* Mountain Progress - Apenas para interessados vinculados */}
+                          {isMyInterested && (
+                            <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
+                              {loadingPoints ? (
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 bg-purple-200 dark:bg-purple-800 rounded animate-pulse" />
+                                  <div className="flex-1">
+                                    <div className="h-4 bg-purple-200 dark:bg-purple-800 rounded animate-pulse mb-1" />
+                                    <div className="h-3 bg-purple-200 dark:bg-purple-800 rounded animate-pulse w-20" />
+                                  </div>
+                                  <div className="h-5 w-12 bg-purple-200 dark:bg-purple-800 rounded animate-pulse" />
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-3">
+                                  <MountIcon
+                                    iconType={getLevelIcon(interestedPoints[person.id] || 0)}
+                                    className="h-8 w-8 text-purple-600 dark:text-purple-400"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                                      {getMountName(interestedPoints[person.id] || 0)}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {interestedPoints[person.id] || 0} pontos
+                                    </div>
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300"
+                                  >
+                                    Monte
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
                 } catch (error) {
                   console.error('Error rendering person card:', error, person);
                   // Retorna card de erro ao invés de quebrar toda a página
                   return (
-                    <Card key={person?.id || Math.random()} className="border-red-200 bg-red-50/50 dark:bg-red-950/20">
+                    <Card
+                      key={person?.id || Math.random()}
+                      className="border-red-200 bg-red-50/50 dark:bg-red-950/20"
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                           <AlertCircle className="h-4 w-4" />
-                          <span className="text-sm">Erro ao carregar: {person?.name || 'Desconhecido'}</span>
+                          <span className="text-sm">
+                            Erro ao carregar: {person?.name || 'Desconhecido'}
+                          </span>
                         </div>
                       </CardContent>
                     </Card>
                   );
                 }
-              }
-            )}
+              })}
           </div>
         )}
 
@@ -1663,14 +1671,23 @@ export default function MyInterested() {
         {!loadingChurch && !loadingRelationships && !loadingRequests && totalPages > 1 && (
           <div className="flex items-center justify-between border-t pt-4">
             <div className="text-sm text-muted-foreground">
-              Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, selectedTab === 'my' ? sortedMyInterested.length : sortedFilteredChurchInterested.length)} de{' '}
-              {selectedTab === 'my' ? sortedMyInterested.length : sortedFilteredChurchInterested.length}
+              Mostrando {(currentPage - 1) * itemsPerPage + 1} -{' '}
+              {Math.min(
+                currentPage * itemsPerPage,
+                selectedTab === 'my'
+                  ? sortedMyInterested.length
+                  : sortedFilteredChurchInterested.length
+              )}{' '}
+              de{' '}
+              {selectedTab === 'my'
+                ? sortedMyInterested.length
+                : sortedFilteredChurchInterested.length}
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
               >
                 Anterior
@@ -1681,7 +1698,7 @@ export default function MyInterested() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
               >
                 Próxima
