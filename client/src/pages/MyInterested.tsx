@@ -337,6 +337,35 @@ export default function MyInterested() {
       console.warn('✅ Resposta da API:', data);
       return data;
     },
+    onMutate: async ({ userId, situation }) => {
+      // Atualização otimista: atualiza UI imediatamente
+      await queryClient.cancelQueries({ queryKey: ['church-interested'] });
+      await queryClient.cancelQueries({ queryKey: ['all-users'] });
+
+      const previousChurch = queryClient.getQueryData(['church-interested']);
+      const previousAll = queryClient.getQueryData(['all-users']);
+
+      // Atualizar cache localmente
+      queryClient.setQueryData(['church-interested'], (old: InterestedPerson[] | undefined) => {
+        if (!old) return old;
+        return old.map(person => 
+          person.id === userId 
+            ? { ...person, interestedSituation: situation, interested_situation: situation }
+            : person
+        );
+      });
+
+      queryClient.setQueryData(['all-users'], (old: InterestedPerson[] | undefined) => {
+        if (!old) return old;
+        return old.map(person => 
+          person.id === userId 
+            ? { ...person, interestedSituation: situation, interested_situation: situation }
+            : person
+        );
+      });
+
+      return { previousChurch, previousAll };
+    },
     onSuccess: (data) => {
       console.warn('✅ Situação atualizada com sucesso!', data);
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
@@ -347,8 +376,15 @@ export default function MyInterested() {
         description: 'A situação do amigo foi atualizada com sucesso.',
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
       console.error('❌ Erro ao atualizar situação:', error);
+      // Reverter mudanças otimistas em caso de erro
+      if (context?.previousChurch) {
+        queryClient.setQueryData(['church-interested'], context.previousChurch);
+      }
+      if (context?.previousAll) {
+        queryClient.setQueryData(['all-users'], context.previousAll);
+      }
       setUpdatingSituation(null);
       toast({
         title: '❌ Erro ao atualizar situação',
@@ -498,13 +534,13 @@ export default function MyInterested() {
   );
 
   // Lista de membros/missionários disponíveis para discipular (para pastores)
+  // INCLUINDO pastores do distrito
   const availableMissionaries: UserMember[] = useMemo(
     () =>
       (allMembersForInvite || [])
         .filter(
           (u: UserMember) =>
             u.role !== 'interested' &&
-            u.role !== 'pastor' &&
             u.role !== 'superadmin' &&
             u.id !== user?.id
         )
