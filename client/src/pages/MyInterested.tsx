@@ -348,8 +348,8 @@ export default function MyInterested() {
       // Atualizar cache localmente
       queryClient.setQueryData(['church-interested'], (old: InterestedPerson[] | undefined) => {
         if (!old) return old;
-        return old.map(person => 
-          person.id === userId 
+        return old.map((person) =>
+          person.id === userId
             ? { ...person, interestedSituation: situation, interested_situation: situation }
             : person
         );
@@ -357,8 +357,8 @@ export default function MyInterested() {
 
       queryClient.setQueryData(['all-users'], (old: InterestedPerson[] | undefined) => {
         if (!old) return old;
-        return old.map(person => 
-          person.id === userId 
+        return old.map((person) =>
+          person.id === userId
             ? { ...person, interestedSituation: situation, interested_situation: situation }
             : person
         );
@@ -539,10 +539,7 @@ export default function MyInterested() {
     () =>
       (allMembersForInvite || [])
         .filter(
-          (u: UserMember) =>
-            u.role !== 'interested' &&
-            u.role !== 'superadmin' &&
-            u.id !== user?.id
+          (u: UserMember) => u.role !== 'interested' && u.role !== 'superadmin' && u.id !== user?.id
         )
         .sort((a: UserMember, b: UserMember) =>
           (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
@@ -1244,9 +1241,14 @@ export default function MyInterested() {
                 try {
                   const discipleStatus = getDiscipleStatus(person.id);
                   const isMyInterested = selectedTab === 'my';
+                  const currentSituation = person.interestedSituation || person.interested_situation;
+                  const situationLevel = getSituationOption(currentSituation);
 
                   return (
-                    <Card key={person.id} className="hover:shadow-md transition-shadow">
+                    <Card 
+                      key={`${person.id}-${currentSituation || 'no-situation'}`} 
+                      className="hover:shadow-md transition-shadow"
+                    >
                       <CardContent className="p-4">
                         <div className="space-y-4">
                           {/* Header */}
@@ -1282,35 +1284,26 @@ export default function MyInterested() {
                               )}
 
                               {/* Badge de situação */}
-                              {(person.interestedSituation || person.interested_situation) &&
-                                (() => {
-                                  const level = getSituationOption(
-                                    person.interestedSituation || person.interested_situation
-                                  );
-                                  return level ? (
-                                    <div className="flex flex-col items-end">
-                                      <Badge
-                                        className="border-0 mb-1"
-                                        style={{
-                                          backgroundColor: `${level.color}20`,
-                                          color: level.color,
-                                        }}
-                                        title={level.label}
-                                      >
-                                        {level.value}
-                                      </Badge>
-                                      <span
-                                        className="text-xs font-medium"
-                                        style={{ color: level.color }}
-                                      >
-                                        {level.label}
-                                      </span>
-                                      <span className="text-xs" style={{ color: level.color }}>
-                                        {level.label || 'Situação do amigo'}
-                                      </span>
-                                    </div>
-                                  ) : null;
-                                })()}
+                              {situationLevel && (
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge
+                                    className="border-0 font-semibold"
+                                    style={{
+                                      backgroundColor: `${situationLevel.color}20`,
+                                      color: situationLevel.color,
+                                    }}
+                                    title={situationLevel.label}
+                                  >
+                                    {situationLevel.value}
+                                  </Badge>
+                                  <span
+                                    className="text-xs font-medium"
+                                    style={{ color: situationLevel.color }}
+                                  >
+                                    {situationLevel.label}
+                                  </span>
+                                </div>
+                              )}
 
                               {/* Informação de quem está discipulando (apenas na aba Da Igreja) */}
                               {selectedTab === 'church' && (
@@ -1457,9 +1450,7 @@ export default function MyInterested() {
                                     </span>
                                   )}
                                   {situationLevels.map((opt) => {
-                                    const isActive =
-                                      (person.interestedSituation ||
-                                        person.interested_situation) === opt.value;
+                                    const isActive = currentSituation === opt.value;
                                     return (
                                       <button
                                         key={opt.value}
@@ -1467,9 +1458,7 @@ export default function MyInterested() {
                                           console.warn('🔘 Botão clicado:', {
                                             personId: person.id,
                                             optValue: opt.value,
-                                            currentSituation:
-                                              person.interestedSituation ||
-                                              person.interested_situation,
+                                            currentSituation,
                                           });
                                           handleSituationChange(person.id, opt.value);
                                         }}
@@ -1495,15 +1484,9 @@ export default function MyInterested() {
                                     );
                                   })}
                                 </div>
-                                {getSituationOption(
-                                  person.interestedSituation || person.interested_situation
-                                ) && (
+                                {situationLevel && (
                                   <span className="text-xs text-muted-foreground ml-1">
-                                    {
-                                      getSituationOption(
-                                        person.interestedSituation || person.interested_situation
-                                      )?.label
-                                    }
+                                    {situationLevel.label}
                                   </span>
                                 )}
                               </div>
