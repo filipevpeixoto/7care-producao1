@@ -53,6 +53,8 @@ export function toUser(row: Record<string, unknown>): User {
         : row.lastStreak instanceof Date
           ? row.lastStreak.toISOString()
           : String(row.lastStreak),
+    isApproved: Boolean(row.isApproved ?? true),
+    firstAccess: Boolean(row.firstAccess ?? false),
   };
 }
 

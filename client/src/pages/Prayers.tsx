@@ -172,7 +172,7 @@ const Prayers = () => {
 
       const response = await fetchWithAuth(`/api/prayers/${prayerId}/answer`, {
         method: 'POST',
-        body: JSON.stringify({ answeredBy: parseInt(user.id) }),
+        body: JSON.stringify({ answeredBy: user.id }),
       });
 
       if (response.ok) {
@@ -334,7 +334,7 @@ const Prayers = () => {
     if (hasAdminAccess(user)) return true;
 
     // Usuários podem ver suas próprias orações
-    if (prayer.userId === parseInt(user?.id || '0')) return true;
+    if (prayer.userId === (user?.id || 0)) return true;
 
     // Se a oração é privada, apenas o pastor pode ver
     if (prayer.isPrivate) return false;
@@ -541,7 +541,7 @@ const Prayers = () => {
                   </div>
 
                   {/* Botão de Oração */}
-                  {!prayer.isAnswered && prayer.userId !== parseInt(user?.id || '0') && (
+                  {!prayer.isAnswered && prayer.userId !== (user?.id || 0) && (
                     <div className="flex gap-2">
                       <Button
                         onClick={() => toggleIntercessor(prayer.id)}
@@ -594,7 +594,7 @@ const Prayers = () => {
                         </div>
                       ) : (
                         <p className="text-xs text-gray-500 italic">
-                          {prayer.userId === parseInt(user?.id || '0')
+                          {prayer.userId === (user?.id || 0)
                             ? 'Ninguém está orando por este pedido ainda'
                             : 'Seja o primeiro a orar por este pedido'}
                         </p>
@@ -606,7 +606,7 @@ const Prayers = () => {
                   <div className="flex gap-2">
                     {/* Botão Marcar como Respondida - para admin e usuário que criou a oração */}
                     {!prayer.isAnswered &&
-                      (hasAdminAccess(user) || prayer.userId === parseInt(user?.id || '0')) && (
+                      (hasAdminAccess(user) || prayer.userId === (user?.id || 0)) && (
                         <Button
                           onClick={() => markAsAnswered(prayer.id)}
                           size="sm"
@@ -618,7 +618,7 @@ const Prayers = () => {
                       )}
 
                     {/* Botão Excluir - para admin e usuário que criou a oração */}
-                    {(hasAdminAccess(user) || prayer.userId === parseInt(user?.id || '0')) && (
+                    {(hasAdminAccess(user) || prayer.userId === (user?.id || 0)) && (
                       <Button
                         onClick={() => deletePrayer(prayer.id)}
                         size="sm"

@@ -51,6 +51,9 @@ export const usePointsCalculation = () => {
   });
 
   const calculateUserPoints = (user: User): number => {
+    // Helper: strip null to undefined for UserData compatibility
+    const n = <T,>(v: T | null | undefined): T | undefined => v ?? undefined;
+
     // Se não temos configuração, usar valores padrão
     if (!pointsConfig) {
       const userData: UserData = {
@@ -58,19 +61,19 @@ export const usePointsCalculation = () => {
         classificacao: user.classificacao as any,
         dizimista: user.dizimista as any,
         ofertante: user.ofertante as any,
-        tempoBatismo: user.tempoBatismo,
-        cargos: user.cargos,
-        departamentos: user.departamentos,
-        nomeUnidade: user.nomeUnidade,
-        temLicao: user.hasLesson || user.temLicao,
-        comunhao: user.comunhao,
-        missao: user.missao,
-        estudoBiblico: user.estudoBiblico,
-        totalPresenca: user.totalPresenca,
-        batizouAlguem: user.batizouAlguem,
-        discipuladoPosBatismo: user.discipuladoPosBatismo,
-        cpfValido: user.cpfValido,
-        camposVaziosACMS: user.camposVaziosACMS
+        tempoBatismo: n(user.tempoBatismo),
+        cargos: Array.isArray(user.cargos) ? user.cargos : user.cargos ? [user.cargos] : undefined,
+        departamentos: user.departamentos ? [user.departamentos] : undefined,
+        nomeUnidade: n(user.nomeUnidade),
+        temLicao: user.hasLesson || n(user.temLicao),
+        comunhao: n(user.comunhao),
+        missao: n(user.missao),
+        estudoBiblico: n(user.estudoBiblico),
+        totalPresenca: n(user.totalPresenca),
+        batizouAlguem: n(user.batizouAlguem),
+        discipuladoPosBatismo: n(user.discipuladoPosBatismo),
+        cpfValido: n(user.cpfValido),
+        camposVaziosACMS: user.camposVaziosACMS != null ? Boolean(user.camposVaziosACMS) : undefined
       };
       const result = PointsCalculator.calculateTotalPoints(userData);
       return typeof result === 'number' ? result : 0;
@@ -174,19 +177,19 @@ export const usePointsCalculation = () => {
           classificacao: user.classificacao as any,
           dizimista: user.dizimista as any,
           ofertante: user.ofertante as any,
-          tempoBatismo: user.tempoBatismo,
-          cargos: user.cargos,
-          departamentos: user.departamentos,
-          nomeUnidade: user.nomeUnidade,
-          temLicao: user.hasLesson || user.temLicao,
-          comunhao: user.comunhao,
-          missao: user.missao,
-          estudoBiblico: user.estudoBiblico,
-          totalPresenca: user.totalPresenca,
-          batizouAlguem: user.batizouAlguem,
-          discipuladoPosBatismo: user.discipuladoPosBatismo,
-          cpfValido: user.cpfValido,
-          camposVaziosACMS: user.camposVaziosACMS
+          tempoBatismo: user.tempoBatismo ?? undefined,
+          cargos: Array.isArray(user.cargos) ? user.cargos : user.cargos ? [user.cargos] : undefined,
+          departamentos: user.departamentos ? [user.departamentos] : undefined,
+          nomeUnidade: user.nomeUnidade ?? undefined,
+          temLicao: user.hasLesson || (user.temLicao ?? undefined),
+          comunhao: user.comunhao ?? undefined,
+          missao: user.missao ?? undefined,
+          estudoBiblico: user.estudoBiblico ?? undefined,
+          totalPresenca: user.totalPresenca ?? undefined,
+          batizouAlguem: user.batizouAlguem ?? undefined,
+          discipuladoPosBatismo: user.discipuladoPosBatismo ?? undefined,
+          cpfValido: user.cpfValido ?? undefined,
+          camposVaziosACMS: user.camposVaziosACMS != null ? Boolean(user.camposVaziosACMS) : undefined
         })
       };
     });

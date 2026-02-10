@@ -169,7 +169,7 @@ export async function approveUser(id: number): Promise<User | null> {
 }
 
 export async function rejectUser(id: number): Promise<User | null> {
-  return updateUser(id, { isApproved: false, status: 'rejected' });
+  return updateUser(id, { isApproved: false, status: 'rejected' as User['status'] });
 }
 
 export async function updateUserChurch(userId: number, churchName: string): Promise<boolean> {

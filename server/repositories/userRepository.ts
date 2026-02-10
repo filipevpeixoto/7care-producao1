@@ -62,7 +62,7 @@ export class UserRepository {
       createdAt: this.toDateString(row.createdAt),
       updatedAt: this.toDateString(row.updatedAt),
       firstAccess: Boolean(row.firstAccess),
-      status: row.status == null ? undefined : String(row.status),
+      status: (row.status == null ? 'active' : String(row.status)) as import('../../shared/types/user').UserStatus,
       phone: row.phone == null ? undefined : String(row.phone),
       cpf: row.cpf == null ? undefined : String(row.cpf),
       profilePhoto: row.profilePhoto == null ? undefined : String(row.profilePhoto),

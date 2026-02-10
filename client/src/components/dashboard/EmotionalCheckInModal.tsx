@@ -123,7 +123,7 @@ export const EmotionalCheckInModal = ({ isOpen, onClose }: EmotionalCheckInModal
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: parseInt(user.id),
+          userId: user.id,
           emotionalScore: spiritualState.score,
           prayerRequest: spiritualState.prayerRequest,
           isPrivate: spiritualState.isPrivate,

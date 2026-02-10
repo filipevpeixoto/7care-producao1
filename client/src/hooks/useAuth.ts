@@ -324,15 +324,14 @@ export const useAuth = () => {
   }, [authState.user]);
 
   const register = useCallback(async (userData: Partial<User>): Promise<boolean> => {
-    const newUser: User = {
-      id: Date.now().toString(),
+    const newUser = {
+      id: Date.now(),
       name: userData.name || '',
       email: userData.email || '',
       role: userData.role || 'interested',
       church: userData.church,
       isApproved: userData.role === 'interested',
-      createdAt: new Date().toISOString(),
-    };
+    } satisfies Partial<User>;
 
     authLogger.debug('User registered:', newUser.email);
     return true;

@@ -503,6 +503,7 @@ export const districtRoutes = (app: Express): void => {
         districtId: districtId || null,
         isApproved: true,
         firstAccess: true,
+        status: 'active' as const,
         churchCode: '',
         departments: '',
         birthDate: '',

@@ -225,7 +225,7 @@ export function userRowToUser(row: UserRow | Record<string, unknown>): User {
     classificacao: r.classificacao ? String(r.classificacao) : undefined,
     dizimistaType: r.dizimistaType ? String(r.dizimistaType) : undefined,
     observations: r.observations ? String(r.observations) : undefined,
-    firstAccess: r.firstAccess != null ? Boolean(r.firstAccess) : undefined,
+    firstAccess: r.firstAccess != null ? Boolean(r.firstAccess) : false,
     status: toValidUserStatus(r.status),
     phone: r.phone ? String(r.phone) : null,
     cpf: r.cpf ? String(r.cpf) : undefined,
@@ -244,8 +244,8 @@ export function userRowToUser(row: UserRow | Record<string, unknown>): User {
     lastLogin: r.lastLogin ? String(r.lastLogin) : null,
     lastStreak: r.lastStreak ? String(r.lastStreak) : null,
     lastAccess: r.lastAccess ? String(r.lastAccess) : undefined,
-    createdAt: r.createdAt ? String(r.createdAt) : undefined,
-    updatedAt: r.updatedAt ? String(r.updatedAt) : undefined,
+    createdAt: r.createdAt ? String(r.createdAt) : new Date().toISOString(),
+    updatedAt: r.updatedAt ? String(r.updatedAt) : new Date().toISOString(),
   };
 }
 

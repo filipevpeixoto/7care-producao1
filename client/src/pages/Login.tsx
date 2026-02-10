@@ -46,7 +46,7 @@ export const Login = () => {
     // But only if they haven't completed the tutorial yet
     // Pastores aprovados via convite também veem o tour geral na primeira vez
     const needsFirstAccess =
-      !tutorialCompleted && !tutorialSkipped && (user?.firstAccess || user?.usingDefaultPassword);
+      !tutorialCompleted && !tutorialSkipped && user?.firstAccess;
 
     if (needsFirstAccess) {
       return <Navigate to="/first-access" replace />;

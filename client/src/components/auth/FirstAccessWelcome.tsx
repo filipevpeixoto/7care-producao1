@@ -163,12 +163,6 @@ export const FirstAccessWelcome = () => {
   };
 
   const completeTutorial = () => {
-    // If user is using default password, force them to change it first
-    if (user?.usingDefaultPassword) {
-      setCurrentStep(1); // Go to password change step
-      return;
-    }
-
     if (user?.id) {
       localStorage.setItem(`tutorial_completed_${user.id}`, 'true');
     }
@@ -280,12 +274,6 @@ export const FirstAccessWelcome = () => {
               <CardTitle className="text-2xl text-primary">Bem-vindo!</CardTitle>
               <CardDescription className="text-base">
                 Olá <span className="font-semibold text-primary">{user?.name}</span>!
-                {user?.usingDefaultPassword && (
-                  <span className="block mt-2 text-amber-600 font-medium">
-                    ⚠️ Detectamos que você está usando a senha padrão. Por segurança, você deve
-                    alterá-la no próximo passo.
-                  </span>
-                )}
                 Vamos fazer um tour rápido para você conhecer todas as funcionalidades.
               </CardDescription>
             </CardHeader>
@@ -316,18 +304,12 @@ export const FirstAccessWelcome = () => {
               <div className="space-y-3">
                 <Button
                   onClick={() => {
-                    // If user is using default password, start from password change step
-                    if (user?.usingDefaultPassword) {
-                      setCurrentStep(1);
-                      setShowWelcome(false);
-                    } else {
-                      setShowWelcome(false);
-                    }
+                    setShowWelcome(false);
                   }}
                   className="w-full bg-gradient-primary hover:opacity-90"
                   data-testid="button-start-tutorial"
                 >
-                  {user?.usingDefaultPassword ? 'Alterar Senha Primeiro' : 'Começar Tutorial'}
+                  Começar Tutorial
                 </Button>
                 <Button
                   variant="outline"

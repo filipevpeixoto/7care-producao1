@@ -19,7 +19,7 @@ export type UserRole =
   | 'missionary'
   | 'interested';
 
-export type UserStatus = 'active' | 'inactive' | 'pending' | 'visited';
+export type UserStatus = 'active' | 'inactive' | 'pending' | 'visited' | 'approved' | 'rejected';
 
 export type CivilStatus = 'Solteiro' | 'Casado' | 'Divorciado' | 'Viúvo';
 
@@ -122,6 +122,23 @@ export interface User {
   memberType?: string | null;
   emotionalScore?: number | null;
 
+  // Points Calculation Fields (Portuguese names from Excel/ACMS import)
+  dizimista?: string | null;
+  ofertante?: string | null;
+  tempoBatismo?: number | null;
+  cargos?: string | string[] | null;
+  departamentos?: string | null; // Alias for departments
+  nomeUnidade?: string | null;
+  temLicao?: boolean | null;
+  comunhao?: number | null;
+  missao?: number | null;
+  estudoBiblico?: number | null;
+  totalPresenca?: number | null;
+  batizouAlguem?: boolean | null;
+  discipuladoPosBatismo?: number | null;
+  cpfValido?: boolean | null;
+  camposVaziosACMS?: number | null;
+
   // Metadata
   extraData?: Record<string, unknown> | string | null;
   observations?: string | null;
@@ -151,6 +168,7 @@ export interface AuthUser {
   profilePhoto?: string | null;
   avatarUrl?: string | null;
   phone?: string | null;
+  birthDate?: string | null;
 }
 
 /**

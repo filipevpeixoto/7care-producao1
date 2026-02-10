@@ -96,7 +96,7 @@ export const authRoutes = (app: Express): void => {
       }
 
       // Verificar primeiro acesso via flag do banco (não comparar com senha fixa)
-      const shouldForceFirstAccess = !!(user as Record<string, unknown>).firstAccess;
+      const shouldForceFirstAccess = !!(user as unknown as Record<string, unknown>).firstAccess;
 
       logger.authSuccess(user.id, user.email);
 
