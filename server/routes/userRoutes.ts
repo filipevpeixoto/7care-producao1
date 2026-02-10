@@ -585,9 +585,10 @@ export const userRoutes = (app: Express): void => {
       const userData = (req as ValidatedRequest<typeof createUserSchema._type>).validatedBody;
       logger.info(`Criando novo usuário: ${userData.email}`);
 
+      const { generateTemporaryPassword } = await import('../config/security');
       const hashedPassword = userData.password
         ? await bcrypt.hash(userData.password, BCRYPT_SALT_ROUNDS)
-        : await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS);
+        : await bcrypt.hash(generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
 
       let _processedChurch: string | null = null;
       if (userData.church && userData.church.trim() !== '') {
@@ -1149,7 +1150,9 @@ export const userRoutes = (app: Express): void => {
             counter++;
           }
 
-          const hashedPassword = await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS);
+          const { generateTemporaryPassword: genTempPwd } = await import('../config/security');
+          const importTempPassword = genTempPwd();
+          const hashedPassword = await bcrypt.hash(importTempPassword, BCRYPT_SALT_ROUNDS);
 
           const processedBirthDate = userData.birthDate ? parseBirthDate(userData.birthDate) : null;
           const processedBaptismDate = userData.baptismDate
@@ -1201,7 +1204,7 @@ export const userRoutes = (app: Express): void => {
             ...newUser,
             points: calculatedPoints,
             generatedUsername: finalUsername,
-            defaultPassword: 'meu7care',
+            defaultPassword: importTempPassword,
           });
         } catch (error) {
           logger.error(`Error processing user ${i + 1}:`, error);

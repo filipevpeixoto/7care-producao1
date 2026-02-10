@@ -1,73 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
-    
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover"
+    />
+
     <!-- SEO & Meta Tags -->
     <title>7Care - Sistema de Gestão para Igrejas</title>
-    <meta name="description" content="7Care é uma plataforma completa para gestão de igrejas, membros, eventos, discipulado e gamificação." />
-    <meta name="keywords" content="igreja, gestão, membros, discipulado, eventos, gamificação, cristão" />
+    <meta
+      name="description"
+      content="7Care é uma plataforma completa para gestão de igrejas, membros, eventos, discipulado e gamificação."
+    />
+    <meta
+      name="keywords"
+      content="igreja, gestão, membros, discipulado, eventos, gamificação, cristão"
+    />
     <meta name="author" content="7Care" />
     <meta name="robots" content="index, follow" />
-    
+
     <!-- Favicons & Icons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/pwa-192x192.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/pwa-192x192.png" />
-    
+
     <!-- Apple Touch Icons (Safari/iOS) -->
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="/pwa-192x192.png" />
-    
+
     <!-- Apple Splash Screens for iOS -->
     <link rel="apple-touch-startup-image" href="/pwa-512x512.png" />
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    
+
     <!-- Theme Colors -->
     <meta name="theme-color" content="#3b82f6" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#1e3a8a" media="(prefers-color-scheme: dark)" />
-    
+
     <!-- Apple PWA Meta Tags (Safari/iOS) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="7Care" />
-    
+
     <!-- iOS Specific Optimizations -->
     <meta name="apple-touch-fullscreen" content="yes" />
     <meta name="HandheldFriendly" content="true" />
-    
+
     <!-- Microsoft PWA Meta Tags -->
     <meta name="msapplication-TileColor" content="#3b82f6" />
     <meta name="msapplication-TileImage" content="/pwa-192x192.png" />
-    
+
     <!-- Mobile & App Meta Tags -->
     <meta name="format-detection" content="telephone=no" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="7Care" />
-    
+
     <!-- Open Graph / Social Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://7care-app.vercel.app/" />
     <meta property="og:title" content="7Care - Sistema de Gestão para Igrejas" />
-    <meta property="og:description" content="Plataforma completa para gestão de igrejas, membros, eventos, discipulado e gamificação." />
+    <meta
+      property="og:description"
+      content="Plataforma completa para gestão de igrejas, membros, eventos, discipulado e gamificação."
+    />
     <meta property="og:image" content="https://7care-app.vercel.app/pwa-512x512.png" />
     <meta property="og:locale" content="pt_BR" />
-    
+
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="7Care - Sistema de Gestão para Igrejas" />
-    <meta name="twitter:description" content="Plataforma completa para gestão de igrejas, membros, eventos, discipulado e gamificação." />
+    <meta
+      name="twitter:description"
+      content="Plataforma completa para gestão de igrejas, membros, eventos, discipulado e gamificação."
+    />
     <meta name="twitter:image" content="https://7care-app.vercel.app/pwa-512x512.png" />
-    
+
     <!-- Preconnect to improve performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
+
     <!-- DNS Prefetch -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com" />
     <link rel="dns-prefetch" href="//fonts.gstatic.com" />
@@ -75,12 +90,12 @@
   <body>
     <!-- No JS Fallback -->
     <noscript>
-      <div style="padding: 20px; text-align: center; font-family: system-ui, sans-serif;">
+      <div style="padding: 20px; text-align: center; font-family: system-ui, sans-serif">
         <h1>JavaScript Necessário</h1>
         <p>Para usar o 7Care, você precisa habilitar o JavaScript no seu navegador.</p>
       </div>
     </noscript>
-    
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -27,6 +27,7 @@ import { Request, Response, NextFunction } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { ApiErrorResponse, ErrorCodes, UserRole } from '../types';
 import { logger } from '../utils/logger';
+import { tokenBlacklist } from '../services/tokenBlacklistService';
 
 // Importar do módulo compartilhado
 import {
@@ -175,6 +176,18 @@ export const requireJwtAuth = async (
     }
 
     const token = authHeader.slice(7); // Remove 'Bearer '
+
+    // Verificar se token foi revogado (logout)
+    if (tokenBlacklist.isBlacklisted(token)) {
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: 'Token revogado. Faça login novamente.',
+        code: ErrorCodes.UNAUTHORIZED,
+      };
+      res.status(401).json(errorResponse);
+      return;
+    }
+
     const fingerprint = generateFingerprint(req);
     const payload = verifyAccessToken(token, fingerprint);
 

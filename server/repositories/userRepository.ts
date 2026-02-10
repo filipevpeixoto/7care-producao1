@@ -247,11 +247,12 @@ export class UserRepository {
 
   async createUser(userData: CreateUserInput): Promise<User> {
     try {
-      // Hash da senha - garantir que sempre tenha uma senha
-      const password = userData.password || 'temp123';
+      // Hash da senha - gerar senha aleatória se não fornecida
+      const { generateTemporaryPassword, BCRYPT_SALT_ROUNDS } = await import('../config/security');
+      const password = userData.password || generateTemporaryPassword();
       let hashedPassword = password;
       if (!password.startsWith('$2')) {
-        hashedPassword = await bcrypt.hash(password, 10);
+        hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
       }
 
       // Gerar username normalizado para busca eficiente no login

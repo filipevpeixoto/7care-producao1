@@ -69,10 +69,11 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 export async function createUser(userData: CreateUserInput): Promise<User> {
   try {
-    const password = userData.password || 'temp123';
+    const { generateTemporaryPassword, BCRYPT_SALT_ROUNDS } = await import('../config/security');
+    const password = userData.password || generateTemporaryPassword();
     let hashedPassword = password;
     if (!password.startsWith('$2')) {
-      hashedPassword = await bcrypt.hash(password, 10);
+      hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     }
 
     const newUser = {

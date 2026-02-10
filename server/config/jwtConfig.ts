@@ -34,7 +34,7 @@ export const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ||
   (isDevelopment ? '7care-dev-refresh-secret-change-in-production-DO-NOT-USE-IN-PROD' : '');
 
 // Configurações de expiração
-export const JWT_EXPIRES_IN = '24h';  // Access token
+export const JWT_EXPIRES_IN = '15m';  // Access token (curto para segurança)
 export const JWT_REFRESH_EXPIRES_IN = '7d';  // Refresh token
 
 // Validação final - nunca deve estar vazio

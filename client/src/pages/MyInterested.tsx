@@ -336,7 +336,11 @@ export default function MyInterested() {
 
       const data = await response.json();
       // Retornar com a situação garantida (fallback para o valor enviado)
-      return { ...data, _confirmedSituation: data?.user?.interestedSituation || data?.user?.interested_situation || situation };
+      return {
+        ...data,
+        _confirmedSituation:
+          data?.user?.interestedSituation || data?.user?.interested_situation || situation,
+      };
     },
     onMutate: async ({ userId, situation }) => {
       // Cancelar refetch em andamento para evitar conflito
@@ -369,7 +373,11 @@ export default function MyInterested() {
         if (!old) return old;
         return old.map((person) =>
           person.id === variables.userId
-            ? { ...person, interestedSituation: confirmedSituation, interested_situation: confirmedSituation }
+            ? {
+                ...person,
+                interestedSituation: confirmedSituation,
+                interested_situation: confirmedSituation,
+              }
             : person
         );
       };

@@ -1340,7 +1340,7 @@ export default function Settings() {
               row.Email ||
               row.email ||
               `${(row.Nome || row.nome || 'usuario').toLowerCase().replace(/\s+/g, '.')}@igreja.com`,
-            password: '123456', // Default password
+            password: undefined, // Servidor gera senha aleatória automaticamente
             role: getRole(row.Tipo || row.tipo || row.role),
 
             // Campos da igreja

@@ -134,9 +134,10 @@ export async function getUsersByRole(role: string): Promise<User[]> {
  * Cria novo usuário
  */
 export async function createUser(userData: CreateUserInput): Promise<User> {
+  const { generateTemporaryPassword, BCRYPT_SALT_ROUNDS } = await import('../config/security');
   const hashedPassword = userData.password
-    ? await bcrypt.hash(userData.password, 10)
-    : await bcrypt.hash('temp123', 10);
+    ? await bcrypt.hash(userData.password, BCRYPT_SALT_ROUNDS)
+    : await bcrypt.hash(generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
 
   // Extrair dados válidos para inserção
   const insertData: typeof schema.users.$inferInsert = {

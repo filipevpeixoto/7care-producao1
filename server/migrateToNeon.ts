@@ -381,7 +381,10 @@ export async function migrateToNeon() {
       console.log('🔐 Criando super administrador...');
 
       const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.hash('meu7care', 10);
+      const { generateTemporaryPassword, BCRYPT_SALT_ROUNDS } = await import('./config/security');
+      const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || generateTemporaryPassword();
+      const hashedPassword = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
+      console.log(`🔑 Senha do admin: ${process.env.DEFAULT_ADMIN_PASSWORD ? '(via env)' : adminPassword}`);
 
       const extraData = JSON.stringify({
         superAdmin: true,

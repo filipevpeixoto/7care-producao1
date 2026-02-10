@@ -95,9 +95,8 @@ export const authRoutes = (app: Express): void => {
         return sendUnauthorized(res, 'Credenciais inválidas');
       }
 
-      // Check if user is using the default password "meu7care"
-      const isUsingDefaultPassword = await bcrypt.compare('meu7care', userPassword);
-      const shouldForceFirstAccess = isUsingDefaultPassword;
+      // Verificar primeiro acesso via flag do banco (não comparar com senha fixa)
+      const shouldForceFirstAccess = !!(user as Record<string, unknown>).firstAccess;
 
       logger.authSuccess(user.id, user.email);
 
@@ -123,8 +122,8 @@ export const authRoutes = (app: Express): void => {
           church: user.church,
           isApproved: user.isApproved,
           status: user.status,
-          firstAccess: shouldForceFirstAccess ? true : user.firstAccess,
-          usingDefaultPassword: isUsingDefaultPassword,
+          firstAccess: shouldForceFirstAccess,
+          usingDefaultPassword: shouldForceFirstAccess,
           districtId: user.districtId || null,
         },
       });
@@ -227,7 +226,19 @@ export const authRoutes = (app: Express): void => {
    *       200:
    *         description: Logout successful
    */
-  app.post('/api/auth/logout', (_req: Request, res: Response) => {
+  app.post('/api/auth/logout', (req: Request, res: Response) => {
+    // Revogar o access token atual para invalidá-lo imediatamente
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      const { tokenBlacklist } = require('../services/tokenBlacklistService');
+      tokenBlacklist.add(token);
+    }
+
+    // Limpar refresh token cookie
+    const { clearRefreshTokenCookie } = require('../middleware/jwtAuth');
+    clearRefreshTokenCookie(res);
+
     res.json({ success: true });
   });
 
@@ -394,8 +405,10 @@ export const authRoutes = (app: Express): void => {
         return handleNotFound(res, 'User');
       }
 
-      // Hash default password
-      const hashedPassword = await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS);
+      // Gerar senha temporária aleatória
+      const { generateTemporaryPassword } = await import('../config/security');
+      const tempPassword = generateTemporaryPassword();
+      const hashedPassword = await bcrypt.hash(tempPassword, BCRYPT_SALT_ROUNDS);
 
       // Update user password and set firstAccess to true
       const updatedUser = await userRepo.updateUser(user.id, {
@@ -419,9 +432,10 @@ export const authRoutes = (app: Express): void => {
               status: updatedUser.status,
               firstAccess: updatedUser.firstAccess,
             },
+            temporaryPassword: tempPassword,
           },
           200,
-          'Password reset successfully'
+          'Password reset successfully. Provide the temporary password to the user.'
         );
       } else {
         throw new Error('Failed to reset password');
