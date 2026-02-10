@@ -16185,69 +16185,9 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Rota para resetar senhas de todos os usuários
-    if (path === '/api/reset-all-passwords' && method === 'POST') {
-      try {
-        const body = JSON.parse(event.body || '{}');
-        const { newPassword, adminKey } = body;
-        
-        // Verificar chave de administrador
-        if (adminKey !== 'reset-passwords-2024') {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({ 
-              success: false, 
-              error: 'Chave de administrador inválida' 
-            })
-          };
-        }
-        
-        if (!newPassword) {
-          return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ 
-              success: false, 
-              error: 'Nova senha é obrigatória' 
-            })
-          };
-        }
-        
-        console.log('🔄 Resetando senhas de todos os usuários...');
-        
-        // Atualizar senhas de todos os usuários
-        const result = await sql`
-          UPDATE users 
-          SET password = ${newPassword}, 
-              updated_at = NOW()
-          WHERE id IS NOT NULL
-        `;
-        
-        console.log('✅ Senhas resetadas com sucesso');
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            message: 'Senhas resetadas com sucesso',
-            updatedCount: result.count || 'N/A'
-          })
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro ao resetar senhas:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ 
-            success: false, 
-            error: 'Erro interno do servidor: ' + error.message 
-          })
-        };
-      }
-    }
+    // ========== ENDPOINT /api/reset-all-passwords REMOVIDO POR SEGURANÇA ==========
+    // Este endpoint resetava senhas de TODOS os usuários com chave hardcoded
+    // e armazenava em TEXTO PLANO (sem bcrypt). Removido por ser vulnerabilidade crítica.
 
     // Rota para verificar usuário
     if (path === '/api/check-user' && method === 'POST') {

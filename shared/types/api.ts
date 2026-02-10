@@ -36,82 +36,22 @@ export interface PaginationParams {
 }
 
 // ============================================
-// Usuários
+// Usuários (importados de shared/types/user.ts - fonte única de verdade)
 // ============================================
 
-export type UserRole = 'superadmin' | 'pastor' | 'admin' | 'member' | 'missionary' | 'interested';
+export type { User, UserRole, UserStatus, AuthUser, UserListItem, UserCreateInput, UserUpdateInput } from './user';
 
-export interface User {
+export interface AuthenticatedUser {
+  token: string;
   id: number;
   name: string;
   email: string;
-  phone?: string | null;
-  role: UserRole;
+  role: import('./user').UserRole;
+  church?: string | null;
   churchId?: number | null;
   districtId?: number | null;
-  createdAt: string;
-  updatedAt: string;
-  points: number;
-  level?: string | null;
-  isActive: boolean;
-  lastLogin?: string | null;
-  avatarUrl?: string | null;
-  bio?: string | null;
-  birthDate?: string | null;
-
-  // Etapas do funil
-  step1OrarPor1?: boolean;
-  step1OrarPor2?: boolean;
-  step1OrarPor3?: boolean;
-  step2CuidarDe1?: boolean;
-  step2CuidarDe2?: boolean;
-  step2CuidarDe3?: boolean;
-  step3Cultivar1?: boolean;
-  step3Cultivar2?: boolean;
-  step3Cultivar3?: boolean;
-  step4Convidar1?: boolean;
-  step4Convidar2?: boolean;
-  step4Convidar3?: boolean;
-  step5Apresentar1?: boolean;
-  step5Apresentar2?: boolean;
-  step5Apresentar3?: boolean;
-  step6Preparar1?: boolean;
-  step6Preparar2?: boolean;
-  step6Preparar3?: boolean;
-  step7Batismo1?: boolean;
-  step7Batismo2?: boolean;
-  step7Batismo3?: boolean;
-
-  estudosBiblicosCount?: number;
-  baptismsPerformed?: number;
-  memberType?: string;
-}
-
-export interface UserCreateInput {
-  name: string;
-  email: string;
-  password: string;
-  phone?: string;
-  role?: UserRole;
-  churchId?: number;
-  districtId?: number;
-}
-
-export interface UserUpdateInput {
-  name?: string;
-  email?: string;
-  phone?: string;
-  role?: UserRole;
-  churchId?: number;
-  districtId?: number;
-  isActive?: boolean;
-  avatarUrl?: string;
-  bio?: string;
-  birthDate?: string;
-}
-
-export interface AuthenticatedUser extends User {
-  token: string;
+  isApproved: boolean;
+  status: import('./user').UserStatus;
 }
 
 export interface LoginRequest {
