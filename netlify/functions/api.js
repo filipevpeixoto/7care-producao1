@@ -281,13 +281,19 @@ exports.handler = async (event, context) => {
     
     const sql = neon(dbUrl);
     
-    // Configurar web-push
-    if (VAPID_PRIVATE_KEY) {
-      webpush.setVapidDetails(
-        'mailto:admin@7care.com',
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
-      );
+    // Configurar web-push (não deve derrubar a API se falhar)
+    try {
+      if (VAPID_PRIVATE_KEY && VAPID_PUBLIC_KEY) {
+        const cleanPublic = (VAPID_PUBLIC_KEY || '').trim().replace(/=+$/, '');
+        const cleanPrivate = (VAPID_PRIVATE_KEY || '').trim().replace(/=+$/, '');
+        webpush.setVapidDetails(
+          'mailto:admin@7care.com',
+          cleanPublic,
+          cleanPrivate
+        );
+      }
+    } catch (vapidErr) {
+      console.warn('⚠️ VAPID setup failed (push notifications disabled):', vapidErr.message);
     }
     
     // Criar tabela de tarefas se não existir
