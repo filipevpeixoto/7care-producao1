@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install --legacy-peer-deps && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
   "installCommand": "npm install --legacy-peer-deps",
@@ -17,14 +17,10 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "/api/:path*"
+      "destination": "/api?path=/api/:path*"
     },
     {
-      "source": "/convite-pastor.html",
-      "destination": "/convite-pastor.html"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
