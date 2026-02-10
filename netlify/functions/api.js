@@ -2,6 +2,16 @@ const { neon } = require('@neondatabase/serverless');
 const bcrypt = require('bcryptjs');
 const webpush = require('web-push');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+// ============================================
+// SEGURANÇA: Função para gerar senha temporária
+// ============================================
+function generateTemporaryPassword() {
+  return crypto.randomBytes(12).toString('base64').slice(0, 16);
+}
+
+const BCRYPT_SALT_ROUNDS = 12;
 
 // ============================================
 // MÓDULOS REFATORADOS (nova arquitetura)
@@ -2367,12 +2377,14 @@ exports.handler = async (event, context) => {
         if (email === 'admin@7care.com') {
           const existingAdmin = await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`;
           if (existingAdmin.length === 0) {
-            // SEGURANÇA: Usar senha de variável de ambiente ou fallback seguro
-            const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'meu7care';
-            if (!process.env.DEFAULT_ADMIN_PASSWORD) {
-              console.warn('⚠️ DEFAULT_ADMIN_PASSWORD não configurado. Usando senha padrão (NÃO use em produção!)');
+            // SEGURANÇA: Usar senha de variável de ambiente ou gerar aleatória
+            let defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD;
+            if (!defaultPassword) {
+              defaultPassword = generateTemporaryPassword();
+              console.warn('⚠️ DEFAULT_ADMIN_PASSWORD não configurado. Senha temporária gerada:', defaultPassword);
+              console.warn('⚠️ IMPORTANTE: Configure DEFAULT_ADMIN_PASSWORD nas variáveis de ambiente!');
             }
-            const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+            const hashedPassword = await bcrypt.hash(defaultPassword, BCRYPT_SALT_ROUNDS);
             const extraData = JSON.stringify({
               superAdmin: true,
               permanent: true
@@ -2492,14 +2504,7 @@ exports.handler = async (event, context) => {
         // Verificar senha usando bcrypt
         const passwordMatch = await bcrypt.compare(password, user.password);
         
-        // Fallback para senhas antigas (hardcoded) - remover depois de migração completa
-        const validPasswords = ['admin123', '123456', 'admin', 'password', '7care', 'meu7care'];
-        const isOldPassword = validPasswords.includes(password) && !user.password.startsWith('$2');
-        
-        if (passwordMatch || isOldPassword) {
-          // Verificar se está usando senha padrão
-          const isUsingDefaultPassword = await bcrypt.compare('meu7care', user.password);
-          
+        if (passwordMatch) {
           // Gerar JWT token
           const token = generateToken(user);
           
@@ -2520,7 +2525,6 @@ exports.handler = async (event, context) => {
                 isApproved: user.is_approved || user.isApproved || false,
                 status: user.status || 'active',
                 firstAccess: user.first_access || user.firstAccess || false,
-                usingDefaultPassword: isUsingDefaultPassword,
                 districtId: user.district_id || user.districtId || null
               }
             })
@@ -2714,15 +2718,39 @@ exports.handler = async (event, context) => {
           };
         }
 
-        // Verificar senha atual (simplificado)
-        const validPasswords = ['admin123', '123456', 'admin', 'password', '7care'];
-        if (!validPasswords.includes(currentPassword)) {
+        // Buscar usuário
+        const users = await sql`SELECT * FROM users WHERE id = ${userId}`;
+        if (users.length === 0) {
           return {
-            statusCode: 400,
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Usuário não encontrado' })
+          };
+        }
+
+        const user = users[0];
+
+        // Verificar senha atual
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isCurrentPasswordValid) {
+          return {
+            statusCode: 401,
             headers,
             body: JSON.stringify({ error: 'Senha atual incorreta' })
           };
         }
+
+        // Hash da nova senha
+        const hashedNewPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+
+        // Atualizar senha
+        await sql`
+          UPDATE users 
+          SET password = ${hashedNewPassword}, 
+              first_access = false,
+              updated_at = NOW()
+          WHERE id = ${userId}
+        `;
 
         return {
           statusCode: 200,
@@ -5063,18 +5091,18 @@ exports.handler = async (event, context) => {
             headers,
             body: JSON.stringify({
               success: true,
-              message: "✅ Usuário de teste já existe!",
+              message: "✅ Usuário de teste já existe! Use o fluxo de reset de senha se necessário.",
               credentials: {
                 email: "admin.teste@7care.test",
-                password: "teste123456",
                 loginUrl: "https://7care-app.vercel.app",
-                instructions: "Abra a URL acima e faça login"
+                instructions: "Usuário já existe. Use 'esqueci minha senha' se necessário."
               }
             })
           };
         }
 
-        const hashedPassword = await bcrypt.hash('teste123456', 10);
+        const tempPassword = generateTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(tempPassword, BCRYPT_SALT_ROUNDS);
         const testAdmin = await sql`
           INSERT INTO users (name, email, password, role, church, status, is_approved, first_access, extra_data)
           VALUES ('Admin Teste', 'admin.teste@7care.test', ${hashedPassword}, 'admin_readonly', 'Sistema Principal', 'approved', true, false, ${JSON.stringify({ testAccount: true, testData: false, systemAccess: 'main', readOnly: true, canEdit: false, createdAt: new Date().toISOString() })})
@@ -5091,9 +5119,9 @@ exports.handler = async (event, context) => {
             message: "✅ Tudo pronto! Você já pode acessar.",
             credentials: {
               email: "admin.teste@7care.test",
-              password: "teste123456",
+              password: tempPassword,
               loginUrl: "https://7care-app.vercel.app",
-              instructions: "Clique no link acima e faça login com as credenciais fornecidas"
+              instructions: "Clique no link acima e faça login com as credenciais fornecidas. IMPORTANTE: Salve esta senha em local seguro!"
             }
           })
         };
@@ -5157,8 +5185,9 @@ exports.handler = async (event, context) => {
           };
         }
 
-        // Hash da senha
-        const hashedPassword = await bcrypt.hash('teste123456', 10);
+        // Hash da senha temporária
+        const tempPassword = generateTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(tempPassword, BCRYPT_SALT_ROUNDS);
 
         // Criar admin de teste com acesso READ-ONLY ao sistema principal
         const testAdmin = await sql`
@@ -5221,15 +5250,16 @@ exports.handler = async (event, context) => {
             admin: {
               id: testAdmin[0].id,
               email: testAdmin[0].email,
-              password: 'teste123456',
-              role: testAdmin[0].role
+              password: tempPassword,
+              role: testAdmin[0].role,
+              note: 'IMPORTANTE: Salve esta senha em local seguro!'
             },
             voters: testVoters,
             candidates: testCandidates,
             instructions: {
               loginUrl: 'POST /api/auth/login',
               email: 'admin.teste@7care.test',
-              password: 'teste123456'
+              note: 'Use a senha gerada no campo admin.password acima'
             }
           })
         };
@@ -10222,7 +10252,7 @@ exports.handler = async (event, context) => {
               
               // Criar novo usuário
               const passwordStartTime = Date.now();
-              const hashedPassword = await bcrypt.hash(userData.password || '123456', 8); // Reduzir rounds para ser mais rápido
+              const hashedPassword = await bcrypt.hash(userData.password || generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
               const passwordTime = Date.now() - passwordStartTime;
               console.log(`⏱️ Hash da senha para ${userData.email}: ${passwordTime}ms`);
               
@@ -10467,7 +10497,7 @@ exports.handler = async (event, context) => {
                   errorDetails.push(`Usuário já existe: ${userData.email}`);
                 }
               } else {
-                const hashedPassword = await bcrypt.hash(userData.password || '123456', 8);
+                const hashedPassword = await bcrypt.hash(userData.password || generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
                 
                 await sql`
                   INSERT INTO users (
@@ -16331,7 +16361,7 @@ exports.handler = async (event, context) => {
         console.log('🔄 Criando usuário:', { name, email, role });
         
         // Hash da senha
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
         
         // Verificar se usuário já existe
         const existingUsers = await sql`SELECT * FROM users WHERE email = ${email} LIMIT 1`;
@@ -17910,7 +17940,7 @@ exports.handler = async (event, context) => {
         }
 
         // Hash da senha
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
         // Criar usuário como pastor
         const newPastor = await sql`
@@ -17996,7 +18026,7 @@ exports.handler = async (event, context) => {
           updates.district_id = districtId;
         }
         if (password) {
-          updates.password = await bcrypt.hash(password, 10);
+          updates.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
         }
 
         // Construir query de atualização usando template literals do Neon
@@ -18746,7 +18776,7 @@ exports.handler = async (event, context) => {
         }
 
         // Hash da senha
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
         console.log(`🚀 Iniciando aprovação automática para ${invite.email}`);
 
@@ -18943,7 +18973,7 @@ exports.handler = async (event, context) => {
           console.log(`📊 Processando ${membersToImport.length} membros em BATCH...`);
           
           // Pré-gerar senha padrão (uma vez só)
-          const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+          const defaultPassword = await bcrypt.hash(generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
           
           // Funções auxiliares INLINE para velocidade
           const parseDate = (dateValue) => {
@@ -19705,7 +19735,7 @@ exports.handler = async (event, context) => {
           }
           
           // Pré-gerar senha padrão
-          const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+          const defaultPassword = await bcrypt.hash(generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
           
           // Funções auxiliares simples
           const parseDate = (dateValue) => {
@@ -20171,7 +20201,7 @@ exports.handler = async (event, context) => {
         }
 
         // Senha padrão
-        const defaultPassword = await bcrypt.hash('trocarsenha123', 10);
+        const defaultPassword = await bcrypt.hash(generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
 
         // Funções auxiliares
         const parseDate = (val) => {
@@ -20382,64 +20412,10 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // ========== ROTA ADMIN: RESETAR SENHAS ==========
-    // POST /api/admin/reset-all-passwords - Reseta todas as senhas para "meu7care"
-    if (path === '/api/admin/reset-all-passwords' && method === 'POST') {
-      try {
-        console.log('🔐 [ADMIN] Iniciando reset de senhas para todos os usuários...');
-        
-        // Verificar se é superadmin
-        const userId = parseInt(event.headers['x-user-id'] || '0');
-        if (!userId) {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({ error: 'Não autorizado' })
-          };
-        }
-        
-        const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
-        if (userResult.length === 0 || userResult[0].role !== 'superadmin') {
-          return {
-            statusCode: 403,
-            headers,
-            body: JSON.stringify({ error: 'Apenas superadmin pode executar esta ação' })
-          };
-        }
-        
-        // Gerar hash da nova senha padrão
-        const newPassword = 'meu7care';
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        
-        // Atualizar todos os usuários (exceto o próprio superadmin que está executando)
-        const result = await sql`
-          UPDATE users 
-          SET password = ${hashedPassword}, 
-              first_access = true,
-              updated_at = NOW()
-          WHERE email != 'admin@7care.com'
-        `;
-        
-        console.log('✅ [ADMIN] Senhas resetadas com sucesso!');
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ 
-            success: true,
-            message: 'Todas as senhas foram resetadas para "meu7care"',
-            note: 'Os usuários serão solicitados a trocar a senha no primeiro acesso'
-          })
-        };
-      } catch (error) {
-        console.error('❌ [ADMIN] Erro ao resetar senhas:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ error: 'Erro ao resetar senhas', details: error.message })
-        };
-      }
-    }
+    // ========== ENDPOINT REMOVIDO POR SEGURANÇA ==========
+    // O endpoint /api/admin/reset-all-passwords foi REMOVIDO por ser uma
+    // vulnerabilidade crítica de segurança. Se precisar resetar senhas,
+    // use o fluxo de "esqueci minha senha" individualmente para cada usuário.
 
     // Rota padrão - retornar erro 404
     const duration = Date.now() - startTime;
