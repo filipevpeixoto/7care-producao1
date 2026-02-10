@@ -9222,61 +9222,64 @@ exports.handler = async (event, context) => {
           };
         }
         
-        // Atualizar campos permitidos
-        const updateFields = [];
-        const updateValues = [];
+        // Atualizar campos permitidos usando tagged templates (neon HTTP driver)
+        // sql.unsafe() não suporta parâmetros, e sql() como função regular também não
+        // A única forma confiável é usar tagged template literals
+        let hasUpdates = false;
         
         if (body.points !== undefined) {
-          updateFields.push('points = $' + (updateValues.length + 1));
-          updateValues.push(body.points);
+          await sql`UPDATE users SET points = ${body.points}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.name !== undefined) {
-          updateFields.push('name = $' + (updateValues.length + 1));
-          updateValues.push(body.name);
+          await sql`UPDATE users SET name = ${body.name}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.email !== undefined) {
-          updateFields.push('email = $' + (updateValues.length + 1));
-          updateValues.push(body.email);
+          await sql`UPDATE users SET email = ${body.email}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.role !== undefined) {
-          updateFields.push('role = $' + (updateValues.length + 1));
-          updateValues.push(body.role);
+          await sql`UPDATE users SET role = ${body.role}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.status !== undefined) {
-          updateFields.push('status = $' + (updateValues.length + 1));
-          updateValues.push(body.status);
+          await sql`UPDATE users SET status = ${body.status}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.church !== undefined) {
-          updateFields.push('church = $' + (updateValues.length + 1));
-          updateValues.push(body.church);
+          await sql`UPDATE users SET church = ${body.church}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.level !== undefined) {
-          updateFields.push('level = $' + (updateValues.length + 1));
-          updateValues.push(body.level);
+          await sql`UPDATE users SET level = ${body.level}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.attendance !== undefined) {
-          updateFields.push('attendance = $' + (updateValues.length + 1));
-          updateValues.push(body.attendance);
+          await sql`UPDATE users SET attendance = ${body.attendance}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.interestedSituation !== undefined || body.interested_situation !== undefined) {
-          updateFields.push('interested_situation = $' + (updateValues.length + 1));
-          updateValues.push(body.interestedSituation || body.interested_situation);
+          const situationValue = body.interestedSituation || body.interested_situation;
+          await sql`UPDATE users SET interested_situation = ${situationValue}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
         if (body.districtId !== undefined || body.district_id !== undefined) {
-          updateFields.push('district_id = $' + (updateValues.length + 1));
-          updateValues.push(body.districtId || body.district_id);
+          const districtValue = body.districtId || body.district_id;
+          await sql`UPDATE users SET district_id = ${districtValue}, updated_at = NOW() WHERE id = ${userId}`;
+          hasUpdates = true;
         }
         
-        if (updateFields.length === 0) {
+        if (!hasUpdates) {
           return {
             statusCode: 400,
             headers,
@@ -9284,28 +9287,7 @@ exports.handler = async (event, context) => {
           };
         }
         
-        // Adicionar updated_at
-        updateFields.push('updated_at = NOW()');
-        
-        // Executar atualização
-        console.log('🔍 Campos para atualizar:', updateFields);
-        console.log('🔍 Valores:', updateValues);
-        
-        if (updateFields.length > 0) {
-          // Adicionar userId aos valores
-          updateValues.push(userId);
-        
-          // Construir query com placeholders corretos
-          const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${updateValues.length}`;
-          console.log('🔍 Query SQL:', query);
-          console.log('🔍 Valores finais:', updateValues);
-          
-          // Usar sql() como função (não .unsafe) para que os parâmetros sejam vinculados
-          await sql(query, updateValues);
-          console.log(`✅ UPDATE executado para userId=${userId}`);
-        } else {
-          console.log('ℹ️ Nenhum campo para atualizar');
-        }
+        console.log(`✅ UPDATE executado para userId=${userId}`);
         
         // SELECT separado para garantir dados atualizados (RETURNING pode falhar no Neon HTTP)
         const updatedRows = await sql`SELECT * FROM users WHERE id = ${userId} LIMIT 1`;
