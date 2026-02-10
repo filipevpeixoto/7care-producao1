@@ -1,23 +1,40 @@
 // Vercel Serverless Function - wrapper para a função Netlify
-let netlifyHandler = null;
-let requireError = null;
-
-try {
-  netlifyHandler = require('../netlify/functions/api.js');
-  console.log('[VERCEL] Netlify handler loaded successfully. Keys:', Object.keys(netlifyHandler));
-} catch (err) {
-  requireError = err;
-  console.error('[VERCEL] FAILED to load Netlify handler:', err.message);
-  console.error('[VERCEL] Stack:', err.stack);
-}
+const path = require('path');
 
 module.exports = async (req, res) => {
-  // Se deu erro ao carregar o módulo, retornar imediatamente
-  if (requireError) {
+  // Lazy load do handler Netlify - para capturar erros de require na resposta
+  let netlifyHandler;
+  try {
+    const handlerPath = path.resolve(__dirname, '..', 'netlify', 'functions', 'api.js');
+    console.log('[VERCEL] Trying to load handler from:', handlerPath);
+    console.log('[VERCEL] __dirname:', __dirname);
+    console.log('[VERCEL] Files in __dirname:', require('fs').readdirSync(__dirname).join(', '));
+    
+    // Tentar listar o diretório netlify/functions
+    const netlifyDir = path.resolve(__dirname, '..', 'netlify', 'functions');
+    try {
+      const files = require('fs').readdirSync(netlifyDir);
+      console.log('[VERCEL] Files in netlify/functions:', files.join(', '));
+    } catch (dirErr) {
+      console.log('[VERCEL] Cannot read netlify/functions:', dirErr.message);
+      // Tentar dir raiz
+      try {
+        const rootFiles = require('fs').readdirSync(path.resolve(__dirname, '..'));
+        console.log('[VERCEL] Files in parent dir:', rootFiles.join(', '));
+      } catch (e) {
+        console.log('[VERCEL] Cannot read parent dir either');
+      }
+    }
+    
+    netlifyHandler = require('../netlify/functions/api.js');
+    console.log('[VERCEL] Handler loaded! Keys:', Object.keys(netlifyHandler));
+  } catch (err) {
+    console.error('[VERCEL] FAILED to load handler:', err.message);
+    console.error('[VERCEL] Stack:', err.stack);
     return res.status(500).json({
       error: 'Module load failed',
-      message: requireError.message,
-      stack: requireError.stack
+      message: err.message,
+      dirname: __dirname,
     });
   }
 
@@ -25,7 +42,6 @@ module.exports = async (req, res) => {
     return res.status(500).json({
       error: 'Handler not found',
       keys: netlifyHandler ? Object.keys(netlifyHandler) : 'null',
-      type: typeof netlifyHandler
     });
   }
 
@@ -33,11 +49,11 @@ module.exports = async (req, res) => {
   const originalUrl = req.headers['x-forwarded-uri'] || req.headers['x-invoke-path'] || req.url;
   
   const urlObj = new URL(req.url, `https://${req.headers.host}`);
-  const path = urlObj.searchParams.get('path') || originalUrl;
+  const reqPath = urlObj.searchParams.get('path') || originalUrl;
   
-  const finalPath = path.startsWith('/api') ? path : `/api/${path}`;
+  const finalPath = reqPath.startsWith('/api') ? reqPath : `/api/${reqPath}`;
   
-  console.log('[VERCEL] Request:', req.method, finalPath, 'originalUrl:', originalUrl);
+  console.log('[VERCEL] Request:', req.method, finalPath);
 
   // Ler body raw para POST/PUT/PATCH
   let body = null;
@@ -60,7 +76,6 @@ module.exports = async (req, res) => {
   try {
     const response = await netlifyHandler.handler(event, context);
     
-    // Aplicar headers
     if (response.headers) {
       Object.entries(response.headers).forEach(([key, value]) => {
         res.setHeader(key, value);
@@ -70,11 +85,9 @@ module.exports = async (req, res) => {
     res.status(response.statusCode).send(response.body);
   } catch (error) {
     console.error('[VERCEL] Handler error:', error.message);
-    console.error('[VERCEL] Stack:', error.stack);
     res.status(500).json({ 
       error: 'Handler execution failed', 
       message: error.message,
-      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
     });
   }
 };

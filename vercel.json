@@ -13,6 +13,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/test",
+      "destination": "/api/test"
+    },
+    {
       "source": "/api/users/chat-list",
       "destination": "/api/chatlist"
     },
