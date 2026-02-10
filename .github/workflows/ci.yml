@@ -87,3 +87,46 @@ jobs:
         run: npm run test
         env:
           NODE_ENV: test
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        run: |
+          echo "🔍 Checking for HIGH and CRITICAL vulnerabilities..."
+          npm audit --json > audit.json || true
+          CRITICAL=$(cat audit.json | jq '.metadata.vulnerabilities.critical // 0')
+          HIGH=$(cat audit.json | jq '.metadata.vulnerabilities.high // 0')
+          echo "Critical: $CRITICAL, High: $HIGH"
+          if [ "$CRITICAL" -gt "0" ] || [ "$HIGH" -gt "0" ]; then
+            echo "❌ Found $CRITICAL critical and $HIGH high severity vulnerabilities!"
+            npm audit
+            exit 1
+          fi
+          echo "✅ No critical or high vulnerabilities found"
+
+      - name: Check for secrets in code
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified

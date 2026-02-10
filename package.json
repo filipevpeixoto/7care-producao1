@@ -40,7 +40,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test:client && npm run test:e2e",
-    "prepare": "husky"
+    "prepare": "husky",
+    "audit:check": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
+    "audit:report": "npm audit --json > security-audit.json && echo '✅ Audit report saved to security-audit.json'",
+    "security:scan": "npm run audit:check && echo '✅ No moderate/high/critical vulnerabilities found'"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",

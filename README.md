@@ -7,6 +7,7 @@
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Tests](https://img.shields.io/badge/Tests-1273%20passing-brightgreen.svg)](./tests)
+[![Security](https://img.shields.io/badge/Security-CodeQL%20%7C%20npm%20audit-green.svg)](./SECURITY.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ## ⚡ Sobre Este Sistema
