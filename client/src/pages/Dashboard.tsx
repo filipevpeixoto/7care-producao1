@@ -112,11 +112,12 @@ const Dashboard = () => {
     queryKey: ['tasks'],
     queryFn: async () => {
       // Buscar DIRETO do Google Sheets (IGUAL à página Tasks)
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
       const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': '1',
+          'x-user-id': user?.id ? String(user.id) : '1',
         },
         body: JSON.stringify({
           action: 'getTasks',

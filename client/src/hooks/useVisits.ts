@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from './useAuth';
 
 interface MarkVisitParams {
   userId: number;
@@ -7,13 +8,19 @@ interface MarkVisitParams {
 
 export const useVisits = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const markVisitMutation = useMutation({
     mutationFn: async ({ userId, visitDate }: MarkVisitParams) => {
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const response = await fetch(`/api/users/${userId}/visit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-user-id': String(user.id),
         },
         body: JSON.stringify({ visitDate }),
       });
