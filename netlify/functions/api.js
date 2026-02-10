@@ -9300,7 +9300,8 @@ exports.handler = async (event, context) => {
           console.log('🔍 Query SQL:', query);
           console.log('🔍 Valores finais:', updateValues);
           
-          await sql.unsafe(query, updateValues);
+          // Usar sql() como função (não .unsafe) para que os parâmetros sejam vinculados
+          await sql(query, updateValues);
           console.log(`✅ UPDATE executado para userId=${userId}`);
         } else {
           console.log('ℹ️ Nenhum campo para atualizar');
