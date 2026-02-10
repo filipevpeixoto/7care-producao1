@@ -8,22 +8,14 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import type { AuthUser } from '@/../../shared/types/user';
 
 // =====================================================
 // Types
 // =====================================================
 
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  church?: string;
-  districtId?: number;
-  isApproved?: boolean;
-  status?: string;
-  firstAccess?: boolean;
-}
+// Use AuthUser from shared types
+export type User = AuthUser;
 
 export interface Notification {
   id: string;

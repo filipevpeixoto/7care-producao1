@@ -13,6 +13,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { UserListItem } from '@/../../shared/types/user';
 import {
   Users,
   CheckCircle,
@@ -35,12 +36,7 @@ interface DiscipleshipRequest {
   processedBy?: number;
 }
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  church: string;
-}
+type User = UserListItem;
 
 export function DiscipleshipAdmin() {
   const [selectedRequest, setSelectedRequest] = useState<DiscipleshipRequest | null>(null);

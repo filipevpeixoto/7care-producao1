@@ -16,12 +16,9 @@ import { Bell, Send, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import type { UserListItem } from '@/../../shared/types/user';
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+type User = UserListItem;
 
 interface PushSubscription {
   id: number;

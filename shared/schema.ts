@@ -1,62 +1,10 @@
 // Schema simplificado para LocalStorage
 // Removidas dependências do Drizzle ORM
 import { z } from "zod";
+import type { User } from './types/user';
 
-// Tipos TypeScript para as entidades
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  password?: string;
-  role: 'superadmin' | 'pastor' | 'member' | 'interested' | 'missionary' | 'admin_readonly';
-  church?: string | null;
-  churchCode?: string;
-  churchId?: number | null;
-  districtId?: number | null;
-  departments?: string;
-  birthDate?: string | null;
-  civilStatus?: string;
-  occupation?: string;
-  education?: string;
-  address?: string | null;
-  baptismDate?: string;
-  previousReligion?: string;
-  biblicalInstructor?: string | null;
-  interestedSituation?: string;
-  isDonor?: boolean;
-  isTither?: boolean;
-  isApproved?: boolean;
-  points?: number;
-  calculatedPoints?: number;
-  level?: string | number;
-  attendance?: number;
-  extraData?: Record<string, unknown> | string | null;
-  observations?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  firstAccess?: boolean;
-  status?: 'active' | 'inactive' | 'pending' | 'visited' | string;
-  phone?: string | null;
-  cpf?: string;
-  profilePhoto?: string;
-  avatarUrl?: string | null;
-  isOffering?: boolean;
-  hasLesson?: boolean;
-  emotionalScore?: number | null;
-  engajamento?: string;
-  classificacao?: string;
-  dizimistaType?: string;
-  streak?: number;
-  visitedBy?: number | null;
-  howKnew?: string | null;
-  invitedBy?: string | null;
-  maritalStatus?: string | null;
-  gender?: string | null;
-  ministries?: string | null;
-  lastLogin?: string | null;
-  lastStreak?: string | null;
-  lastAccess?: string;
-}
+// User types are now imported from shared/types/user.ts (single source of truth)
+export type { User, UserRole, UserStatus, AuthUser } from './types/user';
 
 export interface Relationship {
   id: number;

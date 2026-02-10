@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';import { useAuth } from './useAuth';
+import { useState, useEffect } from 'react';
+
 interface Task {
   id: number;
   title: string;
@@ -29,7 +30,6 @@ const TASKS_CACHE_KEY = '7care_tasks_cache';
 export function useTasks() {
   const queryClient = useQueryClient();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const { user } = useAuth();
 
   // ========================================
   // MONITORAR CONEXÃO
@@ -70,10 +70,10 @@ export function useTasks() {
         console.warn('⚠️ Erro ao ler cache:', error);
       }
       
-      // 2. Se conectado,  && user?.id) {
+      // 2. Se conectado, buscar do servidor
+      if (navigator.onLine) {
         try {
           const response = await fetch('/api/tasks', {
-            headers: { 'x-user-id': String(user.id)'/api/tasks', {
             headers: { 'x-user-id': '1' }
           });
           
@@ -120,15 +120,12 @@ export function useTasks() {
       if (!navigator.onLine) {
         throw new Error('Sem conexão - não é possível criar tarefas');
       }
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
       
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': String(user.id)
+          'x-user-id': '1'
         },
         body: JSON.stringify(newTask)
       });
@@ -161,20 +158,16 @@ export function useTasks() {
   // ========================================
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id, number; updates: Partial<Task> }) => {
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<Task> }) => {
       if (!navigator.onLine) {
         throw new Error('Sem conexão - não é possível atualizar tarefas');
-      }
-      
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
       }
       
       const response = await fetch(`/api/tasks/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': String(user.id)
+          'x-user-id': '1'
         },
         body: JSON.stringify(updates)
       });
@@ -215,13 +208,9 @@ export function useTasks() {
         throw new Error('Sem conexão - não é possível deletar tarefas');
       }
       
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-
       const response = await fetch(`/api/tasks/${id}`, {
         method: 'DELETE',
-        headers: { 'x-user-id': String(user.id) }
+        headers: { 'x-user-id': '1' }
       });
       
       if (!response.ok) {

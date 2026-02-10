@@ -3,36 +3,7 @@ import { PointsCalculator, UserData } from '@/lib/pointsCalculator';
 import { GAMIFICATION_LEVELS } from '@/lib/gamification';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useAuth } from '@/hooks/useAuth';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  points?: number;
-  attendance?: number;
-  level?: string;
-  // Campos para cálculo de pontuação
-  engajamento?: string;
-  classificacao?: string;
-  dizimista?: string;
-  ofertante?: string;
-  tempoBatismo?: number;
-  cargos?: string[];
-  departamentos?: string[];
-  nomeUnidade?: string;
-  temLicao?: boolean;
-  comunhao?: number;
-  missao?: number;
-  estudoBiblico?: number;
-  totalPresenca?: number;
-  batizouAlguem?: boolean;
-  discipuladoPosBatismo?: number;
-  cpfValido?: boolean;
-  camposVaziosACMS?: boolean;
-  hasLesson?: boolean; // Added this field based on new_code
-}
+import type { User } from '@/../../shared/types/user';
 
 export const usePointsCalculation = () => {
   const { user: currentUser } = useAuth();
