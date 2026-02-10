@@ -11,6 +11,12 @@ module.exports = async (req, res) => {
   const reqPath = urlObj.searchParams.get('path') || req.url;
   const finalPath = reqPath.startsWith('/api') ? reqPath : `/api/${reqPath}`;
 
+  // Reconstruir query string original (excluindo o param interno 'path' do rewrite)
+  const originalParams = new URLSearchParams(urlObj.searchParams);
+  originalParams.delete('path');
+  const queryString = originalParams.toString();
+  const rawUrl = `https://${req.headers.host}${finalPath}${queryString ? '?' + queryString : ''}`;
+
   // Ler body raw para POST/PUT/PATCH
   let body = null;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -21,9 +27,9 @@ module.exports = async (req, res) => {
     httpMethod: req.method,
     headers: req.headers,
     path: finalPath,
-    rawUrl: `https://${req.headers.host}${finalPath}`,
+    rawUrl: rawUrl,
     body: body,
-    queryStringParameters: Object.fromEntries(urlObj.searchParams),
+    queryStringParameters: Object.fromEntries(originalParams),
     isBase64Encoded: false,
   };
 

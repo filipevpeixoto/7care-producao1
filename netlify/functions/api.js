@@ -1494,6 +1494,9 @@ exports.handler = async (event, context) => {
               users = await sql`SELECT *, extra_data as extraData FROM users WHERE district_id = ${currentUserDistrictId} ORDER BY name ASC`;
             }
           }
+        } else if (currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          console.log('⚠️ BRANCH: Pastor SEM distrito - retornando vazio por segurança');
+          users = [];
         } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
           console.log('⚠️ BRANCH: Usuário com igreja - filtro por igreja');
           if (role) {
@@ -1501,13 +1504,16 @@ exports.handler = async (event, context) => {
           } else {
             users = await sql`SELECT *, extra_data as extraData FROM users WHERE church = ${currentUser.church} ORDER BY name ASC`;
           }
-        } else {
-          console.log('❌ BRANCH: Sem filtro - retornando TODOS os usuários! currentUser=', currentUser ? 'existe' : 'null');
+        } else if (currentUser && currentUser.role === 'superadmin') {
+          console.log('🔑 BRANCH: Superadmin - retornando todos');
           if (role) {
             users = await sql`SELECT *, extra_data as extraData FROM users WHERE role = ${role} ORDER BY name ASC`;
           } else {
             users = await sql`SELECT *, extra_data as extraData FROM users ORDER BY name ASC`;
           }
+        } else {
+          console.log('❌ BRANCH: Sem permissão adequada - retornando vazio');
+          users = [];
         }
         console.log(`📊 Usuários carregados: ${users.length} (filtro role: ${role || 'nenhum'})`);
         
@@ -3827,6 +3833,9 @@ exports.handler = async (event, context) => {
               ORDER BY r.created_at DESC
             `;
           }
+        } else if (currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          console.log('⚠️ Pastor sem distrito - retornando vazio');
+          relationships = [];
         } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
           relationships = await sql`
             SELECT 
@@ -3845,7 +3854,7 @@ exports.handler = async (event, context) => {
             WHERE (ui.church = ${currentUser.church} OR um.church = ${currentUser.church})
             ORDER BY r.created_at DESC
           `;
-        } else {
+        } else if (currentUser && currentUser.role === 'superadmin') {
           relationships = await sql`
             SELECT 
               r.id,
@@ -3862,6 +3871,8 @@ exports.handler = async (event, context) => {
             LEFT JOIN users um ON r.missionary_id = um.id
             ORDER BY r.created_at DESC
           `;
+        } else {
+          relationships = [];
         }
         
         console.log('✅ [NETLIFY] Relacionamentos retornados:', relationships.length);
@@ -7942,6 +7953,9 @@ exports.handler = async (event, context) => {
               LIMIT 50
             `;
           }
+        } else if (currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          console.log('⚠️ Pastor sem distrito - retornando vazio');
+          requests = [];
         } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
           requests = await sql`
             SELECT 
@@ -7965,7 +7979,7 @@ exports.handler = async (event, context) => {
             ORDER BY dr.created_at DESC 
             LIMIT 50
           `;
-        } else {
+        } else if (currentUser && currentUser.role === 'superadmin') {
           requests = await sql`
             SELECT 
               dr.id,
@@ -7987,6 +8001,8 @@ exports.handler = async (event, context) => {
             ORDER BY dr.created_at DESC 
             LIMIT 50
           `;
+        } else {
+          requests = [];
         }
         
         console.log(`📊 Encontrados ${requests.length} pedidos de discipulado`);
