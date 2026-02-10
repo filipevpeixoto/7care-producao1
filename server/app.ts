@@ -15,11 +15,7 @@ import { inputSanitizationMiddleware } from './middleware/inputSanitization';
 import { optionalJwtAuth } from './middleware/jwtAuth';
 import { monitoringService } from './services/monitoringService';
 import { prometheusService } from './services/prometheusService';
-import {
-  errorHandler,
-  notFoundHandler,
-  setupGlobalErrorHandlers,
-} from './middleware/errorHandler';
+import { errorHandler, notFoundHandler, setupGlobalErrorHandlers } from './middleware/errorHandler';
 
 // Configura handlers globais (uncaughtException, unhandledRejection, SIGTERM/SIGINT)
 setupGlobalErrorHandlers();

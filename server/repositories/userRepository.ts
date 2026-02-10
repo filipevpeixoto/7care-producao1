@@ -1,17 +1,20 @@
 import { db, sql as neonSql } from '../neonConfig';
 import { schema } from '../schema';
-import { eq, and, or, sql as drizzleSql, asc } from 'drizzle-orm';
+import { eq, and, or, sql as drizzleSql, asc, ilike } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { isSuperAdmin, hasAdminAccess } from '../utils/permissions';
 import { logger } from '../utils/logger';
 import { CreateUserInput, UpdateUserInput } from '../types/storage';
 import { User } from '../../shared/schema';
 
+import type { UserStatus } from '../../shared/types/user';
+
 export class UserRepository {
   private toDateString(value: unknown): string {
     if (value instanceof Date) {
       return value.toISOString();
     }
+    // eslint-disable-next-line eqeqeq
     if (value == null) {
       return '';
     }
@@ -19,6 +22,7 @@ export class UserRepository {
   }
 
   private normalizeExtraData(value: unknown): Record<string, unknown> | string | null | undefined {
+    // eslint-disable-next-line eqeqeq
     if (value == null) {
       return value as null | undefined;
     }
@@ -32,6 +36,7 @@ export class UserRepository {
   }
 
   private toUser(row: Record<string, unknown>): User {
+    /* eslint-disable eqeqeq */
     return {
       id: Number(row.id),
       name: row.name == null ? '' : String(row.name),
@@ -62,13 +67,14 @@ export class UserRepository {
       createdAt: this.toDateString(row.createdAt),
       updatedAt: this.toDateString(row.updatedAt),
       firstAccess: Boolean(row.firstAccess),
-      status: (row.status == null ? 'active' : String(row.status)) as import('../../shared/types/user').UserStatus,
+      status: (row.status == null ? 'active' : String(row.status)) as UserStatus,
       phone: row.phone == null ? undefined : String(row.phone),
       cpf: row.cpf == null ? undefined : String(row.cpf),
       profilePhoto: row.profilePhoto == null ? undefined : String(row.profilePhoto),
       isOffering: row.isOffering == null ? undefined : Boolean(row.isOffering),
       hasLesson: row.hasLesson == null ? undefined : Boolean(row.hasLesson),
     };
+    /* eslint-enable eqeqeq */
   }
 
   private toPermissionUser(user: {
@@ -107,6 +113,66 @@ export class UserRepository {
     } catch (error) {
       logger.error('Erro ao buscar usuários:', error);
       return [];
+    }
+  }
+
+  /**
+   * Busca usuários com paginação e filtros a nível de banco (LIMIT/OFFSET + WHERE)
+   * PERFORMANCE: Evita carregar todos os registros na memória
+   */
+  async getUsersPaginated(options: {
+    page: number;
+    limit: number;
+    role?: string;
+    status?: string;
+    church?: string;
+    districtId?: number;
+    search?: string;
+  }): Promise<{ data: User[]; total: number }> {
+    try {
+      const { page, limit, role, status, church, districtId, search } = options;
+      const offset = (page - 1) * limit;
+
+      // Build WHERE conditions
+      const conditions: ReturnType<typeof eq>[] = [];
+      if (role) conditions.push(eq(schema.users.role, role));
+      if (status) conditions.push(eq(schema.users.status, status));
+      if (church) conditions.push(eq(schema.users.church, church));
+      if (districtId) conditions.push(eq(schema.users.districtId, districtId));
+      if (search) {
+        const pattern = `%${search}%`;
+        conditions.push(
+          or(
+            ilike(schema.users.name, pattern),
+            ilike(schema.users.email, pattern)
+          )!
+        );
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      // Execute data + count queries in parallel
+      const [rows, countResult] = await Promise.all([
+        db
+          .select()
+          .from(schema.users)
+          .where(whereClause)
+          .orderBy(asc(schema.users.id))
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: drizzleSql<number>`count(*)::int` })
+          .from(schema.users)
+          .where(whereClause),
+      ]);
+
+      return {
+        data: rows.map(user => this.toUser(user)),
+        total: countResult[0]?.count ?? 0,
+      };
+    } catch (error) {
+      logger.error('Erro ao buscar usuários paginados:', error);
+      return { data: [], total: 0 };
     }
   }
 

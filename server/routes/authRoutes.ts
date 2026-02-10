@@ -3,7 +3,7 @@
  * Login, registro, logout, reset e alteração de senha
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getRepository } from '../container';
@@ -11,7 +11,7 @@ import { insertUserSchema } from '../../shared/schema';
 import { logger } from '../utils/logger';
 import { BCRYPT_SALT_ROUNDS } from '../config/security';
 import { authLimiter, registerLimiter, sensitiveLimiter } from '../middleware/rateLimiter';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { loginSchema, changePasswordSchema, resetPasswordSchema } from '../schemas';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwtConfig';
 import { requireStrongPassword, getPasswordSuggestions } from '../utils/passwordValidator';
@@ -189,7 +189,9 @@ export const authRoutes = (app: Express): void => {
 
       const ALLOWED_REGISTRATION_ROLES = ['interested', 'member', 'missionary'];
       const requestedRole = (req.body.role as string) || 'interested';
-      const userRole = ALLOWED_REGISTRATION_ROLES.includes(requestedRole) ? requestedRole : 'interested';
+      const userRole = ALLOWED_REGISTRATION_ROLES.includes(requestedRole)
+        ? requestedRole
+        : 'interested';
 
       const user = await userRepo.createUser({
         ...userData,
@@ -537,9 +539,9 @@ export const authRoutes = (app: Express): void => {
           200,
           'Password changed successfully'
         );
-      } else {
+      } 
         throw new Error('Failed to update password');
-      }
+      
     })
   );
 };

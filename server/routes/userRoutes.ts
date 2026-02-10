@@ -20,7 +20,7 @@ import { validateBody, validateParams, ValidatedRequest } from '../middleware/va
 import { createUserSchema } from '../schemas';
 import { idParamSchema } from '../utils/paramValidation';
 import { logger } from '../utils/logger';
-import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from '../config/security';
+import { BCRYPT_SALT_ROUNDS } from '../config/security';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
@@ -317,162 +317,130 @@ export const userRoutes = (app: Express): void => {
     cacheMiddleware('users', CACHE_TTL.USERS),
     asyncHandler(async (req: Request, res: Response) => {
       logger.debug('🔍 [GET /api/users] Iniciando busca de usuários');
-      const { role, status, church } = req.query;
+      const { role, status, church, search } = req.query;
 
-      // Paginação
+      // Paginação com limites sensatos (max 100, default 20)
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(5000, Math.max(1, parseInt(req.query.limit as string) || 5000)); // Máximo 5000
-      const offset = (page - 1) * limit;
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
 
       const requestingUserId = getAuthUserId(req);
 
-      logger.debug('📋 Parâmetros:', { role, status, church, page, limit, requestingUserId });
+      logger.debug('📋 Parâmetros:', { role, status, church, search, page, limit, requestingUserId });
 
       // Buscar dados do usuário que está fazendo a requisição
-      let requestingUser = null;
+      let requestingUser: User | null = null;
       if (requestingUserId) {
         requestingUser = await userRepo.getUserById(requestingUserId);
-        logger.info('🔍 requestingUser carregado:', {
-          id: requestingUser?.id,
-          name: requestingUser?.name,
-          role: requestingUser?.role,
-          districtId: requestingUser?.districtId,
+      }
+
+      // === Missionary special path (needs in-memory processing for PII redaction) ===
+      if (requestingUser && requestingUser.role === 'missionary') {
+        let users = await userRepo.getAllUsers();
+
+        if (role) users = users.filter(u => u.role === role);
+        if (status) users = users.filter(u => u.status === status);
+        if (church) {
+          users = users.filter(u => u.church === church);
+        } else if (requestingUser.church) {
+          users = users.filter(u => u.church === requestingUser!.church);
+        }
+
+        const missionary = requestingUser;
+        const churchInterested = users.filter(
+          u =>
+            u.role === 'interested' &&
+            u.church === missionary.church &&
+            u.churchCode === missionary.churchCode
+        );
+
+        const relationships = await relationshipRepo.getByMissionary(requestingUserId);
+        const linkedInterestedIds = relationships.map(r => r.interestedId);
+
+        const processedUsers = churchInterested.map(user => {
+          const isLinked = linkedInterestedIds.includes(user.id);
+          if (isLinked) return user;
+          return {
+            ...user,
+            id: user.id, name: user.name, role: user.role, status: user.status,
+            church: user.church, churchCode: user.churchCode,
+            email: user.email ? '***@***.***' : null,
+            phone: user.phone ? '***-***-****' : null,
+            address: user.address ? '*** *** ***' : null,
+            birthDate: user.birthDate ? '**/**/****' : null,
+            cpf: user.cpf ? '***.***.***-**' : null,
+            occupation: user.occupation ? '***' : null,
+            education: user.education ? '***' : null,
+            previousReligion: user.previousReligion ? '***' : null,
+            interestedSituation: user.interestedSituation ? '***' : null,
+            points: 0, level: '***', attendance: 0,
+            biblicalInstructor: null, isLinked: false, canRequestDiscipleship: true,
+          };
         });
+
+        const otherUsers = users.filter(
+          u =>
+            u.role !== 'interested' ||
+            u.church !== missionary.church ||
+            u.churchCode !== missionary.churchCode
+        );
+
+        const finalUsers = [...processedUsers, ...otherUsers];
+        const offset = (page - 1) * limit;
+        const paginatedUsers = finalUsers.slice(offset, offset + limit);
+        const safeUsers = paginatedUsers.map(({ password: _password, ...user }) => user);
+
+        sendSuccess(res, {
+          data: safeUsers,
+          pagination: {
+            page, limit,
+            total: finalUsers.length,
+            totalPages: Math.ceil(finalUsers.length / limit),
+          },
+        });
+        return;
       }
 
-      let users = await userRepo.getAllUsers();
-      logger.debug(`✅ ${users.length} usuários encontrados no banco`);
+      // === Standard path — DB-level pagination (LIMIT/OFFSET + WHERE) ===
+      // Determine filters to push to DB
+      const filters: {
+        page: number; limit: number;
+        role?: string; status?: string; church?: string;
+        districtId?: number; search?: string;
+      } = { page, limit };
 
-      if (role) {
-        users = users.filter(u => u.role === role);
-      }
-      if (status) {
-        users = users.filter(u => u.status === status);
-      }
+      if (role) filters.role = role as string;
+      if (status) filters.status = status as string;
+      if (search) filters.search = search as string;
 
-      // Filtrar por igreja se especificado ou se o usuário não for super admin
       if (church) {
-        users = users.filter(u => u.church === church);
+        filters.church = church as string;
       } else if (requestingUser && !isSuperAdmin(requestingUser)) {
-        // Se for pastor, filtrar pelo distrito
         if (requestingUser.role === 'pastor' && requestingUser.districtId) {
-          logger.info(
-            `🏛️ Pastor detectado, filtrando ${users.length} usuários por distrito: ${requestingUser.districtId}`
-          );
-          const beforeCount = users.length;
-          users = users.filter(u => u.districtId === requestingUser.districtId);
-          logger.info(
-            `✅ Após filtro: ${users.length} usuários (removidos: ${beforeCount - users.length})`
-          );
-        } else {
-          // Se não for pastor/super admin, filtrar pela igreja do usuário
-          const userChurch = requestingUser.church;
-          if (userChurch) {
-            logger.info(`⛪ Filtrando por igreja: ${userChurch}`);
-            users = users.filter(u => u.church === userChurch);
-          }
-        }
-      } else {
-        logger.info(`🌐 Super admin ou usuário não autenticado - sem filtro de distrito`);
-      }
-
-      const totalUsers = users.length;
-      const totalPages = Math.ceil(totalUsers / limit);
-
-      // Lógica especial para missionários
-      if (getAuthUserRole(req) === 'missionary' || getAuthUserId(req)) {
-        const missionaryId = getAuthUserId(req);
-        const missionary = users.find(u => u.id === missionaryId);
-
-        if (missionary && missionary.role === 'missionary') {
-          const churchInterested = users.filter(
-            u =>
-              u.role === 'interested' &&
-              u.church === missionary.church &&
-              u.churchCode === missionary.churchCode
-          );
-
-          const relationships = await relationshipRepo.getByMissionary(missionaryId);
-          const linkedInterestedIds = relationships.map(r => r.interestedId);
-
-          const processedUsers = churchInterested.map(user => {
-            const isLinked = linkedInterestedIds.includes(user.id);
-
-            if (isLinked) {
-              return user;
-            } else {
-              return {
-                ...user,
-                id: user.id,
-                name: user.name,
-                role: user.role,
-                status: user.status,
-                church: user.church,
-                churchCode: user.churchCode,
-                email: user.email ? '***@***.***' : null,
-                phone: user.phone ? '***-***-****' : null,
-                address: user.address ? '*** *** ***' : null,
-                birthDate: user.birthDate ? '**/**/****' : null,
-                cpf: user.cpf ? '***.***.***-**' : null,
-                occupation: user.occupation ? '***' : null,
-                education: user.education ? '***' : null,
-                previousReligion: user.previousReligion ? '***' : null,
-                interestedSituation: user.interestedSituation ? '***' : null,
-                points: 0,
-                level: '***',
-                attendance: 0,
-                biblicalInstructor: null,
-                isLinked: false,
-                canRequestDiscipleship: true,
-              };
-            }
-          });
-
-          const otherUsers = users.filter(
-            u =>
-              u.role !== 'interested' ||
-              u.church !== missionary.church ||
-              u.churchCode !== missionary.churchCode
-          );
-
-          const finalUsers = [...processedUsers, ...otherUsers];
-
-          // Aplicar paginação
-          const paginatedUsers = finalUsers.slice(offset, offset + limit);
-
-          const safeUsers = paginatedUsers.map(({ password: _password, ...user }) => user);
-          sendSuccess(res, {
-            data: safeUsers,
-            pagination: {
-              page,
-              limit,
-              total: finalUsers.length,
-              totalPages: Math.ceil(finalUsers.length / limit),
-            },
-          });
-          return;
+          filters.districtId = requestingUser.districtId;
+          logger.info(`🏛️ Pastor detectado, filtrando por distrito: ${requestingUser.districtId}`);
+        } else if (requestingUser.church) {
+          filters.church = requestingUser.church;
+          logger.info(`⛪ Filtrando por igreja: ${requestingUser.church}`);
         }
       }
 
-      // Calcular pontuação apenas para os usuários da página atual (otimização)
-      const paginatedUsers = users.slice(offset, offset + limit);
-      const pointsMap = await pointsCalcService.calculateUserPointsBatch(paginatedUsers);
-      const usersWithPoints = paginatedUsers.map(user => ({
+      const { data: users, total } = await userRepo.getUsersPaginated(filters);
+      logger.debug(`✅ ${users.length} usuários retornados (total: ${total})`);
+
+      // Calcular pontuação apenas para os usuários da página atual
+      const pointsMap = await pointsCalcService.calculateUserPointsBatch(users);
+      const usersWithPoints = users.map(user => ({
         ...user,
         calculatedPoints: pointsMap.get(user.id) ?? 0,
       }));
 
+      const totalPages = Math.ceil(total / limit);
       const safeUsers = usersWithPoints.map(({ password: _password, ...user }) => user);
       logger.debug(`📤 Enviando página ${page}/${totalPages} com ${safeUsers.length} usuários`);
 
       sendSuccess(res, {
         data: safeUsers,
-        pagination: {
-          page,
-          limit,
-          total: totalUsers,
-          totalPages,
-        },
+        pagination: { page, limit, total, totalPages },
       });
     })
   );
@@ -539,9 +507,8 @@ export const userRoutes = (app: Express): void => {
               message: 'Você não tem permissão para acessar usuários de outros distritos',
             });
           }
-        } else {
-          // Se não for pastor/super admin, verificar se pertence à mesma igreja
-          if (user.church !== requestingUser.church) {
+        // Se não for pastor/super admin, verificar se pertence à mesma igreja
+        } else if (user.church !== requestingUser.church) {
             logger.warn(
               `🚫 Usuário ${requestingUser.email} tentou acessar usuário de outra igreja`
             );
@@ -549,7 +516,6 @@ export const userRoutes = (app: Express): void => {
               error: 'Acesso negado',
               message: 'Você não tem permissão para acessar usuários de outras igrejas',
             });
-          }
         }
       }
 
@@ -1135,14 +1101,9 @@ export const userRoutes = (app: Express): void => {
                   .replace(/[^a-zA-Z0-9]/g, '')
                   .toLowerCase();
               const nameParts = u.name.trim().split(' ');
-              let generatedUsername = '';
-              if (nameParts.length === 1) {
-                generatedUsername = normalize(nameParts[0]);
-              } else {
-                const firstName = normalize(nameParts[0]);
-                const lastName = normalize(nameParts[nameParts.length - 1]);
-                generatedUsername = `${firstName}.${lastName}`;
-              }
+              const generatedUsername = nameParts.length === 1
+                ? normalize(nameParts[0])
+                : `${normalize(nameParts[0])}.${normalize(nameParts[nameParts.length - 1])}`;
               return generatedUsername === finalUsername;
             })
           ) {
