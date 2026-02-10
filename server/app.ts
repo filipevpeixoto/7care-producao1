@@ -15,7 +15,14 @@ import { inputSanitizationMiddleware } from './middleware/inputSanitization';
 import { optionalJwtAuth } from './middleware/jwtAuth';
 import { monitoringService } from './services/monitoringService';
 import { prometheusService } from './services/prometheusService';
-import { logger } from './utils/logger';
+import {
+  errorHandler,
+  notFoundHandler,
+  setupGlobalErrorHandlers,
+} from './middleware/errorHandler';
+
+// Configura handlers globais (uncaughtException, unhandledRejection, SIGTERM/SIGINT)
+setupGlobalErrorHandlers();
 
 /**
  * Cria e configura a instância do Express com todos os middlewares de segurança,
@@ -127,18 +134,18 @@ export function createApp(): express.Express {
 }
 
 /**
- * Cria o error handler padrão da aplicação.
- * Deve ser registrado APÓS todas as rotas.
+ * Retorna o middleware de 404 para rotas não encontradas.
+ * Deve ser registrado APÓS todas as rotas e ANTES do error handler.
+ */
+export function createNotFoundHandler() {
+  return notFoundHandler;
+}
+
+/**
+ * Retorna o error handler centralizado da aplicação.
+ * Usa ApplicationError, Zod, Sentry e logging estruturado.
+ * Deve ser registrado APÓS todas as rotas e o notFoundHandler.
  */
 export function createErrorHandler() {
-  return (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    const status =
-      (err as { status?: number; statusCode?: number }).status ||
-      (err as { status?: number; statusCode?: number }).statusCode ||
-      500;
-    const message = (err as { message?: string }).message || 'Internal Server Error';
-
-    res.status(status).json({ message });
-    logger.error(`[ErrorHandler] ${status} - ${message}`, err instanceof Error ? err.stack : err);
-  };
+  return errorHandler;
 }

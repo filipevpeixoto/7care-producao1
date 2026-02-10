@@ -8,16 +8,15 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getRepository } from '../container';
 import { insertUserSchema } from '../../shared/schema';
-import { handleBadRequest, handleNotFound, handleUnauthorized } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
-import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from '../config/security';
+import { BCRYPT_SALT_ROUNDS } from '../config/security';
 import { authLimiter, registerLimiter, sensitiveLimiter } from '../middleware/rateLimiter';
 import { validateBody, ValidatedRequest } from '../middleware/validation';
 import { loginSchema, changePasswordSchema, resetPasswordSchema } from '../schemas';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwtConfig';
 import { requireStrongPassword, getPasswordSuggestions } from '../utils/passwordValidator';
 import { asyncHandler } from '../utils/asyncHandler';
-import { sendSuccess, sendUnauthorized } from '../utils/apiResponse';
+import { sendSuccess, sendError, sendNotFound, sendUnauthorized } from '../utils/apiResponse';
 
 // SEGURANÇA: JWT_SECRET e validações agora centralizadas em config/jwtConfig.ts
 
@@ -171,7 +170,7 @@ export const authRoutes = (app: Express): void => {
       // Check if user already exists
       const existingUser = await userRepo.getUserByEmail(userData.email || '');
       if (existingUser) {
-        return handleBadRequest(res, 'Usuário já existe');
+        return sendError(res, 'Usuário já existe');
       }
 
       // Validar força da senha se fornecida
@@ -280,17 +279,17 @@ export const authRoutes = (app: Express): void => {
       }
 
       if (id === null) {
-        return handleBadRequest(res, 'ID do usuário é obrigatório');
+        return sendError(res, 'ID do usuário é obrigatório');
       }
 
       if (isNaN(id)) {
-        return handleBadRequest(res, 'ID do usuário inválido');
+        return sendError(res, 'ID do usuário inválido');
       }
 
       const user = await userRepo.getUserById(id);
 
       if (!user) {
-        return handleNotFound(res, 'Usuário');
+        return sendNotFound(res, 'Usuário');
       }
 
       // If user doesn't have a church, assign the first available church
@@ -334,18 +333,18 @@ export const authRoutes = (app: Express): void => {
       const userId = req.query.userId;
 
       if (!userId) {
-        return handleBadRequest(res, 'User ID is required');
+        return sendError(res, 'User ID is required');
       }
 
       const id = parseInt(userId as string);
       if (isNaN(id)) {
-        return handleBadRequest(res, 'Invalid user ID');
+        return sendError(res, 'Invalid user ID');
       }
 
       const user = await userRepo.getUserById(id);
 
       if (!user) {
-        return handleNotFound(res, 'User');
+        return sendNotFound(res, 'User');
       }
 
       // If user doesn't have a church, get the first available one
@@ -402,7 +401,7 @@ export const authRoutes = (app: Express): void => {
 
       const user = await userRepo.getUserByEmail(email);
       if (!user) {
-        return handleNotFound(res, 'User');
+        return sendNotFound(res, 'User');
       }
 
       // Gerar senha temporária aleatória
@@ -485,13 +484,13 @@ export const authRoutes = (app: Express): void => {
 
       const user = await userRepo.getUserById(userId);
       if (!user) {
-        return handleNotFound(res, 'User');
+        return sendNotFound(res, 'User');
       }
 
       // Verify current password - garantir que password existe
       const userPassword = user.password || '';
       if (!userPassword || !(await bcrypt.compare(currentPassword, userPassword))) {
-        return handleUnauthorized(res, 'Current password is incorrect');
+        return sendUnauthorized(res, 'Current password is incorrect');
       }
 
       // Validar força da nova senha

@@ -4,7 +4,7 @@
  */
 
 import 'dotenv/config';
-import { createApp, createErrorHandler } from './app';
+import { createApp, createErrorHandler, createNotFoundHandler } from './app';
 import { registerRoutes } from './routes/index';
 import { serveStatic, log } from './static';
 
@@ -13,7 +13,10 @@ const app = createApp();
 (async () => {
   const server = await registerRoutes(app);
 
-  // Error handler (DEVE ser registrado após todas as rotas)
+  // 404 handler para rotas não encontradas (antes do error handler)
+  app.use(createNotFoundHandler());
+
+  // Error handler (DEVE ser registrado após todas as rotas e o 404 handler)
   app.use(createErrorHandler());
 
   // Serve static files in production

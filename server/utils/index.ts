@@ -8,7 +8,8 @@ export { logger } from './logger';
 
 // Error handling
 export { asyncHandler, asyncHandlerWithNotFound } from './asyncHandler';
-export * from './errorHandler';
+// NOTE: utils/errorHandler.ts (Set B) is deprecated in favor of apiResponse.ts (Set A).
+// Do NOT re-export from ./errorHandler to avoid sendError signature conflicts.
 
 // API responses
 export {
