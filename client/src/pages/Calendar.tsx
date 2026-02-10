@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Filter, Cake, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -99,12 +99,13 @@ export default function Calendar() {
   });
 
   // Normalizar eventos (converter date/end_date para startDate/endDate)
-  const allEvents =
+  const allEvents = useMemo(() =>
     rawEvents?.map((event: any) => ({
       ...event,
       startDate: event.date || event.startDate,
       endDate: event.end_date || event.endDate || event.date,
-    })) || [];
+    })) || []
+  , [rawEvents]);
 
   // Extrair tipos de eventos dinâmicos dos eventos reais (incluindo novos do Google Sheets)
   const dynamicEventTypes = React.useMemo(() => {
@@ -185,18 +186,13 @@ export default function Calendar() {
     }
   };
 
-  // Inicializar filtros com TODAS as categorias (incluindo dinâmicas)
+  // Inicializar filtros UMA VEZ com todas as categorias (incluindo dinâmicas)
+  const filtersInitialized = useRef(false);
   useEffect(() => {
-    console.log('🔄 useEffect triggered:', {
-      userRole: user?.role,
-      permissions: !!permissions,
-      permissionsLoading,
-      permissionsData: permissions,
-      totalEventTypes: dynamicEventTypes.length,
-    });
+    if (filtersInitialized.current) return;
 
     if (user?.role && permissions && !permissionsLoading && dynamicEventTypes.length > 0) {
-      // Incluir TODAS as categorias (dinâmicas + padrão)
+      filtersInitialized.current = true;
       const allTypes = dynamicEventTypes.map(t => t.id);
       setActiveFilters(allTypes);
       console.log('🎯 Filtros inicializados com TODAS as categorias:', allTypes);
