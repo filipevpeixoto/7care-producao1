@@ -5061,7 +5061,7 @@ exports.handler = async (event, context) => {
               credentials: {
                 email: "admin.teste@7care.test",
                 password: "teste123456",
-                loginUrl: "https://7care.netlify.app",
+                loginUrl: "https://7care-app.vercel.app",
                 instructions: "Abra a URL acima e faça login"
               }
             })
@@ -5086,7 +5086,7 @@ exports.handler = async (event, context) => {
             credentials: {
               email: "admin.teste@7care.test",
               password: "teste123456",
-              loginUrl: "https://7care.netlify.app",
+              loginUrl: "https://7care-app.vercel.app",
               instructions: "Clique no link acima e faça login com as credenciais fornecidas"
             }
           })
@@ -7337,9 +7337,9 @@ exports.handler = async (event, context) => {
       console.log('🔍 API preview-candidates chamada');
       
       try {
-        const url = new URL(event.rawUrl);
-        const churchId = url.searchParams.get('churchId');
-        const criteria = url.searchParams.get('criteria');
+        const url = new URL(event.rawUrl || `https://example.com${event.path}`);
+        const churchId = event.queryStringParameters?.churchId || url.searchParams.get('churchId');
+        const criteria = event.queryStringParameters?.criteria || url.searchParams.get('criteria');
 
         console.log('🔍 Parâmetros:', { churchId, criteria });
 
@@ -12407,7 +12407,7 @@ exports.handler = async (event, context) => {
     // ROTA DE DEBUG - Testar cálculo de pontos para um usuário específico
     if (path === '/api/system/debug-points' && method === 'GET') {
       try {
-        const userName = new URL(`https://example.com${event.path}`).searchParams.get('name') || 'Daniela';
+        const userName = event.queryStringParameters?.name || new URL(event.rawUrl || `https://example.com${event.path}`).searchParams.get('name') || 'Daniela';
         console.log(`🔍 DEBUG: Buscando usuário com nome contendo "${userName}"...`);
         
         // Buscar usuário
@@ -14533,7 +14533,7 @@ exports.handler = async (event, context) => {
     if (path === '/api/calendar/sync-status' && method === 'GET') {
       try {
         // Buscar configuração salva
-        const configResponse = await fetch(`${process.env.URL || 'https://7care.netlify.app'}/api/calendar/google-drive-config`);
+        const configResponse = await fetch(`${process.env.URL || 'https://7care-app.vercel.app'}/api/calendar/google-drive-config`);
         if (!configResponse.ok) {
           return {
             statusCode: 404,
@@ -14674,7 +14674,7 @@ exports.handler = async (event, context) => {
         const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
         
         // Fazer a chamada para a API de sincronização
-        const syncResponse = await fetch(`${process.env.URL || 'https://7care.netlify.app'}/api/calendar/sync-google-drive`, {
+        const syncResponse = await fetch(`${process.env.URL || 'https://7care-app.vercel.app'}/api/calendar/sync-google-drive`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -14689,7 +14689,7 @@ exports.handler = async (event, context) => {
         
         if (syncResult.success) {
           // Atualizar timestamp da última sincronização
-          await fetch(`${process.env.URL || 'https://7care.netlify.app'}/api/calendar/google-drive-config`, {
+          await fetch(`${process.env.URL || 'https://7care-app.vercel.app'}/api/calendar/google-drive-config`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -18330,7 +18330,7 @@ exports.handler = async (event, context) => {
           RETURNING *
         `;
 
-        const APP_URL = process.env.APP_URL || 'https://7care.netlify.app';
+        const APP_URL = process.env.APP_URL || 'https://7care-app.vercel.app';
         const link = `${APP_URL}/convite-pastor.html?token=${token}`;
         const directLink = `${APP_URL}/pastor-onboarding/${token}`;
 

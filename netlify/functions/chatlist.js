@@ -1,7 +1,7 @@
 const { neon } = require('@neondatabase/serverless');
 
 exports.handler = async (event) => {
-  const defaultOrigins = 'https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
+  const defaultOrigins = 'https://7care-app.vercel.app,https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
     .split(',').map((o) => o.trim()).filter(Boolean);
   const requestOrigin = event.headers.origin || event.headers.Origin;

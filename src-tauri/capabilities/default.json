@@ -7,7 +7,7 @@
     "core:default",
     {
       "identifier": "http:default",
-      "allow": [{ "url": "https://7care.netlify.app/**" }]
+      "allow": [{ "url": "https://7care-app.vercel.app/**" }]
     }
   ]
 }

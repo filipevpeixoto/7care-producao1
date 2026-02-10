@@ -54,7 +54,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VITE_API_URL: https://7careadv.netlify.app
+          VITE_API_URL: https://7care-app.vercel.app
         with:
           tagName: ${{ github.ref_name }}
           releaseName: '7Care v__VERSION__'
@@ -68,7 +68,7 @@ jobs:
             - **Linux**: arquivo `.AppImage` ou `.deb`
 
             ### iPhone / iPad
-            Use a versao web (PWA): abra https://7careadv.netlify.app no Safari e toque em "Adicionar a Tela de Inicio".
+            Use a versao web (PWA): abra https://7care-app.vercel.app no Safari e toque em "Adicionar a Tela de Inicio".
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

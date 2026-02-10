@@ -14,7 +14,7 @@
 Sistema completo de gerenciamento para igrejas com funcionalidades avançadas.
 
 - ✅ **Leve e Otimizado** - Performance excelente com lazy loading
-- ✅ **Produção Ativa** - https://meu7care.netlify.app/
+- ✅ **Produção Ativa** - https://7care-app.vercel.app/
 - ✅ **Service Worker Inteligente** - Cache otimizado de assets
 - ✅ **Build Rápido** - ~7 segundos
 - ✅ **Testado** - 1.273 testes (636 Jest + 87 Vitest + 550 E2E)
@@ -90,7 +90,7 @@ npx netlify deploy --prod --dir=dist
 
 **Deploy Atual:**
 
-- **Produção:** https://meu7care.netlify.app/
+- **Produção:** https://7care-app.vercel.app/
 - **Site ID:** meu7care
 
 ## ✨ Funcionalidades
@@ -406,7 +406,7 @@ npm run lint:fix
 Para questões ou suporte:
 
 - **Email:** filipe.peixoto@educadventista.org.br
-- **Site em Produção:** https://meu7care.netlify.app/
+- **Site em Produção:** https://7care-app.vercel.app/
 
 ## 📄 Licença
 

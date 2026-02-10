@@ -3,9 +3,9 @@
  * Permite acesso offline completo à aplicação
  */
 
-const CACHE_NAME = '7care-v1';
-const STATIC_CACHE = '7care-static-v1';
-const API_CACHE = '7care-api-v1';
+const CACHE_NAME = '7care-v2';
+const STATIC_CACHE = '7care-static-v2';
+const API_CACHE = '7care-api-v2';
 
 // Arquivos essenciais para cachear
 const STATIC_ASSETS = [

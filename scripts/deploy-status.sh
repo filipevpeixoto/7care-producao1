@@ -25,9 +25,9 @@ echo ""
 
 echo -e "${YELLOW}🌐 Links Úteis:${NC}"
 echo ""
-echo -e "  ${BLUE}Produção:${NC}      https://meu7care.netlify.app/"
-echo -e "  ${BLUE}Painel:${NC}        https://app.netlify.com/sites/meu7care"
-echo -e "  ${BLUE}Deploys:${NC}       https://app.netlify.com/sites/meu7care/deploys"
+echo -e "  ${BLUE}Produção:${NC}      https://7care-app.vercel.app/"
+echo -e "  ${BLUE}Painel:${NC}        https://vercel.com/filipevpeixotos-projects/7care-app"
+echo -e "  ${BLUE}Deploys:${NC}       https://vercel.com/filipevpeixotos-projects/7care-app/deployments"
 echo -e "  ${BLUE}GitHub:${NC}        https://github.com/pxttorrent/7care-producao-sem-offline"
 echo ""
 
