@@ -1,0 +1,11 @@
+node_modules
+.git
+src-tauri/target
+uploads
+dist
+dist-server
+.env
+.env.*
+!.env.example
+!.env.vercel.template
+*.log
