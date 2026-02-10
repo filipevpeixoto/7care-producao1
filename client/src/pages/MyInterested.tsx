@@ -1316,32 +1316,26 @@ export default function MyInterested() {
                                 </Badge>
                               )}
 
-                              {discipleStatus && (
-                                <Badge className={discipleStatus.color}>
-                                  <discipleStatus.icon className="h-3 w-3 mr-1" />
-                                  {discipleStatus.label}
-                                </Badge>
-                              )}
-
-                              {/* Badge de situação */}
-                              {situationLevel && (
-                                <div className="flex flex-col items-end gap-1">
-                                  <Badge
-                                    className="border-0 font-semibold"
-                                    style={{
-                                      backgroundColor: `${situationLevel.color}20`,
-                                      color: situationLevel.color,
-                                    }}
-                                    title={situationLevel.label}
-                                  >
-                                    {situationLevel.value}
-                                  </Badge>
-                                  <span
-                                    className="text-xs font-medium"
-                                    style={{ color: situationLevel.color }}
-                                  >
-                                    {situationLevel.label}
-                                  </span>
+                              {/* Badges de discipulado e situação lado a lado */}
+                              {(discipleStatus || situationLevel) && (
+                                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                  {discipleStatus && (
+                                    <Badge className={discipleStatus.color}>
+                                      <discipleStatus.icon className="h-3 w-3 mr-1" />
+                                      {discipleStatus.label}
+                                    </Badge>
+                                  )}
+                                  {situationLevel && (
+                                    <Badge
+                                      className="border-0 font-semibold"
+                                      style={{
+                                        backgroundColor: `${situationLevel.color}20`,
+                                        color: situationLevel.color,
+                                      }}
+                                    >
+                                      {situationLevel.value} — {situationLevel.label}
+                                    </Badge>
+                                  )}
                                 </div>
                               )}
 
