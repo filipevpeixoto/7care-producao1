@@ -271,3 +271,22 @@ O principal problema é **crescimento orgânico sem refactoring**: features fora
 ---
 
 *Auditoria realizada em 10/02/2026*
+
+---
+
+## Status das Correções (atualizado em 2025-06)
+
+| # | Ação | Status | Detalhes |
+|---|---|---|---|
+| 1 | Remover senhas hardcoded | ✅ Concluído | Commits 5f1ab14, 0fff66b |
+| 2 | Eliminar api.js | ❌ Pendente | Alto risco, requer planejamento |
+| 3 | Testes backend | ❌ Pendente | Baixa prioridade neste ciclo |
+| 4 | Paginação no banco | ✅ Concluído | `getUsersPaginated()` com WHERE+LIMIT/OFFSET (commit 80c6c72) |
+| 5 | Reduzir token JWT | ✅ Concluído | Commit 5f1ab14 |
+| 6 | Quebrar páginas monolíticas | ✅ Concluído | Settings.tsx: 4.004 → 820 linhas (-79.5%). 9 componentes extraídos: importParsers, EditableField, ImportUsersModal, SendNotificationModal, ChurchManagementTab, CalendarManagementTab, DataManagementTab, MobileHeaderLayoutEditor (commits d7c9b5e, 2e7b216, f977d58) |
+| 7 | Unificar tipos User | ✅ Concluído | Commit 3029eed |
+| 8 | Unificar error handling | ✅ Concluído | Sistema tipado ApplicationError em todos os routes (commit 50a54c9) |
+| 9 | Fixar bugs de auth | ✅ Concluído | Commit 3a757e7 |
+| 10 | Security scanning CI | ✅ Concluído | CodeQL + dependency-review + npm audit (commit f98226f) |
+
+**Progresso: 8/10 ações concluídas. Nota estimada atualizada: ~7.5/10**
