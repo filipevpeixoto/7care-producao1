@@ -3,10 +3,10 @@
  * Endpoints relacionados ao gerenciamento de usuários
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { sql } from '../neonConfig';
 import { checkReadOnlyAccess } from '../middleware';
-import { User } from '../../shared/schema';
+import { type User } from '../../shared/schema';
 import {
   parseDate,
   parseBirthDate,
@@ -16,7 +16,7 @@ import {
 } from '../utils/parsers';
 import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import * as bcrypt from 'bcryptjs';
-import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
+import { validateBody, validateParams, type ValidatedRequest } from '../middleware/validation';
 import { createUserSchema } from '../schemas';
 import { idParamSchema } from '../utils/paramValidation';
 import { logger } from '../utils/logger';
@@ -293,15 +293,15 @@ export const userRoutes = (app: Express): void => {
       let users = await userRepo.getAllUsers();
 
       // Filtrar apenas usuários aprovados
-      users = users.filter(u => u.status === 'approved');
+      users = users.filter((u) => u.status === 'approved');
 
       // Se for pastor, filtrar por distrito
       if (requestingUser?.role === 'pastor' && requestingUser?.districtId) {
-        users = users.filter(u => u.districtId === requestingUser!.districtId);
+        users = users.filter((u) => u.districtId === requestingUser!.districtId);
       }
 
       // Retornar apenas campos necessários para chat
-      const chatList = users.map(u => ({
+      const chatList = users.map((u) => ({
         id: u.id,
         name: u.name,
         email: u.email,
@@ -325,7 +325,15 @@ export const userRoutes = (app: Express): void => {
 
       const requestingUserId = getAuthUserId(req);
 
-      logger.debug('📋 Parâmetros:', { role, status, church, search, page, limit, requestingUserId });
+      logger.debug('📋 Parâmetros:', {
+        role,
+        status,
+        church,
+        search,
+        page,
+        limit,
+        requestingUserId,
+      });
 
       // Buscar dados do usuário que está fazendo a requisição
       let requestingUser: User | null = null;
@@ -337,32 +345,36 @@ export const userRoutes = (app: Express): void => {
       if (requestingUser && requestingUser.role === 'missionary') {
         let users = await userRepo.getAllUsers();
 
-        if (role) users = users.filter(u => u.role === role);
-        if (status) users = users.filter(u => u.status === status);
+        if (role) users = users.filter((u) => u.role === role);
+        if (status) users = users.filter((u) => u.status === status);
         if (church) {
-          users = users.filter(u => u.church === church);
+          users = users.filter((u) => u.church === church);
         } else if (requestingUser.church) {
-          users = users.filter(u => u.church === requestingUser!.church);
+          users = users.filter((u) => u.church === requestingUser!.church);
         }
 
         const missionary = requestingUser;
         const churchInterested = users.filter(
-          u =>
+          (u) =>
             u.role === 'interested' &&
             u.church === missionary.church &&
             u.churchCode === missionary.churchCode
         );
 
         const relationships = await relationshipRepo.getByMissionary(requestingUserId);
-        const linkedInterestedIds = relationships.map(r => r.interestedId);
+        const linkedInterestedIds = relationships.map((r) => r.interestedId);
 
-        const processedUsers = churchInterested.map(user => {
+        const processedUsers = churchInterested.map((user) => {
           const isLinked = linkedInterestedIds.includes(user.id);
           if (isLinked) return user;
           return {
             ...user,
-            id: user.id, name: user.name, role: user.role, status: user.status,
-            church: user.church, churchCode: user.churchCode,
+            id: user.id,
+            name: user.name,
+            role: user.role,
+            status: user.status,
+            church: user.church,
+            churchCode: user.churchCode,
             email: user.email ? '***@***.***' : null,
             phone: user.phone ? '***-***-****' : null,
             address: user.address ? '*** *** ***' : null,
@@ -372,13 +384,17 @@ export const userRoutes = (app: Express): void => {
             education: user.education ? '***' : null,
             previousReligion: user.previousReligion ? '***' : null,
             interestedSituation: user.interestedSituation ? '***' : null,
-            points: 0, level: '***', attendance: 0,
-            biblicalInstructor: null, isLinked: false, canRequestDiscipleship: true,
+            points: 0,
+            level: '***',
+            attendance: 0,
+            biblicalInstructor: null,
+            isLinked: false,
+            canRequestDiscipleship: true,
           };
         });
 
         const otherUsers = users.filter(
-          u =>
+          (u) =>
             u.role !== 'interested' ||
             u.church !== missionary.church ||
             u.churchCode !== missionary.churchCode
@@ -392,7 +408,8 @@ export const userRoutes = (app: Express): void => {
         sendSuccess(res, {
           data: safeUsers,
           pagination: {
-            page, limit,
+            page,
+            limit,
             total: finalUsers.length,
             totalPages: Math.ceil(finalUsers.length / limit),
           },
@@ -403,9 +420,13 @@ export const userRoutes = (app: Express): void => {
       // === Standard path — DB-level pagination (LIMIT/OFFSET + WHERE) ===
       // Determine filters to push to DB
       const filters: {
-        page: number; limit: number;
-        role?: string; status?: string; church?: string;
-        districtId?: number; search?: string;
+        page: number;
+        limit: number;
+        role?: string;
+        status?: string;
+        church?: string;
+        districtId?: number;
+        search?: string;
       } = { page, limit };
 
       if (role) filters.role = role as string;
@@ -429,7 +450,7 @@ export const userRoutes = (app: Express): void => {
 
       // Calcular pontuação apenas para os usuários da página atual
       const pointsMap = await pointsCalcService.calculateUserPointsBatch(users);
-      const usersWithPoints = users.map(user => ({
+      const usersWithPoints = users.map((user) => ({
         ...user,
         calculatedPoints: pointsMap.get(user.id) ?? 0,
       }));
@@ -507,15 +528,13 @@ export const userRoutes = (app: Express): void => {
               message: 'Você não tem permissão para acessar usuários de outros distritos',
             });
           }
-        // Se não for pastor/super admin, verificar se pertence à mesma igreja
+          // Se não for pastor/super admin, verificar se pertence à mesma igreja
         } else if (user.church !== requestingUser.church) {
-            logger.warn(
-              `🚫 Usuário ${requestingUser.email} tentou acessar usuário de outra igreja`
-            );
-            return res.status(403).json({
-              error: 'Acesso negado',
-              message: 'Você não tem permissão para acessar usuários de outras igrejas',
-            });
+          logger.warn(`🚫 Usuário ${requestingUser.email} tentou acessar usuário de outra igreja`);
+          return res.status(403).json({
+            error: 'Acesso negado',
+            message: 'Você não tem permissão para acessar usuários de outras igrejas',
+          });
         }
       }
 
@@ -879,23 +898,23 @@ export const userRoutes = (app: Express): void => {
 
       let filteredUsers = allUsers;
       if (userChurch && userRole !== 'admin') {
-        filteredUsers = allUsers.filter(user => user.church === userChurch);
+        filteredUsers = allUsers.filter((user) => user.church === userChurch);
       }
 
-      const usersWithBirthDates = filteredUsers.filter(user => {
+      const usersWithBirthDates = filteredUsers.filter((user) => {
         if (!user.birthDate) return false;
         const birthDate = parseDate(user.birthDate);
         return birthDate && !isNaN(birthDate.getTime()) && birthDate.getFullYear() !== 1969;
       });
 
-      const birthdaysToday = usersWithBirthDates.filter(user => {
+      const birthdaysToday = usersWithBirthDates.filter((user) => {
         const birthDate = parseDate(user.birthDate);
         return (
           birthDate && birthDate.getMonth() === currentMonth && birthDate.getDate() === currentDay
         );
       });
 
-      const birthdaysThisMonth = usersWithBirthDates.filter(user => {
+      const birthdaysThisMonth = usersWithBirthDates.filter((user) => {
         const birthDate = parseDate(user.birthDate);
         const isThisMonth = birthDate && birthDate.getMonth() === currentMonth;
         const isNotToday = birthDate && !(birthDate.getDate() === currentDay);
@@ -964,22 +983,22 @@ export const userRoutes = (app: Express): void => {
       const allUsers = await userRepo.getAllUsers();
 
       const churchInterested = allUsers.filter(
-        u => u.role === 'interested' && u.church === user.church
+        (u) => u.role === 'interested' && u.church === user.church
       );
 
       const relationships = await relationshipRepo.getByMissionary(userId);
-      const linkedInterestedIds = relationships.map(r => r.interestedId);
+      const linkedInterestedIds = relationships.map((r) => r.interestedId);
 
-      const processedUsers = churchInterested.map(user => {
+      const processedUsers = churchInterested.map((user) => {
         const isLinked = linkedInterestedIds.includes(user.id);
 
         if (isLinked) {
           return {
             ...user,
             isLinked: true,
-            relationshipId: relationships.find(r => r.interestedId === user.id)?.id,
+            relationshipId: relationships.find((r) => r.interestedId === user.id)?.id,
           };
-        } else {
+        } 
           return {
             ...user,
             id: user.id,
@@ -1004,7 +1023,7 @@ export const userRoutes = (app: Express): void => {
             isLinked: false,
             canRequestDiscipleship: true,
           };
-        }
+        
       });
 
       const safeUsers = processedUsers.map(({ password: _password5, ...user }) => user);
@@ -1093,7 +1112,7 @@ export const userRoutes = (app: Express): void => {
           let counter = 1;
           const allUsers = await userRepo.getAllUsers();
           while (
-            allUsers.some(u => {
+            allUsers.some((u) => {
               const normalize = (str: string) =>
                 str
                   .normalize('NFD')
@@ -1101,9 +1120,10 @@ export const userRoutes = (app: Express): void => {
                   .replace(/[^a-zA-Z0-9]/g, '')
                   .toLowerCase();
               const nameParts = u.name.trim().split(' ');
-              const generatedUsername = nameParts.length === 1
-                ? normalize(nameParts[0])
-                : `${normalize(nameParts[0])}.${normalize(nameParts[nameParts.length - 1])}`;
+              const generatedUsername =
+                nameParts.length === 1
+                  ? normalize(nameParts[0])
+                  : `${normalize(nameParts[0])}.${normalize(nameParts[nameParts.length - 1])}`;
               return generatedUsername === finalUsername;
             })
           ) {

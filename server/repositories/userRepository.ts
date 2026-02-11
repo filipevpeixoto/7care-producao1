@@ -4,8 +4,8 @@ import { eq, and, or, sql as drizzleSql, asc, ilike } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { isSuperAdmin, hasAdminAccess } from '../utils/permissions';
 import { logger } from '../utils/logger';
-import { CreateUserInput, UpdateUserInput } from '../types/storage';
-import { User } from '../../shared/schema';
+import { type CreateUserInput, type UpdateUserInput } from '../types/storage';
+import { type User } from '../../shared/schema';
 
 import type { UserStatus } from '../../shared/types/user';
 
@@ -109,7 +109,7 @@ export class UserRepository {
   async getAllUsers(): Promise<User[]> {
     try {
       const result = await db.select().from(schema.users).orderBy(asc(schema.users.id));
-      return result.map(user => this.toUser(user));
+      return result.map((user) => this.toUser(user));
     } catch (error) {
       logger.error('Erro ao buscar usuários:', error);
       return [];
@@ -141,12 +141,7 @@ export class UserRepository {
       if (districtId) conditions.push(eq(schema.users.districtId, districtId));
       if (search) {
         const pattern = `%${search}%`;
-        conditions.push(
-          or(
-            ilike(schema.users.name, pattern),
-            ilike(schema.users.email, pattern)
-          )!
-        );
+        conditions.push(or(ilike(schema.users.name, pattern), ilike(schema.users.email, pattern))!);
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -167,7 +162,7 @@ export class UserRepository {
       ]);
 
       return {
-        data: rows.map(user => this.toUser(user)),
+        data: rows.map((user) => this.toUser(user)),
         total: countResult[0]?.count ?? 0,
       };
     } catch (error) {
@@ -187,7 +182,7 @@ export class UserRepository {
         .from(schema.users)
         .where(eq(schema.users.districtId, districtId))
         .orderBy(asc(schema.users.id));
-      return result.map(user => this.toUser(user));
+      return result.map((user) => this.toUser(user));
     } catch (error) {
       logger.error('Erro ao buscar usuários por distrito:', error);
       return [];
@@ -220,7 +215,7 @@ export class UserRepository {
         .from(schema.users)
         .where(and(...conditions))
         .orderBy(asc(schema.users.id));
-      return result.map(user => this.toUser(user));
+      return result.map((user) => this.toUser(user));
     } catch (error) {
       logger.error('Erro ao buscar usuários por distrito com filtros:', error);
       return [];
@@ -255,7 +250,7 @@ export class UserRepository {
           )
         )
         .orderBy(schema.users.id);
-      return result.map(user => this.toUser(user));
+      return result.map((user) => this.toUser(user));
     } catch (error) {
       logger.error('Erro ao buscar usuários visitados:', error);
       return [];
@@ -512,7 +507,7 @@ export class UserRepository {
         .from(schema.users)
         .where(eq(schema.users.role, role))
         .orderBy(asc(schema.users.name));
-      return users.map(u => this.toUser(u));
+      return users.map((u) => this.toUser(u));
     } catch (error) {
       logger.error('Erro ao buscar usuários por role:', error);
       return [];
@@ -526,7 +521,7 @@ export class UserRepository {
         .from(schema.users)
         .where(eq(schema.users.church, church))
         .orderBy(asc(schema.users.name));
-      return users.map(u => this.toUser(u));
+      return users.map((u) => this.toUser(u));
     } catch (error) {
       logger.error('Erro ao buscar usuários por igreja:', error);
       return [];
@@ -540,7 +535,7 @@ export class UserRepository {
         .from(schema.users)
         .where(eq(schema.users.districtId, districtId))
         .orderBy(asc(schema.users.name));
-      return users.map(u => this.toUser(u));
+      return users.map((u) => this.toUser(u));
     } catch (error) {
       logger.error('Erro ao buscar usuários por distrito:', error);
       return [];
@@ -560,7 +555,7 @@ export class UserRepository {
         )
         .orderBy(asc(schema.users.name))
         .limit(limit);
-      return users.map(u => this.toUser(u));
+      return users.map((u) => this.toUser(u));
     } catch (error) {
       logger.error('Erro ao buscar usuários:', error);
       return [];

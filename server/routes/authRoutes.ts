@@ -539,9 +539,8 @@ export const authRoutes = (app: Express): void => {
           200,
           'Password changed successfully'
         );
-      } 
-        throw new Error('Failed to update password');
-      
+      }
+      throw new Error('Failed to update password');
     })
   );
 };
