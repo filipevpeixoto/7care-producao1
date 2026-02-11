@@ -12,12 +12,7 @@ interface EditableFieldProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
   className?: string;
 }
 
-export function EditableField({
-  value,
-  onSave,
-  className = '',
-  ...props
-}: EditableFieldProps) {
+export function EditableField({ value, onSave, className = '', ...props }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
 
@@ -46,7 +41,7 @@ export function EditableField({
       <div className="flex gap-1">
         <Input
           value={editValue}
-          onChange={e => setEditValue(e.target.value)}
+          onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
           autoFocus

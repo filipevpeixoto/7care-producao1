@@ -998,32 +998,31 @@ export const userRoutes = (app: Express): void => {
             isLinked: true,
             relationshipId: relationships.find((r) => r.interestedId === user.id)?.id,
           };
-        } 
-          return {
-            ...user,
-            id: user.id,
-            name: user.name,
-            role: user.role,
-            status: user.status,
-            church: user.church,
-            churchCode: user.churchCode,
-            email: user.email ? '***@***.***' : null,
-            phone: user.phone ? '***-***-****' : null,
-            address: user.address ? '*** *** ***' : null,
-            birthDate: user.birthDate ? '**/**/****' : null,
-            cpf: user.cpf ? '***.***.***-**' : null,
-            occupation: user.occupation ? '***' : null,
-            education: user.education ? '***' : null,
-            previousReligion: user.previousReligion ? '***' : null,
-            interestedSituation: user.interestedSituation ? '***' : null,
-            points: 0,
-            level: '***',
-            attendance: 0,
-            biblicalInstructor: null,
-            isLinked: false,
-            canRequestDiscipleship: true,
-          };
-        
+        }
+        return {
+          ...user,
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          status: user.status,
+          church: user.church,
+          churchCode: user.churchCode,
+          email: user.email ? '***@***.***' : null,
+          phone: user.phone ? '***-***-****' : null,
+          address: user.address ? '*** *** ***' : null,
+          birthDate: user.birthDate ? '**/**/****' : null,
+          cpf: user.cpf ? '***.***.***-**' : null,
+          occupation: user.occupation ? '***' : null,
+          education: user.education ? '***' : null,
+          previousReligion: user.previousReligion ? '***' : null,
+          interestedSituation: user.interestedSituation ? '***' : null,
+          points: 0,
+          level: '***',
+          attendance: 0,
+          biblicalInstructor: null,
+          isLinked: false,
+          canRequestDiscipleship: true,
+        };
       });
 
       const safeUsers = processedUsers.map(({ password: _password5, ...user }) => user);
