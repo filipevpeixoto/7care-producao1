@@ -201,7 +201,7 @@ export function isFeatureEnabled(
 export function getEnabledFeatures(context: UserContext = {}): string[] {
   const enabled: string[] = [];
   
-  featureFlags.forEach((flag, name) => {
+  featureFlags.forEach((_flag, name) => {
     if (isFeatureEnabled(name, context)) {
       enabled.push(name);
     }

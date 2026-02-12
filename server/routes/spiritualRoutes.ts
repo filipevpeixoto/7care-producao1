@@ -242,7 +242,7 @@ export const spiritualRoutes = (app: Express): void => {
    */
   app.post(
     '/api/system/update-profiles-by-bible-study',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const result = { success: true, message: 'Funcionalidade não implementada' };
       sendSuccess(res, {
         success: true,

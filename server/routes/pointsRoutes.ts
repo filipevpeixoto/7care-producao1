@@ -439,7 +439,7 @@ export const pointsRoutes = (app: Express): void => {
    */
   app.get(
     '/api/system/points-config',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const config = await pointsRepo.getConfiguration();
       sendSuccess(res, config);
     })
@@ -653,7 +653,7 @@ export const pointsRoutes = (app: Express): void => {
    */
   app.get(
     '/api/system/parameter-average',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const currentConfig = await pointsRepo.getConfiguration();
       const currentAverage = calculateParameterAverage(currentConfig);
 
@@ -769,7 +769,7 @@ export const pointsRoutes = (app: Express): void => {
    */
   app.get(
     '/api/system/event-permissions',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const permissions = await systemRepo.getEventPermissions();
       sendSuccess(res, { permissions });
     })

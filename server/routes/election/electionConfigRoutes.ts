@@ -12,7 +12,7 @@ import {
   sendInternalError,
   parseHeaderUserId,
   parseIdValue,
-  parseExtraData,
+
   getDistrictFilterForUser,
   createCheckReadOnlyAccess,
 } from './electionHelpers';

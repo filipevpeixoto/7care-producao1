@@ -33,7 +33,7 @@ export const settingsRoutes = (app: Express): void => {
    */
   app.get(
     '/api/settings/default-church',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const defaultChurch = await churchRepo.getDefaultChurch();
       sendSuccess(res, { defaultChurch });
     })
@@ -171,7 +171,7 @@ export const settingsRoutes = (app: Express): void => {
    */
   app.get(
     '/api/settings/logo',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const logoData = await systemRepo.getLogo();
 
       if (logoData) {
@@ -204,7 +204,7 @@ export const settingsRoutes = (app: Express): void => {
    */
   app.delete(
     '/api/settings/logo',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       await systemRepo.clearLogo();
       sendSuccess(res, null, 200, 'Logo deleted successfully');
     })
@@ -222,7 +222,7 @@ export const settingsRoutes = (app: Express): void => {
    */
   app.get(
     '/api/meeting-types',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const meetingTypes = await meetingRepo.getMeetingTypes();
       sendSuccess(res, meetingTypes);
     })

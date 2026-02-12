@@ -46,7 +46,19 @@
     "audit:check": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
     "audit:report": "npm audit --json > security-audit.json && echo '✅ Audit report saved to security-audit.json'",
-    "security:scan": "npm run audit:check && echo '✅ No moderate/high/critical vulnerabilities found'"
+    "security:scan": "npm run audit:check && echo '✅ No moderate/high/critical vulnerabilities found'",
+    "clean": "rm -rf node_modules dist dist-server coverage .vite",
+    "clean:cache": "rm -rf node_modules/.cache .vite",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:rebuild": "docker-compose up -d --build",
+    "db:migrate": "npm run migrate-to-neon",
+    "db:seed": "tsx server/setupNeonData.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:web\"",
+    "validate": "npm run typecheck && npm run lint && npm run test:all"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",

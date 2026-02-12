@@ -18,7 +18,7 @@ import { BCRYPT_SALT_ROUNDS } from '../../config/security';
 import { asyncHandler } from '../../utils';
 import { sendSuccess, sendError } from '../../utils/apiResponse';
 import { getRepository, getService } from '../../container';
-import { getAuthUserId, getAuthUserRole } from '../../utils/authHelpers';
+import { getAuthUserId } from '../../utils/authHelpers';
 import {
   calculateUserPointsFromConfig,
   type PointsConfig,

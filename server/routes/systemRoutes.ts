@@ -106,7 +106,7 @@ export const systemRoutes = (app: Express): void => {
    */
   app.post(
     '/api/system/clean-orphaned-approvals',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const allRequests = await discipleshipRepo.getAll();
       const approvedRequests = allRequests.filter(req => req.status === 'approved');
 
@@ -240,7 +240,7 @@ export const systemRoutes = (app: Express): void => {
    */
   app.post(
     '/api/system/auto-cleanup/stop',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       stopAutoCleanup();
 
       sendSuccess(res, { status: 'stopped', message: 'Limpeza automática parada' });
@@ -259,7 +259,7 @@ export const systemRoutes = (app: Express): void => {
    */
   app.get(
     '/api/system/auto-cleanup/status',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       sendSuccess(res, {
         status: autoCleanupEnabled ? 'running' : 'stopped',
         interval: autoCleanupInterval ? 'configurado' : 'não configurado',

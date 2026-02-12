@@ -49,7 +49,7 @@ const resolveUserId = (req: AuthenticatedRequest): number | null => {
  */
 export const extractUserId = async (
   req: AuthenticatedRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {

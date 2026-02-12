@@ -257,7 +257,7 @@ export const requireJwtAuth = async (
  */
 export const optionalJwtAuth = async (
   req: AuthenticatedRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {

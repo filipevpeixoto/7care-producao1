@@ -5,10 +5,11 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![CI](https://github.com/pxttorrent/7care-producao-sem-offline/actions/workflows/ci.yml/badge.svg)](https://github.com/pxttorrent/7care-producao-sem-offline/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/pxttorrent/7care-producao-sem-offline/graph/badge.svg)](https://codecov.io/gh/pxttorrent/7care-producao-sem-offline)
-[![Tests](https://img.shields.io/badge/Tests-526%20passing-brightgreen.svg)](./tests)
+[![Tests](https://img.shields.io/badge/Tests-676%20passing-brightgreen.svg)](./tests)
+[![Code Quality](https://img.shields.io/badge/Quality-8.0%2F10-brightgreen.svg)](#)
 [![Security](https://img.shields.io/badge/Security-CodeQL%20%7C%20npm%20audit-green.svg)](./SECURITY.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -18,68 +19,118 @@ Sistema completo de gerenciamento para igrejas com funcionalidades avançadas.
 
 - ✅ **Leve e Otimizado** - Performance excelente com lazy loading
 - ✅ **Produção Ativa** - https://7care-app.vercel.app/
-- ✅ **Service Worker Inteligente** - Cache otimizado de assets
-- ✅ **Build Rápido** - ~7 segundos
-- ✅ **Testado** - 1.273 testes (636 Jest + 87 Vitest + 550 E2E)
+- ✅ **676 Testes** - 526 client + 150 server (cobertura 40%/35%)
+- ✅ **Segurança Robusta** - JWT 15min, CSRF, input sanitization, rate limiting
+- ✅ **CI/CD Completo** - Lint, TypeCheck, Tests, Security Audit, Coverage
+- ✅ **Docker Ready** - PostgreSQL + Redis + Adminer + Redis Commander
+- ✅ **Quality Score** - 8.0/10 (auditado em Feb 2026)
 
 ## 🚀 Início Rápido
 
 ### Pré-requisitos
 
-- Node.js 18+
-- npm ou yarn
+- **Node.js 20+** (use `nvm use` para garantir a versão)
+- **npm 9+**
+- **Docker** (opcional, mas recomendado)
 - Conta no Neon Database (gratuita)
 
-### Instalação
+### Instalação Rápida (Script Helper)
 
 ```bash
 # Clonar repositório
 git clone https://github.com/pxttorrent/7care-producao-sem-offline.git
 cd 7care-producao-sem-offline
 
+# Setup completo (instala deps + migrations)
+./dev.sh setup
+
+# Inicia dev servers (backend + frontend)
+./dev.sh start
+```
+
+### Instalação Manual
+
+```bash
 # Instalar dependências
-npm install
+npm install --legacy-peer-deps
 
 # Configurar variáveis de ambiente
-# Crie um arquivo .env com:
-# DATABASE_URL=sua_string_de_conexao_neon
-# NODE_ENV=development
+cp .env.example .env
+# Edite .env com suas credenciais
+
+# Rodar migrations
+npm run migrate-to-neon
 
 # Executar em desenvolvimento
-npm run dev
+npm run dev          # Backend (porta 3064)
+npm run dev:web      # Frontend (porta 5173)
+```
+
+### Instalação com Docker 🐳
+
+```bash
+# Inicia PostgreSQL + Redis + UIs
+./dev.sh docker
+
+# Acesse:
+# - Adminer (PostgreSQL): http://localhost:8080
+# - Redis Commander: http://localhost:8081
 ```
 
 ### Acesso Local
 
-- **URL:** http://localhost:3065
-- **Login Admin:** Configure nas variáveis de ambiente
-- **Credenciais:** Consulte a documentação interna ou o administrador do sistema
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:3064
+- **Produção:** https://7care-app.vercel.app/
+
+> 📖 **Guia completo:** Veja [DEVELOPMENT.md](./DEVELOPMENT.md) para documentação detalhada
 
 ## 📦 Scripts Disponíveis
 
+### Desenvolvimento
 ```bash
-# Desenvolvimento
-npm run dev              # Servidor de desenvolvimento (porta 3065)
-npm run build            # Build de produção
-npm run start            # Servidor de produção
-
-# Qualidade de Código
-npm run check            # Verificar tipos TypeScript
-npm run lint             # Verificar ESLint
-npm run lint:fix         # Corrigir problemas ESLint
-npm run format           # Formatar código com Prettier
-
-# Testes
-npm run test             # Testes unitários do servidor (Jest)
-npm run test:client      # Testes do cliente (Vitest)
-npm run test:e2e         # Testes end-to-end (Playwright)
-npm run test:coverage    # Relatório de cobertura
-npm run test:all         # Todos os testes
-
-# Deploy
-npm run deploy           # Deploy para Netlify (produção)
-npm run deploy:preview   # Deploy preview
+./dev.sh start           # 🚀 Inicia dev servers (backend + frontend)
+npm run dev              # Backend (porta 3064)
+npm run dev:web          # Frontend (porta 5173)
+npm run dev:tauri        # App desktop Tauri
 ```
+
+### Build e Deploy
+```bash
+npm run build            # Build frontend
+npm run build:tauri      # Build app desktop
+npm run build:server     # Build backend
+npm run deploy           # Deploy para Netlify
+```
+
+### Testes
+```bash
+./dev.sh test            # 🧪 Todos os testes
+npm test                 # Client tests (526 testes)
+npm run test:server      # Server tests (150 testes)
+npm run test:coverage    # Coverage client (40% threshold)
+npm run test:server:coverage  # Coverage server (35% threshold)
+npm run test:e2e         # E2E com Playwright
+```
+
+### Qualidade de Código
+```bash
+./dev.sh lint            # 🔍 Lint + format automático
+./dev.sh check           # ✅ Lint + Types + Tests
+npm run check            # TypeScript type-check
+npm run lint             # ESLint
+npm run lint:fix         # ESLint --fix
+npm run format           # Prettier
+```
+
+### Utilitários
+```bash
+./dev.sh docker          # 🐳 Inicia Docker Compose
+./dev.sh clean           # 🧹 Limpa node_modules/dist
+./dev.sh setup           # 📦 Setup inicial
+```
+
+> 💡 **Dica:** Use `./dev.sh help` para ver todos os comandos disponíveis
 
 ## 🌐 Deploy
 

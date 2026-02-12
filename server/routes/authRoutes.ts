@@ -13,7 +13,7 @@ import { BCRYPT_SALT_ROUNDS } from '../config/security';
 import { authLimiter, registerLimiter, sensitiveLimiter } from '../middleware/rateLimiter';
 import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { loginSchema, changePasswordSchema, resetPasswordSchema } from '../schemas';
-import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwtConfig';
+import { JWT_SECRET } from '../config/jwtConfig';
 import { requireStrongPassword, getPasswordSuggestions } from '../utils/passwordValidator';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess, sendError, sendNotFound, sendUnauthorized } from '../utils/apiResponse';

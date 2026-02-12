@@ -17,7 +17,6 @@ import { z } from 'zod';
  * - Pelo menos um número
  * - Pelo menos um caractere especial
  */
-const _strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 /**
  * Schema para validação de senha forte

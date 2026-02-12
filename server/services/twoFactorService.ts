@@ -33,21 +33,10 @@ interface UserTwoFactorFields {
 }
 
 /**
- * Tipo para atualização de campos 2FA
- * Interface que corresponde exatamente aos campos do schema users
- */
-interface _TwoFactorUpdateData {
-  twoFactorEnabled?: boolean | null;
-  twoFactorSecret?: string | null;
-  twoFactorPendingSecret?: string | null;
-  twoFactorRecoveryCodes?: string | null;
-}
-
-/**
  * Gera um novo secret TOTP para o usuário
  */
 export async function generateTwoFactorSecret(
-  userId: number,
+  _userId: number,
   userEmail: string,
   appName: string = '7Care'
 ): Promise<TwoFactorSecret> {

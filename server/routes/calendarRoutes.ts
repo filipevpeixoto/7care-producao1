@@ -87,7 +87,7 @@ export const calendarRoutes = (app: Express): void => {
    */
   app.get(
     '/api/calendar/google-drive-config',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const config = await systemRepo.getGoogleDriveConfig();
       sendSuccess(res, config || {});
     })
@@ -281,13 +281,10 @@ export const calendarRoutes = (app: Express): void => {
   app.post(
     '/api/google-sheets/proxy',
     asyncHandler(async (req: Request, res: Response) => {
-      const { url, action, spreadsheetId, sheetName } = req.body;
+      const { url, action, spreadsheetId } = req.body;
 
       // Se for uma ação do Google Sheets (getTasks, etc.)
       if (action && spreadsheetId) {
-        // Construir URL do Google Apps Script
-        const _scriptUrl = `https://script.google.com/macros/s/AKfycbxxxxx/exec?action=${action}&spreadsheetId=${spreadsheetId}&sheetName=${sheetName || 'tarefas'}`;
-
         // Por enquanto, retornar array vazio se não houver URL do script configurada
         // Isso permite que o sistema funcione sem o Google Sheets
         return sendSuccess(res, { tasks: [] }, 200, 'Google Sheets não configurado');

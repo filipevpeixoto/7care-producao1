@@ -47,19 +47,6 @@ function getRedisStore(): Options['store'] | undefined {
 const sharedStore = getRedisStore();
 
 /**
- * Helper para gerar chave segura para IPv6
- * Normaliza o IP para evitar problemas com diferentes formatos de IPv6
- */
-const _normalizeIp = (ip: string | undefined): string => {
-  if (!ip) return 'unknown';
-  // Remove prefixo IPv6 mapeado para IPv4
-  if (ip.startsWith('::ffff:')) {
-    return ip.substring(7);
-  }
-  return ip;
-};
-
-/**
  * Rate limiter para endpoints de autenticação
  * Mais restritivo para prevenir ataques de força bruta
  */

@@ -183,7 +183,7 @@ export function auditLoginMiddleware() {
  * Middleware para log de operações sensíveis
  */
 export function auditSensitiveOperation(description: string) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     const context = auditService.extractContextFromRequest(req);
 
     logger.warn(`[SENSITIVE] ${description}`, {

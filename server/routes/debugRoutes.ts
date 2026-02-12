@@ -32,7 +32,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/debug/visited-users',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const users = await userRepo.getAllUsers();
       const visitedUsers = users.filter(u => 'lastVisitDate' in u && u.lastVisitDate);
 
@@ -60,7 +60,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/debug/events',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const events = await eventRepo.getAllEvents();
       sendSuccess(res, {
         total: events.length,
@@ -81,7 +81,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/debug/create-simple-event',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const event = await eventRepo.createEvent({
         title: `Evento de Teste ${Date.now()}`,
         description: 'Evento criado para debug',
@@ -115,7 +115,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/debug/check-churches',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const churches = await churchRepo.getAllChurches();
       sendSuccess(res, {
         total: churches.length,
@@ -136,7 +136,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/debug/check-users',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const users = await userRepo.getAllUsers();
       const roleCount: Record<string, number> = {};
 
@@ -164,7 +164,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/debug/check-events-db',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const events = await eventRepo.getAllEvents();
       const typeCount: Record<string, number> = {};
 
@@ -192,7 +192,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/debug/notifications',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const notifications = await notificationRepo.getAll();
 
       const unread = notifications.filter((n: { isRead?: boolean }) => !n.isRead);
@@ -223,7 +223,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.post(
     '/api/debug/clean-duplicates',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const events = await eventRepo.getAllEvents();
       const seen = new Map<string, number>();
       const duplicateIds: number[] = [];
@@ -257,7 +257,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.post(
     '/api/system/check-missionary-profiles',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const users = await userRepo.getAllUsers();
       const missionaries = users.filter((u: { role?: string }) => u.role === 'missionary');
 
@@ -287,7 +287,7 @@ export const debugRoutes = (app: Express): void => {
    */
   app.get(
     '/api/setup/test-data',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const users = await userRepo.getAllUsers();
       const churches = await churchRepo.getAllChurches();
       const events = await eventRepo.getAllEvents();

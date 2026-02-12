@@ -194,7 +194,7 @@ export const meetingRoutes = (app: Express): void => {
    */
   app.get(
     '/api/meeting-types',
-    asyncHandler(async (req: Request, res: Response) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const meetingTypes = await meetingRepo.getMeetingTypes();
       sendSuccess(res, meetingTypes);
     })

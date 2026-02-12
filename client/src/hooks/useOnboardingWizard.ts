@@ -153,7 +153,6 @@ export function useOnboardingWizard(token: string) {
           district: state.data.district,
           excelData: state.data.excelData,
           churchValidation: state.data.churchValidation,
-          // dracmaConfig: state.data.dracmaConfig, // Dracma desabilitado temporariamente
           gamificationConfig: state.data.gamificationConfig, // Adicionar configuração de Gamificação
           situationLevels: state.data.situationLevels, // Níveis de situação personalizados
         };

@@ -16,13 +16,6 @@ interface WebVital {
   navigationType?: string;
 }
 
-interface _VitalsPayload {
-  vitals: WebVital[];
-  url: string;
-  userAgent: string;
-  timestamp: number;
-}
-
 /**
  * Rotas de Analytics
  */

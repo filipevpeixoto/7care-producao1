@@ -189,13 +189,6 @@ export interface ValidationResult {
   selectedSuggestionId?: number;
 }
 
-export interface DracmaConfigData {
-  enableAutomation: boolean;
-  dracmaUsername?: string;
-  dracmaPassword?: string;
-  ocrApiKey?: string;
-}
-
 export interface GamificationConfigData {
   enableGamification: boolean;
   targetAverage: number; // Média de pontos desejada (ex: 595)
@@ -214,7 +207,6 @@ export interface OnboardingData {
   churches?: ChurchData[];
   excelData?: ExcelData;
   churchValidation?: ChurchValidation[];
-  dracmaConfig?: DracmaConfigData;
   gamificationConfig?: GamificationConfigData;
   situationLevels?: SituationLevelData[];
   completedSteps: number[];

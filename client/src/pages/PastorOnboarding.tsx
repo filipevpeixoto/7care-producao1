@@ -25,7 +25,6 @@ import { Step2District } from '@/components/pastor-onboarding/steps/Step2Distric
 import { Step3Churches } from '@/components/pastor-onboarding/steps/Step3Churches';
 import { Step4ExcelImport } from '@/components/pastor-onboarding/steps/Step4ExcelImport';
 import { Step5Validation } from '@/components/pastor-onboarding/steps/Step5Validation';
-// import { Step6DracmaConfig } from '@/components/pastor-onboarding/steps/Step6DracmaConfig'; // Desabilitado temporariamente
 import { Step7Password } from '@/components/pastor-onboarding/steps/Step7Password';
 import { Step8GamificationConfig } from '@/components/pastor-onboarding/steps/Step8GamificationConfig';
 import { StepSituationLevels } from '@/components/pastor-onboarding/steps/StepSituationLevels';
@@ -44,7 +43,6 @@ import {
   type ChurchData,
   type ExcelData,
   type ChurchValidation,
-  // DracmaConfigData, // Desabilitado temporariamente
   type GamificationConfigData,
   type SituationLevelData,
 } from '@/types/pastor-invite';
@@ -152,12 +150,6 @@ export default function PastorOnboarding() {
   const handleStep5Next = () => {
     nextStep();
   };
-
-  // handleStep6Next para Dracma desabilitado temporariamente
-  // const handleStep6Next = (dracmaConfig: DracmaConfigData) => {
-  //   updateStepData(6, { dracmaConfig });
-  //   nextStep();
-  // };
 
   const handleStep6Next = (gamificationConfig: GamificationConfigData) => {
     updateStepData(6, { gamificationConfig });
@@ -471,15 +463,6 @@ export default function PastorOnboarding() {
                   token={token}
                 />
               )}
-
-              {/* Step6 Dracma desabilitado temporariamente */}
-              {/* {currentStep === 6 && (
-                <Step6DracmaConfig
-                  data={data.dracmaConfig}
-                  onNext={handleStep6Next}
-                  onBack={prevStep}
-                />
-              )} */}
 
               {currentStep === 6 && (
                 <Step8GamificationConfig

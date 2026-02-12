@@ -95,7 +95,7 @@ export function sentryErrorHandler() {
     return (err: Error, _req: Request, _res: Response, next: NextFunction) => next(err);
   }
   // Sentry v8+ usa setupExpressErrorHandler
-  return (err: Error, _req: Request, res: Response, next: NextFunction) => {
+  return (err: Error, _req: Request, _res: Response, next: NextFunction) => {
     Sentry.captureException(err);
     next(err);
   };

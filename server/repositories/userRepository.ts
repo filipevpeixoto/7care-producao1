@@ -8,7 +8,6 @@ import { type CreateUserInput, type UpdateUserInput } from '../types/storage';
 import { type User } from '../../shared/schema';
 import { toUser as sharedToUser } from '../storage/helpers';
 
-import type { UserStatus } from '../../shared/types/user';
 
 export class UserRepository {
   /** Delegate to shared toUser mapper */

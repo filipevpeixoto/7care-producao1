@@ -318,14 +318,11 @@ export const userCrudRoutes = (app: Express): void => {
         ? await bcrypt.hash(userData.password, BCRYPT_SALT_ROUNDS)
         : await bcrypt.hash(generateTemporaryPassword(), BCRYPT_SALT_ROUNDS);
 
-      let _processedChurch: string | null = null;
       if (userData.church && userData.church.trim() !== '') {
         try {
-          const church = await churchRepo.getOrCreateChurch(userData.church.trim());
-          _processedChurch = church.name;
+          await churchRepo.getOrCreateChurch(userData.church.trim());
         } catch (error) {
           logger.error(`Erro ao processar igreja "${userData.church}":`, error);
-          _processedChurch = 'Igreja Principal';
         }
       }
 
