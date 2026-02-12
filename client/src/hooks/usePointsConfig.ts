@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
 import { hasAdminAccess } from '@/lib/permissions';
 
 export interface PointsConfig {
@@ -140,7 +141,7 @@ export const usePointsConfig = () => {
     const loadConfig = async () => {
       try {
         // Tentar carregar do backend primeiro
-        const response = await fetch('/api/system/points-config');
+        const response = await fetchWithAuth('/api/system/points-config');
         if (response.ok) {
           const backendConfig = await response.json();
           setConfig(backendConfig);
@@ -170,9 +171,8 @@ export const usePointsConfig = () => {
     setIsLoading(true);
     try {
       // Salvar no backend (agora com recálculo automático)
-      const response = await fetch('/api/system/points-config', {
+      const response = await fetchWithAuth('/api/system/points-config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newConfig),
       });
 
@@ -291,7 +291,7 @@ export const usePointsConfig = () => {
 
   const getCurrentParameterAverage = async () => {
     try {
-      const response = await fetch('/api/system/parameter-average');
+      const response = await fetchWithAuth('/api/system/parameter-average');
       if (!response.ok) {
         throw new Error('Erro ao obter média atual');
       }
@@ -306,12 +306,7 @@ export const usePointsConfig = () => {
   const getCurrentUserAverage = async () => {
     try {
       // WORKAROUND: Usar /api/users até resolver problema do /api/users/with-points
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (!response.ok) {
         throw new Error('Erro ao obter usuários');
       }

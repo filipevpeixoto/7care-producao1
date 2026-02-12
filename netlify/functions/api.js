@@ -1,3 +1,20 @@
+/**
+ * Netlify/Vercel Serverless API Handler (Legacy)
+ *
+ * ARCHITECTURE NOTE:
+ * This is a legacy monolithic serverless function (~20K lines).
+ * It is used by BOTH deployment platforms:
+ *   - Netlify: directly as a Netlify Function
+ *   - Vercel:  via api/index.js wrapper
+ *
+ * DO NOT DELETE this file — it would break both Vercel and Netlify deployments.
+ *
+ * The modern Express server (server/app.ts) with repository pattern
+ * is the preferred architecture. This file should be gradually deprecated
+ * once the Express server fully replaces all serverless endpoints.
+ *
+ * @deprecated Prefer server/app.ts + server/routes/* for new development.
+ */
 const { neon } = require('@neondatabase/serverless');
 const bcrypt = require('bcryptjs');
 const webpush = require('web-push');

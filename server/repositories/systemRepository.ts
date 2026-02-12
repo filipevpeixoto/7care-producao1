@@ -364,7 +364,7 @@ export class SystemRepository {
       date: data.date ?? null,
       active: data.active ?? true,
       order: data.order ?? activities.length,
-      districtId: districtId,
+      districtId,
     };
     const updated = [...activities, activity];
     await this.saveConfig('activities', updated);
@@ -410,30 +410,57 @@ export class SystemRepository {
     try {
       logger.warn('Iniciando limpeza de todos os dados...');
 
-      // Ordem de deleção respeitando foreign keys
-      await db.delete(schema.eventParticipants);
-      await db.delete(schema.prayerIntercessors);
-      await db.delete(schema.messages);
-      await db.delete(schema.conversationParticipants);
-      await db.delete(schema.conversations);
-      await db.delete(schema.relationships);
-      await db.delete(schema.discipleshipRequests);
-      await db.delete(schema.meetings);
-      await db.delete(schema.events);
-      await db.delete(schema.notifications);
-      await db.delete(schema.pointActivities);
-      await db.delete(schema.userAchievements);
-      await db.delete(schema.userPointsHistory);
-      await db.delete(schema.emotionalCheckins);
-      await db.delete(schema.missionaryProfiles);
-      await db.delete(schema.prayers);
-      await db.delete(schema.pushSubscriptions);
-      await db.delete(schema.pastorInvites);
+      // Executa todas as deleções em uma única transação atômica
+      await db.transaction(async (tx) => {
+        // Ordem de deleção respeitando foreign keys
+        await tx.delete(schema.eventParticipants);
+        await tx.delete(schema.prayerIntercessors);
+        await tx.delete(schema.messages);
+        await tx.delete(schema.conversationParticipants);
+        await tx.delete(schema.conversations);
+        await tx.delete(schema.relationships);
+        await tx.delete(schema.discipleshipRequests);
+        await tx.delete(schema.meetings);
+        await tx.delete(schema.events);
+        await tx.delete(schema.notifications);
+        await tx.delete(schema.pointActivities);
+        await tx.delete(schema.userAchievements);
+        await tx.delete(schema.userPointsHistory);
+        await tx.delete(schema.emotionalCheckins);
+        await tx.delete(schema.missionaryProfiles);
+        await tx.delete(schema.prayers);
+        await tx.delete(schema.pushSubscriptions);
+        await tx.delete(schema.pastorInvites);
+      });
 
       logger.info('Dados limpos com sucesso');
     } catch (error) {
       logger.error('Erro ao limpar dados:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Deleta uma configuração do sistema por chave
+   */
+  async deleteConfig(key: string): Promise<void> {
+    try {
+      await db.delete(schema.systemConfig).where(eq(schema.systemConfig.key, key));
+    } catch (error) {
+      logger.error(`Error deleting system config ${key}:`, error);
+      throw new Error(`Failed to delete system config: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Deleta uma setting do sistema por chave
+   */
+  async deleteSetting(key: string): Promise<void> {
+    try {
+      await db.delete(schema.systemSettings).where(eq(schema.systemSettings.key, key));
+    } catch (error) {
+      logger.error(`Error deleting system setting ${key}:`, error);
+      throw new Error(`Failed to delete system setting: ${(error as Error).message}`);
     }
   }
 }

@@ -19,6 +19,9 @@ import type {
   MeetingType,
 } from '../../shared/schema';
 
+// Re-export shared types used by repositories
+export type { User, Church, Event, Meeting, Message, Conversation, Notification, Achievement, PointActivity, Relationship, DiscipleshipRequest, MissionaryProfile, MeetingType } from '../../shared/schema';
+
 // Tipos de entrada (sem id e timestamps automáticos)
 export type CreateUserInput = Omit<User, 'id' | 'createdAt' | 'updatedAt'> & {
   createdAt?: string;

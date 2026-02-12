@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGoogleDriveSync } from './useGoogleDriveSync';
+import { fetchWithAuth } from '@/lib/api';
 
 interface TasksSyncStatus {
   isEnabled: boolean;
@@ -67,11 +68,8 @@ export function useTasksGoogleDriveSync() {
       const csvUrl = convertToTasksCsvUrl(config.spreadsheetUrl);
       console.log('📊 Hook syncTasksNow - CSV URL gerada:', csvUrl);
 
-      const response = await fetch('/api/tasks/sync-google-drive', {
+      const response = await fetchWithAuth('/api/tasks/sync-google-drive', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           csvUrl,
           spreadsheetUrl: config.spreadsheetUrl,
@@ -133,11 +131,8 @@ export function useTasksGoogleDriveSync() {
       }
 
       try {
-        const response = await fetch('/api/tasks/add-to-google-drive', {
+        const response = await fetchWithAuth('/api/tasks/add-to-google-drive', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({ tasks }),
         });
 

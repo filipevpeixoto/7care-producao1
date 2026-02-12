@@ -3,7 +3,7 @@
  * Mede e reporta Core Web Vitals (LCP, FID, CLS, FCP, TTFB)
  */
 
-import { onCLS, onFCP, onINP, onLCP, onTTFB, Metric } from 'web-vitals';
+import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals';
 
 // Tipos para métricas
 interface WebVitalMetric {

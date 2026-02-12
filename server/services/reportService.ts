@@ -33,7 +33,7 @@ export class ReportService {
       return members[0] || { total: 0, approved: 0, pending: 0, donors: 0, tithers: 0 };
     } catch (error) {
       logger.error('Erro ao gerar relatório de membros:', error);
-      return { total: 0, approved: 0, pending: 0, donors: 0, tithers: 0 };
+      throw error;
     }
   }
 
@@ -60,7 +60,7 @@ export class ReportService {
       return events;
     } catch (error) {
       logger.error('Erro ao gerar relatório de eventos:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -95,13 +95,7 @@ export class ReportService {
       );
     } catch (error) {
       logger.error('Erro ao gerar estatísticas de presença:', error);
-      return {
-        totalMembers: 0,
-        avgAttendance: 0,
-        highAttendance: 0,
-        mediumAttendance: 0,
-        lowAttendance: 0,
-      };
+      throw error;
     }
   }
 
@@ -132,7 +126,7 @@ export class ReportService {
       return growth;
     } catch (error) {
       logger.error('Erro ao gerar relatório de crescimento:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -155,17 +149,7 @@ export class ReportService {
       };
     } catch (error) {
       logger.error('Erro ao gerar dashboard:', error);
-      return {
-        members: { total: 0, approved: 0, pending: 0, donors: 0, tithers: 0 },
-        attendance: {
-          totalMembers: 0,
-          avgAttendance: 0,
-          highAttendance: 0,
-          mediumAttendance: 0,
-          lowAttendance: 0,
-        },
-        topMembers: [],
-      };
+      throw error;
     }
   }
 
@@ -188,7 +172,7 @@ export class ReportService {
       return members;
     } catch (error) {
       logger.error('Erro ao buscar top membros:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -212,7 +196,7 @@ export class ReportService {
       return birthdays;
     } catch (error) {
       logger.error('Erro ao gerar relatório de aniversariantes:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -231,7 +215,7 @@ export class ReportService {
       const csvRows = data.map(row =>
         headers
           .map(header => {
-            const value = (row as any)[header];
+            const value = (row as Record<string, unknown>)[header];
             // Escapar valores com vírgula ou aspas
             if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
               return `"${value.replace(/"/g, '""')}"`;
@@ -244,7 +228,7 @@ export class ReportService {
       return [csvHeaders, ...csvRows].join('\n');
     } catch (error) {
       logger.error('Erro ao exportar CSV:', error);
-      return '';
+      throw error;
     }
   }
 }

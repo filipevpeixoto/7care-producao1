@@ -3,7 +3,7 @@
  * Resolve incompatibilidades entre Drizzle schema e tipos da aplicação
  */
 
-import { User, Event, Relationship } from '../../shared/schema';
+import { type User, type Event, type Relationship } from '../../shared/schema';
 
 // =============================================================================
 // TIPOS PARA ROLES E STATUS
@@ -12,12 +12,12 @@ import { User, Event, Relationship } from '../../shared/schema';
 /**
  * Roles válidas no sistema
  */
-export type UserRole = 'superadmin' | 'pastor' | 'member' | 'interested' | 'missionary' | 'admin_readonly';
+export type UserRole = 'superadmin' | 'pastor' | 'admin' | 'admin_readonly' | 'member' | 'missionary' | 'interested';
 
 /**
  * Status válidos para usuários
  */
-export type UserStatus = 'active' | 'inactive' | 'pending' | 'visited';
+export type UserStatus = 'active' | 'inactive' | 'pending' | 'visited' | 'approved' | 'rejected';
 
 /**
  * Status válidos para relacionamentos
@@ -33,8 +33,8 @@ export type EventStatus = 'scheduled' | 'cancelled' | 'completed';
 // HELPERS PARA VALIDAÇÃO E CONVERSÃO
 // =============================================================================
 
-const VALID_ROLES: UserRole[] = ['superadmin', 'pastor', 'member', 'interested', 'missionary', 'admin_readonly'];
-const VALID_USER_STATUS: UserStatus[] = ['active', 'inactive', 'pending', 'visited'];
+const VALID_ROLES: UserRole[] = ['superadmin', 'pastor', 'admin', 'admin_readonly', 'member', 'interested', 'missionary'];
+const VALID_USER_STATUS: UserStatus[] = ['active', 'inactive', 'pending', 'visited', 'approved', 'rejected'];
 const VALID_RELATIONSHIP_STATUS: RelationshipStatus[] = ['active', 'pending', 'inactive'];
 const VALID_EVENT_STATUS: EventStatus[] = ['scheduled', 'cancelled', 'completed'];
 

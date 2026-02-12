@@ -3,7 +3,7 @@
  * Métodos relacionados a eleições
  */
 
-import { sql as rawSql } from '../neonConfig';
+import { sql as rawSql, sqlTransaction } from '../neonConfig';
 import { logger } from '../utils/logger';
 
 export interface Election {
@@ -363,11 +363,13 @@ export class ElectionRepository {
    */
   async deleteElection(id: number): Promise<boolean> {
     try {
-      // Deleta votos e indicações primeiro
-      await rawSql`DELETE FROM election_votes WHERE election_id = ${id}`;
-      await rawSql`DELETE FROM election_nominations WHERE election_id = ${id}`;
-      const result = await rawSql`DELETE FROM elections WHERE id = ${id}`;
-      return (result?.length || 0) >= 0;
+      // Deleta votos, indicações e eleição em transação atômica
+      await sqlTransaction([
+        rawSql`DELETE FROM election_votes WHERE election_id = ${id}`,
+        rawSql`DELETE FROM election_nominations WHERE election_id = ${id}`,
+        rawSql`DELETE FROM elections WHERE id = ${id}`,
+      ]);
+      return true;
     } catch (error) {
       logger.error('Erro ao deletar eleição', error);
       return false;

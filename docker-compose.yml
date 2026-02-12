@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: 7care-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: sevencare
+      POSTGRES_USER: sevencare
+      POSTGRES_PASSWORD: sevencare
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sevencare']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - 7care-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: 7care-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes
+    networks:
+      - 7care-network
+
+  # 7Care Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 7care-app
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+      - '3064:3064'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sevencare:sevencare@postgres:5432/sevencare
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      SESSION_SECRET: dev-session-secret-change-in-production
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3064
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      # Mount source for hot reload (optional, comment out for production-like testing)
+      # - ./server:/app/server
+      # - ./client:/app/client
+      # - ./shared:/app/shared
+    networks:
+      - 7care-network
+
+  # Adminer - Database Management UI
+  # Access at: http://localhost:8080
+  # Server: postgres, User: sevencare, Password: sevencare, Database: sevencare
+  adminer:
+    image: adminer:latest
+    container_name: 7care-adminer
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: pepa-linha
+    depends_on:
+      - postgres
+    networks:
+      - 7care-network
+
+  # Redis Commander - Redis Management UI
+  # Access at: http://localhost:8081
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: 7care-redis-commander
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - 7care-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  7care-network:
+    driver: bridge

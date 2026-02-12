@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventFilterPermissions } from '@/hooks/useEventFilterPermissions';
-import { CalendarEvent, EVENT_TYPES } from '@/types/calendar';
+import { type CalendarEvent, EVENT_TYPES } from '@/types/calendar';
 import { useBirthdays } from '@/hooks/useBirthdays';
 
 // Função utilitária para formatar datas sem problemas de fuso horário
@@ -118,7 +118,7 @@ const fetchEvents = async (userRole?: string): Promise<CalendarEvent[]> => {
         id: event.id,
         title: event.title,
         description: event.description,
-        startDate: startDate,
+        startDate,
         endDate: convertedEndDate || undefined,
         time: undefined,
         duration: undefined,
@@ -255,14 +255,14 @@ interface MonthlyCalendarViewProps {
   events?: CalendarEvent[]; // Eventos passados via props
 }
 
-export const MonthlyCalendarView = memo(function MonthlyCalendarView({
+export const MonthlyCalendarView = memo(({
   onEventClick,
   onNewEvent,
   onDateClick,
   events: propsEvents,
   activeFilters = [],
   showBirthdays = false,
-}: MonthlyCalendarViewProps) {
+}: MonthlyCalendarViewProps) => {
   const { user } = useAuth();
   const { canFilterEventType } = useEventFilterPermissions();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -351,7 +351,7 @@ export const MonthlyCalendarView = memo(function MonthlyCalendarView({
   const getEventsByDate = (date: string) => {
     console.log(`🔍 getEventsByDate para ${date}:`, {
       filteredEventsCount: filteredEvents?.length || 0,
-      filteredEvents: filteredEvents,
+      filteredEvents,
     });
 
     const events =

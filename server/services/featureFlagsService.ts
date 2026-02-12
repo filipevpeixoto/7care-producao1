@@ -3,7 +3,7 @@
  * Sistema de feature toggles para controle gradual de features
  */
 
-import { Request } from 'express';
+import { type Request } from 'express';
 import { logger } from '../utils/logger';
 
 /**

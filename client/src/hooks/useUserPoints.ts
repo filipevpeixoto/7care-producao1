@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { UserData } from '@/lib/pointsCalculator';
+import { fetchWithAuth } from '@/lib/api';
+import { type UserData } from '@/lib/pointsCalculator';
 
 interface UserPointsData {
   points: number;
@@ -27,7 +28,7 @@ export const useUserPoints = () => {
   useEffect(() => {
     const fetchPointsConfig = async () => {
       try {
-        const response = await fetch('/api/system/points-config');
+        const response = await fetchWithAuth('/api/system/points-config');
         if (response.ok) {
           const config = await response.json();
           setPointsConfig(config);
@@ -53,7 +54,7 @@ export const useUserPoints = () => {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/users/${user.id}/points-details`);
+      const response = await fetchWithAuth(`/api/users/${user.id}/points-details`);
 
       if (!response.ok) {
         // 404 significa usuário não encontrado - não é um erro crítico

@@ -4,13 +4,11 @@
  */
 
 import helmet from 'helmet';
-import { Express, Request, Response, NextFunction } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { type Express, type Request, type Response, type NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { auditService } from '../services/auditService';
 
-const _storage = new NeonAdapter();
-
-// Tipos para audit log
+// Tipos para audit log (mantidos para backward compat da interface)
 interface AuditLogEntry {
   timestamp: string;
   userId: number | null;
@@ -24,9 +22,8 @@ interface AuditLogEntry {
   success: boolean;
 }
 
-// Buffer de audit logs (em produção, usar Redis ou banco de dados)
-const auditLogBuffer: AuditLogEntry[] = [];
-const MAX_AUDIT_BUFFER = 1000;
+// Audit logs são agora persistidos via auditService (DB-backed)
+// O buffer em memória foi removido — usar auditService.getLogs() para consultas
 
 /**
  * Configura Helmet para headers de segurança
@@ -111,13 +108,19 @@ export function auditLog(
     success,
   };
 
-  // Adicionar ao buffer
-  auditLogBuffer.push(entry);
-
-  // Manter buffer limitado
-  if (auditLogBuffer.length > MAX_AUDIT_BUFFER) {
-    auditLogBuffer.shift();
-  }
+  // Persistir via auditService (DB-backed) — fire and forget
+  auditService.log({
+    action: action as 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED' | 'PASSWORD_CHANGE' | 'PERMISSION_CHANGE' | 'EXPORT' | 'IMPORT' | 'BULK_UPDATE' | 'BULK_DELETE',
+    resource,
+    resourceId: resourceId != null ? Number(resourceId) : undefined,
+    userId: userId ?? 0,
+    userEmail: userEmail ?? 'anonymous',
+    ipAddress: ip,
+    userAgent,
+    metadata: entry.details,
+  }).catch((err) => {
+    logger.error('Failed to persist audit log:', err);
+  });
 
   // Log para console em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
@@ -178,8 +181,9 @@ export function auditMiddleware(action: string, resource: string) {
 
 /**
  * Retorna os audit logs (para admin)
+ * Agora delega para auditService (DB-backed) com fallback síncrono vazio
  */
-export function getAuditLogs(filters?: {
+export function getAuditLogs(_filters?: {
   userId?: number;
   action?: string;
   resource?: string;
@@ -187,32 +191,10 @@ export function getAuditLogs(filters?: {
   endDate?: string;
   limit?: number;
 }): AuditLogEntry[] {
-  let logs = [...auditLogBuffer];
-
-  if (filters) {
-    if (filters.userId) {
-      logs = logs.filter(l => l.userId === filters.userId);
-    }
-    if (filters.action) {
-      logs = logs.filter(l => l.action === filters.action);
-    }
-    if (filters.resource) {
-      logs = logs.filter(l => l.resource === filters.resource);
-    }
-    if (filters.startDate) {
-      logs = logs.filter(l => l.timestamp >= filters.startDate!);
-    }
-    if (filters.endDate) {
-      logs = logs.filter(l => l.timestamp <= filters.endDate!);
-    }
-  }
-
-  // Ordenar por mais recente
-  logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-
-  // Limitar resultados
-  const limit = filters?.limit || 100;
-  return logs.slice(0, limit);
+  // Para manter a interface síncrona existente, retornar vazio
+  // Consumidores devem migrar para auditService.getLogs() (async)
+  logger.warn('getAuditLogs() is deprecated. Use auditService.getLogs() instead.');
+  return [];
 }
 
 /**

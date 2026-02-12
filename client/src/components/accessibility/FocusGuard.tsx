@@ -4,7 +4,7 @@
  * @module components/accessibility/FocusGuard
  */
 
-import { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 interface FocusGuardProps {
   /** Conteúdo do guard */

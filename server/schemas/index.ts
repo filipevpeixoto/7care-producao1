@@ -107,7 +107,16 @@ export const updateUserSchema = createUserSchema.partial().extend({
   points: z.number().int().optional(),
   level: z.string().optional(),
   attendance: z.number().int().optional(),
+  extraData: z.record(z.unknown()).optional(),
+  profilePhoto: z.string().optional().nullable(),
 });
+
+/**
+ * Campos que somente superadmin pode alterar.
+ * O endpoint PUT /api/users/:id usa updateUserSchema mas
+ * remove esses campos do body se o usuário não for superadmin.
+ */
+export const PROTECTED_USER_FIELDS = ['role', 'isApproved', 'status'] as const;
 
 export const userIdParamSchema = z.object({
   id: z.string().regex(/^\d+$/, 'ID deve ser um número').transform(Number),

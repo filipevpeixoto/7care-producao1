@@ -4,17 +4,19 @@
  * Funciona no body, params e query de toda requisição POST/PUT/PATCH
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 
 /**
- * Padrões perigosos de HTML/Script injection
+ * Padrões perigosos de HTML/Script injection.
+ * Sem flag `g` — usados apenas com test() para detecção.
+ * A flag `g` causa bugs com test() pois lastIndex persiste entre chamadas.
  */
 const DANGEROUS_PATTERNS = [
-  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, // <script>...</script>
-  /javascript\s*:/gi, // javascript: protocol
-  /on\w+\s*=/gi, // event handlers (onclick=, onerror=, etc.)
-  /data\s*:\s*text\/html/gi, // data:text/html
-  /vbscript\s*:/gi, // vbscript: protocol
+  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i, // <script>...</script>
+  /javascript\s*:/i, // javascript: protocol
+  /on\w+\s*=/i, // event handlers (onclick=, onerror=, etc.)
+  /data\s*:\s*text\/html/i, // data:text/html
+  /vbscript\s*:/i, // vbscript: protocol
 ];
 
 /**
@@ -50,7 +52,15 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   if (typeof value === 'string') {
     // Apenas sanitiza se contém padrões perigosos (preserva dados normais)
     if (containsDangerousContent(value)) {
-      return escapeHtml(value);
+      // 1. Escapar HTML primeiro (neutraliza <script>, <img>, etc.)
+      let result = escapeHtml(value);
+      // 2. Remover padrões perigosos que sobrevivem ao escape HTML
+      //    (protocolos e event handlers não contêm < > & " ')
+      result = result.replace(/javascript\s*:/gi, '');
+      result = result.replace(/on\w+\s*=/gi, '');
+      result = result.replace(/data\s*:\s*text\/html/gi, '');
+      result = result.replace(/vbscript\s*:/gi, '');
+      return result;
     }
     return value;
   }

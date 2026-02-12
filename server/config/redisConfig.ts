@@ -4,6 +4,8 @@
  * Para produção com Redis, instale ioredis: npm install ioredis @types/ioredis
  */
 
+import { logger } from '../utils/logger';
+
 // Interface para configuração Redis
 export interface RedisConfig {
   host: string;
@@ -115,13 +117,13 @@ export class RateLimitStore {
 
     // Em desenvolvimento, usar store em memória
     if (process.env.NODE_ENV !== 'production') {
-      console.log('📦 Rate Limiting: Usando store em memória (desenvolvimento)');
+      logger.info('Rate Limiting: Usando store em memória (desenvolvimento)');
       this.startCleanup();
     } else if (process.env.REDIS_HOST) {
       // Em produção com Redis configurado, tentar conectar
       this.initRedis(fullConfig);
     } else {
-      console.log('📦 Rate Limiting: Usando store em memória (Redis não configurado)');
+      logger.info('Rate Limiting: Usando store em memória (Redis não configurado)');
       this.startCleanup();
     }
   }
@@ -133,7 +135,7 @@ export class RateLimitStore {
       const Redis = require('ioredis');
 
       if (!Redis) {
-        console.warn('⚠️ Redis: ioredis não instalado, usando fallback em memória');
+        logger.warn('Redis: ioredis não instalado, usando fallback em memória');
         this.startCleanup();
         return;
       }
@@ -145,7 +147,7 @@ export class RateLimitStore {
         db: config.db,
         retryStrategy: (times: number) => {
           if (times > (config.maxRetries || 3)) {
-            console.warn('⚠️ Redis: Máximo de retentativas atingido');
+            logger.warn('Redis: Máximo de retentativas atingido');
             return null;
           }
           return config.retryDelayMs || 1000;
@@ -157,11 +159,11 @@ export class RateLimitStore {
 
       redis.on('connect', () => {
         this.isConnected = true;
-        console.log('✅ Redis: Conectado com sucesso');
+        logger.info('Redis: Conectado com sucesso');
       });
 
       redis.on('error', (err: Error) => {
-        console.error('❌ Redis Error:', err.message);
+        logger.error('Redis Error:', err.message);
         this.isConnected = false;
       });
 
@@ -183,7 +185,7 @@ export class RateLimitStore {
       };
     } catch (error) {
       const err = error as Error;
-      console.warn('⚠️ Redis: Falha na conexão, usando fallback:', err.message);
+      logger.warn('Redis: Falha na conexão, usando fallback:', err.message);
       this.startCleanup();
     }
   }
@@ -215,7 +217,7 @@ export class RateLimitStore {
 
         return { count, ttl };
       } catch (err) {
-        console.warn('⚠️ Redis increment error, usando fallback:', (err as Error).message);
+        logger.warn('Redis increment error, usando fallback:', (err as Error).message);
       }
     }
 
@@ -357,7 +359,7 @@ export function createRateLimiter(options: RateLimitOptions) {
       next();
     } catch (error) {
       // Em caso de erro, permitir a requisição (fail-open)
-      console.error('Rate limiter error:', error);
+      logger.error('Rate limiter error:', error);
       next();
     }
   };

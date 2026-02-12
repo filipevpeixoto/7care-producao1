@@ -3,13 +3,13 @@
  * Endpoints relacionados ao gerenciamento de igrejas
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
 import { isSuperAdmin, isPastor } from '../utils/permissions';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createChurchSchema, updateChurchSchema } from '../schemas';
 import { logger } from '../utils/logger';
-import { Church } from '../../shared/schema';
+import { type Church } from '../../shared/schema';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';

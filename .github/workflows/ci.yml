@@ -83,10 +83,52 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Run tests
-        run: npm run test
+      - name: Run client tests with coverage
+        run: npm run test:coverage
         env:
           NODE_ENV: test
+
+      - name: Upload client coverage
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/client/coverage-final.json
+          flags: client
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  test-server:
+    name: Server Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run server tests with coverage
+        run: npm run test:server:coverage
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          JWT_SECRET: test-secret-for-ci
+          SESSION_SECRET: test-session-secret-for-ci
+
+      - name: Upload server coverage
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/server/coverage-final.json
+          flags: server
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   security:
     name: Security Audit

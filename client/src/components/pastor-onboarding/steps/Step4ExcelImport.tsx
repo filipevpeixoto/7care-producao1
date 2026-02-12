@@ -43,7 +43,7 @@ import {
   SkipForward,
   AlertTriangle,
 } from 'lucide-react';
-import { ExcelData, ExcelRow } from '@/types/pastor-invite';
+import { type ExcelData, type ExcelRow } from '@/types/pastor-invite';
 import { readExcelFile } from '@/lib/excel';
 
 type ImportStep = 'upload' | 'preview' | 'mapping' | 'validation' | 'complete';

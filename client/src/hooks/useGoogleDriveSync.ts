@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { fetchWithAuth } from '@/lib/api';
 
 interface GoogleDriveConfig {
   spreadsheetUrl: string;
@@ -25,7 +26,7 @@ export function useGoogleDriveSync() {
   // Carregar configuração
   const loadConfig = useCallback(async () => {
     try {
-      const response = await fetch('/api/calendar/google-drive-config');
+      const response = await fetchWithAuth('/api/calendar/google-drive-config');
       if (response.ok) {
         const configData = await response.json();
         setConfig(configData);
@@ -107,11 +108,8 @@ export function useGoogleDriveSync() {
       const csvUrl = convertToCsvUrl(config.spreadsheetUrl);
       console.log('📊 Hook syncNow - CSV URL gerada:', csvUrl);
       
-      const response = await fetch('/api/calendar/sync-google-drive', {
+      const response = await fetchWithAuth('/api/calendar/sync-google-drive', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ 
           csvUrl,
           spreadsheetUrl: config.spreadsheetUrl 

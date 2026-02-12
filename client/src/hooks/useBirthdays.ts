@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
+import { fetchWithAuth } from '@/lib/api';
+import { STALE_TIME } from '@/lib/queryConstants';
 
 interface BirthdayUser {
   id: number;
@@ -22,15 +24,7 @@ export const useBirthdays = () => {
   const { data: birthdays = { today: [], thisMonth: [], all: [] }, isLoading, error } = useQuery<BirthdaysData>({
     queryKey: ['birthdays', user?.id],
     queryFn: async () => {
-      const headers: Record<string, string> = {};
-      if (user?.id) {
-        headers['x-user-id'] = user.id.toString();
-        headers['x-user-role'] = user.role;
-      }
-      
-      const response = await fetch('/api/users/birthdays', {
-        headers
-      });
+      const response = await fetchWithAuth('/api/users/birthdays');
       
       if (!response.ok) {
         throw new Error('Falha ao buscar aniversariantes');
@@ -39,7 +33,7 @@ export const useBirthdays = () => {
       return response.json();
     },
     enabled: !!user, // Só executa se o usuário estiver logado
-    staleTime: 5 * 60 * 1000, // 5 minutos - cache inteligente
+    staleTime: STALE_TIME.LONG, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos - manter em cache
     refetchInterval: 15 * 60 * 1000, // 15 minutos - refresh automático
     refetchOnWindowFocus: false // Não refazer ao focar janela

@@ -10,7 +10,7 @@ import {
   getPointsToNextLevel,
 } from '@/lib/gamification';
 import { MountIcon } from '@/components/ui/mount-icon';
-import { PointsCalculator, UserData } from '@/lib/pointsCalculator';
+import { PointsCalculator, type UserData } from '@/lib/pointsCalculator';
 import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 
 interface QuickGamificationCardProps {

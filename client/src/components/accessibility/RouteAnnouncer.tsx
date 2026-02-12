@@ -60,7 +60,7 @@ export function RouteAnnouncer() {
 
     if (!pageTitle) {
       // Tentar match por primeiro nível de rota (ex: /pastor-onboarding/abc → Onboarding)
-      const firstSegment = '/' + path.split('/').filter(Boolean)[0];
+      const firstSegment = `/${  path.split('/').filter(Boolean)[0]}`;
       pageTitle = routeTitles[firstSegment];
     }
 

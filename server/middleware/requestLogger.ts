@@ -3,7 +3,7 @@
  * Logs de requisições HTTP com métricas de tempo de resposta e correlation ID
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
 /**

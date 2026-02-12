@@ -3,7 +3,7 @@
  * Endpoints para integração OAuth2 com Google Calendar e sincronização de eventos
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { GoogleCalendarService } from '../services/googleCalendarService';
 import { logger } from '../utils/logger';

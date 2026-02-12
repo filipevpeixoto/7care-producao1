@@ -17,6 +17,7 @@ import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwtConfig';
 import { requireStrongPassword, getPasswordSuggestions } from '../utils/passwordValidator';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess, sendError, sendNotFound, sendUnauthorized } from '../utils/apiResponse';
+import { authService } from '../services/authService';
 
 // SEGURANÇA: JWT_SECRET e validações agora centralizadas em config/jwtConfig.ts
 
@@ -79,40 +80,22 @@ export const authRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const { email, password } = (req as ValidatedRequest<typeof loginSchema._type>).validatedBody;
 
-      // Try to find user by email first
-      let user = await userRepo.getUserByEmail(email);
+      // Delegar toda a lógica de autenticação ao AuthService
+      const result = await authService.login(email, password);
 
-      // If not found by email, try to find by normalized username (O(1) with index)
-      if (!user) {
-        user = await userRepo.getUserByNormalizedUsername(email);
-      }
-
-      // Verify password
-      const userPassword = user?.password || '';
-      if (!user || !userPassword || !(await bcrypt.compare(password, userPassword))) {
+      if (!result.success || !result.user) {
         logger.authFailure('Invalid credentials', email);
-        return sendUnauthorized(res, 'Credenciais inválidas');
+        return sendUnauthorized(res, result.error || 'Credenciais inválidas');
       }
 
-      // Verificar primeiro acesso via flag do banco (não comparar com senha fixa)
+      const user = result.user;
       const shouldForceFirstAccess = !!(user as unknown as Record<string, unknown>).firstAccess;
 
       logger.authSuccess(user.id, user.email);
 
-      const token = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name,
-        } satisfies JwtUserPayload,
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
-
       res.json({
         success: true,
-        token,
+        token: result.token,
         user: {
           id: user.id,
           name: user.name,
@@ -227,13 +210,13 @@ export const authRoutes = (app: Express): void => {
    *       200:
    *         description: Logout successful
    */
-  app.post('/api/auth/logout', (req: Request, res: Response) => {
+  app.post('/api/auth/logout', async (req: Request, res: Response) => {
     // Revogar o access token atual para invalidá-lo imediatamente
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
       const { tokenBlacklist } = require('../services/tokenBlacklistService');
-      tokenBlacklist.add(token);
+      await tokenBlacklist.add(token);
     }
 
     // Limpar refresh token cookie

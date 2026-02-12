@@ -35,7 +35,7 @@ import { DiscipuladoresManager } from './DiscipuladoresManager';
 import { DiscipuladorButton } from './DiscipuladorButton';
 import { cn } from '@/lib/utils';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { MarkVisitModal } from './MarkVisitModal';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -89,7 +89,7 @@ type SpiritualData = {
   checkIns: SpiritualCheckIn[];
 };
 
-export function UserCardResponsive({
+export const UserCardResponsive = memo(({
   user,
   onClick,
   onApprove: _onApprove,
@@ -103,7 +103,7 @@ export function UserCardResponsive({
   relationshipsData = [],
   potentialMissionaries: _potentialMissionaries = [],
   hasPendingDiscipleRequest = false,
-}: UserCardProps) {
+}: UserCardProps) => {
   const [localUser, setLocalUser] = useState<LocalUser>(user);
   const [isMarkingVisit, setIsMarkingVisit] = useState(false);
   const [showMarkVisitModal, setShowMarkVisitModal] = useState(false);
@@ -579,6 +579,7 @@ export function UserCardResponsive({
                         handleVisitButtonClick();
                       }}
                       title={visitButtonTitle}
+                      aria-label={visitButtonTitle}
                     >
                       {visitButtonContent}
                     </Button>
@@ -592,6 +593,7 @@ export function UserCardResponsive({
                         onView?.();
                       }}
                       title="Visualizar detalhes"
+                      aria-label="Visualizar detalhes do usuário"
                     >
                       <Eye className="h-3 w-3" />
                     </Button>
@@ -614,6 +616,7 @@ export function UserCardResponsive({
                         onScheduleVisit?.();
                       }}
                       title="Agendar visita futura"
+                      aria-label="Agendar visita"
                     >
                       <Calendar className="h-3 w-3" />
                     </Button>
@@ -628,6 +631,7 @@ export function UserCardResponsive({
                           handleWhatsApp();
                         }}
                         title="Enviar WhatsApp"
+                        aria-label="Enviar WhatsApp"
                       >
                         <MessageCircle className="h-3 w-3" />
                       </Button>
@@ -642,6 +646,7 @@ export function UserCardResponsive({
                         onDelete?.();
                       }}
                       title="Excluir usuário"
+                      aria-label="Excluir usuário"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -780,6 +785,7 @@ export function UserCardResponsive({
                     variant="outline"
                     role="combobox"
                     aria-expanded={openSituationPopover}
+                    aria-label="Selecionar situação do amigo"
                     className="w-[200px] justify-between text-xs h-7"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -801,6 +807,7 @@ export function UserCardResponsive({
                       size="sm"
                       className="h-6 w-6 p-0"
                       onClick={() => setOpenSituationPopover(false)}
+                      aria-label="Fechar seleção de situação"
                     >
                       ✕
                     </Button>
@@ -1027,4 +1034,4 @@ export function UserCardResponsive({
       </Dialog>
     </Card>
   );
-}
+});

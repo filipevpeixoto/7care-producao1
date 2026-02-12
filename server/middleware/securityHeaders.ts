@@ -4,18 +4,21 @@
  * @module middleware/securityHeaders
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 
 /**
  * Content Security Policy (CSP) Header Configuration
  * Previne XSS, clickjacking, e outros ataques de injeção
+ *
+ * NOTA: Esta é a ÚNICA definição de CSP do sistema.
+ * Os arquivos cspHeaders.ts e security.ts (configureHelmet) são legado/dead code.
  */
 const cspDirectives = {
   defaultSrc: ["'self'"],
   scriptSrc: [
     "'self'",
     "'unsafe-inline'", // Necessário para React
-    "'unsafe-eval'", // Necessário para dev tools
+    ...(process.env.NODE_ENV === 'development' ? ["'unsafe-eval'"] : []),
     'https://cdn.jsdelivr.net',
     'https://unpkg.com',
   ],

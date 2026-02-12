@@ -6,7 +6,7 @@
  * o rastreamento de logs e debugging em produção.
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import { randomUUID } from 'crypto';
 import { logger } from '../utils/logger';
 

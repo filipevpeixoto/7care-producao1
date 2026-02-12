@@ -5,9 +5,9 @@
 
 import { db } from '../neonConfig';
 import { schema } from '../schema';
-import { eq, and, desc, asc, gte, lte, exists, sql as drizzleSql, SQL } from 'drizzle-orm';
-import { CreateEventInput, UpdateEventInput } from '../types/storage';
-import { Event } from '../../shared/schema';
+import { eq, and, desc, asc, gte, lte, exists, sql as drizzleSql, type SQL } from 'drizzle-orm';
+import { type CreateEventInput, type UpdateEventInput } from '../types/storage';
+import { type Event } from '../../shared/schema';
 
 /**
  * Converte row do banco para tipo Event

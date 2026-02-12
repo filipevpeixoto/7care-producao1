@@ -4,7 +4,7 @@
  * @module services/prometheusService
  */
 
-import { Request, Response, Router } from 'express';
+import { type Request, type Response, Router } from 'express';
 import { cacheService } from './cacheService';
 import { logger } from '../utils/logger';
 

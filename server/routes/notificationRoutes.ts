@@ -3,9 +3,9 @@
  * Endpoints relacionados a notificações e push notifications
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { asyncHandler, sendSuccess, sendNotFound, sendError } from '../utils';
-import { validateParams, ValidatedRequest } from '../middleware/validation';
+import { validateParams, type ValidatedRequest } from '../middleware/validation';
 import { idParamSchema, userIdParamSchema } from '../schemas';
 import { getRepository, getService } from '../container';
 

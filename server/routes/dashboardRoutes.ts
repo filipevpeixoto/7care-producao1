@@ -3,11 +3,11 @@
  * Endpoints relacionados às estatísticas e dashboard
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
 import { logger } from '../utils/logger';
 import { isSuperAdmin, isPastor } from '../utils/permissions';
-import { Church, Event, Relationship, User } from '../../shared/schema';
+import { type Church, type Event, type Relationship, type User } from '../../shared/schema';
 import { cacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
 import { asyncHandler } from '../utils';
@@ -91,9 +91,10 @@ export const dashboardRoutes = (app: Express): void => {
         // Usuário comum: filtrar por igreja
         const userChurch = user?.church;
         if (userChurch) {
-          const allUsers = await userRepo.getAllUsers();
-          usersToInclude = allUsers.filter(
-            (u: User) => u.email !== 'admin@7care.com' && u.church === userChurch
+          // PERFORMANCE: Buscar apenas usuários da igreja no banco (evita carregar todos)
+          const churchUsers = await userRepo.getUsersByChurch(userChurch);
+          usersToInclude = churchUsers.filter(
+            (u: User) => u.email !== 'admin@7care.com'
           );
           eventsToInclude = allEvents.filter((e: Event) => e.church === userChurch);
           churchesToInclude = await churchRepo
@@ -201,9 +202,9 @@ export const dashboardRoutes = (app: Express): void => {
       const stats = {
         totalUsers: regularUsers.length,
         totalInterested: usersByRole.interested || 0,
-        interestedBeingDiscipled: interestedBeingDiscipled,
+        interestedBeingDiscipled,
         totalMembers: usersByRole.member || 0,
-        totalMissionaries: totalMissionaries,
+        totalMissionaries,
         totalAdmins: (usersByRole.pastor || 0) + (usersByRole.superadmin || 0),
         totalChurches: churchesCount,
         pendingApprovals,
@@ -324,7 +325,7 @@ export const dashboardRoutes = (app: Express): void => {
               visitedUsersList.push({
                 id: user.id,
                 name: user.name,
-                visitCount: visitCount,
+                visitCount,
                 lastVisitDate: extraData.lastVisitDate,
               });
             }
@@ -341,10 +342,10 @@ export const dashboardRoutes = (app: Express): void => {
       sendSuccess(res, {
         completed: visitedPeople,
         expected: expectedVisits,
-        totalVisits: totalVisits,
-        visitedPeople: visitedPeople,
-        percentage: percentage,
-        visitedUsersList: visitedUsersList,
+        totalVisits,
+        visitedPeople,
+        percentage,
+        visitedUsersList,
       });
     })
   );
@@ -426,7 +427,7 @@ export const dashboardRoutes = (app: Express): void => {
 
       const responseUser = {
         ...updatedUser,
-        extraData: extraData,
+        extraData,
       };
 
       sendSuccess(res, responseUser);

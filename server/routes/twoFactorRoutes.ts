@@ -2,12 +2,12 @@
  * Rotas de Autenticação de Dois Fatores (2FA)
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import twoFactorService from '../services/twoFactorService';
 import '../types/express'; // Importar tipos customizados do Express
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess, sendError, sendUnauthorized } from '../utils/apiResponse';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { twoFactorEnableSchema, twoFactorVerifySchema } from '../schemas';
 
 const router = Router();

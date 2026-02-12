@@ -3,14 +3,28 @@
  * Proteção contra Cross-Site Request Forgery usando padrão double submit cookie
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import crypto from 'crypto';
 import { logger } from '../utils/logger';
-import { CsrfRequest } from '../types/express';
+import { type CsrfRequest } from '../types/express';
 
 const CSRF_TOKEN_HEADER = 'x-csrf-token';
 const CSRF_COOKIE_NAME = 'csrf-token';
 const CSRF_TOKEN_LENGTH = 32;
+
+/**
+ * Parse cookies from request header (inline, no cookie-parser dependency needed)
+ */
+function parseCookies(req: Request): Record<string, string> {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return {};
+  return Object.fromEntries(
+    cookieHeader.split(';').map(c => {
+      const [key, ...rest] = c.trim().split('=');
+      return [key, decodeURIComponent(rest.join('='))];
+    })
+  );
+}
 
 // Métodos que requerem verificação CSRF
 const UNSAFE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
@@ -37,8 +51,10 @@ export function generateCsrfToken(): string {
 export function csrfCookie(req: Request, res: Response, next: NextFunction): void {
   const csrfReq = req as CsrfRequest;
   
+  const cookies = parseCookies(req);
+  
   // Se não existe cookie CSRF, criar um
-  if (!req.cookies?.[CSRF_COOKIE_NAME]) {
+  if (!cookies[CSRF_COOKIE_NAME]) {
     const token = generateCsrfToken();
     
     res.cookie(CSRF_COOKIE_NAME, token, {
@@ -52,7 +68,7 @@ export function csrfCookie(req: Request, res: Response, next: NextFunction): voi
     // Adicionar ao request para uso posterior
     csrfReq.csrfToken = token;
   } else {
-    csrfReq.csrfToken = req.cookies[CSRF_COOKIE_NAME];
+    csrfReq.csrfToken = cookies[CSRF_COOKIE_NAME];
   }
   
   next();
@@ -77,7 +93,8 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
   
   // Obter tokens
-  const cookieToken = req.cookies?.[CSRF_COOKIE_NAME];
+  const cookies = parseCookies(req);
+  const cookieToken = cookies[CSRF_COOKIE_NAME];
   const headerToken = req.headers[CSRF_TOKEN_HEADER] as string;
   
   // Verificar se ambos os tokens existem e são iguais

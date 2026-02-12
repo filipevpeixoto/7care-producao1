@@ -3,7 +3,9 @@
  *
  * Mantém lista de tokens JWT revogados (logout).
  * Com JWT de 15min, a blacklist precisa reter tokens por no máximo 15min.
- * Usa Map em memória com limpeza automática — adequado para single-instance.
+ *
+ * Usa Redis quando REDIS_URL está configurado para persistência distribuída.
+ * Fallback para Map em memória — adequado para single-instance.
  */
 
 import { logger } from '../utils/logger';
@@ -16,10 +18,48 @@ interface BlacklistedToken {
 class TokenBlacklistService {
   private blacklist: Map<string, BlacklistedToken> = new Map();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private redisClient: {
+    set(key: string, value: string, options?: { PX: number }): Promise<unknown>;
+    get(key: string): Promise<string | null>;
+    del(key: string): Promise<unknown>;
+    quit(): Promise<unknown>;
+  } | null = null;
+  private redisConnected = false;
 
   constructor() {
     // Limpar tokens expirados a cada 5 minutos
     this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+
+    // Tentar conectar ao Redis para blacklist distribuída
+    this.initRedis();
+  }
+
+  private async initRedis(): Promise<void> {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) return;
+
+    try {
+       
+      const { createClient } = require('redis');
+      const client = createClient({ url: redisUrl });
+
+      client.on('error', (err: Error) => {
+        if (this.redisConnected) {
+          logger.warn(`Token blacklist Redis error: ${err.message}`);
+          this.redisConnected = false;
+        }
+      });
+
+      client.on('connect', () => {
+        this.redisConnected = true;
+        logger.info('✅ Token blacklist: usando Redis distribuído');
+      });
+
+      await client.connect();
+      this.redisClient = client;
+    } catch (err) {
+      logger.info('📦 Token blacklist: usando store em memória (Redis não disponível)');
+    }
   }
 
   /**
@@ -27,30 +67,53 @@ class TokenBlacklistService {
    * @param token - JWT token string
    * @param expiresInMs - Tempo até o token expirar naturalmente (default: 15min)
    */
-  add(token: string, expiresInMs: number = 15 * 60 * 1000): void {
+  async add(token: string, expiresInMs: number = 15 * 60 * 1000): Promise<void> {
     const expiresAt = Date.now() + expiresInMs;
+
+    // Sempre adicionar ao in-memory (resposta rápida)
     this.blacklist.set(token, { token, expiresAt });
-    logger.info(`Token adicionado à blacklist (total: ${this.blacklist.size})`);
+
+    // Também adicionar ao Redis se disponível (distribuído)
+    if (this.redisConnected && this.redisClient) {
+      try {
+        await this.redisClient.set(`7care:blacklist:${token}`, '1', { PX: expiresInMs });
+      } catch {
+        // Fallback silencioso para in-memory
+      }
+    }
+
+    logger.info(`Token adicionado à blacklist (in-memory: ${this.blacklist.size})`);
   }
 
   /**
    * Verifica se um token está na blacklist
    */
-  isBlacklisted(token: string): boolean {
+  async isBlacklisted(token: string): Promise<boolean> {
+    // Verificar in-memory primeiro (mais rápido)
     const entry = this.blacklist.get(token);
-    if (!entry) return false;
-
-    // Se já expirou, remover e retornar false
-    if (Date.now() > entry.expiresAt) {
-      this.blacklist.delete(token);
-      return false;
+    if (entry) {
+      if (Date.now() > entry.expiresAt) {
+        this.blacklist.delete(token);
+      } else {
+        return true;
+      }
     }
 
-    return true;
+    // Verificar Redis se disponível (para tokens blacklisted por outra instance)
+    if (this.redisConnected && this.redisClient) {
+      try {
+        const result = await this.redisClient.get(`7care:blacklist:${token}`);
+        return result !== null;
+      } catch {
+        // Fallback silencioso
+      }
+    }
+
+    return false;
   }
 
   /**
-   * Remove tokens expirados da blacklist
+   * Remove tokens expirados da blacklist em memória
    */
   private cleanup(): void {
     const now = Date.now();
@@ -67,10 +130,14 @@ class TokenBlacklistService {
   }
 
   /**
-   * Retorna o tamanho atual da blacklist (para monitoramento)
+   * Retorna o tamanho atual da blacklist em memória (para monitoramento)
    */
   get size(): number {
     return this.blacklist.size;
+  }
+
+  get usingRedis(): boolean {
+    return this.redisConnected;
   }
 
   /**
@@ -82,6 +149,10 @@ class TokenBlacklistService {
       this.cleanupInterval = null;
     }
     this.blacklist.clear();
+    if (this.redisClient) {
+      this.redisClient.quit().catch(() => {});
+      this.redisClient = null;
+    }
   }
 }
 

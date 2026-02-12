@@ -243,7 +243,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
             title: evento.toString().trim(),
             type: mapEventType(categoria),
             date: startDate,
-            endDate: endDate,
+            endDate,
             description: `${mes || 'Evento'} - ${categoria || 'Categoria não especificada'}`,
             originalData: {
               mes,

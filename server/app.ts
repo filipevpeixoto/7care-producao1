@@ -13,6 +13,7 @@ import { securityHeadersMiddleware } from './middleware/securityHeaders';
 import { healthCheckRouter } from './middleware/healthCheck';
 import { inputSanitizationMiddleware } from './middleware/inputSanitization';
 import { optionalJwtAuth } from './middleware/jwtAuth';
+import { csrfCookie, csrfProtection } from './middleware/csrf';
 import { monitoringService } from './services/monitoringService';
 import { prometheusService } from './services/prometheusService';
 import { errorHandler, notFoundHandler, setupGlobalErrorHandlers } from './middleware/errorHandler';
@@ -78,7 +79,7 @@ export function createApp(): express.Express {
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header(
       'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id, x-user-role'
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id, x-user-role, x-csrf-token'
     );
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');
@@ -104,6 +105,13 @@ export function createApp(): express.Express {
   // Define req.userId, req.user, req.userRole se token válido estiver presente
   // Não bloqueia se não houver token (usar requireJwtAuth para rotas protegidas)
   app.use('/api', optionalJwtAuth);
+
+  // CSRF Protection — feature flag para rollout gradual
+  // Ativar via ENABLE_CSRF=true em produção quando frontend enviar x-csrf-token
+  if (process.env.ENABLE_CSRF === 'true') {
+    app.use(csrfCookie);
+    app.use('/api', csrfProtection);
+  }
 
   // Health Check endpoints
   app.use('/', healthCheckRouter);

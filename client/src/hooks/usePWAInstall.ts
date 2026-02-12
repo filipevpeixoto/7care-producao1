@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ExtendedNavigator } from '@/types/extensions';
+import { type ExtendedNavigator } from '@/types/extensions';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];

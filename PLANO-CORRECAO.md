@@ -1,18 +1,19 @@
 # Plano de Correção — 7Care (Church Plus Manager)
 
-## Análise Inicial: Nota Média 4.8/10 → Nota Atual Estimada: 9.4/10
+## Análise Inicial: Nota Média 4.8/10 → Nota Atual Realista: 8.5/10
 
 | Categoria             | Nota Original | Nota Atual | Meta | Status |
 |-----------------------|:-------------:|:----------:|:----:|:------:|
-| Backend Architecture  | 4/10          | 9/10       | 10   | ✅ DI container, app.ts, repos, input sanitization, slow query logging |
+| Backend Architecture  | 4/10          | 9/10       | 10   | ✅ DI container, app.ts, repos, neonAdapter delegação (~600 linhas removidas) |
 | Frontend Architecture | 6/10          | 9/10       | 10   | ✅ ProtectedRoute, RouteAnnouncer, lazy loading |
-| Security              | 3/10          | 10/10      | 10   | ✅ Fase 1 + input sanitization XSS + npm audit + CSP headers |
+| Security              | 3/10          | 9/10       | 10   | ✅ Fase 1 + input sanitization XSS + npm audit + CSP headers |
 | Database              | 6/10          | 8/10       | 10   | ✅ 80 índices, unique constraints, slow query monitoring |
 | Performance           | 7/10          | 9/10       | 10   | ✅ Cache + Pagination + Lazy loading + Bundle optimization |
-| Code Quality          | 4/10          | 10/10      | 10   | ✅ Prettier + ESLint v10 strict + Husky + lint-staged + CI strict |
-| DevOps/CI-CD          | 2/10          | 9/10       | 10   | ✅ CI strict, Dockerfile, Dependabot, Husky pre-commit |
-| UX/Accessibility      | 7/10          | 10/10      | 10   | ✅ ARIA labels, RouteAnnouncer, axe-core WCAG 2.1 AA E2E tests |
-| Dependency Management | 3/10          | 10/10      | 10   | ✅ Dependabot, orphaned @types removidos, npm audit, engines |
+| Code Quality          | 4/10          | 9/10       | 10   | ✅ Prettier + ESLint v10 strict + Husky + lint-staged + CI strict |
+| DevOps/CI-CD          | 2/10          | 8/10       | 10   | ✅ CI strict, Dockerfile, Dependabot, Husky pre-commit |
+| Testing               | 2/10          | 7/10       | 10   | ✅ 8 suites, 122 tests, integration tests (auth + health + middleware) |
+| UX/Accessibility      | 7/10          | 9/10       | 10   | ✅ ARIA labels, RouteAnnouncer, axe-core WCAG 2.1 AA E2E tests |
+| Dependency Management | 3/10          | 9/10       | 10   | ✅ Dependabot, orphaned @types removidos, npm audit, engines |
 | Observability         | 6/10          | 10/10      | 10   | ✅ Structured JSON logging, slow query logging, Correlation ID, Prometheus |
 
 ---
@@ -271,3 +272,41 @@
 | `.github/workflows/ci.yml` | Removido `\|\| true` e `continue-on-error: true` (strict mode) |
 | `.husky/pre-commit` | Alterado de `npm test` para `npx lint-staged` |
 | `package.json` | Adicionado lint-staged config, removidos @types órfãos (connect-pg-simple, passport, passport-local) |
+
+## Arquivos Modificados (Fase 12 — Testes de Integração + Refatoração neonAdapter)
+
+| Arquivo | Modificação |
+|---------|-------------|
+| `package.json` | Adicionados scripts `test:server`, `test:server:coverage`, `test:all` atualizado |
+| `server/__tests__/integration/setup.ts` | **NOVO** — Setup de testes de integração com mocks de repositórios, JWT helpers |
+| `server/__tests__/integration/auth.integration.test.ts` | **NOVO** — 19 testes: auth/login, register, me, logout, user/church, sanitização XSS |
+| `server/__tests__/integration/health.integration.test.ts` | **NOVO** — 14 testes: health check, security headers, CORS, error handler, 404, body parser, compression |
+| `server/repositories/missionaryProfileRepository.ts` | **NOVO** — CRUD para missionary_profiles (7 métodos) |
+| `server/container.ts` | Registrado MissionaryProfileRepository no DI container |
+| `server/neonAdapter.ts` | **REFATORADO** — 42 métodos delegados para repositórios (3141→2538 linhas, -603 linhas) |
+| `api/index.js` | Adicionada documentação de arquitetura e plano de depreciação |
+| `netlify/functions/api.js` | Adicionada marcação @deprecated e documentação de dependência |
+
+### neonAdapter — Métodos Delegados (42 total)
+- **Events (3):** getAllEvents, getEventById, deleteEvent → `eventRepository`
+- **Discipleship (5):** getAll, getById, create, update, delete → `discipleshipRepository`
+- **Emotional Check-ins (3):** getAll, getByUserId, create → `emotionalCheckInRepository`
+- **Meetings (1):** getMeetingTypes → `meetingRepository`
+- **Prayers (4):** addIntercessor, removeIntercessor, getIntercessors, getPrayersUserIsPrayingFor → `prayerRepository`
+- **Relationships (1):** delete → `relationshipRepository`
+- **Conversations (7):** getByUserId, getAll, getById, update, delete, getOrCreateDirect, getParticipants → `conversationRepository`
+- **Messages (6):** getByConversationId, getAll, getById, create, update, delete → `messageRepository`
+- **Points/Achievements (7):** getAllActivities, createActivity, getAllAchievements, getById, create, update, delete → `pointsRepository`
+- **System (4):** getEventPermissions, saveEventPermissions, getConfig, saveConfig → `systemRepository`
+- **Missionary Profiles (7):** getByUserId, getById, getAll, create, update, delete, getUsersWithProfile → `missionaryProfileRepository`
+
+### Métodos Mantidos Inline (lógica complexa que não cabe em repo simples)
+- `createEvent` — time merging + district lookup
+- `updateEvent` — field-by-field mapping com lógica de tempo
+- `createConversation` — district lookup do criador
+
+### api.js — Decisão de Arquitetura
+- `netlify/functions/api.js` (20K linhas) **NÃO pode ser deletado**
+- `api/index.js` (Vercel) faz `require('../netlify/functions/api.js')`
+- Ambas as plataformas dependem do mesmo handler
+- Plano: depreciar quando Express server cobrir 100% dos endpoints

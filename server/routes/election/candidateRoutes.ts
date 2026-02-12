@@ -4,7 +4,7 @@
  * @module routes/election/candidateRoutes
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { logger } from '../../utils/logger';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { sendSuccess, sendCreated } from '../../utils/apiResponse';

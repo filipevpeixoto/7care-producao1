@@ -7,7 +7,7 @@ import {
   Building2,
   UserCog,
   ChevronUp,
-  LucideIcon,
+  type LucideIcon,
   Mail,
   Heart,
 } from 'lucide-react';
@@ -138,7 +138,7 @@ export const MobileBottomNav = memo(() => {
     });
 
     console.log('🔍 MobileBottomNav - Debug:', {
-      userRole: userRole,
+      userRole,
       userRoleType: typeof userRole,
       menuStructure: menuStructure.map(item => ({ title: item.title, roles: item.roles })),
       filteredItems: filtered.map(item => ({ title: item.title, roles: item.roles })),

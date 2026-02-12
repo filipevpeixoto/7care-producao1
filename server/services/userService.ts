@@ -125,71 +125,69 @@ export class UserService {
     requestingUser?: Partial<User>
   ): Promise<PaginatedResult<User>> {
     try {
-      // Buscar todos os usuários
-      let users = await userRepository.getAllUsers();
+      // Build DB-level filter options from permission context + user filters
+      const dbFilters: {
+        page: number;
+        limit: number;
+        role?: string;
+        status?: string;
+        church?: string;
+        districtId?: number;
+        search?: string;
+      } = {
+        page: pagination.page || 1,
+        limit: pagination.limit || 50,
+      };
 
-      // Aplicar filtros baseados em permissões
+      // Permission-based filters
       if (requestingUser && !isSuperAdmin(requestingUser)) {
-        // Pastor só vê usuários do seu distrito
         if (requestingUser.districtId) {
-          users = users.filter(u => u.districtId === requestingUser.districtId);
+          dbFilters.districtId = requestingUser.districtId;
         }
-        // Membro só vê usuários da sua igreja
-        if (!hasAdminAccess(requestingUser) && requestingUser.churchCode) {
-          users = users.filter(u => u.churchCode === requestingUser.churchCode);
-        }
+        // churchCode-based permission filtering is done post-query
       }
 
-      // Aplicar filtros de busca
-      if (filters.role) {
-        users = users.filter(u => u.role === filters.role);
-      }
-      if (filters.church) {
-        users = users.filter(u => u.church === filters.church);
+      // User-supplied filters (override permission-based only if more restrictive)
+      if (filters.role) dbFilters.role = filters.role;
+      if (filters.status) dbFilters.status = filters.status;
+      if (filters.church) dbFilters.church = filters.church;
+      if (filters.districtId !== undefined) dbFilters.districtId = filters.districtId;
+      if (filters.search) dbFilters.search = filters.search;
+
+      // DB-level paginated query
+      const { data: users, total } = await userRepository.getUsersPaginated(dbFilters);
+
+      // Post-process filters that DB method doesn't handle
+      let filteredUsers = users;
+      // Church permission filter (churchCode isn't a DB column for WHERE)
+      if (requestingUser && !isSuperAdmin(requestingUser) && !hasAdminAccess(requestingUser) && requestingUser.churchCode) {
+        filteredUsers = filteredUsers.filter(u => u.churchCode === requestingUser.churchCode);
       }
       if (filters.churchCode) {
-        users = users.filter(u => u.churchCode === filters.churchCode);
-      }
-      if (filters.districtId !== undefined) {
-        users = users.filter(u => u.districtId === filters.districtId);
-      }
-      if (filters.status) {
-        users = users.filter(u => u.status === filters.status);
+        filteredUsers = filteredUsers.filter(u => u.churchCode === filters.churchCode);
       }
       if (filters.isApproved !== undefined) {
-        users = users.filter(u => u.isApproved === filters.isApproved);
-      }
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        users = users.filter(
-          u =>
-            u.name.toLowerCase().includes(searchLower) ||
-            u.email.toLowerCase().includes(searchLower)
-        );
+        filteredUsers = filteredUsers.filter(u => u.isApproved === filters.isApproved);
       }
 
-      // Ordenação
+      // Sorting (DB already returns ordered by id; re-sort if custom sort requested)
       const sortBy = pagination.sortBy || 'name';
       const sortOrder = pagination.sortOrder || 'asc';
+      if (sortBy !== 'id' || sortOrder !== 'asc') {
+        filteredUsers.sort((a, b) => {
+          const aVal = String((a as unknown as Record<string, unknown>)[sortBy] ?? '');
+          const bVal = String((b as unknown as Record<string, unknown>)[sortBy] ?? '');
+          const comparison = aVal.localeCompare(bVal);
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+      }
 
-      users.sort((a, b) => {
-        const aVal = String((a as unknown as Record<string, unknown>)[sortBy] ?? '');
-        const bVal = String((b as unknown as Record<string, unknown>)[sortBy] ?? '');
-        const comparison = aVal.localeCompare(bVal);
-        return sortOrder === 'asc' ? comparison : -comparison;
-      });
-
-      // Paginação
-      const page = pagination.page || 1;
-      const limit = pagination.limit || 50;
-      const startIndex = (page - 1) * limit;
-      const total = users.length;
+      const page = dbFilters.page;
+      const limit = dbFilters.limit;
       const totalPages = Math.ceil(total / limit);
 
-      const paginatedUsers = users.slice(startIndex, startIndex + limit);
-
-      // Remover senhas
-      const safeUsers = paginatedUsers.map(u => ({ ...u, password: undefined })) as User[];
+      // Remove passwords
+      const safeUsers = filteredUsers.map(u => ({ ...u, password: undefined })) as User[];
 
       return {
         data: safeUsers,
@@ -200,7 +198,7 @@ export class UserService {
       };
     } catch (error) {
       logger.error('Erro ao buscar usuários', error);
-      return { data: [], total: 0, page: 1, limit: 50, totalPages: 0 };
+      throw error;
     }
   }
 
@@ -249,7 +247,7 @@ export class UserService {
       return { ...user, password: undefined } as User;
     } catch (error) {
       logger.error('Erro ao buscar usuário por ID', error);
-      return null;
+      throw error;
     }
   }
 
@@ -491,7 +489,7 @@ export class UserService {
       };
     } catch (error) {
       logger.error('Erro ao buscar estatísticas', error);
-      return { total: 0, byRole: {}, byStatus: {}, pending: 0, approved: 0 };
+      throw error;
     }
   }
 }

@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ChurchData } from '@/types/pastor-invite';
+import { type ChurchData } from '@/types/pastor-invite';
 
 interface Step3ChurchesProps {
   data: ChurchData[];

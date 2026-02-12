@@ -10,6 +10,7 @@
 
 import { useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '@/lib/api';
 
 // Mapeamento de rotas para seus imports dinâmicos
 const routeImports: Record<string, () => Promise<unknown>> = {
@@ -144,12 +145,7 @@ export function usePrefetch() {
         queryClient.prefetchQuery({
           queryKey: ['/api/dashboard/unified', userId],
           queryFn: async () => {
-            const response = await fetch('/api/dashboard/unified', {
-              headers: {
-                'x-user-id': userId.toString(),
-                'x-user-role': userRole,
-              },
-            });
+            const response = await fetchWithAuth('/api/dashboard/unified');
             if (!response.ok) throw new Error('Failed to prefetch');
             return response.json();
           },
@@ -161,9 +157,7 @@ export function usePrefetch() {
       queryClient.prefetchQuery({
         queryKey: ['/api/dashboard/stats', userId],
         queryFn: async () => {
-          const response = await fetch('/api/dashboard/stats', {
-            headers: { 'x-user-id': userId.toString() },
-          });
+          const response = await fetchWithAuth('/api/dashboard/stats');
           if (!response.ok) throw new Error('Failed to prefetch');
           return response.json();
         },
@@ -174,12 +168,7 @@ export function usePrefetch() {
       queryClient.prefetchQuery({
         queryKey: ['/api/users/birthdays', userId, userRole],
         queryFn: async () => {
-          const response = await fetch('/api/users/birthdays', {
-            headers: {
-              'x-user-id': userId.toString(),
-              'x-user-role': userRole || 'member',
-            },
-          });
+          const response = await fetchWithAuth('/api/users/birthdays');
           if (!response.ok) throw new Error('Failed to prefetch');
           return response.json();
         },

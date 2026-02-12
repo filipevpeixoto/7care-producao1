@@ -62,7 +62,7 @@ export const Header = () => {
       {/* Header Principal */}
       <div className="flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <SidebarTrigger className="text-foreground hover:bg-muted" />
+          <SidebarTrigger className="text-foreground hover:bg-muted" aria-label="Alternar barra lateral" />
           <div className="hidden md:block">
             <h2 className="text-lg font-semibold text-foreground">
               Sistema de Gestão Eclesiástica
@@ -79,7 +79,7 @@ export const Header = () => {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2">
+                <Button variant="ghost" className="flex items-center gap-2" aria-label="Menu do usuário">
                   <div className="relative w-8 h-8">
                     {getPhotoUrl() ? (
                       <>
@@ -154,6 +154,7 @@ export const Header = () => {
           variant="ghost"
           size="sm"
           onClick={toggleExpansion}
+          aria-label={isExpanded ? 'Ocultar boas-vindas' : 'Mostrar boas-vindas'}
           className="h-8 px-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
         >
           {isExpanded ? (

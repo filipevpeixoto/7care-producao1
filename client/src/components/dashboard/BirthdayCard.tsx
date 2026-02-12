@@ -21,7 +21,7 @@ interface BirthdayCardProps {
   isLoading?: boolean;
 }
 
-export const BirthdayCard = ({
+export const BirthdayCard = React.memo(({
   birthdaysToday,
   birthdaysThisMonth,
   isLoading = false,
@@ -376,6 +376,7 @@ export const BirthdayCard = ({
                                     className="h-6 w-6 p-0 text-white hover:text-white hover:bg-white/20"
                                     onClick={() => openWhatsApp(user.phone!)}
                                     title="Enviar mensagem no WhatsApp"
+                                    aria-label="Enviar mensagem de aniversário via WhatsApp"
                                   >
                                     <MessageCircle className="h-3 w-3" />
                                   </Button>
@@ -437,6 +438,7 @@ export const BirthdayCard = ({
                                 className="h-6 w-6 p-0 text-white hover:text-white hover:bg-white/20"
                                 onClick={() => openWhatsApp(user.phone!)}
                                 title="Enviar mensagem no WhatsApp"
+                                aria-label="Enviar mensagem via WhatsApp"
                               >
                                 <MessageCircle className="h-3 w-3" />
                               </Button>
@@ -508,6 +510,7 @@ export const BirthdayCard = ({
                                   className="h-8 w-8 p-0 text-white hover:text-white hover:bg-white/20"
                                   onClick={() => openWhatsApp(user.phone!)}
                                   title="Enviar mensagem no WhatsApp"
+                                  aria-label="Enviar mensagem de aniversário via WhatsApp"
                                 >
                                   <MessageCircle className="h-4 w-4" />
                                 </Button>
@@ -570,6 +573,7 @@ export const BirthdayCard = ({
                                 className="h-8 w-8 p-0 text-white hover:text-white hover:bg-white/20"
                                 onClick={() => openWhatsApp(user.phone!)}
                                 title="Enviar mensagem no WhatsApp"
+                                aria-label="Enviar mensagem via WhatsApp"
                               >
                                 <MessageCircle className="h-4 w-4" />
                               </Button>
@@ -587,4 +591,4 @@ export const BirthdayCard = ({
       </CardContent>
     </Card>
   );
-};
+});

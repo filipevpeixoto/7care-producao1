@@ -4,14 +4,14 @@
  * @module routes/adminRoutes
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { requireAuth, requireRole } from '../middleware';
 import { auditService } from '../services/auditService';
 import { monitoringService } from '../services/monitoringService';
 import { getRateLimitStats } from '../middleware/rateLimiter';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/apiResponse';
-import { validateQuery, ValidatedRequest } from '../middleware/validation';
+import { validateQuery, type ValidatedRequest } from '../middleware/validation';
 import { auditQuerySchema } from '../schemas';
 
 const router = Router();
@@ -91,7 +91,7 @@ router.get(
         | 'BULK_UPDATE'
         | 'BULK_DELETE'
         | undefined,
-      userId: userId,
+      userId,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       page: page || 1,

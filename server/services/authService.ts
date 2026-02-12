@@ -104,7 +104,12 @@ export class AuthService {
   async login(email: string, password: string): Promise<LoginResult> {
     try {
       // Buscar usuário por email
-      const user = await userRepository.getUserByEmail(email);
+      let user = await userRepository.getUserByEmail(email);
+
+      // Fallback: buscar por nome de usuário normalizado
+      if (!user) {
+        user = await userRepository.getUserByNormalizedUsername(email);
+      }
 
       if (!user) {
         logger.warn('Login falhou: usuário não encontrado', { email });

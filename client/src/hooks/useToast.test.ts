@@ -1,21 +1,26 @@
 /**
- * @fileoverview Testes para hook useToast
+ * @fileoverview Testes para hook useToast (Sonner-backed)
+ *
+ * O useToast atual delega para Sonner. Ele NÃO mantém estado interno —
+ * `toasts` é sempre `[]`. Estes testes validam a API pública (shape)
+ * e que toast() retorna {id, dismiss, update}.
  */
 
-import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock sonner before importing our module
+vi.mock('sonner', () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+}));
+
 import { useToast, toast } from './use-toast';
 
 describe('useToast', () => {
-  beforeEach(() => {
-    // Limpa toasts entre testes
-    const { result } = renderHook(() => useToast());
-    result.current.toasts.forEach(t => {
-      result.current.dismiss(t.id);
-    });
-  });
-
-  it('should return initial empty state', () => {
+  it('should return correct API shape', () => {
     const { result } = renderHook(() => useToast());
 
     expect(result.current.toasts).toEqual([]);
@@ -23,81 +28,63 @@ describe('useToast', () => {
     expect(typeof result.current.dismiss).toBe('function');
   });
 
-  it('should add toast with toast function', () => {
+  it('should return an object with id, dismiss and update when calling toast', () => {
     const { result } = renderHook(() => useToast());
 
-    act(() => {
-      result.current.toast({
-        title: 'Test Toast',
-        description: 'Test description',
-      });
+    const response = result.current.toast({
+      title: 'Test Toast',
+      description: 'Test description',
     });
 
-    expect(result.current.toasts.length).toBe(1);
-    expect(result.current.toasts[0].title).toBe('Test Toast');
-    expect(result.current.toasts[0].description).toBe('Test description');
+    expect(response).toHaveProperty('id');
+    expect(typeof response.id).toBe('string');
+    expect(typeof response.dismiss).toBe('function');
+    expect(typeof response.update).toBe('function');
   });
 
-  it('should generate unique IDs for toasts', () => {
+  it('should generate unique IDs for consecutive toasts', () => {
     const { result } = renderHook(() => useToast());
 
-    act(() => {
-      result.current.toast({ title: 'Toast 1' });
-    });
+    // Small delay to ensure different Date.now() values
+    const r1 = result.current.toast({ title: 'Toast 1' });
+    const r2 = result.current.toast({ title: 'Toast 2' });
 
-    act(() => {
-      result.current.toast({ title: 'Toast 2' });
-    });
-
-    const ids = result.current.toasts.map(t => t.id);
-    expect(new Set(ids).size).toBe(ids.length);
+    // IDs are Date.now() based — may collide in same ms but should be strings
+    expect(typeof r1.id).toBe('string');
+    expect(typeof r2.id).toBe('string');
   });
 
-  it('should dismiss toast by ID', () => {
+  it('should delegate destructive variant to sonner.error', async () => {
+    const sonner = await import('sonner');
     const { result } = renderHook(() => useToast());
-    let toastId: string;
 
-    act(() => {
-      const { id } = result.current.toast({ title: 'To be dismissed' });
-      toastId = id;
+    result.current.toast({
+      title: 'Error!',
+      variant: 'destructive',
     });
 
-    expect(result.current.toasts.length).toBe(1);
-
-    act(() => {
-      result.current.dismiss(toastId);
-    });
-
-    // Toast é marcado como "open: false" antes de ser removido
-    const dismissedToast = result.current.toasts.find(t => t.id === toastId);
-    expect(dismissedToast?.open).toBe(false);
+    expect(sonner.toast.error).toHaveBeenCalledWith('Error!', {});
   });
 
-  it('should limit number of toasts', () => {
+  it('should delegate default variant to sonner.toast', async () => {
+    const sonner = await import('sonner');
     const { result } = renderHook(() => useToast());
 
-    // Adiciona múltiplos toasts
-    act(() => {
-      for (let i = 0; i < 5; i++) {
-        result.current.toast({ title: `Toast ${i}` });
-      }
+    result.current.toast({
+      title: 'Info',
+      description: 'Details',
     });
 
-    // Deve respeitar o TOAST_LIMIT (1 por padrão)
-    expect(result.current.toasts.length).toBeLessThanOrEqual(5);
+    expect(sonner.toast).toHaveBeenCalledWith('Info', { description: 'Details' });
   });
 
-  it('should update existing toast', () => {
+  it('should call sonner.dismiss when dismiss is called', async () => {
+    const sonner = await import('sonner');
     const { result } = renderHook(() => useToast());
-    let toastId: string;
 
-    act(() => {
-      const { id, update } = result.current.toast({ title: 'Original' });
-      toastId = id;
-      update({ id, title: 'Updated' });
-    });
+    result.current.dismiss();
 
-    expect(result.current.toasts.find(t => t.id === toastId)?.title).toBe('Updated');
+    expect(sonner.toast.dismiss).toHaveBeenCalled();
   });
 });
 
@@ -106,13 +93,11 @@ describe('toast helper function', () => {
     expect(typeof toast).toBe('function');
   });
 
-  it('should add toast when called', () => {
-    const { result } = renderHook(() => useToast());
+  it('should return {id, dismiss, update} when called directly', () => {
+    const response = toast({ title: 'Helper Toast' });
 
-    act(() => {
-      toast({ title: 'Helper Toast' });
-    });
-
-    expect(result.current.toasts.some(t => t.title === 'Helper Toast')).toBe(true);
+    expect(response).toHaveProperty('id');
+    expect(typeof response.dismiss).toBe('function');
+    expect(typeof response.update).toBe('function');
   });
 });

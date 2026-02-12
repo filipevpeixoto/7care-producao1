@@ -1,7 +1,7 @@
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { sql } from '../neonConfig';
 import multer from 'multer';
-import { readExcelFile, cleanupTempFile, ExcelRow as BaseExcelRow } from '../utils/excelUtils';
+import { readExcelFile, cleanupTempFile, type ExcelRow as BaseExcelRow } from '../utils/excelUtils';
 import { logger } from '../utils/logger';
 import { asyncHandler, sendSuccess, sendError } from '../utils';
 
@@ -173,7 +173,7 @@ export const importRoutes = (app: Express): void => {
 
       sendSuccess(res, {
         imported: importedCount,
-        errors: errors,
+        errors,
       });
     })
   );

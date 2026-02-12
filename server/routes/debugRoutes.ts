@@ -3,10 +3,10 @@
  * Endpoints para debug e desenvolvimento (apenas em ambiente de desenvolvimento)
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
 import { asyncHandler } from '../utils';
-import { User } from '../../shared/schema';
+import { type User } from '../../shared/schema';
 import { sendSuccess } from '../utils/apiResponse';
 
 export const debugRoutes = (app: Express): void => {

@@ -3,7 +3,7 @@
  * Implementa headers de segurança rigorosos
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import helmet from 'helmet';
 
 /**

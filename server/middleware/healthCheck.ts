@@ -4,7 +4,7 @@
  * @module middleware/healthCheck
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { neon } from '@neondatabase/serverless';
 
 const router = Router();

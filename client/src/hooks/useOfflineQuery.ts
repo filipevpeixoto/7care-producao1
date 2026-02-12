@@ -12,9 +12,9 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-  UseQueryOptions,
-  UseMutationOptions,
-  QueryKey,
+  type UseQueryOptions,
+  type UseMutationOptions,
+  type QueryKey,
 } from '@tanstack/react-query';
 import {
   saveUsersOffline,
@@ -30,6 +30,7 @@ import {
   type TaskData,
 } from '@/lib/offline';
 import { useAuth } from './useAuth';
+import { fetchWithAuth } from '@/lib/api';
 import type { User, Event, Message } from '@shared/schema';
 
 // ===== TIPOS =====
@@ -83,12 +84,7 @@ export function useOfflineUsers(options?: OfflineQueryOptions<User[]>) {
     queryKey: ['users', user?.id] as const,
     queryFn: async (): Promise<User[]> => {
       try {
-        const response = await fetch('/api/users', {
-          headers: {
-            'x-user-id': user?.id?.toString() || '',
-            'x-user-role': user?.role || '',
-          },
-        });
+        const response = await fetchWithAuth('/api/users');
         if (!response.ok) {
           throw new Error(`Falha ao buscar usuários: ${response.status}`);
         }
@@ -135,7 +131,7 @@ export function useOfflineEvents(options?: OfflineQueryOptions<Event[]>) {
     queryKey: ['events'] as const,
     queryFn: async (): Promise<Event[]> => {
       try {
-        const response = await fetch('/api/events');
+        const response = await fetchWithAuth('/api/events');
         if (!response.ok) {
           throw new Error(`Falha ao buscar eventos: ${response.status}`);
         }
@@ -181,7 +177,7 @@ export function useOfflineTasks(options?: OfflineQueryOptions<TaskData[]>) {
     queryKey: ['tasks'] as const,
     queryFn: async (): Promise<TaskData[]> => {
       try {
-        const response = await fetch('/api/tasks');
+        const response = await fetchWithAuth('/api/tasks');
         if (!response.ok) {
           throw new Error(`Falha ao buscar tarefas: ${response.status}`);
         }
@@ -230,7 +226,7 @@ export function useOfflineMessages(
     queryKey: ['messages', conversationId] as const,
     queryFn: async (): Promise<Message[]> => {
       try {
-        const response = await fetch(`/api/messages?conversationId=${conversationId}`);
+        const response = await fetchWithAuth(`/api/messages?conversationId=${conversationId}`);
         if (!response.ok) {
           throw new Error(`Falha ao buscar mensagens: ${response.status}`);
         }
@@ -374,9 +370,8 @@ export function useCreateUserOffline(
 ) {
   return useOfflineMutation<User, CreateUserData>(
     async (userData) => {
-      const response = await fetch('/api/users', {
+      const response = await fetchWithAuth('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
       if (!response.ok) {
@@ -402,9 +397,8 @@ export function useUpdateUserOffline(
 ) {
   return useOfflineMutation<User, UpdateUserData>(
     async (userData) => {
-      const response = await fetch(`/api/users/${userData.id}`, {
+      const response = await fetchWithAuth(`/api/users/${userData.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
       if (!response.ok) {
@@ -429,7 +423,7 @@ export function useDeleteUserOffline(
 ) {
   return useOfflineMutation<void, { id: number }>(
     async ({ id }) => {
-      const response = await fetch(`/api/users/${id}`, {
+      const response = await fetchWithAuth(`/api/users/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
@@ -460,9 +454,8 @@ export function useCreateEventOffline(
 ) {
   return useOfflineMutation<Event, CreateEventData>(
     async (eventData) => {
-      const response = await fetch('/api/events', {
+      const response = await fetchWithAuth('/api/events', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(eventData),
       });
       if (!response.ok) {
@@ -495,9 +488,8 @@ export function useCreateTaskOffline(
 ) {
   return useOfflineMutation<TaskData, CreateTaskData>(
     async (taskData) => {
-      const response = await fetch('/api/tasks', {
+      const response = await fetchWithAuth('/api/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
       });
       if (!response.ok) {
@@ -526,9 +518,8 @@ export function useUpdateTaskOffline(
 ) {
   return useOfflineMutation<TaskData, TaskData>(
     async (taskData) => {
-      const response = await fetch(`/api/tasks/${taskData.id}`, {
+      const response = await fetchWithAuth(`/api/tasks/${taskData.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
       });
       if (!response.ok) {

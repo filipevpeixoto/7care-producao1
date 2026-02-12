@@ -3,7 +3,7 @@
  * Endpoints para coleta de métricas de performance e Web Vitals
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { logger } from '../utils/logger';
 import { asyncHandler, sendSuccess, sendError } from '../utils';
 

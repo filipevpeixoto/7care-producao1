@@ -7,6 +7,7 @@ import { eq, desc, inArray, and } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { logger } from '../utils/logger';
+import webpush from 'web-push';
 import type {
   PushSubscription,
   CreatePushSubscriptionInput,
@@ -217,6 +218,85 @@ export class PushSubscriptionRepository {
   /**
    * Converte Date para string ISO
    */
+  /**
+   * Envia push notifications para lista de usuários
+   */
+  async sendNotifications(data: {
+    userIds: number[];
+    title: string;
+    body: string;
+    icon?: string;
+    url?: string;
+  }): Promise<{ sent: number; failed: number }> {
+    if (!data.userIds.length) {
+      return { sent: 0, failed: 0 };
+    }
+
+    const publicKey =
+      process.env.VAPID_PUBLIC_KEY ||
+      'BD6cS7ooCOhh1lfv-D__PNYDv3S_S9EyR4bpowVJHcBxYIl5gtTFs8AThEO-MZnpzsKIZuRY3iR2oOMBDAOH2wY';
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+
+    if (!privateKey) {
+      throw new Error('VAPID_PRIVATE_KEY não configurada');
+    }
+
+    const subject = process.env.VAPID_SUBJECT || 'mailto:admin@7care.com';
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+
+    try {
+      const subscriptions = await db
+        .select()
+        .from(schema.pushSubscriptions)
+        .where(
+          and(
+            inArray(schema.pushSubscriptions.userId, data.userIds),
+            eq(schema.pushSubscriptions.isActive, true)
+          )
+        );
+
+      let sent = 0;
+      let failed = 0;
+
+      for (const sub of subscriptions) {
+        try {
+          const payload = JSON.stringify({
+            title: data.title,
+            body: data.body,
+            icon: data.icon || '/pwa-192x192.png',
+            data: { url: data.url || '/' },
+          });
+
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
+            },
+            payload
+          );
+          sent += 1;
+        } catch (error: unknown) {
+          failed += 1;
+          const pushError = error as { statusCode?: number } | null;
+          if (pushError?.statusCode === 404 || pushError?.statusCode === 410) {
+            await db
+              .update(schema.pushSubscriptions)
+              .set({ isActive: false, updatedAt: new Date() })
+              .where(eq(schema.pushSubscriptions.id, sub.id));
+          }
+        }
+      }
+
+      return { sent, failed };
+    } catch (error) {
+      logger.error('Erro ao enviar push notifications:', error);
+      return { sent: 0, failed: data.userIds.length };
+    }
+  }
+
   private toDateString(value: unknown): string {
     if (value instanceof Date) {
       return value.toISOString();

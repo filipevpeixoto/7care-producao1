@@ -7,6 +7,7 @@ import { eq, desc, and, gte, lte, count } from 'drizzle-orm';
 import { db } from '../neonConfig';
 import * as schema from '../schema';
 import type { Event, InsertEvent, UpdateEvent } from '../../shared/schema';
+import type { CreateEventInput, UpdateEventInput } from '../types/storage';
 import { logger } from '../utils/logger';
 
 export class EventRepository {
@@ -235,6 +236,154 @@ export class EventRepository {
     } catch (error) {
       logger.error('Erro ao contar eventos', error);
       return 0;
+    }
+  }
+
+  /**
+   * Cria evento com lógica de negócio completa (time parsing, district lookup)
+   * Usado pelo NeonAdapter
+   */
+  async createEventFull(eventData: CreateEventInput, getUserById?: (id: number) => Promise<{ districtId?: number | null } | null>): Promise<Event> {
+    try {
+      const eventExtras = eventData as CreateEventInput & {
+        endDate?: string | null;
+        type?: string;
+        organizerId?: number | null;
+        maxParticipants?: number | null;
+        capacity?: number | null;
+        color?: string | null;
+        churchId?: number | null;
+        time?: string;
+        districtId?: number | null;
+      };
+      const baseDate = new Date(eventExtras.date);
+      if (eventExtras.time) {
+        const [hours, minutes] = eventExtras.time.split(':');
+        const parsedHours = Number(hours);
+        const parsedMinutes = Number(minutes);
+        if (!Number.isNaN(parsedHours)) {
+          baseDate.setHours(parsedHours);
+        }
+        if (!Number.isNaN(parsedMinutes)) {
+          baseDate.setMinutes(parsedMinutes);
+        }
+      }
+
+      let districtId = eventExtras.districtId || null;
+      if (!districtId && eventExtras.organizerId && getUserById) {
+        const user = await getUserById(eventExtras.organizerId);
+        districtId = user?.districtId || null;
+      }
+
+      const newEvent = {
+        title: eventExtras.title || 'Evento',
+        description: eventExtras.description ?? null,
+        date: baseDate,
+        endDate: eventExtras.endDate ? new Date(eventExtras.endDate) : null,
+        location: eventExtras.location ?? null,
+        type: eventExtras.type || 'evento',
+        color: eventExtras.color ?? null,
+        capacity: eventExtras.capacity ?? eventExtras.maxParticipants ?? null,
+        isRecurring: eventExtras.isRecurring ?? false,
+        recurrencePattern: eventExtras.recurrencePattern ?? null,
+        createdBy: eventExtras.organizerId ?? null,
+        churchId: eventExtras.churchId ?? null,
+        districtId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const result = await db
+        .insert(schema.events)
+        .values(newEvent as typeof schema.events.$inferInsert)
+        .returning();
+      return result[0] as unknown as Event;
+    } catch (error) {
+      logger.error('Erro ao criar evento:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza evento com lógica de negócio completa (field-by-field mapping)
+   * Usado pelo NeonAdapter
+   */
+  async updateEventFull(id: number, updates: UpdateEventInput): Promise<Event | null> {
+    try {
+      const updatesExtras = updates as UpdateEventInput & {
+        endDate?: string | null;
+        type?: string;
+        organizerId?: number | null;
+        maxParticipants?: number | null;
+        capacity?: number | null;
+        color?: string | null;
+        churchId?: number | null;
+        time?: string;
+      };
+      const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
+
+      if (updatesExtras.title !== undefined) dbUpdates.title = updatesExtras.title;
+      if (updatesExtras.description !== undefined) {
+        dbUpdates.description = updatesExtras.description ?? null;
+      }
+      if (updatesExtras.location !== undefined) dbUpdates.location = updatesExtras.location ?? null;
+      if (updatesExtras.type !== undefined) dbUpdates.type = updatesExtras.type;
+      if (updatesExtras.isRecurring !== undefined) {
+        dbUpdates.isRecurring = updatesExtras.isRecurring;
+      }
+      if (updatesExtras.recurrencePattern !== undefined) {
+        dbUpdates.recurrencePattern = updatesExtras.recurrencePattern ?? null;
+      }
+      if (updatesExtras.maxParticipants !== undefined) {
+        dbUpdates.capacity = updatesExtras.maxParticipants ?? null;
+      }
+      if (updatesExtras.capacity !== undefined) dbUpdates.capacity = updatesExtras.capacity ?? null;
+      if (updatesExtras.organizerId !== undefined) {
+        dbUpdates.createdBy = updatesExtras.organizerId ?? null;
+      }
+      if (updatesExtras.color !== undefined) dbUpdates.color = updatesExtras.color ?? null;
+      if (updatesExtras.churchId !== undefined) dbUpdates.churchId = updatesExtras.churchId ?? null;
+      if (updatesExtras.date !== undefined) {
+        const nextDate = new Date(updatesExtras.date);
+        if (updatesExtras.time) {
+          const [hours, minutes] = updatesExtras.time.split(':');
+          const parsedHours = Number(hours);
+          const parsedMinutes = Number(minutes);
+          if (!Number.isNaN(parsedHours)) {
+            nextDate.setHours(parsedHours);
+          }
+          if (!Number.isNaN(parsedMinutes)) {
+            nextDate.setMinutes(parsedMinutes);
+          }
+        }
+        dbUpdates.date = nextDate;
+      }
+      if (updatesExtras.endDate !== undefined) {
+        dbUpdates.endDate = updatesExtras.endDate ? new Date(updatesExtras.endDate) : null;
+      }
+
+      const result = await db
+        .update(schema.events)
+        .set(dbUpdates)
+        .where(eq(schema.events.id, id))
+        .returning();
+
+      return (result[0] || null) as unknown as Event | null;
+    } catch (error) {
+      logger.error('Erro ao atualizar evento:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Deleta todos os eventos
+   */
+  async clearAllEvents(): Promise<void> {
+    try {
+      await db.delete(schema.events);
+    } catch (error) {
+      logger.error('Erro ao limpar eventos:', error);
+      throw error;
     }
   }
 

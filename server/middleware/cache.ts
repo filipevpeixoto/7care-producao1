@@ -6,7 +6,7 @@
  * reduzindo carga no banco de dados e melhorando tempo de resposta.
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import { cacheGet, cacheSet, cacheDelPattern } from '../services/cacheService';
 import { CACHE_TTL as _CACHE_TTL } from '../constants';
 import { logger } from '../utils/logger';

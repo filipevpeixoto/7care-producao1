@@ -25,6 +25,17 @@ const AUTHENTICATED_PAGES = [
   { name: 'Events', path: '/events' },
   { name: 'Reports', path: '/reports' },
   { name: 'Chat', path: '/chat' },
+  { name: 'Calendar', path: '/calendar' },
+  { name: 'My Interested', path: '/my-interested' },
+  { name: 'Gamification', path: '/gamification' },
+  { name: 'Prayers', path: '/prayers' },
+  { name: 'Settings', path: '/settings' },
+  { name: 'Menu', path: '/menu' },
+  { name: 'My Profile', path: '/meu-cadastro' },
+  { name: 'Districts', path: '/districts' },
+  { name: 'Contact', path: '/contact' },
+  { name: 'Terms', path: '/terms' },
+  { name: 'Privacy', path: '/privacy' },
 ];
 
 // WCAG 2.1 AA tags to check

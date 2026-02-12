@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { fetchWithAuth } from '@/lib/api'
 
 export interface Activity {
   id: string
@@ -16,7 +17,7 @@ export function useActivities() {
   const { data: activities = [], isLoading } = useQuery<Activity[]>({
     queryKey: ['activities'],
     queryFn: async () => {
-      const response = await fetch('/api/activities')
+      const response = await fetchWithAuth('/api/activities')
       if (!response.ok) {
         throw new Error('Falha ao carregar atividades')
       }
@@ -29,7 +30,7 @@ export function useActivities() {
 
   const addActivityMutation = useMutation({
     mutationFn: async (activity: Omit<Activity, 'id'>) => {
-      const response = await fetch('/api/activities', {
+      const response = await fetchWithAuth('/api/activities', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,7 +49,7 @@ export function useActivities() {
 
   const updateActivityMutation = useMutation({
     mutationFn: async ({ id, ...activity }: Activity) => {
-      const response = await fetch(`/api/activities/${id}`, {
+      const response = await fetchWithAuth(`/api/activities/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ export function useActivities() {
 
   const deleteActivityMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/activities/${id}`, {
+      const response = await fetchWithAuth(`/api/activities/${id}`, {
         method: 'DELETE',
       })
       if (!response.ok) {

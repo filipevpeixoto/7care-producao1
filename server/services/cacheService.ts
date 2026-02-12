@@ -4,7 +4,7 @@
  * Fallback para cache em memória quando Redis não está disponível
  */
 
-import { createClient, RedisClientType } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 import { logger } from '../utils/logger';
 
 // Configurações
@@ -167,9 +167,9 @@ export class CacheService {
       if (item.expiry > Date.now()) {
         this.stats.hits++;
         return JSON.parse(item.value) as T;
-      } else {
+      } 
         this.memoryCache.delete(key);
-      }
+      
     }
 
     this.stats.misses++;

@@ -5,7 +5,7 @@
  * Captura e processa todos os erros da aplicação de forma consistente
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import { ZodError } from 'zod';
 import {
   ApplicationError,

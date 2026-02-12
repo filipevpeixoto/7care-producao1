@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PointsCalculator, UserData } from './pointsCalculator';
+import { PointsCalculator, type UserData } from './pointsCalculator';
 
 describe('PointsCalculator', () => {
   describe('calculateEngagementPoints', () => {

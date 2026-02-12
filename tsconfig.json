@@ -24,16 +24,18 @@
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
-    // Variáveis não usadas - desativado para não quebrar código existente
-    // Podem ser habilitadas gradualmente
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    // Variáveis não usadas - habilitado para detectar código morto
+    // Vite/esbuild ignora estas flags no build, mas IDE e pre-commit as reportam
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     // exactOptionalPropertyTypes desativado temporariamente pois requer refatoração extensiva
     // "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": false, // Desativado para evitar quebras no código existente
+    // noUncheckedIndexedAccess requer refatoração extensiva do código existente
+    // Habilitar gradualmente quando não houver acesso indexado sem verificação de undefined
+    "noUncheckedIndexedAccess": false,
     "lib": ["esnext", "dom", "dom.iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,

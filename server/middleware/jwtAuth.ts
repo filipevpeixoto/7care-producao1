@@ -23,9 +23,9 @@
  * ```
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import { NeonAdapter } from '../neonAdapter';
-import { ApiErrorResponse, ErrorCodes, UserRole } from '../types';
+import { type ApiErrorResponse, ErrorCodes, type UserRole } from '../types';
 import { logger } from '../utils/logger';
 import { tokenBlacklist } from '../services/tokenBlacklistService';
 
@@ -178,7 +178,7 @@ export const requireJwtAuth = async (
     const token = authHeader.slice(7); // Remove 'Bearer '
 
     // Verificar se token foi revogado (logout)
-    if (tokenBlacklist.isBlacklisted(token)) {
+    if (await tokenBlacklist.isBlacklisted(token)) {
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Token revogado. Faça login novamente.',
@@ -287,8 +287,16 @@ export const optionalJwtAuth = async (
     }
 
     next();
-  } catch {
-    // Continua sem autenticação em caso de erro
+  } catch (error) {
+    // Log apenas quando havia header Authorization mas falhou (suspeito)
+    if (req.headers.authorization) {
+      logger.warn('optionalJwtAuth: token verification failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        path: req.path,
+        method: req.method,
+      });
+    }
+    // Continua sem autenticação
     next();
   }
 };

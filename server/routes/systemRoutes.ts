@@ -3,7 +3,7 @@
  * Endpoints relacionados ao sistema (limpeza, manutenção, status)
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
 import { sendSuccess, sendError } from '../utils/apiResponse';

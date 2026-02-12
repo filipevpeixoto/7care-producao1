@@ -5,7 +5,16 @@
  */
 
 import ExcelJS from 'exceljs';
-import * as XLSX from 'xlsx';
+
+// xlsx é importado dinamicamente para evitar vulnerabilidades e reduzir bundle
+// Usa import('xlsx') apenas quando necessário para .xls files
+let _XLSX: typeof import('xlsx') | null = null;
+async function getXLSX() {
+  if (!_XLSX) {
+    _XLSX = await import('xlsx');
+  }
+  return _XLSX;
+}
 
 export interface ExcelRow {
   [key: string]: string | number | boolean | Date | null | undefined;
@@ -45,6 +54,7 @@ async function readWithSheetJS(
     throw new Error('O arquivo está vazio. Por favor, selecione um arquivo válido.');
   }
 
+  const XLSX = await getXLSX();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
   if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
@@ -239,6 +249,7 @@ async function readRawWithSheetJS(
     throw new Error('O arquivo está vazio. Por favor, selecione um arquivo válido.');
   }
 
+  const XLSX = await getXLSX();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
   if (!workbook.SheetNames || workbook.SheetNames.length === 0) {

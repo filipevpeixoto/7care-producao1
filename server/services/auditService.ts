@@ -5,12 +5,12 @@
 
 import {
   auditRepository,
-  CreateAuditLogDTO,
-  AuditAction,
-  AuditLog,
-  AuditQueryOptions,
+  type CreateAuditLogDTO,
+  type AuditAction,
+  type AuditLog,
+  type AuditQueryOptions,
 } from '../repositories/auditRepository';
-import { PaginatedResult } from '../repositories/BaseRepository';
+import { type PaginatedResult } from '../repositories/BaseRepository';
 import { logger } from '../utils/logger';
 import type { Request } from 'express';
 
@@ -50,7 +50,7 @@ export class AuditService {
 
     return {
       userId: userId || undefined,
-      userEmail: userEmail,
+      userEmail,
       ipAddress: this.getClientIp(req),
       userAgent: req.headers['user-agent'] || undefined,
       correlationId,

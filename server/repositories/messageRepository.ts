@@ -273,16 +273,13 @@ export class ConversationRepository {
    */
   async delete(id: number): Promise<boolean> {
     try {
-      // Primeiro deleta as mensagens
-      await db.delete(schema.messages).where(eq(schema.messages.conversationId, id));
-
-      // Depois deleta os participantes
-      await db
-        .delete(schema.conversationParticipants)
-        .where(eq(schema.conversationParticipants.conversationId, id));
-
-      // Por fim, deleta a conversa
-      await db.delete(schema.conversations).where(eq(schema.conversations.id, id));
+      // Deleta mensagens, participantes e conversa em transação atômica
+      await db.transaction(async (tx) => {
+        await tx.delete(schema.messages).where(eq(schema.messages.conversationId, id));
+        await tx.delete(schema.conversationParticipants)
+          .where(eq(schema.conversationParticipants.conversationId, id));
+        await tx.delete(schema.conversations).where(eq(schema.conversations.id, id));
+      });
       return true;
     } catch (error) {
       logger.error('Erro ao deletar conversa:', error);

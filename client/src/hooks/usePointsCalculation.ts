@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { PointsCalculator, UserData } from '@/lib/pointsCalculator';
+import { PointsCalculator, type UserData } from '@/lib/pointsCalculator';
 import { GAMIFICATION_LEVELS } from '@/lib/gamification';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
+import { STALE_TIME, GC_TIME } from '@/lib/queryConstants';
 import type { User } from '@/../../shared/types/user';
 
 export const usePointsCalculation = () => {
@@ -12,12 +14,7 @@ export const usePointsCalculation = () => {
     queryKey: ['users-with-points', currentUser?.id],
     queryFn: async () => {
       // WORKAROUND: Usar /api/users até resolver problema do /api/users/with-points
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': currentUser?.id?.toString() || '',
-          'x-user-role': currentUser?.role || ''
-        }
-      });
+      const response = await fetchWithAuth('/api/users');
       if (!response.ok) {
         throw new Error('Falha ao carregar usuários');
       }
@@ -34,15 +31,15 @@ export const usePointsCalculation = () => {
     },
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: STALE_TIME.LONG, // 5 minutos
+    gcTime: GC_TIME.MEDIUM, // 10 minutos
   });
 
   // Buscar configuração de pontuação do banco
   const { data: pointsConfig } = useQuery({
     queryKey: ['points-config'],
     queryFn: async () => {
-      const response = await fetch('/api/system/points-config');
+      const response = await fetchWithAuth('/api/system/points-config');
       if (!response.ok) {
         throw new Error('Falha ao carregar configuração de pontuação');
       }

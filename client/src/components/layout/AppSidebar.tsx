@@ -27,7 +27,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/useAuth';
-import { UserRole } from '@/types/auth';
+import type { UserRole } from '@/../../shared/types/user';
 
 import { useSystemLogo } from '@/hooks/useSystemLogo';
 

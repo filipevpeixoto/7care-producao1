@@ -1,4 +1,4 @@
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { sql } from '../neonConfig';
 import { getRepository } from '../container';
 import { hasAdminAccess, isSuperAdmin, isPastor, canManagePastors } from '../utils/permissions';
@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 import { BCRYPT_SALT_ROUNDS } from '../config/security';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 import { CACHE_TTL } from '../constants';
-import { validateBody, validateParams, ValidatedRequest } from '../middleware/validation';
+import { validateBody, validateParams, type ValidatedRequest } from '../middleware/validation';
 import { createDistrictSchema, updateDistrictSchema, idParamSchema } from '../schemas';
 import {
   sendSuccess,
@@ -51,9 +51,9 @@ export const districtRoutes = (app: Express): void => {
           WHERE d.id = ${user.districtId}
         `;
           return sendSuccess(res, districts);
-        } else {
+        } 
           return sendSuccess(res, []);
-        }
+        
       } catch (error) {
         logger.error('Erro ao buscar distritos:', error);
         return sendInternalError(res, 'Internal server error');
@@ -419,9 +419,9 @@ export const districtRoutes = (app: Express): void => {
           ORDER BY u.name
         `;
         return sendSuccess(res, pastors);
-      } else {
+      } 
         return sendSuccess(res, []);
-      }
+      
     } catch (error) {
       logger.error('Erro ao buscar pastores:', error);
       return sendInternalError(res, 'Internal server error');
@@ -836,7 +836,7 @@ export const districtRoutes = (app: Express): void => {
             SELECT id FROM users WHERE church_id = ANY(${churchIds})
           )
         `;
-        deletedRelationships = (relResult as any).count || 0;
+        deletedRelationships = (relResult as { count?: number }).count || 0;
 
         // 2. Deletar solicitações de discipulado
         await sql`
@@ -853,7 +853,7 @@ export const districtRoutes = (app: Express): void => {
           DELETE FROM events
           WHERE church_id = ANY(${churchIds})
         `;
-        deletedEvents = (eventResult as any).count || 0;
+        deletedEvents = (eventResult as { count?: number }).count || 0;
 
         // 4. Deletar tarefas das igrejas/membros
         await sql`
@@ -898,7 +898,7 @@ export const districtRoutes = (app: Express): void => {
             AND role NOT IN ('superadmin', 'pastor', 'admin')
             AND id != ${userId}
         `;
-        deletedUsers = (userResult as any).count || 0;
+        deletedUsers = (userResult as { count?: number }).count || 0;
 
         logger.info(`Dados do distrito ${districtId} limpos por usuário ${userId}:`, {
           deletedUsers,

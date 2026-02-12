@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import { fetchWithAuth } from '@/lib/api';
+import { STALE_TIME, GC_TIME } from '@/lib/queryConstants';
 
 interface Task {
   id: number;
@@ -75,9 +77,7 @@ export function useTasks() {
       // 2. Se conectado e autenticado, buscar do servidor
       if (navigator.onLine && user?.id) {
         try {
-          const response = await fetch('/api/tasks', {
-            headers: { 'x-user-id': String(user.id) }
-          });
+          const response = await fetchWithAuth('/api/tasks');
           
           if (response.ok) {
             const result = await response.json();
@@ -107,8 +107,8 @@ export function useTasks() {
       // 3. Retornar cache (se sem conexão ou erro)
       return cachedTasks;
     },
-    staleTime: 5000, // Cache válido por 5 segundos
-    gcTime: 1000 * 60 * 5, // Mantém cache por 5 minutos
+    staleTime: STALE_TIME.SHORT, // 30 seconds
+    gcTime: GC_TIME.SHORT, // 5 minutos
     refetchOnWindowFocus: true, // Recarrega ao focar na janela
     refetchOnReconnect: true // Recarrega ao voltar online
   });
@@ -126,12 +126,8 @@ export function useTasks() {
         throw new Error('Usuário não autenticado');
       }
       
-      const response = await fetch('/api/tasks', {
+      const response = await fetchWithAuth('/api/tasks', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': String(user.id)
-        },
         body: JSON.stringify(newTask)
       });
       
@@ -171,12 +167,8 @@ export function useTasks() {
         throw new Error('Usuário não autenticado');
       }
       
-      const response = await fetch(`/api/tasks/${id}`, {
+      const response = await fetchWithAuth(`/api/tasks/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': String(user.id)
-        },
         body: JSON.stringify(updates)
       });
       
@@ -219,9 +211,8 @@ export function useTasks() {
         throw new Error('Usuário não autenticado');
       }
       
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-user-id': String(user.id) }
+      const response = await fetchWithAuth(`/api/tasks/${id}`, {
+        method: 'DELETE'
       });
       
       if (!response.ok) {

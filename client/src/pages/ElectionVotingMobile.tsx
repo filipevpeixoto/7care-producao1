@@ -363,7 +363,7 @@ export default function ElectionVotingMobile() {
           'x-user-id': user?.id?.toString() || '',
         },
         body: JSON.stringify({
-          configId: configId,
+          configId,
           candidateId,
           phase,
         }),

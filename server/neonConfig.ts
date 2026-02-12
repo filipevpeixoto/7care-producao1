@@ -94,6 +94,16 @@ export const sql = sqlBase as unknown as <T = Record<string, unknown>>(
   ...values: unknown[]
 ) => Promise<T[]>;
 
+/**
+ * Executa múltiplas queries raw SQL em uma transação atômica via Neon HTTP batch.
+ * Uso: await sqlTransaction([sql`DELETE ...`, sql`INSERT ...`])
+ */
+export async function sqlTransaction(
+  queries: Array<Promise<Record<string, unknown>[]>>
+): Promise<Array<Record<string, unknown>[]>> {
+  return (sqlBase as unknown as { transaction: (queries: Array<Promise<Record<string, unknown>[]>>) => Promise<Array<Record<string, unknown>[]>> }).transaction(queries);
+}
+
 // Wrapper para operações de banco com retry
 export async function dbQuery<T>(operation: () => Promise<T>): Promise<T> {
   return withRetry(operation);

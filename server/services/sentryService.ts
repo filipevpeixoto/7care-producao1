@@ -4,7 +4,7 @@
  */
 
 import * as Sentry from '@sentry/node';
-import { Express, Request, Response, NextFunction } from 'express';
+import { type Express, type Request, type Response, type NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
 const SENTRY_DSN = process.env.SENTRY_DSN || '';

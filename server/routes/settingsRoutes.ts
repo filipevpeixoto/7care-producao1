@@ -3,10 +3,10 @@
  * Endpoints relacionados às configurações do sistema
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { setDefaultChurchSchema } from '../schemas';
 import multer from 'multer';
 import { sendSuccess, sendError } from '../utils/apiResponse';
@@ -152,7 +152,7 @@ export const settingsRoutes = (app: Express): void => {
         sendSuccess(res, {
           success: true,
           message: 'Logo uploaded and saved successfully',
-          logoUrl: logoUrl,
+          logoUrl,
           filename: file.filename,
         });
       });

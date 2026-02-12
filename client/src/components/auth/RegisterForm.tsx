@@ -13,7 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { UserRole } from '@/types/auth';
+import type { UserRole } from '@/../../shared/types/user';
 
 export const RegisterForm = () => {
   const [formData, setFormData] = useState({

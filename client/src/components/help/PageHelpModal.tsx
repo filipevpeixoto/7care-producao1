@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { usePageHelp, HelpItem } from '@/hooks/usePageHelp';
+import { usePageHelp, type HelpItem } from '@/hooks/usePageHelp';
 import { useAppTour } from '@/hooks/useAppTour';
 import {
   ChevronRight,

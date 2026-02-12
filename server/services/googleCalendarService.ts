@@ -5,7 +5,7 @@
  * entre Google Calendar API e o sistema 7Care.
  */
 
-import { google, calendar_v3 } from 'googleapis';
+import { google, type calendar_v3 } from 'googleapis';
 import crypto from 'crypto';
 import type { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';

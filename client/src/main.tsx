@@ -16,7 +16,7 @@ window.addEventListener('unhandledrejection', event => {
     errorMessage.includes('asynchronous response')
   ) {
     event.preventDefault();
-    return;
+    
   }
 });
 
@@ -31,7 +31,7 @@ window.addEventListener('error', event => {
     errorMessage.includes('listener indicated')
   ) {
     event.preventDefault();
-    return;
+    
   }
 });
 

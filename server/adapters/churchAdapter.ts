@@ -6,8 +6,8 @@
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { eq, and, asc, sql as drizzleSql } from 'drizzle-orm';
-import { CreateChurchInput, UpdateChurchInput } from '../types/storage';
-import { Church } from '../../shared/schema';
+import { type CreateChurchInput, type UpdateChurchInput } from '../types/storage';
+import { type Church } from '../../shared/schema';
 
 /**
  * Converte row do banco para tipo Church

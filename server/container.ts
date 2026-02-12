@@ -6,53 +6,61 @@
  * Permite troca de implementações para testes
  */
 
-import { userRepository, UserRepository } from './repositories/userRepository';
-import { churchRepository, ChurchRepository } from './repositories/churchRepository';
-import { eventRepository, EventRepository } from './repositories/eventRepository';
+import { userRepository, type UserRepository } from './repositories/userRepository';
+import { churchRepository, type ChurchRepository } from './repositories/churchRepository';
+import { eventRepository, type EventRepository } from './repositories/eventRepository';
 import {
   relationshipRepository,
-  RelationshipRepository,
+  type RelationshipRepository,
 } from './repositories/relationshipRepository';
-import { meetingRepository, MeetingRepository } from './repositories/meetingRepository';
-import { prayerRepository, PrayerRepository } from './repositories/prayerRepository';
+import { meetingRepository, type MeetingRepository } from './repositories/meetingRepository';
+import { prayerRepository, type PrayerRepository } from './repositories/prayerRepository';
 import {
   messageRepository,
-  MessageRepository,
+  type MessageRepository,
   conversationRepository,
-  ConversationRepository,
+  type ConversationRepository,
 } from './repositories/messageRepository';
-import { pointsRepository, PointsRepository } from './repositories/pointsRepository';
-import { systemRepository, SystemRepository } from './repositories/systemRepository';
-import { districtRepository, DistrictRepository } from './repositories/districtRepository';
-import { electionRepository, ElectionRepository } from './repositories/electionRepository';
-import { auditRepository, AuditRepository } from './repositories/auditRepository';
+import { pointsRepository, type PointsRepository } from './repositories/pointsRepository';
+import { systemRepository, type SystemRepository } from './repositories/systemRepository';
+import { districtRepository, type DistrictRepository } from './repositories/districtRepository';
+import { electionRepository, type ElectionRepository } from './repositories/electionRepository';
+import { auditRepository, type AuditRepository } from './repositories/auditRepository';
 import {
   notificationRepository,
-  NotificationRepository,
+  type NotificationRepository,
 } from './repositories/notificationRepository';
 import {
   discipleshipRepository,
-  DiscipleshipRepository,
+  type DiscipleshipRepository,
 } from './repositories/discipleshipRepository';
 import {
   emotionalCheckInRepository,
-  EmotionalCheckInRepository,
+  type EmotionalCheckInRepository,
 } from './repositories/emotionalCheckInRepository';
 import {
   pushSubscriptionRepository,
-  PushSubscriptionRepository,
+  type PushSubscriptionRepository,
 } from './repositories/pushSubscriptionRepository';
-import { auditService, AuditService } from './services/auditService';
-import { authService, AuthService } from './services/authService';
-import { userService, UserService } from './services/userService';
-import { cacheService, CacheService } from './services/cacheService';
+import {
+  missionaryProfileRepository,
+  type MissionaryProfileRepository,
+} from './repositories/missionaryProfileRepository';
+import {
+  googleCalendarRepository,
+  type GoogleCalendarRepository,
+} from './repositories/googleCalendarRepository';
+import { auditService, type AuditService } from './services/auditService';
+import { authService, type AuthService } from './services/authService';
+import { userService, type UserService } from './services/userService';
+import { cacheService, type CacheService } from './services/cacheService';
 import {
   pointsCalculationService,
-  PointsCalculationService,
+  type PointsCalculationService,
 } from './services/pointsCalculationService';
 import {
   pushNotificationService,
-  PushNotificationService,
+  type PushNotificationService,
 } from './services/pushNotificationService';
 
 /**
@@ -76,6 +84,8 @@ export type ServiceType =
   | 'discipleshipRepository'
   | 'emotionalCheckInRepository'
   | 'pushSubscriptionRepository'
+  | 'missionaryProfileRepository'
+  | 'googleCalendarRepository'
   | 'auditService'
   | 'authService'
   | 'userService'
@@ -104,6 +114,8 @@ interface ServiceMap {
   discipleshipRepository: DiscipleshipRepository;
   emotionalCheckInRepository: EmotionalCheckInRepository;
   pushSubscriptionRepository: PushSubscriptionRepository;
+  missionaryProfileRepository: MissionaryProfileRepository;
+  googleCalendarRepository: GoogleCalendarRepository;
   auditService: AuditService;
   authService: AuthService;
   userService: UserService;
@@ -145,6 +157,8 @@ class DIContainer {
     this.register('discipleshipRepository', discipleshipRepository);
     this.register('emotionalCheckInRepository', emotionalCheckInRepository);
     this.register('pushSubscriptionRepository', pushSubscriptionRepository);
+    this.register('missionaryProfileRepository', missionaryProfileRepository);
+    this.register('googleCalendarRepository', googleCalendarRepository);
 
     // Services
     this.register('auditService', auditService);

@@ -24,7 +24,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, AuthState } from '@/types/auth';
+import type { AuthUser as User } from '@/../../shared/types/user';
+import type { AuthState } from '@/types/auth';
 import { saveUsersOffline, canAccessFullOfflineData, clearEncryptionKey } from '@/lib/offline';
 
 /**

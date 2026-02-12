@@ -116,13 +116,13 @@ interface ElectionStatCardProps {
 /**
  * Card de estatística de eleição
  */
-export function ElectionStatCard({
+export const ElectionStatCard = React.memo(({
   title,
   value,
   icon,
   description,
   className = '',
-}: ElectionStatCardProps) {
+}: ElectionStatCardProps) => {
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
@@ -137,7 +137,7 @@ export function ElectionStatCard({
       </CardContent>
     </Card>
   );
-}
+});
 
 /**
  * Props para loading de eleição
@@ -217,7 +217,7 @@ interface ElectionListItemProps {
 /**
  * Item de lista de eleição
  */
-export function ElectionListItem({
+export const ElectionListItem = React.memo(({
   election,
   onView,
   onEdit,
@@ -226,7 +226,7 @@ export function ElectionListItem({
   onPause,
   showActions = true,
   className = '',
-}: ElectionListItemProps) {
+}: ElectionListItemProps) => {
   return (
     <Card className={`hover:shadow-md transition-shadow ${className}`}>
       <CardHeader className="pb-2">
@@ -300,7 +300,7 @@ export function ElectionListItem({
       </CardContent>
     </Card>
   );
-}
+});
 
 /**
  * Props para card de eleição ativa (para votação)
@@ -324,12 +324,12 @@ interface ActiveElectionCardProps {
 /**
  * Card para eleição ativa na tela de votação
  */
-export function ActiveElectionCard({
+export const ActiveElectionCard = React.memo(({
   election,
   onVote,
   hasVoted = false,
   className = '',
-}: ActiveElectionCardProps) {
+}: ActiveElectionCardProps) => {
   return (
     <Card className={`border-2 border-primary/20 ${className}`}>
       <CardHeader>
@@ -377,7 +377,7 @@ export function ActiveElectionCard({
       </CardContent>
     </Card>
   );
-}
+});
 
 /**
  * Props para alerta de erro

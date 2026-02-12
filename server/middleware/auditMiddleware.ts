@@ -3,7 +3,7 @@
  * Registra automaticamente ações em rotas específicas
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import { auditService } from '../services/auditService';
 import { logger } from '../utils/logger';
 

@@ -39,14 +39,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
-  PersonalData,
-  DistrictData,
-  ChurchData,
-  ExcelData,
-  ChurchValidation,
+  type PersonalData,
+  type DistrictData,
+  type ChurchData,
+  type ExcelData,
+  type ChurchValidation,
   // DracmaConfigData, // Desabilitado temporariamente
-  GamificationConfigData,
-  SituationLevelData,
+  type GamificationConfigData,
+  type SituationLevelData,
 } from '@/types/pastor-invite';
 
 export default function PastorOnboarding() {

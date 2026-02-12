@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '@/lib/api';
 
 // ============================================
 // TYPES
@@ -68,11 +69,7 @@ export function useGoogleCalendarSync() {
    */
   const loadStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/calendar/google/status', {
-        headers: {
-          'x-user-id': String(localStorage.getItem('user_id') || '1'),
-        },
-      });
+      const response = await fetchWithAuth('/api/calendar/google/status');
 
       if (!response.ok) {
         throw new Error('Erro ao carregar status');
@@ -96,11 +93,7 @@ export function useGoogleCalendarSync() {
    */
   const loadConfig = useCallback(async () => {
     try {
-      const response = await fetch('/api/calendar/google/config', {
-        headers: {
-          'x-user-id': String(localStorage.getItem('user_id') || '1'),
-        },
-      });
+      const response = await fetchWithAuth('/api/calendar/google/config');
 
       if (!response.ok) {
         throw new Error('Erro ao carregar configuração');
@@ -137,12 +130,8 @@ export function useGoogleCalendarSync() {
       setError(null);
 
       // 1. Solicitar URL de autorização ao backend
-      const response = await fetch('/api/calendar/google/auth-url', {
+      const response = await fetchWithAuth('/api/calendar/google/auth-url', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': String(localStorage.getItem('user_id') || '1'),
-        },
       });
 
       if (!response.ok) {
@@ -209,11 +198,8 @@ export function useGoogleCalendarSync() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/calendar/google/disconnect', {
+      const response = await fetchWithAuth('/api/calendar/google/disconnect', {
         method: 'DELETE',
-        headers: {
-          'x-user-id': String(localStorage.getItem('user_id') || '1'),
-        },
       });
 
       if (!response.ok) {
@@ -248,11 +234,7 @@ export function useGoogleCalendarSync() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/calendar/google/calendars', {
-        headers: {
-          'x-user-id': String(localStorage.getItem('user_id') || '1'),
-        },
-      });
+      const response = await fetchWithAuth('/api/calendar/google/calendars');
 
       if (!response.ok) {
         throw new Error('Erro ao carregar calendários');
@@ -286,12 +268,8 @@ export function useGoogleCalendarSync() {
           throw new Error('Nenhum calendário selecionado');
         }
 
-        const response = await fetch('/api/calendar/google/sync', {
+        const response = await fetchWithAuth('/api/calendar/google/sync', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': String(localStorage.getItem('user_id') || '1'),
-          },
           body: JSON.stringify({ calendarId: targetCalendarId }),
         });
 
@@ -328,12 +306,8 @@ export function useGoogleCalendarSync() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/calendar/google/config', {
+      const response = await fetchWithAuth('/api/calendar/google/config', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': String(localStorage.getItem('user_id') || '1'),
-        },
         body: JSON.stringify(newConfig),
       });
 

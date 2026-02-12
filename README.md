@@ -6,7 +6,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/Tests-1273%20passing-brightgreen.svg)](./tests)
+[![CI](https://github.com/pxttorrent/7care-producao-sem-offline/actions/workflows/ci.yml/badge.svg)](https://github.com/pxttorrent/7care-producao-sem-offline/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/pxttorrent/7care-producao-sem-offline/graph/badge.svg)](https://codecov.io/gh/pxttorrent/7care-producao-sem-offline)
+[![Tests](https://img.shields.io/badge/Tests-526%20passing-brightgreen.svg)](./tests)
 [![Security](https://img.shields.io/badge/Security-CodeQL%20%7C%20npm%20audit-green.svg)](./SECURITY.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 

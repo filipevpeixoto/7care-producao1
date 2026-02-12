@@ -3,8 +3,8 @@
  * Limites específicos para diferentes tipos de rotas
  */
 
-import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
-import { Request, Response } from 'express';
+import rateLimit, { type RateLimitRequestHandler } from 'express-rate-limit';
+import { type Request, type Response } from 'express';
 import { logger } from '../utils/logger';
 
 /**

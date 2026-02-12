@@ -8,7 +8,7 @@ import { User, Mail, Phone, Upload, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PersonalData } from '@/types/pastor-invite';
+import { type PersonalData } from '@/types/pastor-invite';
 
 interface Step1PersonalProps {
   data: PersonalData;
@@ -19,7 +19,7 @@ interface Step1PersonalProps {
 export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
   const [formData, setFormData] = useState<PersonalData>({
     name: data.name || '',
-    email: email,
+    email,
     phone: data.phone || '',
     photoUrl: data.photoUrl,
   });

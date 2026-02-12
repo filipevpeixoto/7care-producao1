@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { fetchWithAuth } from '@/lib/api';
 
 interface EventPermissions {
   [profileId: string]: {
@@ -12,7 +13,7 @@ export const useEventFilterPermissions = () => {
   const { data: permissions, isLoading, error } = useQuery<EventPermissions>({
     queryKey: ['system', 'event-permissions'],
     queryFn: async () => {
-      const response = await fetch('/api/system/event-permissions');
+      const response = await fetchWithAuth('/api/system/event-permissions');
       if (!response.ok) {
         throw new Error('Erro ao carregar permissões');
       }

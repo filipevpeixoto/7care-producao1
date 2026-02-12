@@ -836,7 +836,7 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
     codigo: churchCode,
 
     // Telefone
-    phoneWarning: phoneWarning,
+    phoneWarning,
     originalPhone: phoneWarning ? originalPhone : null,
 
     // Endereço completo
@@ -844,7 +844,7 @@ export function processExcelRow(row: Record<string, unknown>): ImportedMemberDat
     cidadeEstado: toStr(row['Cidade e Estado'] || row.cidadeEstado),
     cidadeNascimento: toStr(row['Cidade de nascimento'] || row.cidadeNascimento),
     estadoNascimento: toStr(row['Estado de nascimento'] || row.estadoNascimento),
-    cpf: cpf,
+    cpf,
 
     // Quantidade real de "Batizou alguém"
     quantidadeBatizados:

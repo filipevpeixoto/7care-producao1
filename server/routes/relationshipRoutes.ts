@@ -3,10 +3,10 @@
  * Endpoints relacionados a vínculos entre missionários e interessados
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createRelationshipSchema } from '../schemas';
 import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
@@ -60,23 +60,30 @@ export const relationshipRoutes = (app: Express): void => {
 
       const relationships = await relationshipRepo.getAll();
 
-      // Enriquecer com dados dos usuários
-      const enrichedRelationships = await Promise.all(
-        relationships.map(async (rel: { interestedId?: number; missionaryId?: number }) => {
-          const interested = rel.interestedId ? await userRepo.getUserById(rel.interestedId) : null;
-          const missionary = rel.missionaryId ? await userRepo.getUserById(rel.missionaryId) : null;
+      // PERFORMANCE: Batch-fetch de usuários (evita N+1 queries)
+      const userIds = new Set<number>();
+      for (const rel of relationships as { interestedId?: number; missionaryId?: number }[]) {
+        if (rel.interestedId) userIds.add(rel.interestedId);
+        if (rel.missionaryId) userIds.add(rel.missionaryId);
+      }
+      const userMap = await userRepo.getUsersByIds(Array.from(userIds));
 
-          return {
-            ...rel,
-            interestedName: interested?.name || 'Desconhecido',
-            missionaryName: missionary?.name || 'Desconhecido',
-            interestedChurch: interested?.church || null,
-            missionaryChurch: missionary?.church || null,
-            interestedDistrictId: interested?.districtId || null,
-            missionaryDistrictId: missionary?.districtId || null,
-          };
-        })
-      );
+      const enrichedRelationships = (
+        relationships as { interestedId?: number; missionaryId?: number }[]
+      ).map((rel) => {
+        const interested = rel.interestedId ? userMap.get(rel.interestedId) ?? null : null;
+        const missionary = rel.missionaryId ? userMap.get(rel.missionaryId) ?? null : null;
+
+        return {
+          ...rel,
+          interestedName: interested?.name || 'Desconhecido',
+          missionaryName: missionary?.name || 'Desconhecido',
+          interestedChurch: interested?.church || null,
+          missionaryChurch: missionary?.church || null,
+          interestedDistrictId: interested?.districtId || null,
+          missionaryDistrictId: missionary?.districtId || null,
+        };
+      });
 
       // Filtrar por distrito se for pastor (não superadmin)
       let filteredRelationships = enrichedRelationships;

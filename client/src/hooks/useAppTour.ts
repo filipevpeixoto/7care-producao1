@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { driver, DriveStep } from 'driver.js';
+import { driver, type DriveStep } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './useAuth';

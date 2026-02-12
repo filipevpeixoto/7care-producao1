@@ -3,7 +3,7 @@
  * Adiciona tabela para sistema de convite self-service de pastores
  */
 
-import { NeonQueryFunction } from '@neondatabase/serverless';
+import { type NeonQueryFunction } from '@neondatabase/serverless';
 
 export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
   console.log('📋 Criando tabela pastor_invites...');

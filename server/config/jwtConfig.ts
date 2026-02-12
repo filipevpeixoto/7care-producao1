@@ -42,11 +42,13 @@ if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
   throw new Error('🔒 SEGURANÇA CRÍTICA: JWT_SECRET ou JWT_REFRESH_SECRET não configurados!');
 }
 
-console.log('🔐 JWT configurado:', {
+import { logger } from '../utils/logger';
+
+logger.info('JWT configurado', {
   environment: process.env.NODE_ENV,
   hasSecret: !!process.env.JWT_SECRET,
   hasRefreshSecret: !!process.env.JWT_REFRESH_SECRET,
   secretLength: JWT_SECRET.length,
   accessTokenExpiry: JWT_EXPIRES_IN,
-  refreshTokenExpiry: JWT_REFRESH_EXPIRES_IN
+  refreshTokenExpiry: JWT_REFRESH_EXPIRES_IN,
 });

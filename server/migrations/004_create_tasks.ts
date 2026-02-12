@@ -4,7 +4,7 @@
  * Substitui Google Sheets como fonte de dados
  */
 
-import { NeonQueryFunction } from '@neondatabase/serverless';
+import { type NeonQueryFunction } from '@neondatabase/serverless';
 
 export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
   console.log('📋 Criando tabela tasks...');

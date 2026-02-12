@@ -118,17 +118,17 @@ export async function updateEvent(id: number, updates: UpdateEventInput): Promis
 
     if (updatesExtras.title !== undefined) dbUpdates.title = updatesExtras.title;
     if (updatesExtras.description !== undefined)
-      dbUpdates.description = updatesExtras.description ?? null;
+      {dbUpdates.description = updatesExtras.description ?? null;}
     if (updatesExtras.location !== undefined) dbUpdates.location = updatesExtras.location ?? null;
     if (updatesExtras.type !== undefined) dbUpdates.type = updatesExtras.type;
     if (updatesExtras.isRecurring !== undefined) dbUpdates.isRecurring = updatesExtras.isRecurring;
     if (updatesExtras.recurrencePattern !== undefined)
-      dbUpdates.recurrencePattern = updatesExtras.recurrencePattern ?? null;
+      {dbUpdates.recurrencePattern = updatesExtras.recurrencePattern ?? null;}
     if (updatesExtras.maxParticipants !== undefined)
-      dbUpdates.capacity = updatesExtras.maxParticipants ?? null;
+      {dbUpdates.capacity = updatesExtras.maxParticipants ?? null;}
     if (updatesExtras.capacity !== undefined) dbUpdates.capacity = updatesExtras.capacity ?? null;
     if (updatesExtras.organizerId !== undefined)
-      dbUpdates.createdBy = updatesExtras.organizerId ?? null;
+      {dbUpdates.createdBy = updatesExtras.organizerId ?? null;}
     if (updatesExtras.color !== undefined) dbUpdates.color = updatesExtras.color ?? null;
     if (updatesExtras.churchId !== undefined) dbUpdates.churchId = updatesExtras.churchId ?? null;
     if (updatesExtras.date !== undefined) {

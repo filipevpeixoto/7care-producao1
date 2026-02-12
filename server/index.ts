@@ -10,7 +10,6 @@ import { log } from './static';
 import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger/config';
-import { processDracmaSubmissions } from './jobs/dracmaSubmissionJob';
 
 const app = createApp();
 
@@ -94,20 +93,6 @@ app.use((req, res, next) => {
         }
       }
       logger.info(`✅ Servidor iniciado com sucesso!`);
-
-      // Background job — Dracma submission (a cada 5 minutos)
-      logger.info('🔄 Iniciando job de submissão ao Dracma...');
-      setInterval(
-        async () => {
-          try {
-            await processDracmaSubmissions();
-          } catch (error) {
-            logger.error('❌ Erro no job de submissão ao Dracma:', error);
-          }
-        },
-        5 * 60 * 1000
-      );
-      logger.info('✅ Job de submissão ao Dracma agendado (a cada 5 minutos)');
     }
   );
 })();

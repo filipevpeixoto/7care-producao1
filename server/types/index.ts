@@ -16,10 +16,11 @@ import type { User as SharedUser } from '../../shared/schema';
 export type UserRole =
   | 'superadmin'
   | 'pastor'
+  | 'admin'
+  | 'admin_readonly'
   | 'member'
-  | 'interested'
   | 'missionary'
-  | 'admin_readonly';
+  | 'interested';
 
 /**
  * Interface base de usuário para o servidor

@@ -3,8 +3,8 @@
  * Combina todos os módulos de rotas em um único registrador
  */
 
-import express, { Express } from 'express';
-import { createServer, Server } from 'http';
+import express, { type Express } from 'express';
+import { createServer, type Server } from 'http';
 import { logger } from '../utils/logger';
 
 // Inicialização do banco de dados

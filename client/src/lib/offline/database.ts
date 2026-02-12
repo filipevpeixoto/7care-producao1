@@ -9,7 +9,7 @@
  * - Melhor tipagem
  */
 
-import Dexie, { Table, Transaction } from 'dexie';
+import Dexie, { type Table, type Transaction } from 'dexie';
 import { encryptData, decryptData, hashData } from './crypto';
 import type { User, Event, Message } from '@shared/schema';
 

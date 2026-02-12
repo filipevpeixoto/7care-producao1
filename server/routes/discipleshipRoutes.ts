@@ -3,9 +3,9 @@
  * Endpoints relacionados a pedidos de discipulado
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createDiscipleshipRequestSchema } from '../schemas';
 import { hasAdminAccess } from '../utils/permissions';
 import { asyncHandler } from '../utils';

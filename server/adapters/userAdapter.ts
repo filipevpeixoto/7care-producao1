@@ -7,8 +7,8 @@ import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { eq, and, desc, asc, ne, or, sql as drizzleSql } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { CreateUserInput, UpdateUserInput } from '../types/storage';
-import { User } from '../../shared/schema';
+import { type CreateUserInput, type UpdateUserInput } from '../types/storage';
+import { type User } from '../../shared/schema';
 
 /**
  * Converte row do banco para tipo User

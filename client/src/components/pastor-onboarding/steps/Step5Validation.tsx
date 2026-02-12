@@ -26,10 +26,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import {
-  ChurchValidation,
-  ChurchValidationAction,
-  ValidationResult,
-  ExcelData,
+  type ChurchValidation,
+  type ChurchValidationAction,
+  type ValidationResult,
+  type ExcelData,
 } from '@/types/pastor-invite';
 
 interface Step5ValidationProps {

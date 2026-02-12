@@ -109,11 +109,11 @@ export class PrayerRepository {
    */
   async delete(id: number): Promise<boolean> {
     try {
-      // Primeiro deleta os intercessores
-      await db.delete(schema.prayerIntercessors).where(eq(schema.prayerIntercessors.prayerId, id));
-
-      // Depois deleta a oração
-      await db.delete(schema.prayers).where(eq(schema.prayers.id, id));
+      // Deleta intercessores e oração em transação atômica
+      await db.transaction(async (tx) => {
+        await tx.delete(schema.prayerIntercessors).where(eq(schema.prayerIntercessors.prayerId, id));
+        await tx.delete(schema.prayers).where(eq(schema.prayers.id, id));
+      });
       return true;
     } catch (error) {
       logger.error('Erro ao deletar oração:', error);

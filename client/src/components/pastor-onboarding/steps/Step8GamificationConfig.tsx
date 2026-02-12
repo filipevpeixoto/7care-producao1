@@ -20,7 +20,7 @@ import {
   Sparkles,
   ChevronRight,
 } from 'lucide-react';
-import { GamificationConfigData } from '@/types/pastor-invite';
+import { type GamificationConfigData } from '@/types/pastor-invite';
 
 interface Step8GamificationConfigProps {
   data?: GamificationConfigData;

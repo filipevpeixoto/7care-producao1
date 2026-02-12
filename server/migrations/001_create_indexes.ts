@@ -3,7 +3,7 @@
  * Adiciona índices de performance para as tabelas principais
  */
 
-import { NeonQueryFunction } from '@neondatabase/serverless';
+import { type NeonQueryFunction } from '@neondatabase/serverless';
 
 export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
   console.log('📋 Criando índices de performance...');

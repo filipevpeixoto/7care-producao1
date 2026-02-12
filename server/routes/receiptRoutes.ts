@@ -3,7 +3,7 @@
  * Endpoints relacionados ao processamento automático de notas fiscais via WhatsApp
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { sql } from '../neonConfig';
 import { logger } from '../utils/logger';
 import { asyncHandler, sendSuccess, sendError } from '../utils';

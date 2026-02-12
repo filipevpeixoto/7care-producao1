@@ -3,10 +3,10 @@
  * Funções de middleware reutilizáveis para todas as rotas
  */
 
-import { Response, NextFunction } from 'express';
+import { type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { NeonAdapter } from '../neonAdapter';
-import { AuthenticatedRequest, ApiErrorResponse, ErrorCodes, UserRole } from '../types';
+import { type AuthenticatedRequest, type ApiErrorResponse, ErrorCodes, type UserRole } from '../types';
 import { hasAdminAccess, isSuperAdmin, isPastor } from '../utils/permissions';
 import { JWT_SECRET } from '../config/jwtConfig';
 import { logger } from '../utils/logger';

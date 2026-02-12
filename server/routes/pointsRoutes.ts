@@ -3,15 +3,15 @@
  * Endpoints relacionados à gamificação e pontos
  */
 
-import { Express, Request, Response } from 'express';
+import { type Express, type Request, type Response } from 'express';
 import { db } from '../neonConfig';
 import { schema } from '../schema';
 import { isSuperAdmin } from '../utils/permissions';
 import { logger } from '../utils/logger';
-import { validateBody, ValidatedRequest } from '../middleware/validation';
+import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { pointsConfigSchema } from '../schemas';
-import { User } from '../../shared/schema';
-import { PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
+import { type User } from '../../shared/schema';
+import { type PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
 import { asyncHandler } from '../utils';
 import { getAuthUserId } from '../utils/authHelpers';
 import { sendSuccess, sendError } from '../utils/apiResponse';

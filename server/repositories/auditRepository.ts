@@ -5,7 +5,7 @@
 
 import { sql as rawSql } from '../neonConfig';
 import { logger } from '../utils/logger';
-import { createPaginatedResult, PaginationOptions, PaginatedResult } from './BaseRepository';
+import { createPaginatedResult, type PaginationOptions, type PaginatedResult } from './BaseRepository';
 
 export type AuditAction =
   | 'CREATE'

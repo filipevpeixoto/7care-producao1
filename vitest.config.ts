@@ -13,5 +13,23 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     exclude: ['**/node_modules/**', 'e2e/**', 'server/__tests__/manual/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'json'],
+      reportsDirectory: './coverage/client',
+      include: ['client/src/**/*.{ts,tsx}'],
+      exclude: [
+        'client/src/**/*.test.{ts,tsx}',
+        'client/src/**/*.spec.{ts,tsx}',
+        'client/src/vite-env.d.ts',
+        'client/src/main.tsx',
+      ],
+      thresholds: {
+        statements: 40,
+        branches: 30,
+        functions: 30,
+        lines: 40,
+      },
+    },
   },
 });

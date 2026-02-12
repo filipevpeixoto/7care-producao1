@@ -17,7 +17,7 @@ import {
   X,
   Trash2
 } from "lucide-react";
-import { CalendarEvent, EventType } from "@/types/calendar";
+import { type CalendarEvent, type EventType } from "@/types/calendar";
 
 // Função utilitária para formatar datas sem problemas de fuso horário
 const formatDateSafe = (dateString: string): string => {

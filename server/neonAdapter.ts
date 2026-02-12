@@ -5,6 +5,14 @@ import { notificationRepository } from './repositories/notificationRepository';
 import { prayerRepository } from './repositories/prayerRepository';
 import { relationshipRepository } from './repositories/relationshipRepository';
 import { pushSubscriptionRepository } from './repositories/pushSubscriptionRepository';
+import { missionaryProfileRepository } from './repositories/missionaryProfileRepository';
+import { pointsRepository } from './repositories/pointsRepository';
+import { conversationRepository, messageRepository } from './repositories/messageRepository';
+import { discipleshipRepository } from './repositories/discipleshipRepository';
+import { emotionalCheckInRepository } from './repositories/emotionalCheckInRepository';
+import { eventRepository } from './repositories/eventRepository';
+import { systemRepository } from './repositories/systemRepository';
+import { googleCalendarRepository } from './repositories/googleCalendarRepository';
 // Services desabilitados temporariamente - schema não corresponde
 // TODO: Ajustar services para usar raw SQL como os repositories
 // import { gamificationService } from './services/gamificationService';
@@ -39,59 +47,62 @@ import { pushSubscriptionRepository } from './repositories/pushSubscriptionRepos
 
 import { db } from './neonConfig';
 import { schema } from './schema';
-import { eq, and, desc, asc, ne, inArray } from 'drizzle-orm';
-import webpush from 'web-push';
+import {
+  mapConversationRecord as _mapConversationRecord,
+  toPermissionUser as _toPermissionUser,
+} from './storage/helpers';
+import { eq } from 'drizzle-orm';
 import { isSuperAdmin } from './utils/permissions';
 import { logger } from './utils/logger';
 import {
-  IStorage,
-  CreateActivityInput,
-  UpdateActivityInput,
-  CreatePushSubscriptionInput,
-  CreatePrayerInput,
-  CreateUserInput,
-  UpdateUserInput,
-  CreateChurchInput,
-  UpdateChurchInput,
-  CreateEventInput,
-  UpdateEventInput,
-  CreateMeetingInput,
-  UpdateMeetingInput,
-  CreateMessageInput,
-  UpdateMessageInput,
-  CreateNotificationInput,
-  UpdateNotificationInput,
-  CreateRelationshipInput,
-  CreateDiscipleshipRequestInput,
-  UpdateDiscipleshipRequestInput,
-  EmotionalCheckIn,
-  CreateEmotionalCheckInInput,
-  PointsConfiguration,
+  type IStorage,
+  type CreateActivityInput,
+  type UpdateActivityInput,
+  type CreatePushSubscriptionInput,
+  type CreatePrayerInput,
+  type CreateUserInput,
+  type UpdateUserInput,
+  type CreateChurchInput,
+  type UpdateChurchInput,
+  type CreateEventInput,
+  type UpdateEventInput,
+  type CreateMeetingInput,
+  type UpdateMeetingInput,
+  type CreateMessageInput,
+  type UpdateMessageInput,
+  type CreateNotificationInput,
+  type UpdateNotificationInput,
+  type CreateRelationshipInput,
+  type CreateDiscipleshipRequestInput,
+  type UpdateDiscipleshipRequestInput,
+  type EmotionalCheckIn,
+  type CreateEmotionalCheckInInput,
+  type PointsConfiguration,
   getRequiredPointsConfig,
-  EventPermissions,
-  PointsCalculationResult,
-  PointsRecalculationResult,
-  PushSubscription,
-  Activity,
-  GoogleDriveConfig,
-  GoogleCalendarTokens,
-  GoogleCalendarConfig,
-  Prayer,
+  type EventPermissions,
+  type PointsCalculationResult,
+  type PointsRecalculationResult,
+  type PushSubscription,
+  type Activity,
+  type GoogleDriveConfig,
+  type GoogleCalendarTokens,
+  type GoogleCalendarConfig,
+  type Prayer,
 } from './types/storage';
 import {
-  User,
-  Church,
-  Event,
-  Meeting,
-  Message,
-  Conversation,
-  Notification,
-  Achievement,
-  PointActivity,
-  Relationship,
-  DiscipleshipRequest,
-  MissionaryProfile,
-  MeetingType,
+  type User,
+  type Church,
+  type Event,
+  type Meeting,
+  type Message,
+  type Conversation,
+  type Notification,
+  type Achievement,
+  type PointActivity,
+  type Relationship,
+  type DiscipleshipRequest,
+  type MissionaryProfile,
+  type MeetingType,
 } from '../shared/schema';
 
 /**
@@ -100,118 +111,7 @@ import {
  * @implements {IStorage}
  */
 export class NeonAdapter implements IStorage {
-  private getActivitiesFromConfig(raw: unknown): Activity[] {
-    if (Array.isArray(raw)) {
-      return raw as Activity[];
-    }
-    return [];
-  }
-
-  private toDateString(value: unknown): string {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-    if (value == null) {
-      return '';
-    }
-    return String(value);
-  }
-
-  private toOptionalDateString(value: unknown): string | null {
-    if (value == null) {
-      return null;
-    }
-    return value instanceof Date ? value.toISOString() : String(value);
-  }
-
-  private normalizeExtraData(value: unknown): Record<string, unknown> | string | null | undefined {
-    if (value == null) {
-      return value as null | undefined;
-    }
-    if (typeof value === 'string') {
-      return value;
-    }
-    if (typeof value === 'object') {
-      return value as Record<string, unknown>;
-    }
-    return String(value);
-  }
-
-  private toUser(row: Record<string, unknown>): User {
-    return {
-      id: Number(row.id),
-      name: row.name == null ? '' : String(row.name),
-      email: row.email == null ? '' : String(row.email),
-      password: row.password == null ? '' : String(row.password),
-      role: (row.role == null ? 'member' : String(row.role)) as User['role'],
-      church: row.church == null ? null : String(row.church),
-      churchCode: row.churchCode == null ? '' : String(row.churchCode),
-      districtId: row.districtId == null ? null : Number(row.districtId),
-      departments: row.departments == null ? '' : String(row.departments),
-      birthDate: row.birthDate == null ? '' : String(row.birthDate),
-      civilStatus: row.civilStatus == null ? '' : String(row.civilStatus),
-      occupation: row.occupation == null ? '' : String(row.occupation),
-      education: row.education == null ? '' : String(row.education),
-      address: row.address == null ? '' : String(row.address),
-      baptismDate: row.baptismDate == null ? '' : String(row.baptismDate),
-      previousReligion: row.previousReligion == null ? '' : String(row.previousReligion),
-      biblicalInstructor: row.biblicalInstructor == null ? null : String(row.biblicalInstructor),
-      interestedSituation: row.interestedSituation == null ? '' : String(row.interestedSituation),
-      isDonor: Boolean(row.isDonor),
-      isTither: Boolean(row.isTither),
-      isApproved: Boolean(row.isApproved),
-      points: Number(row.points ?? 0),
-      level: row.level == null ? '' : String(row.level),
-      attendance: Number(row.attendance ?? 0),
-      extraData: this.normalizeExtraData(row.extraData),
-      observations: row.observations == null ? '' : String(row.observations),
-      createdAt: this.toDateString(row.createdAt),
-      updatedAt: this.toDateString(row.updatedAt),
-      firstAccess: Boolean(row.firstAccess),
-      status: (row.status == null ? 'active' : String(row.status)) as import('../shared/types/user').UserStatus,
-      phone: row.phone == null ? undefined : String(row.phone),
-      cpf: row.cpf == null ? undefined : String(row.cpf),
-      profilePhoto: row.profilePhoto == null ? undefined : String(row.profilePhoto),
-      isOffering: row.isOffering == null ? undefined : Boolean(row.isOffering),
-      hasLesson: row.hasLesson == null ? undefined : Boolean(row.hasLesson),
-    };
-  }
-
-  private generateChurchCode(name: string): string {
-    const base = name
-      .split(' ')
-      .map(part => part.trim())
-      .filter(Boolean)
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '');
-    return (base || 'CH').slice(0, 10);
-  }
-
-  private async resolveChurchCode(name: string, providedCode?: string | null): Promise<string> {
-    const initialCode = (
-      providedCode && providedCode.trim() !== '' ? providedCode : this.generateChurchCode(name)
-    ).slice(0, 10);
-    let finalCode = initialCode;
-    let counter = 1;
-
-    while (true) {
-      const existing = await db
-        .select()
-        .from(schema.churches)
-        .where(eq(schema.churches.code, finalCode))
-        .limit(1);
-      if (existing.length === 0) {
-        return finalCode;
-      }
-      const suffix = String(counter);
-      const truncated = initialCode.slice(0, Math.max(1, 10 - suffix.length));
-      finalCode = `${truncated}${suffix}`;
-      counter += 1;
-    }
-  }
-
+  /** Delegate to shared helper */
   private toPermissionUser(user: {
     id?: number;
     role?: string;
@@ -219,231 +119,12 @@ export class NeonAdapter implements IStorage {
     districtId?: number | null;
     church?: string | null;
   }): Partial<User> {
-    return {
-      id: user.id,
-      role: user.role as User['role'],
-      email: user.email,
-      districtId: user.districtId ?? undefined,
-      church: user.church ?? undefined,
-    };
+    return _toPermissionUser(user);
   }
 
-  private mapPrayerRecord(record: Record<string, unknown>): Prayer {
-    const createdAt = this.toOptionalDateString(record?.createdAt);
-    const updatedAt = this.toOptionalDateString(record?.updatedAt);
-    const isAnswered = record?.status === 'answered';
-    return {
-      id: Number(record.id),
-      userId: Number(record.requesterId),
-      districtId: record.districtId != null ? Number(record.districtId) : null,
-      title: String(record.title),
-      description: record.description == null ? null : String(record.description),
-      isPublic: record.isPrivate === null ? true : !record.isPrivate,
-      isAnswered,
-      answeredAt: isAnswered ? (updatedAt ? String(updatedAt) : null) : null,
-      testimony: null,
-      createdAt: createdAt ? String(createdAt) : '',
-      updatedAt: updatedAt ? String(updatedAt) : '',
-    };
-  }
-
-  private mapChurchRecord(record: Record<string, unknown>): Church {
-    return {
-      id: Number(record.id),
-      name: record.name == null ? '' : String(record.name),
-      code: record.code == null ? undefined : String(record.code),
-      address: record.address == null ? null : String(record.address),
-      city: record.city == null ? null : String(record.city),
-      state: record.state == null ? null : String(record.state),
-      zip_code: record.zip_code == null ? null : String(record.zip_code),
-      email: record.email == null ? null : String(record.email),
-      phone: record.phone == null ? null : String(record.phone),
-      pastor_name: record.pastor_name == null ? null : String(record.pastor_name),
-      pastor_email: record.pastor_email == null ? null : String(record.pastor_email),
-      established_date: record.established_date == null ? null : String(record.established_date),
-      status: record.status == null ? null : String(record.status),
-      districtId: record.districtId == null ? null : Number(record.districtId),
-      isActive: record.isActive == null ? true : Boolean(record.isActive),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
-  private mapRelationshipRecord(record: Record<string, unknown>): Relationship {
-    return {
-      id: Number(record.id),
-      interestedId: record.interestedId == null ? undefined : Number(record.interestedId),
-      missionaryId: record.missionaryId == null ? undefined : Number(record.missionaryId),
-      userId1: record.userId1 == null ? undefined : Number(record.userId1),
-      userId2: record.userId2 == null ? undefined : Number(record.userId2),
-      relationshipType:
-        record.relationshipType == null ? undefined : String(record.relationshipType),
-      status: record.status == null ? undefined : String(record.status),
-      notes: record.notes == null ? undefined : String(record.notes),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
-  private mapMeetingRecord(record: Record<string, unknown>): Meeting {
-    return {
-      id: Number(record.id),
-      requesterId: Number(record.requesterId ?? 0),
-      assignedToId: Number(record.assignedToId ?? 0),
-      typeId: Number(record.typeId ?? 0),
-      title: record.title == null ? '' : String(record.title),
-      description: record.description == null ? '' : String(record.description),
-      scheduledAt: this.toDateString(record.scheduledAt),
-      duration: Number(record.duration ?? 0),
-      location: record.location == null ? '' : String(record.location),
-      priority: record.priority == null ? '' : String(record.priority),
-      isUrgent: Boolean(record.isUrgent),
-      status: record.status == null ? '' : String(record.status),
-      notes: record.notes == null ? '' : String(record.notes),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
-  private mapMeetingTypeRecord(record: Record<string, unknown>): MeetingType {
-    return {
-      id: Number(record.id),
-      name: record.name == null ? '' : String(record.name),
-      description: record.description == null ? '' : String(record.description),
-      duration: Number(record.duration ?? 0),
-      isActive: record.isActive == null ? true : Boolean(record.isActive),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
+  /** Delegate to shared helper */
   private mapConversationRecord(record: Record<string, unknown>): Conversation {
-    const typeValue = record.type == null ? '' : String(record.type);
-    return {
-      id: Number(record.id),
-      title: record.title == null ? '' : String(record.title),
-      type: typeValue,
-      isGroup: typeValue === 'group' || typeValue === 'grupo',
-      createdBy: record.createdBy == null ? null : Number(record.createdBy),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
-  private mapMessageRecord(record: Record<string, unknown>): Message {
-    return {
-      id: Number(record.id),
-      conversationId: Number(record.conversationId ?? 0),
-      senderId: Number(record.senderId ?? 0),
-      content: record.content == null ? '' : String(record.content),
-      messageType: record.messageType == null ? 'text' : String(record.messageType),
-      isRead: record.isRead == null ? false : Boolean(record.isRead),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
-  private mapPointActivityRecord(record: Record<string, unknown>): PointActivity {
-    return {
-      id: Number(record.id),
-      userId: Number(record.userId ?? 0),
-      pointId: Number(record.pointId ?? record.id ?? 0),
-      points: Number(record.points ?? 0),
-      description: record.description == null ? '' : String(record.description),
-      createdAt: this.toDateString(record.createdAt),
-    };
-  }
-
-  private mapAchievementRecord(record: Record<string, unknown>): Achievement {
-    return {
-      id: Number(record.id),
-      name: record.name == null ? '' : String(record.name),
-      description: record.description == null ? '' : String(record.description),
-      icon: record.icon == null ? '' : String(record.icon),
-      requiredPoints: Number(record.pointsRequired ?? record.requiredPoints ?? 0),
-      requiredConditions:
-        record.requiredConditions == null ? '' : String(record.requiredConditions),
-      badgeColor: record.badgeColor == null ? '' : String(record.badgeColor),
-      isActive: record.isActive == null ? true : Boolean(record.isActive),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
-  private mapDiscipleshipRequestRecord(record: Record<string, unknown>): DiscipleshipRequest {
-    const interestedId = record.interestedId == null ? undefined : Number(record.interestedId);
-    const missionaryId = record.missionaryId == null ? undefined : Number(record.missionaryId);
-    return {
-      id: Number(record.id),
-      requesterId: Number(interestedId ?? 0),
-      mentorId: Number(missionaryId ?? 0),
-      status: record.status == null ? '' : String(record.status),
-      message: record.notes == null ? '' : String(record.notes),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-      interestedId,
-      missionaryId,
-      notes: record.notes == null ? undefined : String(record.notes),
-    };
-  }
-
-  private mapEmotionalCheckInRecord(record: Record<string, unknown>): EmotionalCheckIn {
-    return {
-      id: Number(record.id),
-      userId: Number(record.userId ?? 0),
-      emotionalScore: record.emotionalScore == null ? null : Number(record.emotionalScore),
-      mood: record.mood == null ? null : String(record.mood),
-      prayerRequest: record.prayerRequest == null ? null : String(record.prayerRequest),
-      isPrivate: Boolean(record.isPrivate),
-      allowChurchMembers:
-        record.allowChurchMembers == null ? true : Boolean(record.allowChurchMembers),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-    };
-  }
-
-  private mapMissionaryProfileRecord(record: Record<string, unknown>): MissionaryProfile {
-    return {
-      id: Number(record.id),
-      userId: Number(record.userId ?? 0),
-      missionField:
-        record.missionField == null
-          ? String(record.specialization ?? '')
-          : String(record.missionField),
-      startDate: record.startDate == null ? '' : String(record.startDate),
-      endDate: record.endDate == null ? '' : String(record.endDate),
-      status: record.status == null ? 'active' : String(record.status),
-      notes: record.notes == null ? String(record.experience ?? '') : String(record.notes),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-      isActive: record.isActive == null ? undefined : Boolean(record.isActive),
-    };
-  }
-
-  private mapPushSubscriptionRecord(record: Record<string, unknown>): PushSubscription {
-    return {
-      id: Number(record.id),
-      userId: Number(record.userId ?? 0),
-      endpoint: record.endpoint == null ? '' : String(record.endpoint),
-      p256dh: record.p256dh == null ? '' : String(record.p256dh),
-      auth: record.auth == null ? '' : String(record.auth),
-      isActive: record.isActive == null ? true : Boolean(record.isActive),
-      createdAt: this.toDateString(record.createdAt),
-      updatedAt: this.toDateString(record.updatedAt),
-      deviceName: record.deviceName == null ? null : String(record.deviceName),
-    };
-  }
-
-  private mapNotificationRecord(record: Record<string, unknown>): Notification {
-    return {
-      id: Number(record.id),
-      userId: Number(record.userId ?? 0),
-      title: record.title == null ? '' : String(record.title),
-      message: record.message == null ? '' : String(record.message),
-      type: record.type == null ? 'general' : String(record.type),
-      isRead: record.isRead == null ? false : Boolean(record.isRead),
-      createdAt: this.toDateString(record.createdAt),
-    };
+    return _mapConversationRecord(record);
   }
 
   // ========== USUÁRIOS ==========
@@ -496,19 +177,6 @@ export class NeonAdapter implements IStorage {
     return userRepository.getUserByNormalizedUsername(username);
   }
 
-  /**
-   * Normaliza um nome para formato de username
-   * Exemplo: "João da Silva" -> "joaodasilva"
-   */
-  private normalizeUsername(name: string): string {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
-      .trim();
-  }
-
   async createUser(userData: CreateUserInput): Promise<User> {
     return userRepository.createUser(userData);
   }
@@ -552,184 +220,23 @@ export class NeonAdapter implements IStorage {
 
   // ========== EVENTOS ==========
   async getAllEvents(): Promise<Event[]> {
-    try {
-      // Selecionar apenas as colunas que existem no banco
-      const result = await db
-        .select({
-          id: schema.events.id,
-          title: schema.events.title,
-          description: schema.events.description,
-          date: schema.events.date,
-          endDate: schema.events.endDate,
-          location: schema.events.location,
-          type: schema.events.type,
-          color: schema.events.color,
-          capacity: schema.events.capacity,
-          isRecurring: schema.events.isRecurring,
-          recurrencePattern: schema.events.recurrencePattern,
-          createdBy: schema.events.createdBy,
-          churchId: schema.events.churchId,
-          createdAt: schema.events.createdAt,
-          updatedAt: schema.events.updatedAt,
-        })
-        .from(schema.events)
-        .orderBy(desc(schema.events.date));
-
-      // TEMPORÁRIO: Adicionar eventos específicos para teste
-      return result as unknown as Event[];
-    } catch (error) {
-      logger.error('Erro ao buscar eventos:', error);
-      return [];
-    }
+    return eventRepository.getAllEvents();
   }
 
   async getEventById(id: number): Promise<Event | null> {
-    try {
-      const result = await db.select().from(schema.events).where(eq(schema.events.id, id)).limit(1);
-      return (result[0] || null) as unknown as Event | null;
-    } catch (error) {
-      logger.error('Erro ao buscar evento por ID:', error);
-      return null;
-    }
+    return eventRepository.getEventById(id);
   }
 
   async createEvent(eventData: CreateEventInput): Promise<Event> {
-    try {
-      const eventExtras = eventData as CreateEventInput & {
-        endDate?: string | null;
-        type?: string;
-        organizerId?: number | null;
-        maxParticipants?: number | null;
-        capacity?: number | null;
-        color?: string | null;
-        churchId?: number | null;
-        time?: string;
-        districtId?: number | null;
-      };
-      const baseDate = new Date(eventExtras.date);
-      if (eventExtras.time) {
-        const [hours, minutes] = eventExtras.time.split(':');
-        const parsedHours = Number(hours);
-        const parsedMinutes = Number(minutes);
-        if (!Number.isNaN(parsedHours)) {
-          baseDate.setHours(parsedHours);
-        }
-        if (!Number.isNaN(parsedMinutes)) {
-          baseDate.setMinutes(parsedMinutes);
-        }
-      }
-
-      // Buscar distrito do criador do evento
-      let districtId = eventExtras.districtId || null;
-      if (!districtId && eventExtras.organizerId) {
-        const user = await this.getUserById(eventExtras.organizerId);
-        districtId = user?.districtId || null;
-      }
-
-      const newEvent = {
-        title: eventExtras.title || 'Evento',
-        description: eventExtras.description ?? null,
-        date: baseDate,
-        endDate: eventExtras.endDate ? new Date(eventExtras.endDate) : null,
-        location: eventExtras.location ?? null,
-        type: eventExtras.type || 'evento',
-        color: eventExtras.color ?? null,
-        capacity: eventExtras.capacity ?? eventExtras.maxParticipants ?? null,
-        isRecurring: eventExtras.isRecurring ?? false,
-        recurrencePattern: eventExtras.recurrencePattern ?? null,
-        createdBy: eventExtras.organizerId ?? null,
-        churchId: eventExtras.churchId ?? null,
-        districtId: districtId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const result = await db
-        .insert(schema.events)
-        .values(newEvent as typeof schema.events.$inferInsert)
-        .returning();
-      return result[0] as unknown as Event;
-    } catch (error) {
-      logger.error('Erro ao criar evento:', error);
-      throw error;
-    }
+    return eventRepository.createEventFull(eventData, (id) => this.getUserById(id));
   }
 
   async updateEvent(id: number, updates: UpdateEventInput): Promise<Event | null> {
-    try {
-      const updatesExtras = updates as UpdateEventInput & {
-        endDate?: string | null;
-        type?: string;
-        organizerId?: number | null;
-        maxParticipants?: number | null;
-        capacity?: number | null;
-        color?: string | null;
-        churchId?: number | null;
-        time?: string;
-      };
-      const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
-
-      if (updatesExtras.title !== undefined) dbUpdates.title = updatesExtras.title;
-      if (updatesExtras.description !== undefined) {
-        dbUpdates.description = updatesExtras.description ?? null;
-      }
-      if (updatesExtras.location !== undefined) dbUpdates.location = updatesExtras.location ?? null;
-      if (updatesExtras.type !== undefined) dbUpdates.type = updatesExtras.type;
-      if (updatesExtras.isRecurring !== undefined) {
-        dbUpdates.isRecurring = updatesExtras.isRecurring;
-      }
-      if (updatesExtras.recurrencePattern !== undefined) {
-        dbUpdates.recurrencePattern = updatesExtras.recurrencePattern ?? null;
-      }
-      if (updatesExtras.maxParticipants !== undefined) {
-        dbUpdates.capacity = updatesExtras.maxParticipants ?? null;
-      }
-      if (updatesExtras.capacity !== undefined) dbUpdates.capacity = updatesExtras.capacity ?? null;
-      if (updatesExtras.organizerId !== undefined) {
-        dbUpdates.createdBy = updatesExtras.organizerId ?? null;
-      }
-      if (updatesExtras.color !== undefined) dbUpdates.color = updatesExtras.color ?? null;
-      if (updatesExtras.churchId !== undefined) dbUpdates.churchId = updatesExtras.churchId ?? null;
-      if (updatesExtras.date !== undefined) {
-        const nextDate = new Date(updatesExtras.date);
-        if (updatesExtras.time) {
-          const [hours, minutes] = updatesExtras.time.split(':');
-          const parsedHours = Number(hours);
-          const parsedMinutes = Number(minutes);
-          if (!Number.isNaN(parsedHours)) {
-            nextDate.setHours(parsedHours);
-          }
-          if (!Number.isNaN(parsedMinutes)) {
-            nextDate.setMinutes(parsedMinutes);
-          }
-        }
-        dbUpdates.date = nextDate;
-      }
-      if (updatesExtras.endDate !== undefined) {
-        dbUpdates.endDate = updatesExtras.endDate ? new Date(updatesExtras.endDate) : null;
-      }
-
-      const result = await db
-        .update(schema.events)
-        .set(dbUpdates)
-        .where(eq(schema.events.id, id))
-        .returning();
-
-      return (result[0] || null) as unknown as Event | null;
-    } catch (error) {
-      logger.error('Erro ao atualizar evento:', error);
-      return null;
-    }
+    return eventRepository.updateEventFull(id, updates);
   }
 
   async deleteEvent(id: number): Promise<boolean> {
-    try {
-      await db.delete(schema.events).where(eq(schema.events.id, id));
-      return true;
-    } catch (error) {
-      logger.error('Erro ao deletar evento:', error);
-      return false;
-    }
+    return eventRepository.deleteEvent(id);
   }
 
   // ========== DADOS DETALHADOS DO USUÁRIO ==========
@@ -739,473 +246,23 @@ export class NeonAdapter implements IStorage {
 
   // ========== CONFIGURAÇÃO DE PONTOS ==========
   async getPointsConfiguration(): Promise<PointsConfiguration> {
-    try {
-      // Buscar configurações do banco de dados
-      const configs = await db.select().from(schema.pointConfigs);
-
-      if (configs.length === 0) {
-        // Se não há configurações, retornar valores padrão
-        return this.getDefaultPointsConfiguration();
-      }
-
-      const resolved = this.getDefaultPointsConfiguration();
-      const setNested = (category: keyof PointsConfiguration, key: string, value: number) => {
-        const group = resolved[category];
-        if (group && typeof group === 'object') {
-          (group as Record<string, number>)[key] = value;
-        }
-      };
-
-      configs.forEach(item => {
-        if (item.name === 'basicPoints') resolved.basicPoints = item.value;
-        else if (item.name === 'attendancePoints') resolved.attendancePoints = item.value;
-        else if (item.name === 'eventPoints') resolved.eventPoints = item.value;
-        else if (item.name === 'donationPoints') resolved.donationPoints = item.value;
-        else {
-          const parts = item.name.split('_');
-          const category = parts[0] as keyof PointsConfiguration;
-          const key = parts.slice(1).join('_');
-          setNested(category, key, item.value);
-        }
-      });
-
-      return resolved;
-    } catch (error) {
-      logger.error('❌ Erro ao buscar configuração de pontos:', error);
-      return this.getDefaultPointsConfiguration();
-    }
+    return pointsRepository.getPointsConfigFromDB();
   }
 
-  // Buscar configuração de pontos específica do distrito, com fallback para global
   async getPointsConfigurationByDistrict(districtId: number | null): Promise<PointsConfiguration> {
-    try {
-      // Se não tem distrito, usar configuração global
-      if (!districtId) {
-        return this.getPointsConfiguration();
-      }
-
-      // Buscar configurações específicas do distrito
-      const districtConfigs = await db
-        .select()
-        .from(schema.districtPointsConfig)
-        .where(eq(schema.districtPointsConfig.districtId, districtId));
-
-      // Se não há configuração do distrito, usar global
-      if (districtConfigs.length === 0) {
-        logger.info(`Distrito ${districtId} não tem config própria, usando global`);
-        return this.getPointsConfiguration();
-      }
-
-      // Começar com configuração padrão e sobrescrever com valores do distrito
-      const resolved = this.getDefaultPointsConfiguration();
-      const setNested = (category: keyof PointsConfiguration, key: string, value: number) => {
-        const group = resolved[category];
-        if (group && typeof group === 'object') {
-          (group as Record<string, number>)[key] = value;
-        }
-      };
-
-      // Aplicar configurações do distrito
-      districtConfigs.forEach(item => {
-        if (item.category && item.key) {
-          const category = item.category as keyof PointsConfiguration;
-          setNested(category, item.key, item.value);
-        }
-      });
-
-      logger.info(`Usando configuração de pontos do distrito ${districtId}`);
-      return resolved;
-    } catch (error) {
-      logger.error(`❌ Erro ao buscar configuração de pontos do distrito ${districtId}:`, error);
-      // Fallback para configuração global
-      return this.getPointsConfiguration();
-    }
-  }
-
-  private getDefaultPointsConfiguration(): PointsConfiguration {
-    return {
-      basicPoints: 25,
-      attendancePoints: 25,
-      eventPoints: 50,
-      donationPoints: 75,
-      engajamento: {
-        baixo: 25,
-        medio: 50,
-        alto: 75,
-      },
-      classificacao: {
-        frequente: 75,
-        naoFrequente: 25,
-      },
-      dizimista: {
-        naoDizimista: 0,
-        pontual: 50,
-        sazonal: 75,
-        recorrente: 100,
-      },
-      ofertante: {
-        naoOfertante: 0,
-        pontual: 50,
-        sazonal: 75,
-        recorrente: 100,
-      },
-      tempoBatismo: {
-        doisAnos: 50,
-        cincoAnos: 75,
-        dezAnos: 100,
-        vinteAnos: 150,
-        maisVinte: 200,
-      },
-      cargos: {
-        umCargo: 50,
-        doisCargos: 100,
-        tresOuMais: 150,
-      },
-      nomeUnidade: {
-        comUnidade: 25,
-        semUnidade: 0,
-      },
-      temLicao: {
-        comLicao: 50,
-      },
-      pontuacaoDinamica: {
-        multiplicador: 25,
-      },
-      totalPresenca: {
-        zeroATres: 25,
-        quatroASete: 50,
-        oitoATreze: 100,
-      },
-      presenca: {
-        multiplicador: 5,
-      },
-      escolaSabatina: {
-        comunhao: 50,
-        missao: 75,
-        estudoBiblico: 100,
-        batizouAlguem: 200,
-        discipuladoPosBatismo: 50,
-      },
-      batizouAlguem: {
-        sim: 200,
-        nao: 0,
-      },
-      discipuladoPosBatismo: {
-        multiplicador: 50,
-      },
-      cpfValido: {
-        valido: 25,
-        invalido: 0,
-      },
-      camposVaziosACMS: {
-        completos: 50,
-        incompletos: 0,
-      },
-    };
+    return pointsRepository.getPointsConfigByDistrict(districtId);
   }
 
   async savePointsConfiguration(config: PointsConfiguration): Promise<void> {
-    try {
-      // Limpar configurações existentes
-      await db.delete(schema.pointConfigs);
-
-      // Salvar configurações básicas
-      const basicConfigs = [
-        { name: 'basicPoints', value: config.basicPoints || 100, category: 'basic' },
-        { name: 'attendancePoints', value: config.attendancePoints || 10, category: 'basic' },
-        { name: 'eventPoints', value: config.eventPoints || 20, category: 'basic' },
-        { name: 'donationPoints', value: config.donationPoints || 50, category: 'basic' },
-      ];
-
-      // Salvar configurações de engajamento
-      const engajamentoConfigs = [
-        {
-          name: 'engajamento_baixo',
-          value: config.engajamento?.baixo || 10,
-          category: 'engajamento',
-        },
-        {
-          name: 'engajamento_medio',
-          value: config.engajamento?.medio || 25,
-          category: 'engajamento',
-        },
-        {
-          name: 'engajamento_alto',
-          value: config.engajamento?.alto || 50,
-          category: 'engajamento',
-        },
-      ];
-
-      // Salvar configurações de classificação
-      const classificacaoConfigs = [
-        {
-          name: 'classificacao_frequente',
-          value: config.classificacao?.frequente || 30,
-          category: 'classificacao',
-        },
-        {
-          name: 'classificacao_naoFrequente',
-          value: config.classificacao?.naoFrequente || 5,
-          category: 'classificacao',
-        },
-      ];
-
-      // Salvar configurações de dízimo
-      const dizimistaConfigs = [
-        {
-          name: 'dizimista_naoDizimista',
-          value: config.dizimista?.naoDizimista || 0,
-          category: 'dizimista',
-        },
-        {
-          name: 'dizimista_pontual',
-          value: config.dizimista?.pontual || 20,
-          category: 'dizimista',
-        },
-        {
-          name: 'dizimista_sazonal',
-          value: config.dizimista?.sazonal || 15,
-          category: 'dizimista',
-        },
-        {
-          name: 'dizimista_recorrente',
-          value: config.dizimista?.recorrente || 40,
-          category: 'dizimista',
-        },
-      ];
-
-      // Salvar configurações de oferta
-      const ofertanteConfigs = [
-        {
-          name: 'ofertante_naoOfertante',
-          value: config.ofertante?.naoOfertante || 0,
-          category: 'ofertante',
-        },
-        {
-          name: 'ofertante_pontual',
-          value: config.ofertante?.pontual || 15,
-          category: 'ofertante',
-        },
-        {
-          name: 'ofertante_sazonal',
-          value: config.ofertante?.sazonal || 10,
-          category: 'ofertante',
-        },
-        {
-          name: 'ofertante_recorrente',
-          value: config.ofertante?.recorrente || 30,
-          category: 'ofertante',
-        },
-      ];
-
-      // Salvar configurações de tempo de batismo
-      const tempoBatismoConfigs = [
-        {
-          name: 'tempoBatismo_doisAnos',
-          value: config.tempoBatismo?.doisAnos || 10,
-          category: 'tempoBatismo',
-        },
-        {
-          name: 'tempoBatismo_cincoAnos',
-          value: config.tempoBatismo?.cincoAnos || 20,
-          category: 'tempoBatismo',
-        },
-        {
-          name: 'tempoBatismo_dezAnos',
-          value: config.tempoBatismo?.dezAnos || 30,
-          category: 'tempoBatismo',
-        },
-        {
-          name: 'tempoBatismo_vinteAnos',
-          value: config.tempoBatismo?.vinteAnos || 40,
-          category: 'tempoBatismo',
-        },
-        {
-          name: 'tempoBatismo_maisVinte',
-          value: config.tempoBatismo?.maisVinte || 50,
-          category: 'tempoBatismo',
-        },
-      ];
-
-      // Salvar configurações de cargos
-      const cargosConfigs = [
-        { name: 'cargos_umCargo', value: config.cargos?.umCargo || 50, category: 'cargos' },
-        { name: 'cargos_doisCargos', value: config.cargos?.doisCargos || 100, category: 'cargos' },
-        { name: 'cargos_tresOuMais', value: config.cargos?.tresOuMais || 150, category: 'cargos' },
-      ];
-
-      // Salvar configurações de unidade
-      const unidadeConfigs = [
-        {
-          name: 'nomeUnidade_comUnidade',
-          value: config.nomeUnidade?.comUnidade || 15,
-          category: 'nomeUnidade',
-        },
-        {
-          name: 'nomeUnidade_semUnidade',
-          value: config.nomeUnidade?.semUnidade || 0,
-          category: 'nomeUnidade',
-        },
-      ];
-
-      // Salvar configurações de tem lição
-      const temLicaoConfigs = [
-        { name: 'temLicao_comLicao', value: config.temLicao?.comLicao || 50, category: 'temLicao' },
-      ];
-
-      // Salvar configurações de multiplicadores
-      const multiplicadorConfigs = [
-        {
-          name: 'pontuacaoDinamica_multiplicador',
-          value: config.pontuacaoDinamica?.multiplicador || 5,
-          category: 'multiplicador',
-        },
-        {
-          name: 'presenca_multiplicador',
-          value: config.presenca?.multiplicador || 2,
-          category: 'multiplicador',
-        },
-      ];
-
-      // Salvar configurações de batismo
-      const batismoConfigs = [
-        { name: 'batizouAlguem_sim', value: config.batizouAlguem?.sim || 100, category: 'batismo' },
-        { name: 'batizouAlguem_nao', value: config.batizouAlguem?.nao || 0, category: 'batismo' },
-      ];
-
-      // Salvar configurações de discipulado
-      const discipuladoConfigs = [
-        {
-          name: 'discipuladoPosBatismo_multiplicador',
-          value: config.discipuladoPosBatismo?.multiplicador || 10,
-          category: 'discipulado',
-        },
-      ];
-
-      // Salvar configurações de CPF
-      const cpfConfigs = [
-        { name: 'cpfValido_valido', value: config.cpfValido?.valido || 20, category: 'cpf' },
-        { name: 'cpfValido_invalido', value: config.cpfValido?.invalido || 0, category: 'cpf' },
-      ];
-
-      // Salvar configurações de campos
-      const camposConfigs = [
-        {
-          name: 'camposVaziosACMS_completos',
-          value: config.camposVaziosACMS?.completos || 25,
-          category: 'campos',
-        },
-        {
-          name: 'camposVaziosACMS_incompletos',
-          value: config.camposVaziosACMS?.incompletos || 0,
-          category: 'campos',
-        },
-      ];
-
-      // Salvar configurações de total de presença
-      const totalPresencaConfigs = [
-        {
-          name: 'totalPresenca_zeroATres',
-          value: config.totalPresenca?.zeroATres || 25,
-          category: 'totalPresenca',
-        },
-        {
-          name: 'totalPresenca_quatroASete',
-          value: config.totalPresenca?.quatroASete || 50,
-          category: 'totalPresenca',
-        },
-        {
-          name: 'totalPresenca_oitoATreze',
-          value: config.totalPresenca?.oitoATreze || 100,
-          category: 'totalPresenca',
-        },
-      ];
-
-      // Salvar configurações de escola sabatina
-      const escolaSabatinaConfigs = [
-        {
-          name: 'escolaSabatina_comunhao',
-          value: config.escolaSabatina?.comunhao || 50,
-          category: 'escolaSabatina',
-        },
-        {
-          name: 'escolaSabatina_missao',
-          value: config.escolaSabatina?.missao || 75,
-          category: 'escolaSabatina',
-        },
-        {
-          name: 'escolaSabatina_estudoBiblico',
-          value: config.escolaSabatina?.estudoBiblico || 100,
-          category: 'escolaSabatina',
-        },
-        {
-          name: 'escolaSabatina_batizouAlguem',
-          value: config.escolaSabatina?.batizouAlguem || 200,
-          category: 'escolaSabatina',
-        },
-        {
-          name: 'escolaSabatina_discipuladoPosBatismo',
-          value: config.escolaSabatina?.discipuladoPosBatismo || 25,
-          category: 'escolaSabatina',
-        },
-      ];
-
-      // Combinar todas as configurações
-      const allConfigs = [
-        ...basicConfigs,
-        ...engajamentoConfigs,
-        ...classificacaoConfigs,
-        ...dizimistaConfigs,
-        ...ofertanteConfigs,
-        ...tempoBatismoConfigs,
-        ...cargosConfigs,
-        ...unidadeConfigs,
-        ...temLicaoConfigs,
-        ...multiplicadorConfigs,
-        ...batismoConfigs,
-        ...discipuladoConfigs,
-        ...cpfConfigs,
-        ...camposConfigs,
-        ...totalPresencaConfigs,
-        ...escolaSabatinaConfigs,
-      ];
-
-      // Inserir todas as configurações
-      await db.insert(schema.pointConfigs).values(allConfigs);
-    } catch (error) {
-      logger.error('Erro ao salvar configuração de pontos', error);
-      throw error;
-    }
+    return pointsRepository.savePointsConfigToDB(config);
   }
 
   async resetPointsConfiguration(): Promise<void> {
-    try {
-      // Limpar todas as configurações de pontos
-      await db.delete(schema.pointConfigs);
-      logger.info('Configuração de pontos resetada');
-    } catch (error) {
-      logger.error('Erro ao resetar configuração de pontos', error);
-      throw error;
-    }
+    return pointsRepository.resetPointsConfigDB();
   }
 
   async resetAllUserPoints(): Promise<{ success: boolean; message: string; error?: string }> {
-    try {
-      logger.info('Zerando pontos de todos os usuários...');
-
-      // Zerar pontos de todos os usuários
-      await db.update(schema.users).set({ points: 0 });
-
-      logger.info('Pontos zerados para todos os usuários');
-
-      return {
-        success: true,
-        message: 'Pontos zerados para todos os usuários',
-      };
-    } catch (error) {
-      logger.error('Erro ao zerar pontos', error);
-      return { success: false, message: 'Erro ao zerar pontos', error: (error as Error).message };
-    }
+    return pointsRepository.resetAllUserPointsDB();
   }
 
   async calculateUserPoints(userId: number): Promise<PointsCalculationResult> {
@@ -1480,7 +537,7 @@ export class NeonAdapter implements IStorage {
           name: userData.name,
           email: userData.email,
           role: userData.role,
-          extraData: extraData,
+          extraData,
         },
       };
     } catch (error) {
@@ -1745,214 +802,27 @@ export class NeonAdapter implements IStorage {
   // ========== MÉTODOS ADICIONAIS (Sistema, Logo, etc) ==========
 
   async saveSystemLogo(logoData: string): Promise<void> {
-    try {
-      await db
-        .insert(schema.systemSettings)
-        .values({
-          key: 'system_logo',
-          value: logoData,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: schema.systemSettings.key,
-          set: {
-            value: logoData,
-            updatedAt: new Date(),
-          },
-        });
-    } catch (error) {
-      logger.error('Erro ao salvar logo do sistema:', error);
-      throw error;
-    }
+    return systemRepository.saveLogo(logoData);
   }
 
   async getSystemLogo(): Promise<string | null> {
-    try {
-      const result = await db
-        .select()
-        .from(schema.systemSettings)
-        .where(eq(schema.systemSettings.key, 'system_logo'))
-        .limit(1);
-
-      const value = result[0]?.value;
-      if (value == null) {
-        return null;
-      }
-      if (typeof value === 'string') {
-        return value;
-      }
-      return JSON.stringify(value);
-    } catch (error) {
-      logger.error('Erro ao buscar logo do sistema:', error);
-      return null;
-    }
+    return systemRepository.getLogo();
   }
 
   async clearSystemLogo(): Promise<void> {
-    try {
-      await db.delete(schema.systemSettings).where(eq(schema.systemSettings.key, 'system_logo'));
-    } catch (error) {
-      logger.error('Erro ao limpar logo do sistema:', error);
-      throw error;
-    }
+    return systemRepository.clearLogo();
   }
 
   async saveSystemSetting(key: string, value: unknown): Promise<void> {
-    try {
-      await db
-        .insert(schema.systemSettings)
-        .values({
-          key,
-          value: JSON.stringify(value),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: schema.systemSettings.key,
-          set: {
-            value: JSON.stringify(value),
-            updatedAt: new Date(),
-          },
-        });
-    } catch (error) {
-      logger.error('Erro ao salvar configuração do sistema:', error);
-      throw error;
-    }
+    return systemRepository.saveSetting(key, value);
   }
 
   async getSystemSetting(key: string): Promise<unknown | null> {
-    try {
-      const result = await db
-        .select()
-        .from(schema.systemSettings)
-        .where(eq(schema.systemSettings.key, key))
-        .limit(1);
-
-      const value = result[0]?.value;
-      if (value == null) {
-        return null;
-      }
-      if (typeof value === 'string') {
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value;
-        }
-      }
-      return value;
-    } catch (error) {
-      logger.error('Erro ao buscar configuração do sistema', error);
-      return null;
-    }
+    return systemRepository.getSetting(key);
   }
 
   async clearAllData(): Promise<void> {
-    try {
-      logger.info('Iniciando limpeza completa de todos os dados do sistema...');
-
-      // Deletar dados das tabelas em ordem (respeitando foreign keys)
-      // Tabelas dependentes primeiro
-      logger.debug('Limpando participantes de vídeo...');
-      await db.delete(schema.videoCallParticipants);
-
-      logger.debug('Limpando participantes de conversas...');
-      await db.delete(schema.conversationParticipants);
-
-      logger.debug('Limpando participantes de eventos...');
-      await db.delete(schema.eventParticipants);
-
-      logger.debug('Limpando intercessores de oração...');
-      await db.delete(schema.prayerIntercessors);
-
-      logger.debug('Limpando conquistas de usuários...');
-      await db.delete(schema.userAchievements);
-
-      logger.debug('Limpando histórico de pontos...');
-      await db.delete(schema.userPointsHistory);
-
-      logger.debug('Limpando atividades de pontos...');
-      await db.delete(schema.pointActivities);
-
-      logger.debug('Limpando mensagens...');
-      await db.delete(schema.messages);
-
-      // Tabelas principais
-      logger.debug('Limpando sessões de vídeo...');
-      await db.delete(schema.videoCallSessions);
-
-      logger.debug('Limpando conversas...');
-      await db.delete(schema.conversations);
-
-      logger.debug('Limpando eventos...');
-      await db.delete(schema.events);
-
-      logger.debug('Limpando reuniões...');
-      await db.delete(schema.meetings);
-
-      logger.debug('Limpando orações...');
-      await db.delete(schema.prayers);
-
-      logger.debug('Limpando notificações...');
-      await db.delete(schema.notifications);
-
-      logger.debug('Limpando subscriptions push...');
-      await db.delete(schema.pushSubscriptions);
-
-      logger.debug('Limpando check-ins emocionais...');
-      await db.delete(schema.emotionalCheckins);
-
-      logger.debug('Limpando relacionamentos...');
-      await db.delete(schema.relationships);
-
-      logger.debug('Limpando solicitações de discipulado...');
-      await db.delete(schema.discipleshipRequests);
-
-      logger.debug('Limpando perfis missionários...');
-      await db.delete(schema.missionaryProfiles);
-
-      logger.debug('Limpando tipos de reunião...');
-      await db.delete(schema.meetingTypes);
-
-      logger.debug('Limpando conquistas...');
-      await db.delete(schema.achievements);
-
-      logger.debug('Limpando configurações de pontos...');
-      await db.delete(schema.pointConfigs);
-
-      logger.debug('Limpando convites de pastores...');
-      await db.delete(schema.pastorInvites);
-
-      logger.debug('Limpando igrejas...');
-      await db.delete(schema.churches);
-
-      // Limpar districtId dos superadmins antes de deletar distritos (evitar FK constraint)
-      logger.debug('Limpando districtId dos superadmins...');
-      await db
-        .update(schema.users)
-        .set({ districtId: null })
-        .where(eq(schema.users.role, 'superadmin'));
-
-      // Deletar TODOS os usuários EXCETO os superadmins
-      logger.debug('Limpando usuários (mantendo superadmin)...');
-      await db.delete(schema.users).where(ne(schema.users.role, 'superadmin'));
-
-      logger.debug('Limpando configurações de pontos por distrito...');
-      await db.delete(schema.districtPointsConfig);
-
-      logger.debug('Limpando configurações de distrito...');
-      await db.delete(schema.districtSettings);
-
-      logger.debug('Limpando distritos...');
-      await db.delete(schema.districts);
-
-      logger.info(
-        'Todos os dados foram limpos com sucesso! Mantidos: usuários superadmin, configurações do sistema e permissões'
-      );
-    } catch (error) {
-      logger.error('Erro ao limpar dados', error);
-      throw error;
-    }
+    return systemRepository.clearAllData();
   }
 
   // ========== MÉTODOS PRIORITÁRIOS (TOP 10 MAIS USADOS) ==========
@@ -1992,30 +862,11 @@ export class NeonAdapter implements IStorage {
 
   // 5. getAllDiscipleshipRequests (4x usado)
   async getAllDiscipleshipRequests(): Promise<DiscipleshipRequest[]> {
-    try {
-      const requests = await db
-        .select()
-        .from(schema.discipleshipRequests)
-        .orderBy(desc(schema.discipleshipRequests.createdAt));
-      return requests.map(request => this.mapDiscipleshipRequestRecord(request));
-    } catch (error) {
-      logger.error('Erro ao buscar pedidos de discipulado:', error);
-      return [];
-    }
+    return discipleshipRepository.getAll();
   }
 
   async getDiscipleshipRequestById(id: number): Promise<DiscipleshipRequest | null> {
-    try {
-      const requests = await db
-        .select()
-        .from(schema.discipleshipRequests)
-        .where(eq(schema.discipleshipRequests.id, id))
-        .limit(1);
-      return requests[0] ? this.mapDiscipleshipRequestRecord(requests[0]) : null;
-    } catch (error) {
-      logger.error('Erro ao buscar pedido de discipulado por ID:', error);
-      return null;
-    }
+    return discipleshipRepository.getById(id);
   }
 
   // 6. createRelationship (3x usado)
@@ -2025,56 +876,19 @@ export class NeonAdapter implements IStorage {
 
   // 7. getEventPermissions (3x usado)
   async getEventPermissions(): Promise<EventPermissions | null> {
-    try {
-      const permissions = await db.select().from(schema.eventFilterPermissions).limit(1);
-
-      if (permissions.length > 0) {
-        const perms = permissions[0].permissions;
-        return typeof perms === 'string'
-          ? (JSON.parse(perms) as EventPermissions)
-          : (perms as EventPermissions);
-      }
-      return null;
-    } catch (error) {
-      logger.error('Erro ao buscar permissões de eventos:', error);
-      return null;
-    }
+    return systemRepository.getEventPermissions();
   }
 
   // 8. getEmotionalCheckInsForAdmin (3x usado)
   async getEmotionalCheckInsForAdmin(): Promise<EmotionalCheckIn[]> {
-    try {
-      const checkIns = await db
-        .select()
-        .from(schema.emotionalCheckins)
-        .orderBy(desc(schema.emotionalCheckins.createdAt));
-      return checkIns.map(checkIn => this.mapEmotionalCheckInRecord(checkIn));
-    } catch (error) {
-      logger.error('Erro ao buscar check-ins emocionais para admin:', error);
-      return [];
-    }
+    return emotionalCheckInRepository.getAll();
   }
 
   // 9. createDiscipleshipRequest (3x usado)
   async createDiscipleshipRequest(
     data: CreateDiscipleshipRequestInput
   ): Promise<DiscipleshipRequest> {
-    try {
-      const [request] = await db
-        .insert(schema.discipleshipRequests)
-        .values({
-          interestedId: data.interestedId,
-          missionaryId: data.missionaryId ?? data.requestedMissionaryId,
-          status: data.status || 'pending',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-      return this.mapDiscipleshipRequestRecord(request);
-    } catch (error) {
-      logger.error('Erro ao criar pedido de discipulado:', error);
-      throw error;
-    }
+    return discipleshipRepository.create(data);
   }
 
   // 10. getOrCreateChurch (3x usado)
@@ -2094,13 +908,7 @@ export class NeonAdapter implements IStorage {
   }
 
   async getMeetingTypes(): Promise<MeetingType[]> {
-    try {
-      const types = await db.select().from(schema.meetingTypes);
-      return types.map(type => this.mapMeetingTypeRecord(type));
-    } catch (error) {
-      logger.error('Erro ao buscar tipos de reunião:', error);
-      return [];
-    }
+    return meetingRepository.getMeetingTypes();
   }
 
   // Prayers
@@ -2113,89 +921,24 @@ export class NeonAdapter implements IStorage {
   }
 
   async addPrayerIntercessor(prayerId: number, intercessorId: number): Promise<boolean> {
-    try {
-      await db.insert(schema.prayerIntercessors).values({
-        prayerId,
-        userId: intercessorId,
-        joinedAt: new Date(),
-      });
-      return true;
-    } catch (error) {
-      logger.error('Erro ao adicionar intercessor:', error);
-      return false;
-    }
+    return prayerRepository.addIntercessor(prayerId, intercessorId);
   }
 
   async removePrayerIntercessor(prayerId: number, intercessorId: number): Promise<boolean> {
-    try {
-      await db
-        .delete(schema.prayerIntercessors)
-        .where(
-          and(
-            eq(schema.prayerIntercessors.prayerId, prayerId),
-            eq(schema.prayerIntercessors.userId, intercessorId)
-          )
-        );
-      return true;
-    } catch (error) {
-      logger.error('Erro ao remover intercessor:', error);
-      return false;
-    }
+    return prayerRepository.removeIntercessor(prayerId, intercessorId);
   }
 
   async getPrayerIntercessors(prayerId: number): Promise<User[]> {
-    try {
-      const intercessors = await db
-        .select()
-        .from(schema.prayerIntercessors)
-        .where(eq(schema.prayerIntercessors.prayerId, prayerId));
-      const intercessorIds = intercessors
-        .map(intercessor => intercessor.userId)
-        .filter((id): id is number => typeof id === 'number');
-      if (intercessorIds.length === 0) {
-        return [];
-      }
-      const users = await db
-        .select()
-        .from(schema.users)
-        .where(inArray(schema.users.id, intercessorIds));
-      return users.map(user => this.toUser(user));
-    } catch (error) {
-      logger.error('Erro ao buscar intercessores:', error);
-      return [];
-    }
+    return prayerRepository.getIntercessors(prayerId);
   }
 
   async getPrayersUserIsPrayingFor(userId: number): Promise<Prayer[]> {
-    try {
-      const prayers = await db
-        .select()
-        .from(schema.prayers)
-        .innerJoin(
-          schema.prayerIntercessors,
-          eq(schema.prayers.id, schema.prayerIntercessors.prayerId)
-        )
-        .where(eq(schema.prayerIntercessors.userId, userId));
-      return prayers.map(prayer => this.mapPrayerRecord(prayer.prayers));
-    } catch (error) {
-      logger.error('Erro ao buscar orações que usuário está orando:', error);
-      return [];
-    }
+    return prayerRepository.getPrayersUserIsPrayingFor(userId);
   }
 
   // Emotional Check-ins
   async getEmotionalCheckInsByUserId(userId: number): Promise<EmotionalCheckIn[]> {
-    try {
-      const checkIns = await db
-        .select()
-        .from(schema.emotionalCheckins)
-        .where(eq(schema.emotionalCheckins.userId, userId))
-        .orderBy(desc(schema.emotionalCheckins.createdAt));
-      return checkIns.map(checkIn => this.mapEmotionalCheckInRecord(checkIn));
-    } catch (error) {
-      logger.error('Erro ao buscar check-ins do usuário:', error);
-      return [];
-    }
+    return emotionalCheckInRepository.getByUserId(userId);
   }
 
   // Discipulado
@@ -2203,63 +946,21 @@ export class NeonAdapter implements IStorage {
     id: number,
     updates: UpdateDiscipleshipRequestInput
   ): Promise<DiscipleshipRequest | null> {
-    try {
-      const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
-      if (updates.status !== undefined) dbUpdates.status = updates.status ?? 'pending';
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes ?? null;
-      if (updates.missionaryId !== undefined) dbUpdates.missionaryId = updates.missionaryId ?? null;
-      if (updates.interestedId !== undefined) dbUpdates.interestedId = updates.interestedId ?? null;
-      const [updated] = await db
-        .update(schema.discipleshipRequests)
-        .set(dbUpdates)
-        .where(eq(schema.discipleshipRequests.id, id))
-        .returning();
-      return updated ? this.mapDiscipleshipRequestRecord(updated) : null;
-    } catch (error) {
-      logger.error('Erro ao atualizar pedido de discipulado:', error);
-      return null;
-    }
+    return discipleshipRepository.update(id, updates);
   }
 
   async deleteDiscipleshipRequest(id: number): Promise<boolean> {
-    try {
-      await db.delete(schema.discipleshipRequests).where(eq(schema.discipleshipRequests.id, id));
-      return true;
-    } catch (error) {
-      logger.error('Erro ao deletar pedido de discipulado:', error);
-      return false;
-    }
+    return discipleshipRepository.delete(id);
   }
 
   // Relacionamentos
   async deleteRelationship(relationshipId: number): Promise<boolean> {
-    try {
-      await db.delete(schema.relationships).where(eq(schema.relationships.id, relationshipId));
-      return true;
-    } catch (error) {
-      logger.error('Erro ao deletar relacionamento:', error);
-      return false;
-    }
+    return relationshipRepository.delete(relationshipId);
   }
 
   // Chat/Mensagens
   async getConversationsByUserId(userId: number): Promise<Conversation[]> {
-    try {
-      const conversations = await db
-        .select()
-        .from(schema.conversations)
-        .innerJoin(
-          schema.conversationParticipants,
-          eq(schema.conversations.id, schema.conversationParticipants.conversationId)
-        )
-        .where(eq(schema.conversationParticipants.userId, userId));
-      return conversations.map(conversation =>
-        this.mapConversationRecord(conversation.conversations)
-      );
-    } catch (error) {
-      logger.error('Erro ao buscar conversas:', error);
-      return [];
-    }
+    return conversationRepository.getByUserId(userId);
   }
 
   async getConversationsByUser(userId: number): Promise<Conversation[]> {
@@ -2267,30 +968,11 @@ export class NeonAdapter implements IStorage {
   }
 
   async getAllConversations(): Promise<Conversation[]> {
-    try {
-      const conversations = await db
-        .select()
-        .from(schema.conversations)
-        .orderBy(desc(schema.conversations.updatedAt));
-      return conversations.map(conversation => this.mapConversationRecord(conversation));
-    } catch (error) {
-      logger.error('Erro ao buscar todas as conversas:', error);
-      return [];
-    }
+    return conversationRepository.getAll();
   }
 
   async getConversationById(id: number): Promise<Conversation | null> {
-    try {
-      const conversations = await db
-        .select()
-        .from(schema.conversations)
-        .where(eq(schema.conversations.id, id))
-        .limit(1);
-      return conversations[0] ? this.mapConversationRecord(conversations[0]) : null;
-    } catch (error) {
-      logger.error('Erro ao buscar conversa por ID:', error);
-      return null;
-    }
+    return conversationRepository.getById(id);
   }
 
   async createConversation(data: Partial<Conversation>): Promise<Conversation> {
@@ -2308,7 +990,7 @@ export class NeonAdapter implements IStorage {
           title: data.title ?? null,
           type: data.type ?? 'private',
           createdBy: data.createdBy ?? null,
-          districtId: districtId,
+          districtId,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
@@ -2324,84 +1006,19 @@ export class NeonAdapter implements IStorage {
     id: number,
     updates: Partial<Conversation>
   ): Promise<Conversation | null> {
-    try {
-      const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
-      if (updates.title !== undefined) dbUpdates.title = updates.title ?? null;
-      if (updates.type !== undefined) dbUpdates.type = updates.type ?? 'private';
-      if (updates.createdBy !== undefined) dbUpdates.createdBy = updates.createdBy ?? null;
-      const [conversation] = await db
-        .update(schema.conversations)
-        .set(dbUpdates)
-        .where(eq(schema.conversations.id, id))
-        .returning();
-      return conversation ? this.mapConversationRecord(conversation) : null;
-    } catch (error) {
-      logger.error('Erro ao atualizar conversa:', error);
-      return null;
-    }
+    return conversationRepository.update(id, updates);
   }
 
   async deleteConversation(id: number): Promise<boolean> {
-    try {
-      await db
-        .delete(schema.conversationParticipants)
-        .where(eq(schema.conversationParticipants.conversationId, id));
-      await db.delete(schema.conversations).where(eq(schema.conversations.id, id));
-      return true;
-    } catch (error) {
-      logger.error('Erro ao deletar conversa:', error);
-      return false;
-    }
+    return conversationRepository.delete(id);
   }
 
   async getOrCreateDirectConversation(userAId: number, userBId: number): Promise<Conversation> {
-    try {
-      // Buscar conversa existente
-      const existing = await db
-        .select()
-        .from(schema.conversations)
-        .where(eq(schema.conversations.type, 'direct'))
-        .limit(1);
-
-      if (existing.length > 0) {
-        return this.mapConversationRecord(existing[0]);
-      }
-
-      // Criar nova conversa
-      const [conversation] = await db
-        .insert(schema.conversations)
-        .values({
-          type: 'direct',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      // Adicionar participantes
-      await db.insert(schema.conversationParticipants).values([
-        { conversationId: conversation.id, userId: userAId, joinedAt: new Date() },
-        { conversationId: conversation.id, userId: userBId, joinedAt: new Date() },
-      ]);
-
-      return this.mapConversationRecord(conversation);
-    } catch (error) {
-      logger.error('Erro ao buscar/criar conversa:', error);
-      throw error;
-    }
+    return conversationRepository.getOrCreateDirect(userAId, userBId);
   }
 
   async getMessagesByConversationId(conversationId: number): Promise<Message[]> {
-    try {
-      const messages = await db
-        .select()
-        .from(schema.messages)
-        .where(eq(schema.messages.conversationId, conversationId))
-        .orderBy(asc(schema.messages.createdAt));
-      return messages.map(message => this.mapMessageRecord(message));
-    } catch (error) {
-      logger.error('Erro ao buscar mensagens:', error);
-      return [];
-    }
+    return messageRepository.getByConversationId(conversationId);
   }
 
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
@@ -2417,134 +1034,37 @@ export class NeonAdapter implements IStorage {
       joinedAt: string;
     }>
   > {
-    try {
-      const participants = await db
-        .select({
-          id: schema.conversationParticipants.id,
-          conversationId: schema.conversationParticipants.conversationId,
-          userId: schema.conversationParticipants.userId,
-          userName: schema.users.name,
-          joinedAt: schema.conversationParticipants.joinedAt,
-        })
-        .from(schema.conversationParticipants)
-        .leftJoin(schema.users, eq(schema.conversationParticipants.userId, schema.users.id))
-        .where(eq(schema.conversationParticipants.conversationId, conversationId));
-
-      return participants.map(p => ({
-        id: Number(p.id),
-        conversationId: Number(p.conversationId),
-        userId: Number(p.userId),
-        userName: p.userName || undefined,
-        joinedAt: p.joinedAt?.toISOString() || new Date().toISOString(),
-      }));
-    } catch (error) {
-      logger.error('Erro ao buscar participantes da conversa:', error);
-      return [];
-    }
+    return conversationRepository.getParticipants(conversationId);
   }
 
   async getAllMessages(): Promise<Message[]> {
-    try {
-      const messages = await db
-        .select()
-        .from(schema.messages)
-        .orderBy(desc(schema.messages.createdAt));
-      return messages.map(message => this.mapMessageRecord(message));
-    } catch (error) {
-      logger.error('Erro ao buscar todas as mensagens:', error);
-      return [];
-    }
+    return messageRepository.getAll();
   }
 
   async getMessageById(id: number): Promise<Message | null> {
-    try {
-      const messages = await db
-        .select()
-        .from(schema.messages)
-        .where(eq(schema.messages.id, id))
-        .limit(1);
-      return messages[0] ? this.mapMessageRecord(messages[0]) : null;
-    } catch (error) {
-      logger.error('Erro ao buscar mensagem por ID:', error);
-      return null;
-    }
+    return messageRepository.getById(id);
   }
 
   async createMessage(data: CreateMessageInput): Promise<Message> {
-    try {
-      const [message] = await db
-        .insert(schema.messages)
-        .values({
-          content: data.content,
-          senderId: data.senderId,
-          conversationId: data.conversationId,
-          createdAt: new Date(),
-        })
-        .returning();
-      return this.mapMessageRecord(message);
-    } catch (error) {
-      logger.error('Erro ao criar mensagem:', error);
-      throw error;
-    }
+    return messageRepository.create(data);
   }
 
   async updateMessage(id: number, updates: UpdateMessageInput): Promise<Message | null> {
-    try {
-      const dbUpdates: Record<string, unknown> = {};
-      if (updates.content !== undefined) dbUpdates.content = updates.content;
-      if (updates.senderId !== undefined) dbUpdates.senderId = updates.senderId ?? null;
-      if (updates.conversationId !== undefined) {
-        dbUpdates.conversationId = updates.conversationId ?? null;
-      }
-      const [message] = await db
-        .update(schema.messages)
-        .set(dbUpdates)
-        .where(eq(schema.messages.id, id))
-        .returning();
-      return message ? this.mapMessageRecord(message) : null;
-    } catch (error) {
-      logger.error('Erro ao atualizar mensagem:', error);
-      return null;
-    }
+    return messageRepository.update(id, updates);
   }
 
   async deleteMessage(id: number): Promise<boolean> {
-    try {
-      await db.delete(schema.messages).where(eq(schema.messages.id, id));
-      return true;
-    } catch (error) {
-      logger.error('Erro ao deletar mensagem:', error);
-      return false;
-    }
+    return messageRepository.delete(id);
   }
 
   // Eventos
   async saveEventPermissions(permissions: EventPermissions): Promise<void> {
-    try {
-      const permissionsJson = JSON.stringify(permissions);
-      await db
-        .insert(schema.eventFilterPermissions)
-        .values({
-          permissions: permissionsJson,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: schema.eventFilterPermissions.id,
-          set: {
-            permissions: permissionsJson,
-            updatedAt: new Date(),
-          },
-        });
-    } catch (error) {
-      logger.error('Erro ao salvar permissões de eventos:', error);
-      throw error;
-    }
+    return systemRepository.saveEventPermissions(permissions);
   }
 
   async clearAllEvents(): Promise<boolean> {
     try {
-      await db.delete(schema.events);
+      await eventRepository.clearAllEvents();
       return true;
     } catch (error) {
       logger.error('Erro ao limpar eventos:', error);
@@ -2554,52 +1074,11 @@ export class NeonAdapter implements IStorage {
 
   // Sistema
   async getSystemConfig(key: string): Promise<unknown | null> {
-    try {
-      const result = await db
-        .select()
-        .from(schema.systemConfig)
-        .where(eq(schema.systemConfig.key, key))
-        .limit(1);
-
-      const value = result[0]?.value;
-      if (value == null) {
-        return null;
-      }
-      if (typeof value === 'string') {
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value;
-        }
-      }
-      return value;
-    } catch (error) {
-      logger.error('Erro ao buscar config do sistema:', error);
-      return null;
-    }
+    return systemRepository.getConfig(key);
   }
 
   async saveSystemConfig(key: string, value: unknown): Promise<void> {
-    try {
-      await db
-        .insert(schema.systemConfig)
-        .values({
-          key,
-          value,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: schema.systemConfig.key,
-          set: {
-            value,
-            updatedAt: new Date(),
-          },
-        });
-    } catch (error) {
-      logger.error('Erro ao salvar config do sistema:', error);
-      throw error;
-    }
+    return systemRepository.saveConfig(key, value);
   }
 
   // Usuários
@@ -2617,217 +1096,63 @@ export class NeonAdapter implements IStorage {
 
   // Pontos
   async getAllPointActivities(): Promise<PointActivity[]> {
-    try {
-      const activities = await db
-        .select()
-        .from(schema.pointActivities)
-        .orderBy(desc(schema.pointActivities.createdAt));
-      return activities.map(activity => this.mapPointActivityRecord(activity));
-    } catch (error) {
-      logger.error('Erro ao buscar atividades de pontos:', error);
-      return [];
-    }
+    return pointsRepository.getAllActivities();
   }
 
   async createPointActivity(data: Partial<PointActivity>): Promise<PointActivity> {
-    try {
-      const [activity] = await db
-        .insert(schema.pointActivities)
-        .values({
-          userId: data.userId ?? null,
-          activity: data.description ?? '',
-          points: data.points ?? 0,
-          description: data.description ?? null,
-          createdAt: new Date(),
-        })
-        .returning();
-      return this.mapPointActivityRecord(activity);
-    } catch (error) {
-      logger.error('Erro ao criar atividade de pontos:', error);
-      throw error;
-    }
+    return pointsRepository.createActivity(data);
   }
 
   async getAllAchievements(): Promise<Achievement[]> {
-    try {
-      const achievements = await db.select().from(schema.achievements);
-      return achievements.map(achievement => this.mapAchievementRecord(achievement));
-    } catch (error) {
-      logger.error('Erro ao buscar conquistas:', error);
-      return [];
-    }
+    return pointsRepository.getAllAchievements();
   }
 
   async getAchievementById(id: number): Promise<Achievement | null> {
-    try {
-      const achievements = await db
-        .select()
-        .from(schema.achievements)
-        .where(eq(schema.achievements.id, id))
-        .limit(1);
-      return achievements[0] ? this.mapAchievementRecord(achievements[0]) : null;
-    } catch (error) {
-      logger.error('Erro ao buscar conquista por ID:', error);
-      return null;
-    }
+    return pointsRepository.getAchievementById(id);
   }
 
   async createAchievement(data: Partial<Achievement>): Promise<Achievement> {
-    try {
-      const [achievement] = await db
-        .insert(schema.achievements)
-        .values({
-          name: data.name ?? '',
-          description: data.description ?? null,
-          pointsRequired: data.requiredPoints ?? 0,
-          icon: data.icon ?? null,
-          createdAt: new Date(),
-        })
-        .returning();
-      return this.mapAchievementRecord(achievement);
-    } catch (error) {
-      logger.error('Erro ao criar conquista:', error);
-      throw error;
-    }
+    return pointsRepository.createAchievement(data);
   }
 
   async updateAchievement(id: number, updates: Partial<Achievement>): Promise<Achievement | null> {
-    try {
-      const dbUpdates: Record<string, unknown> = {};
-      if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.description !== undefined) dbUpdates.description = updates.description ?? null;
-      if (updates.requiredPoints !== undefined) dbUpdates.pointsRequired = updates.requiredPoints;
-      if (updates.icon !== undefined) dbUpdates.icon = updates.icon ?? null;
-      const [achievement] = await db
-        .update(schema.achievements)
-        .set(dbUpdates)
-        .where(eq(schema.achievements.id, id))
-        .returning();
-      return achievement ? this.mapAchievementRecord(achievement) : null;
-    } catch (error) {
-      logger.error('Erro ao atualizar conquista:', error);
-      return null;
-    }
+    return pointsRepository.updateAchievement(id, updates);
   }
 
   async deleteAchievement(id: number): Promise<boolean> {
-    try {
-      await db.delete(schema.achievements).where(eq(schema.achievements.id, id));
-      return true;
-    } catch (error) {
-      logger.error('Erro ao deletar conquista:', error);
-      return false;
-    }
+    return pointsRepository.deleteAchievement(id);
   }
 
   // Perfil Missionário
   async getMissionaryProfileByUserId(userId: number): Promise<MissionaryProfile | null> {
-    try {
-      const profiles = await db
-        .select()
-        .from(schema.missionaryProfiles)
-        .where(eq(schema.missionaryProfiles.userId, userId))
-        .limit(1);
-      return profiles[0] ? this.mapMissionaryProfileRecord(profiles[0]) : null;
-    } catch (error) {
-      logger.error('Erro ao buscar perfil missionário:', error);
-      return null;
-    }
+    return missionaryProfileRepository.getByUserId(userId);
   }
 
   async createMissionaryProfile(data: Partial<MissionaryProfile>): Promise<MissionaryProfile> {
-    try {
-      const [profile] = await db
-        .insert(schema.missionaryProfiles)
-        .values({
-          userId: data.userId,
-          specialization: data.missionField ?? null,
-          experience: data.notes ?? null,
-          isActive: data.isActive ?? true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-      return this.mapMissionaryProfileRecord(profile);
-    } catch (error) {
-      logger.error('Erro ao criar perfil missionário:', error);
-      throw error;
-    }
+    return missionaryProfileRepository.create(data);
   }
 
   async getAllMissionaryProfiles(): Promise<MissionaryProfile[]> {
-    try {
-      const profiles = await db.select().from(schema.missionaryProfiles);
-      return profiles.map(profile => this.mapMissionaryProfileRecord(profile));
-    } catch (error) {
-      logger.error('Erro ao buscar perfis missionários:', error);
-      return [];
-    }
+    return missionaryProfileRepository.getAll();
   }
 
   async getMissionaryProfileById(id: number): Promise<MissionaryProfile | null> {
-    try {
-      const profiles = await db
-        .select()
-        .from(schema.missionaryProfiles)
-        .where(eq(schema.missionaryProfiles.id, id))
-        .limit(1);
-      return profiles[0] ? this.mapMissionaryProfileRecord(profiles[0]) : null;
-    } catch (error) {
-      logger.error('Erro ao buscar perfil missionário por ID:', error);
-      return null;
-    }
+    return missionaryProfileRepository.getById(id);
   }
 
   async updateMissionaryProfile(
     id: number,
     updates: Partial<MissionaryProfile>
   ): Promise<MissionaryProfile | null> {
-    try {
-      const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
-      if (updates.userId !== undefined) dbUpdates.userId = updates.userId ?? null;
-      if (updates.missionField !== undefined) {
-        dbUpdates.specialization = updates.missionField ?? null;
-      }
-      if (updates.notes !== undefined) dbUpdates.experience = updates.notes ?? null;
-      if (updates.isActive !== undefined) dbUpdates.isActive = updates.isActive ?? true;
-      const [profile] = await db
-        .update(schema.missionaryProfiles)
-        .set(dbUpdates)
-        .where(eq(schema.missionaryProfiles.id, id))
-        .returning();
-      return profile ? this.mapMissionaryProfileRecord(profile) : null;
-    } catch (error) {
-      logger.error('Erro ao atualizar perfil missionário:', error);
-      return null;
-    }
+    return missionaryProfileRepository.update(id, updates);
   }
 
   async deleteMissionaryProfile(id: number): Promise<boolean> {
-    try {
-      await db.delete(schema.missionaryProfiles).where(eq(schema.missionaryProfiles.id, id));
-      return true;
-    } catch (error) {
-      logger.error('Erro ao deletar perfil missionário:', error);
-      return false;
-    }
+    return missionaryProfileRepository.delete(id);
   }
 
   async getUsersWithMissionaryProfile(): Promise<User[]> {
-    try {
-      const profiles = await db
-        .select({ userId: schema.missionaryProfiles.userId })
-        .from(schema.missionaryProfiles);
-      const ids = profiles.map(profile => profile.userId).filter(Boolean) as number[];
-      if (ids.length === 0) {
-        return [];
-      }
-      const users = await db.select().from(schema.users).where(inArray(schema.users.id, ids));
-      return users.map(user => this.toUser(user));
-    } catch (error) {
-      logger.error('Erro ao buscar usuários com perfil missionário:', error);
-      return [];
-    }
+    return missionaryProfileRepository.getUsersWithProfile();
   }
 
   // Igreja
@@ -2838,24 +1163,7 @@ export class NeonAdapter implements IStorage {
   // ========== MÉTODOS FINAIS (últimos 3) ==========
 
   async createEmotionalCheckIn(data: CreateEmotionalCheckInInput): Promise<EmotionalCheckIn> {
-    try {
-      const [checkIn] = await db
-        .insert(schema.emotionalCheckins)
-        .values({
-          userId: data.userId,
-          emotionalScore: data.emotionalScore ?? null,
-          mood: data.mood ?? null,
-          prayerRequest: data.prayerRequest ?? null,
-          isPrivate: data.isPrivate ?? false,
-          allowChurchMembers: data.allowChurchMembers ?? true,
-          createdAt: new Date(),
-        })
-        .returning();
-      return this.mapEmotionalCheckInRecord(checkIn);
-    } catch (error) {
-      logger.error('Erro ao criar emotional check-in:', error);
-      throw error;
-    }
+    return emotionalCheckInRepository.create(data);
   }
 
   async getPrayerById(prayerId: number): Promise<Prayer | null> {
@@ -2926,332 +1234,80 @@ export class NeonAdapter implements IStorage {
     icon?: string;
     url?: string;
   }): Promise<{ sent: number; failed: number }> {
-    if (!data.userIds.length) {
-      return { sent: 0, failed: 0 };
-    }
-
-    const publicKey =
-      process.env.VAPID_PUBLIC_KEY ||
-      'BD6cS7ooCOhh1lfv-D__PNYDv3S_S9EyR4bpowVJHcBxYIl5gtTFs8AThEO-MZnpzsKIZuRY3iR2oOMBDAOH2wY';
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
-
-    if (!privateKey) {
-      throw new Error('VAPID_PRIVATE_KEY não configurada');
-    }
-
-    const subject = process.env.VAPID_SUBJECT || 'mailto:admin@7care.com';
-    webpush.setVapidDetails(subject, publicKey, privateKey);
-
-    try {
-      const subscriptions = await db
-        .select()
-        .from(schema.pushSubscriptions)
-        .where(
-          and(
-            inArray(schema.pushSubscriptions.userId, data.userIds),
-            eq(schema.pushSubscriptions.isActive, true)
-          )
-        );
-
-      let sent = 0;
-      let failed = 0;
-
-      for (const sub of subscriptions) {
-        try {
-          const payload = JSON.stringify({
-            title: data.title,
-            body: data.body,
-            icon: data.icon || '/pwa-192x192.png',
-            data: { url: data.url || '/' },
-          });
-
-          await webpush.sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: {
-                p256dh: sub.p256dh,
-                auth: sub.auth,
-              },
-            },
-            payload
-          );
-          sent += 1;
-        } catch (error: unknown) {
-          failed += 1;
-          const pushError = error as { statusCode?: number } | null;
-          if (pushError?.statusCode === 404 || pushError?.statusCode === 410) {
-            await db
-              .update(schema.pushSubscriptions)
-              .set({ isActive: false, updatedAt: new Date() })
-              .where(eq(schema.pushSubscriptions.id, sub.id));
-          }
-        }
-      }
-
-      return { sent, failed };
-    } catch (error) {
-      logger.error('Erro ao enviar push notifications:', error);
-      return { sent: 0, failed: data.userIds.length };
-    }
+    return pushSubscriptionRepository.sendNotifications(data);
   }
 
   async getAllActivities(): Promise<Activity[]> {
-    const stored = await this.getSystemConfig('activities');
-    return this.getActivitiesFromConfig(stored);
+    return systemRepository.getAllActivities();
   }
 
   async createActivity(data: CreateActivityInput & { createdBy?: number }): Promise<Activity> {
-    const activities = await this.getAllActivities();
-    const nextId = activities.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
-
-    // Buscar distrito do criador da atividade
-    let districtId = null;
-    if (data.createdBy) {
-      const user = await this.getUserById(data.createdBy);
-      districtId = user?.districtId || null;
-    }
-
-    const activity = {
-      id: nextId,
-      title: data.title,
-      description: data.description ?? null,
-      imageUrl: data.imageUrl ?? '',
-      date: data.date ?? null,
-      active: data.active ?? true,
-      order: data.order ?? activities.length,
-      districtId: districtId,
-    };
-    const updated = [...activities, activity];
-    await this.saveSystemConfig('activities', updated);
-    return activity;
+    return systemRepository.createActivity(data);
   }
 
   async updateActivity(id: number, updates: UpdateActivityInput): Promise<Activity | null> {
-    const activities = await this.getAllActivities();
-    const index = activities.findIndex(item => Number(item.id) === id);
-    if (index === -1) {
-      return null;
-    }
-    const updatedActivity = {
-      ...activities[index],
-      ...updates,
-      id,
-    };
-    activities[index] = updatedActivity;
-    await this.saveSystemConfig('activities', activities);
-    return updatedActivity;
+    return systemRepository.updateActivity(id, updates);
   }
 
   async deleteActivity(id: number): Promise<boolean> {
-    const activities = await this.getAllActivities();
-    const filtered = activities.filter(item => Number(item.id) !== id);
-    if (filtered.length === activities.length) {
-      return false;
-    }
-    await this.saveSystemConfig('activities', filtered);
-    return true;
+    return systemRepository.deleteActivity(id);
   }
 
   // ========== GOOGLE DRIVE CONFIG ==========
   async saveGoogleDriveConfig(config: GoogleDriveConfig): Promise<void> {
-    await this.saveSystemConfig('google_drive_config', config);
+    return systemRepository.saveGoogleDriveConfig(config);
   }
 
   async getGoogleDriveConfig(): Promise<GoogleDriveConfig | null> {
-    const config = await this.getSystemConfig('google_drive_config');
-    if (!config) {
-      return null;
-    }
-    return config as GoogleDriveConfig;
+    return systemRepository.getGoogleDriveConfig();
   }
 
   // ========== GOOGLE CALENDAR ==========
   async saveGoogleCalendarTokens(userId: number, tokens: GoogleCalendarTokens): Promise<void> {
-    try {
-      // Delete existing tokens for this user
-      await db
-        .delete(schema.googleCalendarTokens)
-        .where(eq(schema.googleCalendarTokens.userId, userId));
-
-      // Insert new tokens
-      await db.insert(schema.googleCalendarTokens).values({
-        userId: tokens.userId,
-        districtId: tokens.districtId || null,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresAt,
-        scope: tokens.scope,
-        tokenType: 'Bearer',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } catch (error) {
-      console.error('Error saving Google Calendar tokens:', error);
-      throw new Error(`Failed to save Google Calendar tokens: ${(error as Error).message}`);
-    }
+    return googleCalendarRepository.saveTokens(userId, tokens);
   }
 
   async getGoogleCalendarTokens(userId: number): Promise<GoogleCalendarTokens | null> {
-    try {
-      const result = await db
-        .select()
-        .from(schema.googleCalendarTokens)
-        .where(eq(schema.googleCalendarTokens.userId, userId))
-        .limit(1);
-
-      if (result.length === 0) {
-        return null;
-      }
-
-      const row = result[0];
-      return {
-        userId: row.userId,
-        districtId: row.districtId || undefined,
-        accessToken: row.accessToken,
-        refreshToken: row.refreshToken,
-        expiresAt: row.expiresAt,
-        scope: row.scope,
-      };
-    } catch (error) {
-      console.error('Error getting Google Calendar tokens:', error);
-      return null;
-    }
+    return googleCalendarRepository.getTokens(userId);
   }
 
   async updateGoogleCalendarTokens(
     userId: number,
     tokens: Partial<GoogleCalendarTokens>
   ): Promise<void> {
-    try {
-      await db
-        .update(schema.googleCalendarTokens)
-        .set({
-          ...tokens,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.googleCalendarTokens.userId, userId));
-    } catch (error) {
-      console.error('Error updating Google Calendar tokens:', error);
-      throw new Error(`Failed to update Google Calendar tokens: ${(error as Error).message}`);
-    }
+    return googleCalendarRepository.updateTokens(userId, tokens);
   }
 
   async deleteGoogleCalendarTokens(userId: number): Promise<void> {
-    try {
-      await db
-        .delete(schema.googleCalendarTokens)
-        .where(eq(schema.googleCalendarTokens.userId, userId));
-    } catch (error) {
-      console.error('Error deleting Google Calendar tokens:', error);
-      throw new Error(`Failed to delete Google Calendar tokens: ${(error as Error).message}`);
-    }
+    return googleCalendarRepository.deleteTokens(userId);
   }
 
   async saveGoogleCalendarConfig(
     userId: number,
     config: Partial<GoogleCalendarConfig>
   ): Promise<void> {
-    const existingConfig = await this.getGoogleCalendarConfig(userId);
-    const newConfig = {
-      ...existingConfig,
-      ...config,
-      userId,
-    };
-    await this.saveSystemConfig(`google_calendar_config_${userId}`, newConfig);
+    return systemRepository.saveGoogleCalendarConfig(userId, config);
   }
 
   async getGoogleCalendarConfig(userId: number): Promise<GoogleCalendarConfig | null> {
-    const config = await this.getSystemConfig(`google_calendar_config_${userId}`);
-    if (!config) {
-      return null;
-    }
-    return config as GoogleCalendarConfig;
+    return systemRepository.getGoogleCalendarConfig(userId);
   }
 
   async getEventByGoogleId(googleCalendarEventId: string): Promise<Event | null> {
-    try {
-      const result = await db
-        .select()
-        .from(schema.events)
-        .where(eq(schema.events.googleCalendarEventId, googleCalendarEventId))
-        .limit(1);
-
-      if (result.length === 0) {
-        return null;
-      }
-
-      return result[0] as unknown as Event;
-    } catch (error) {
-      console.error('Error getting event by Google ID:', error);
-      return null;
-    }
+    return googleCalendarRepository.getEventByGoogleId(googleCalendarEventId) as Promise<Event | null>;
   }
 
   async deleteSystemConfig(key: string): Promise<void> {
-    try {
-      await db.delete(schema.systemConfig).where(eq(schema.systemConfig.key, key));
-    } catch (error) {
-      console.error(`Error deleting system config ${key}:`, error);
-      throw new Error(`Failed to delete system config: ${(error as Error).message}`);
-    }
+    return systemRepository.deleteConfig(key);
   }
 
   // ========== MEETINGS ==========
   async createMeeting(data: CreateMeetingInput): Promise<Meeting> {
-    try {
-      const [meeting] = await db
-        .insert(schema.meetings)
-        .values({
-          title: data.title,
-          description: data.description || '',
-          scheduledAt: new Date(data.scheduledAt),
-          duration: data.duration || 60,
-          location: data.location || '',
-          requesterId: data.requesterId,
-          assignedToId: data.assignedToId,
-          typeId: data.typeId,
-          isUrgent: data.isUrgent ?? false,
-          status: data.status || 'pending',
-          priority: data.priority || 'medium',
-          notes: data.notes || '',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-      return this.mapMeetingRecord(meeting);
-    } catch (error) {
-      logger.error('Erro ao criar reunião:', error);
-      throw error;
-    }
+    return meetingRepository.create(data);
   }
 
   async updateMeeting(id: number, updates: UpdateMeetingInput): Promise<Meeting | null> {
-    try {
-      const dbUpdates: Record<string, unknown> = { updatedAt: new Date() };
-      if (updates.title !== undefined) dbUpdates.title = updates.title;
-      if (updates.description !== undefined) dbUpdates.description = updates.description ?? '';
-      if (updates.scheduledAt !== undefined) dbUpdates.scheduledAt = new Date(updates.scheduledAt);
-      if (updates.duration !== undefined) dbUpdates.duration = updates.duration ?? 0;
-      if (updates.location !== undefined) dbUpdates.location = updates.location ?? '';
-      if (updates.requesterId !== undefined) dbUpdates.requesterId = updates.requesterId ?? null;
-      if (updates.assignedToId !== undefined) dbUpdates.assignedToId = updates.assignedToId ?? null;
-      if (updates.typeId !== undefined) dbUpdates.typeId = updates.typeId ?? null;
-      if (updates.isUrgent !== undefined) dbUpdates.isUrgent = updates.isUrgent ?? false;
-      if (updates.status !== undefined) dbUpdates.status = updates.status ?? 'pending';
-      if (updates.priority !== undefined) dbUpdates.priority = updates.priority ?? 'medium';
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes ?? '';
-      const [meeting] = await db
-        .update(schema.meetings)
-        .set({
-          ...dbUpdates,
-        })
-        .where(eq(schema.meetings.id, id))
-        .returning();
-      return meeting ? this.mapMeetingRecord(meeting) : null;
-    } catch (error) {
-      logger.error('Erro ao atualizar reunião:', error);
-      return null;
-    }
+    return meetingRepository.update(id, updates);
   }
 
   async getMeetingById(id: number): Promise<Meeting | null> {
@@ -3268,32 +1324,13 @@ export class NeonAdapter implements IStorage {
   }
 
   async createPrayer(data: CreatePrayerInput): Promise<Prayer> {
-    try {
-      // Buscar distrito do usuário que está criando a oração
-      let districtId = null;
-      if (data.userId) {
-        const user = await this.getUserById(data.userId);
-        districtId = user?.districtId || null;
-      }
-
-      const [prayer] = await db
-        .insert(schema.prayers)
-        .values({
-          requesterId: data.userId,
-          title: data.title,
-          description: data.description || '',
-          isPrivate: data.isPublic === undefined ? false : !data.isPublic,
-          districtId: districtId,
-          status: 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-      return this.mapPrayerRecord(prayer);
-    } catch (error) {
-      logger.error('Erro ao criar oração:', error);
-      throw error;
+    // Buscar distrito do usuário antes de delegar ao repositório
+    let districtId = null;
+    if (data.userId) {
+      const user = await this.getUserById(data.userId);
+      districtId = user?.districtId || null;
     }
+    return prayerRepository.create({ ...data, districtId } as CreatePrayerInput & { districtId: number | null });
   }
 
   async addIntercessor(

@@ -1,10 +1,50 @@
 /**
  * Rate Limiting Middleware
  * Protege endpoints contra abuso e ataques de força bruta
+ *
+ * NOTA: express-rate-limit usa MemoryStore por padrão.
+ * Em serverless (Vercel/Netlify), cada instance tem seu próprio store.
+ * Para rate limiting distribuído, configurar REDIS_URL e instalar rate-limit-redis.
+ * Quando Redis estiver disponível, será usado automaticamente.
  */
 
-import rateLimit from 'express-rate-limit';
+import rateLimit, { type Options } from 'express-rate-limit';
 import { ErrorCodes } from '../types';
+import { logger } from '../utils/logger';
+
+/**
+ * Tenta criar um RedisStore para rate limiting distribuído.
+ * Retorna undefined se Redis não estiver configurado/disponível.
+ */
+function getRedisStore(): Options['store'] | undefined {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) return undefined;
+
+  try {
+    // Tentar importar rate-limit-redis dinamicamente
+     
+    const { RedisStore } = require('rate-limit-redis');
+     
+    const { createClient } = require('redis');
+
+    const client = createClient({ url: redisUrl });
+    client.connect().catch((err: Error) => {
+      logger.warn(`⚠️ Redis rate-limit store connection failed: ${err.message}`);
+    });
+
+    logger.info('✅ Rate limiting: usando Redis store distribuído');
+    return new RedisStore({
+      sendCommand: (...args: string[]) => client.sendCommand(args),
+      prefix: '7care:rl:',
+    });
+  } catch {
+    logger.info('📦 Rate limiting: usando MemoryStore (rate-limit-redis não instalado)');
+    return undefined;
+  }
+}
+
+// Store compartilhado — Redis quando disponível, MemoryStore como fallback
+const sharedStore = getRedisStore();
 
 /**
  * Helper para gerar chave segura para IPv6
@@ -36,6 +76,7 @@ export const authLimiter = rateLimit({
   skipSuccessfulRequests: true, // Não conta requisições bem-sucedidas
   // Validação de IP desabilitada para permitir keyGenerator customizado
   validate: { ip: false },
+  ...(sharedStore ? { store: sharedStore } : {}),
 });
 
 /**
@@ -52,6 +93,7 @@ export const registerLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  ...(sharedStore ? { store: sharedStore } : {}),
 });
 
 /**
@@ -69,6 +111,7 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'development', // Skip em desenvolvimento
+  ...(sharedStore ? { store: sharedStore } : {}),
 });
 
 /**
@@ -85,6 +128,7 @@ export const sensitiveLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  ...(sharedStore ? { store: sharedStore } : {}),
 });
 
 /**
@@ -100,6 +144,7 @@ export const uploadLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  ...(sharedStore ? { store: sharedStore } : {}),
 });
 
 /**
@@ -115,6 +160,7 @@ export const pushNotificationLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  ...(sharedStore ? { store: sharedStore } : {}),
 });
 
 /**
@@ -131,6 +177,7 @@ export const debugLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'production', // Skip em produção
+  ...(sharedStore ? { store: sharedStore } : {}),
 });
 
 /**
@@ -140,11 +187,14 @@ export const debugLimiter = rateLimit({
  */
 export function getRateLimitStats(): {
   message: string;
+  usingRedis: boolean;
   limiters: Array<{ name: string; windowMs: number; maxRequests: number }>;
 } {
   return {
-    message:
-      'Rate limit stats - usando MemoryStore padrão. Para métricas detalhadas, configure Redis.',
+    message: sharedStore
+      ? 'Rate limit stats - usando Redis store distribuído.'
+      : 'Rate limit stats - usando MemoryStore padrão. Configure REDIS_URL para rate limiting distribuído.',
+    usingRedis: !!sharedStore,
     limiters: [
       { name: 'apiLimiter', windowMs: 60000, maxRequests: 100 },
       { name: 'authLimiter', windowMs: 900000, maxRequests: 10 },

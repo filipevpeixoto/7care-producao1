@@ -14,7 +14,7 @@
  */
 
 import { useCallback } from 'react';
-import { useNavigate, NavigateOptions } from 'react-router-dom';
+import { useNavigate, type NavigateOptions } from 'react-router-dom';
 
 export function useTransitionNavigate() {
   const navigate = useNavigate();

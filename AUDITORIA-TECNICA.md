@@ -280,7 +280,7 @@ O principal problema é **crescimento orgânico sem refactoring**: features fora
 |---|---|---|---|
 | 1 | Remover senhas hardcoded | ✅ Concluído | Commits 5f1ab14, 0fff66b |
 | 2 | Eliminar api.js | ❌ Pendente | Alto risco, requer planejamento |
-| 3 | Testes backend | ❌ Pendente | Baixa prioridade neste ciclo |
+| 3 | Testes backend | ✅ Concluído | 6 suites, 86 testes (errors, errorHandler, inputSanitization, jwtAuth, rateLimiter, baseRepository). Fix: imports corrigidos, vi.hoisted() para mocks, bug de regex `g` flag no middleware de sanitização |
 | 4 | Paginação no banco | ✅ Concluído | `getUsersPaginated()` com WHERE+LIMIT/OFFSET (commit 80c6c72) |
 | 5 | Reduzir token JWT | ✅ Concluído | Commit 5f1ab14 |
 | 6 | Quebrar páginas monolíticas | ✅ Concluído | Settings.tsx: 4.004 → 820 linhas (-79.5%). 9 componentes extraídos: importParsers, EditableField, ImportUsersModal, SendNotificationModal, ChurchManagementTab, CalendarManagementTab, DataManagementTab, MobileHeaderLayoutEditor (commits d7c9b5e, 2e7b216, f977d58) |
@@ -289,4 +289,4 @@ O principal problema é **crescimento orgânico sem refactoring**: features fora
 | 9 | Fixar bugs de auth | ✅ Concluído | Commit 3a757e7 |
 | 10 | Security scanning CI | ✅ Concluído | CodeQL + dependency-review + npm audit (commit f98226f) |
 
-**Progresso: 8/10 ações concluídas. Nota estimada atualizada: ~7.5/10**
+**Progresso: 9/10 ações concluídas. Pendente: #2 (eliminar api.js). Nota estimada atualizada: ~7.5/10**

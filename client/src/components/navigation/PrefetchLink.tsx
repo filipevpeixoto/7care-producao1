@@ -9,7 +9,7 @@
  */
 
 import { memo, useCallback, forwardRef } from 'react';
-import { Link, LinkProps, useNavigate } from 'react-router-dom';
+import { Link, type LinkProps, useNavigate } from 'react-router-dom';
 import { usePrefetch } from '@/hooks/usePrefetch';
 import { cn } from '@/lib/utils';
 

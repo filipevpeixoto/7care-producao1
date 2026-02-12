@@ -1,3 +1,21 @@
+/**
+ * Vercel Serverless Function - Entry Point
+ *
+ * ARCHITECTURE NOTE:
+ * This file wraps netlify/functions/api.js for Vercel deployment.
+ * Both Vercel AND Netlify depend on the same api.js handler.
+ *
+ * DO NOT DELETE netlify/functions/api.js — it would break BOTH platforms.
+ *
+ * Dependency chain:
+ *   Vercel:  api/index.js  →  netlify/functions/api.js
+ *   Netlify: netlify/functions/api.js (direct)
+ *
+ * DEPRECATION PLAN:
+ * When migrating fully to the Express server (server/app.ts),
+ * both this file and netlify/functions/api.js can be removed together.
+ * The Express server already handles all routes via server/routes/*.
+ */
 // Vercel Serverless Function - wrapper para a função Netlify
 const netlifyHandler = require('../netlify/functions/api.js');
 

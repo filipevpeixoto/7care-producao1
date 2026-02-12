@@ -1,80 +1,19 @@
 import { db, sql as neonSql } from '../neonConfig';
 import { schema } from '../schema';
-import { eq, and, or, sql as drizzleSql, asc, ilike } from 'drizzle-orm';
+import { eq, and, or, sql as drizzleSql, asc, ilike, inArray } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { isSuperAdmin, hasAdminAccess } from '../utils/permissions';
 import { logger } from '../utils/logger';
 import { type CreateUserInput, type UpdateUserInput } from '../types/storage';
 import { type User } from '../../shared/schema';
+import { toUser as sharedToUser } from '../storage/helpers';
 
 import type { UserStatus } from '../../shared/types/user';
 
 export class UserRepository {
-  private toDateString(value: unknown): string {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-    // eslint-disable-next-line eqeqeq
-    if (value == null) {
-      return '';
-    }
-    return String(value);
-  }
-
-  private normalizeExtraData(value: unknown): Record<string, unknown> | string | null | undefined {
-    // eslint-disable-next-line eqeqeq
-    if (value == null) {
-      return value as null | undefined;
-    }
-    if (typeof value === 'string') {
-      return value;
-    }
-    if (typeof value === 'object') {
-      return value as Record<string, unknown>;
-    }
-    return String(value);
-  }
-
+  /** Delegate to shared toUser mapper */
   private toUser(row: Record<string, unknown>): User {
-    /* eslint-disable eqeqeq */
-    return {
-      id: Number(row.id),
-      name: row.name == null ? '' : String(row.name),
-      email: row.email == null ? '' : String(row.email),
-      password: row.password == null ? '' : String(row.password),
-      role: (row.role == null ? 'member' : String(row.role)) as User['role'],
-      church: row.church == null ? null : String(row.church),
-      churchCode: row.churchCode == null ? '' : String(row.churchCode),
-      districtId: row.districtId == null ? null : Number(row.districtId),
-      departments: row.departments == null ? '' : String(row.departments),
-      birthDate: row.birthDate == null ? '' : String(row.birthDate),
-      civilStatus: row.civilStatus == null ? '' : String(row.civilStatus),
-      occupation: row.occupation == null ? '' : String(row.occupation),
-      education: row.education == null ? '' : String(row.education),
-      address: row.address == null ? '' : String(row.address),
-      baptismDate: row.baptismDate == null ? '' : String(row.baptismDate),
-      previousReligion: row.previousReligion == null ? '' : String(row.previousReligion),
-      biblicalInstructor: row.biblicalInstructor == null ? null : String(row.biblicalInstructor),
-      interestedSituation: row.interestedSituation == null ? '' : String(row.interestedSituation),
-      isDonor: Boolean(row.isDonor),
-      isTither: Boolean(row.isTither),
-      isApproved: Boolean(row.isApproved),
-      points: Number(row.points ?? 0),
-      level: row.level == null ? '' : String(row.level),
-      attendance: Number(row.attendance ?? 0),
-      extraData: this.normalizeExtraData(row.extraData),
-      observations: row.observations == null ? '' : String(row.observations),
-      createdAt: this.toDateString(row.createdAt),
-      updatedAt: this.toDateString(row.updatedAt),
-      firstAccess: Boolean(row.firstAccess),
-      status: (row.status == null ? 'active' : String(row.status)) as UserStatus,
-      phone: row.phone == null ? undefined : String(row.phone),
-      cpf: row.cpf == null ? undefined : String(row.cpf),
-      profilePhoto: row.profilePhoto == null ? undefined : String(row.profilePhoto),
-      isOffering: row.isOffering == null ? undefined : Boolean(row.isOffering),
-      hasLesson: row.hasLesson == null ? undefined : Boolean(row.hasLesson),
-    };
-    /* eslint-enable eqeqeq */
+    return sharedToUser(row);
   }
 
   private toPermissionUser(user: {
@@ -268,6 +207,32 @@ export class UserRepository {
     }
   }
 
+  /**
+   * Busca múltiplos usuários por IDs em uma única query.
+   * PERFORMANCE: Evita N+1 queries ao enriquecer relacionamentos.
+   */
+  async getUsersByIds(ids: number[]): Promise<Map<number, User>> {
+    try {
+      if (ids.length === 0) return new Map();
+
+      const uniqueIds = [...new Set(ids)];
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(inArray(schema.users.id, uniqueIds));
+
+      const userMap = new Map<number, User>();
+      for (const row of result) {
+        const user = this.toUser(row);
+        userMap.set(user.id, user);
+      }
+      return userMap;
+    } catch (error) {
+      logger.error('Erro ao buscar usuários por IDs:', error);
+      return new Map();
+    }
+  }
+
   async getUserByEmail(email: string): Promise<User | null> {
     try {
       const result = await db
@@ -365,7 +330,7 @@ export class UserRepository {
       return result[0] ? this.toUser(result[0]) : null;
     } catch (error) {
       logger.error('Erro ao atualizar usuário', error);
-      return null;
+      throw error;
     }
   }
 
@@ -397,7 +362,7 @@ export class UserRepository {
       return await this.getUserById(id);
     } catch (error) {
       logger.error('Erro ao atualizar usuário diretamente', error);
-      return null;
+      throw error;
     }
   }
 

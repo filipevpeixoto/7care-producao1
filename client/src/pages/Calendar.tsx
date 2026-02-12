@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { CalendarEvent, EVENT_TYPES } from '@/types/calendar';
+import { type CalendarEvent, EVENT_TYPES } from '@/types/calendar';
 import { notificationService } from '@/lib/notificationService';
 import { toast as sonnerToast } from 'sonner';
 
@@ -127,7 +127,7 @@ export default function Calendar() {
             .split('-')
             .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' '),
-          hexColor: hexColor,
+          hexColor,
           color: 'dynamic', // Flag para saber que é cor dinâmica
           isDynamic: true,
         });
@@ -433,7 +433,7 @@ export default function Calendar() {
           action: 'deleteEvent',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
           sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-          eventId: eventId,
+          eventId,
         }),
       });
 

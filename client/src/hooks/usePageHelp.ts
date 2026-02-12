@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from './useAuth';
 import { isSuperAdmin, isPastor, hasAdminAccess } from '@/lib/permissions';
 import {
-  LucideIcon,
+  type LucideIcon,
   LayoutDashboard,
   Users,
   Calendar,

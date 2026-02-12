@@ -46,7 +46,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { isSuperAdmin } from '@/lib/permissions';
-import { PastorInvite, InviteStatus } from '@/types/pastor-invite';
+import { type PastorInvite, type InviteStatus } from '@/types/pastor-invite';
 import { fetchWithAuth } from '@/lib/api';
 
 export default function PastorInvites() {

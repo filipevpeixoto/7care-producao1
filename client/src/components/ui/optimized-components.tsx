@@ -26,7 +26,7 @@ interface OptimizedCardProps {
   onClick?: () => void;
 }
 
-export const OptimizedCard = React.memo(function OptimizedCard({
+export const OptimizedCard = React.memo(({
   title,
   description,
   children,
@@ -35,7 +35,7 @@ export const OptimizedCard = React.memo(function OptimizedCard({
   badgeVariant = 'default',
   icon,
   onClick,
-}: OptimizedCardProps) {
+}: OptimizedCardProps) => {
   const handleClick = React.useCallback(() => {
     onClick?.();
   }, [onClick]);
@@ -98,14 +98,14 @@ const statusClasses = {
   busy: 'bg-red-500',
 };
 
-export const OptimizedAvatar = React.memo(function OptimizedAvatar({
+export const OptimizedAvatar = React.memo(({
   src,
   name,
   size = 'md',
   showStatus = false,
   status = 'offline',
   className,
-}: OptimizedAvatarProps) {
+}: OptimizedAvatarProps) => {
   const initials = React.useMemo(() => {
     return name
       .split(' ')
@@ -153,7 +153,7 @@ interface OptimizedListItemProps {
 }
 
 export const OptimizedListItem = React.memo(
-  function OptimizedListItem({
+  ({
     id,
     title,
     subtitle,
@@ -163,7 +163,7 @@ export const OptimizedListItem = React.memo(
     onClick,
     className,
     isSelected = false,
-  }: OptimizedListItemProps) {
+  }: OptimizedListItemProps) => {
     const handleClick = React.useCallback(() => {
       onClick?.(id);
     }, [onClick, id]);
@@ -223,7 +223,7 @@ interface OptimizedStatsCardProps {
   className?: string;
 }
 
-export const OptimizedStatsCard = React.memo(function OptimizedStatsCard({
+export const OptimizedStatsCard = React.memo(({
   title,
   value,
   description,
@@ -231,7 +231,7 @@ export const OptimizedStatsCard = React.memo(function OptimizedStatsCard({
   trend,
   isLoading = false,
   className,
-}: OptimizedStatsCardProps) {
+}: OptimizedStatsCardProps) => {
   const formattedValue = React.useMemo(() => {
     if (typeof value === 'number') {
       return new Intl.NumberFormat('pt-BR').format(value);
@@ -302,9 +302,7 @@ interface OptimizedTableRowProps<T> {
   className?: string;
 }
 
-export const OptimizedTableRow = React.memo(function OptimizedTableRow<
-  T extends Record<string, unknown>,
->({ item, columns, onClick, isSelected = false, className }: OptimizedTableRowProps<T>) {
+export const OptimizedTableRow = React.memo(({ item, columns, onClick, isSelected = false, className }: OptimizedTableRowProps<Record<string, unknown>>) => {
   const handleClick = React.useCallback(() => {
     onClick?.(item);
   }, [onClick, item]);
@@ -312,7 +310,7 @@ export const OptimizedTableRow = React.memo(function OptimizedTableRow<
   const cells = React.useMemo(
     () =>
       columns.map((col, index) => {
-        const value = col.render ? col.render(item) : String(item[col.key as keyof T] ?? '');
+        const value = col.render ? col.render(item) : String(item[col.key as keyof typeof item] ?? '');
         return (
           <td key={index} className="px-4 py-3 text-sm">
             {value}
@@ -350,14 +348,14 @@ interface OptimizedSearchInputProps {
   autoFocus?: boolean;
 }
 
-export const OptimizedSearchInput = React.memo(function OptimizedSearchInput({
+export const OptimizedSearchInput = React.memo(({
   value,
   onChange,
   placeholder = 'Buscar...',
   debounceMs = 300,
   className,
   autoFocus = false,
-}: OptimizedSearchInputProps) {
+}: OptimizedSearchInputProps) => {
   const [localValue, setLocalValue] = React.useState(value);
   const timeoutRef = React.useRef<NodeJS.Timeout>();
 

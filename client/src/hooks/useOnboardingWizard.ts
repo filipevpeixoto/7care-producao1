@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { OnboardingData } from '@/types/pastor-invite';
+import { type OnboardingData } from '@/types/pastor-invite';
 
 interface WizardState {
   currentStep: number;

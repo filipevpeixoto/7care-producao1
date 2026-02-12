@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { memo } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -41,7 +42,7 @@ interface AnalyticsDashboardProps {
   showExport?: boolean;
 }
 
-export const AnalyticsDashboard = ({
+export const AnalyticsDashboard = memo(({
   period: _period = '30d',
   showExport = true,
 }: AnalyticsDashboardProps) => {
@@ -257,4 +258,4 @@ export const AnalyticsDashboard = ({
       )}
     </div>
   );
-};
+});

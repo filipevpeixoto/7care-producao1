@@ -18,7 +18,7 @@ export async function getAllUsers(): Promise<User[]> {
     return result.map(user => toUser(user));
   } catch (error) {
     logger.error('Erro ao buscar usuários:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -37,7 +37,7 @@ export async function getVisitedUsers(): Promise<User[]> {
     return result.map(user => toUser(user));
   } catch (error) {
     logger.error('Erro ao buscar usuários visitados:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -48,7 +48,7 @@ export async function getUserById(id: number): Promise<User | null> {
     return row ? toUser(row) : null;
   } catch (error) {
     logger.error('Erro ao buscar usuário por ID:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -63,7 +63,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     return row ? toUser(row) : null;
   } catch (error) {
     logger.error('Erro ao buscar usuário por email:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -114,7 +114,7 @@ export async function updateUser(id: number, updates: UpdateUserInput): Promise<
     return result[0] ? toUser(result[0]) : null;
   } catch (error) {
     logger.error('Erro ao atualizar usuário:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -141,7 +141,7 @@ export async function updateUserDirectly(
     return await getUserById(id);
   } catch (error) {
     logger.error('Erro ao atualizar usuário diretamente:', error);
-    return null;
+    throw error;
   }
 }
 
