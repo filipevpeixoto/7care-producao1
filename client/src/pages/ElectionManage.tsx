@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { fetchWithAuth } from '@/lib/api';
 
 interface Candidate {
   id: number;
@@ -58,7 +58,6 @@ type ElectionPhase = 'nomination' | 'oral_observations' | 'voting' | 'completed'
 
 export default function ElectionManage() {
   const { configId } = useParams<{ configId: string }>();
-  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -66,8 +65,7 @@ export default function ElectionManage() {
   const [currentPhase, setCurrentPhase] = useState<ElectionPhase>('nomination');
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [oralObservationsActive, setOralObservationsActive] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<number>(0);
+  const [, setLastUpdate] = useState<number>(0);
   const [cache, setCache] = useState<{ data: ElectionData; timestamp: number } | null>(null);
   const [maxNominations, setMaxNominations] = useState<number>(1);
   const [editingMaxNominations, setEditingMaxNominations] = useState(false);
@@ -156,12 +154,8 @@ export default function ElectionManage() {
 
   const handleAdvanceToVoting = async () => {
     try {
-      const response = await fetch('/api/elections/advance-phase', {
+      const response = await fetchWithAuth('/api/elections/advance-phase', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           configId: parseInt(configId!),
           phase: 'voting',
@@ -194,12 +188,8 @@ export default function ElectionManage() {
 
   const handleAdvancePosition = async () => {
     try {
-      const response = await fetch('/api/elections/advance-position', {
+      const response = await fetchWithAuth('/api/elections/advance-position', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           configId: parseInt(configId!),
           position: electionData!.currentPosition + 1,
@@ -232,12 +222,8 @@ export default function ElectionManage() {
 
   const handleSkipPosition = async () => {
     try {
-      const response = await fetch('/api/elections/advance-position', {
+      const response = await fetchWithAuth('/api/elections/advance-position', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           configId: parseInt(configId!),
           position: electionData!.currentPosition + 1,
@@ -270,12 +256,8 @@ export default function ElectionManage() {
 
   const handleResetVoting = async () => {
     try {
-      const response = await fetch('/api/elections/reset-voting', {
+      const response = await fetchWithAuth('/api/elections/reset-voting', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           configId: parseInt(configId!),
         }),
@@ -316,12 +298,8 @@ export default function ElectionManage() {
     }
 
     try {
-      const response = await fetch('/api/elections/set-max-nominations', {
+      const response = await fetchWithAuth('/api/elections/set-max-nominations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           configId: parseInt(configId!),
           maxNominations: newMax,
@@ -345,16 +323,6 @@ export default function ElectionManage() {
         variant: 'destructive',
       });
     }
-  };
-
-  const toggleOralObservations = () => {
-    setOralObservationsActive(!oralObservationsActive);
-    toast({
-      title: oralObservationsActive ? 'Observações encerradas' : 'Observações iniciadas',
-      description: oralObservationsActive
-        ? 'As observações orais foram encerradas.'
-        : 'As observações orais foram iniciadas.',
-    });
   };
 
   const getCurrentPositionData = () => {

@@ -11,7 +11,10 @@
 
 import Dexie, { type Table, type Transaction } from 'dexie';
 import { encryptData, decryptData, hashData } from './crypto';
+import { createLogger } from '@/lib/logger';
 import type { User, Event, Message } from '@shared/schema';
+
+const offlineLogger = createLogger('Offline');
 
 // ===== TIPOS =====
 
@@ -305,7 +308,7 @@ async function migrateToV2(tx: Transaction): Promise<void> {
       item.nextRetryAt = item.nextRetryAt ?? 0;
     });
 
-  console.log('[Database] Migração para v2 concluída');
+  offlineLogger.debug('Migração para v2 concluída');
 }
 
 // Instância única do banco
@@ -332,13 +335,13 @@ export function hasOfflinePermission(role: string): boolean {
 
 export async function saveUsersOffline(users: User[], userRole: string): Promise<void> {
   if (!hasOfflinePermission(userRole)) {
-    console.log('[Offline] Usuário não tem permissão para cache de usuários');
+    offlineLogger.debug('Usuário não tem permissão para cache de usuários');
     return;
   }
 
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${users.length} usuários para salvar...`);
+  offlineLogger.debug(`Preparando ${users.length} usuários para salvar...`);
 
   // IMPORTANTE: Preparar TODOS os dados ANTES de abrir a transaction
   // para evitar que a transaction expire durante operações assíncronas
@@ -354,7 +357,7 @@ export async function saveUsersOffline(users: User[], userRole: string): Promise
     }))
   );
 
-  console.log(`[Offline] Dados preparados, salvando no IndexedDB...`);
+  offlineLogger.debug(`Dados preparados, salvando no IndexedDB...`);
 
   // Agora fazer a transaction com dados já preparados
   await db.transaction('rw', db.users, db.meta, async () => {
@@ -362,16 +365,16 @@ export async function saveUsersOffline(users: User[], userRole: string): Promise
     await db.meta.put({ key: 'users_last_sync', value: now.toString(), updatedAt: now });
   });
 
-  console.log(`[Offline] ✅ ${users.length} usuários salvos (criptografados)`);
+  offlineLogger.debug(`${users.length} usuários salvos (criptografados)`);
 }
 
 export async function getUsersOffline(): Promise<User[]> {
-  console.log('[Offline] Buscando usuários do IndexedDB...');
+  offlineLogger.debug('Buscando usuários do IndexedDB...');
   const offlineUsers = await db.users.toArray();
-  console.log(`[Offline] Encontrados ${offlineUsers.length} registros de usuários`);
+  offlineLogger.debug(`Encontrados ${offlineUsers.length} registros de usuários`);
 
   if (offlineUsers.length === 0) {
-    console.warn('[Offline] ⚠️ Nenhum usuário encontrado no cache!');
+    offlineLogger.warn('Nenhum usuário encontrado no cache!');
     return [];
   }
 
@@ -380,14 +383,14 @@ export async function getUsersOffline(): Promise<User[]> {
       try {
         return await decryptData<User>(ou.data);
       } catch (error) {
-        console.warn(`[Offline] Falha ao descriptografar usuário ${ou.id}:`, error);
+        offlineLogger.warn(`Falha ao descriptografar usuário ${ou.id}:`, error);
         return null;
       }
     })
   );
 
   const validUsers = users.filter((u): u is User => u !== null);
-  console.log(`[Offline] Retornando ${validUsers.length} usuários descriptografados`);
+  offlineLogger.debug(`Retornando ${validUsers.length} usuários descriptografados`);
   return validUsers;
 }
 
@@ -455,7 +458,7 @@ export async function updateUserOffline(userId: number, userData: Partial<User>)
 export async function saveEventsOffline(events: Event[]): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${events.length} eventos para salvar...`);
+  offlineLogger.debug(`Preparando ${events.length} eventos para salvar...`);
 
   // Preparar TODOS os dados ANTES de abrir a transaction
   const offlineEvents: OfflineEvent[] = await Promise.all(
@@ -470,7 +473,7 @@ export async function saveEventsOffline(events: Event[]): Promise<void> {
     }))
   );
 
-  console.log(`[Offline] Dados preparados, salvando no IndexedDB...`);
+  offlineLogger.debug(`Dados preparados, salvando no IndexedDB...`);
 
   // Transaction com dados já preparados
   await db.transaction('rw', db.events, db.meta, async () => {
@@ -478,16 +481,16 @@ export async function saveEventsOffline(events: Event[]): Promise<void> {
     await db.meta.put({ key: 'events_last_sync', value: now.toString(), updatedAt: now });
   });
 
-  console.log(`[Offline] ✅ ${events.length} eventos salvos`);
+  offlineLogger.debug(`${events.length} eventos salvos`);
 }
 
 export async function getEventsOffline(): Promise<Event[]> {
-  console.log('[Offline] Buscando eventos do IndexedDB...');
+  offlineLogger.debug('Buscando eventos do IndexedDB...');
   const offlineEvents = await db.events.toArray();
-  console.log(`[Offline] Encontrados ${offlineEvents.length} eventos`);
+  offlineLogger.debug(`Encontrados ${offlineEvents.length} eventos`);
 
   if (offlineEvents.length === 0) {
-    console.warn('[Offline] ⚠️ Nenhum evento encontrado no cache!');
+    offlineLogger.warn('Nenhum evento encontrado no cache!');
   }
 
   return offlineEvents.map(oe => JSON.parse(oe.data) as Event);
@@ -528,7 +531,7 @@ export interface TaskData {
 export async function saveTasksOffline(tasks: TaskData[]): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${tasks.length} tarefas para salvar...`);
+  offlineLogger.debug(`Preparando ${tasks.length} tarefas para salvar...`);
 
   // Preparar TODOS os dados ANTES de abrir a transaction
   const offlineTasks: OfflineTask[] = await Promise.all(
@@ -543,7 +546,7 @@ export async function saveTasksOffline(tasks: TaskData[]): Promise<void> {
     }))
   );
 
-  console.log(`[Offline] Dados preparados, salvando no IndexedDB...`);
+  offlineLogger.debug(`Dados preparados, salvando no IndexedDB...`);
 
   // Transaction com dados já preparados
   await db.transaction('rw', db.tasks, db.meta, async () => {
@@ -551,16 +554,16 @@ export async function saveTasksOffline(tasks: TaskData[]): Promise<void> {
     await db.meta.put({ key: 'tasks_last_sync', value: now.toString(), updatedAt: now });
   });
 
-  console.log(`[Offline] ✅ ${tasks.length} tarefas salvas`);
+  offlineLogger.debug(`${tasks.length} tarefas salvas`);
 }
 
 export async function getTasksOffline(): Promise<TaskData[]> {
-  console.log('[Offline] Buscando tarefas do IndexedDB...');
+  offlineLogger.debug('Buscando tarefas do IndexedDB...');
   const offlineTasks = await db.tasks.toArray();
-  console.log(`[Offline] Encontradas ${offlineTasks.length} tarefas`);
+  offlineLogger.debug(`Encontradas ${offlineTasks.length} tarefas`);
 
   if (offlineTasks.length === 0) {
-    console.warn('[Offline] ⚠️ Nenhuma tarefa encontrada no cache!');
+    offlineLogger.warn('Nenhuma tarefa encontrada no cache!');
   }
 
   return offlineTasks.map(ot => JSON.parse(ot.data) as TaskData);
@@ -610,7 +613,7 @@ export interface RelationshipData {
 export async function saveRelationshipsOffline(relationships: RelationshipData[]): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${relationships.length} relacionamentos para salvar...`);
+  offlineLogger.debug(`Preparando ${relationships.length} relacionamentos para salvar...`);
 
   // Preparar TODOS os dados ANTES de abrir a transaction
   const offlineRelationships: OfflineRelationship[] = await Promise.all(
@@ -625,7 +628,7 @@ export async function saveRelationshipsOffline(relationships: RelationshipData[]
     }))
   );
 
-  console.log(`[Offline] Dados preparados, salvando no IndexedDB...`);
+  offlineLogger.debug(`Dados preparados, salvando no IndexedDB...`);
 
   // Transaction com dados já preparados
   await db.transaction('rw', db.relationships, db.meta, async () => {
@@ -633,16 +636,16 @@ export async function saveRelationshipsOffline(relationships: RelationshipData[]
     await db.meta.put({ key: 'relationships_last_sync', value: now.toString(), updatedAt: now });
   });
 
-  console.log(`[Offline] ✅ ${relationships.length} relacionamentos salvos`);
+  offlineLogger.debug(`${relationships.length} relacionamentos salvos`);
 }
 
 export async function getRelationshipsOffline(): Promise<RelationshipData[]> {
-  console.log('[Offline] Buscando relacionamentos do IndexedDB...');
+  offlineLogger.debug('Buscando relacionamentos do IndexedDB...');
   const offlineRelationships = await db.relationships.toArray();
-  console.log(`[Offline] Encontrados ${offlineRelationships.length} relacionamentos`);
+  offlineLogger.debug(`Encontrados ${offlineRelationships.length} relacionamentos`);
 
   if (offlineRelationships.length === 0) {
-    console.warn('[Offline] ⚠️ Nenhum relacionamento encontrado no cache!');
+    offlineLogger.warn('Nenhum relacionamento encontrado no cache!');
   }
 
   return offlineRelationships.map(or => JSON.parse(or.data) as RelationshipData);
@@ -690,7 +693,7 @@ export interface PrayerData {
 export async function savePrayersOffline(prayers: PrayerData[]): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${prayers.length} pedidos de oração para salvar...`);
+  offlineLogger.debug(`Preparando ${prayers.length} pedidos de oração para salvar...`);
 
   const offlinePrayers: OfflinePrayer[] = await Promise.all(
     prayers.map(async prayer => ({
@@ -709,13 +712,13 @@ export async function savePrayersOffline(prayers: PrayerData[]): Promise<void> {
     await db.meta.put({ key: 'prayers_last_sync', value: now.toString(), updatedAt: now });
   });
 
-  console.log(`[Offline] ✅ ${prayers.length} pedidos de oração salvos`);
+  offlineLogger.debug(`${prayers.length} pedidos de oração salvos`);
 }
 
 export async function getPrayersOffline(): Promise<PrayerData[]> {
-  console.log('[Offline] Buscando pedidos de oração do IndexedDB...');
+  offlineLogger.debug('Buscando pedidos de oração do IndexedDB...');
   const offlinePrayers = await db.prayers.toArray();
-  console.log(`[Offline] Encontrados ${offlinePrayers.length} pedidos de oração`);
+  offlineLogger.debug(`Encontrados ${offlinePrayers.length} pedidos de oração`);
 
   return offlinePrayers.map(op => JSON.parse(op.data) as PrayerData);
 }
@@ -767,7 +770,7 @@ export interface MeetingData {
 export async function saveMeetingsOffline(meetings: MeetingData[]): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${meetings.length} reuniões para salvar...`);
+  offlineLogger.debug(`Preparando ${meetings.length} reuniões para salvar...`);
 
   const offlineMeetings: OfflineMeeting[] = await Promise.all(
     meetings.map(async meeting => ({
@@ -786,13 +789,13 @@ export async function saveMeetingsOffline(meetings: MeetingData[]): Promise<void
     await db.meta.put({ key: 'meetings_last_sync', value: now.toString(), updatedAt: now });
   });
 
-  console.log(`[Offline] ✅ ${meetings.length} reuniões salvas`);
+  offlineLogger.debug(`${meetings.length} reuniões salvas`);
 }
 
 export async function getMeetingsOffline(): Promise<MeetingData[]> {
-  console.log('[Offline] Buscando reuniões do IndexedDB...');
+  offlineLogger.debug('Buscando reuniões do IndexedDB...');
   const offlineMeetings = await db.meetings.toArray();
-  console.log(`[Offline] Encontradas ${offlineMeetings.length} reuniões`);
+  offlineLogger.debug(`Encontradas ${offlineMeetings.length} reuniões`);
 
   return offlineMeetings.map(om => JSON.parse(om.data) as MeetingData);
 }
@@ -841,7 +844,7 @@ export async function saveEmotionalCheckinsOffline(
 ): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${checkins.length} check-ins emocionais para salvar...`);
+  offlineLogger.debug(`Preparando ${checkins.length} check-ins emocionais para salvar...`);
 
   const offlineCheckins: OfflineEmotionalCheckin[] = await Promise.all(
     checkins.map(async checkin => ({
@@ -865,20 +868,20 @@ export async function saveEmotionalCheckinsOffline(
     });
   });
 
-  console.log(`[Offline] ✅ ${checkins.length} check-ins emocionais salvos`);
+  offlineLogger.debug(`${checkins.length} check-ins emocionais salvos`);
 }
 
 export async function getEmotionalCheckinsOffline(
   userId?: number
 ): Promise<EmotionalCheckinData[]> {
-  console.log('[Offline] Buscando check-ins emocionais do IndexedDB...');
+  offlineLogger.debug('Buscando check-ins emocionais do IndexedDB...');
   let offlineCheckins = await db.emotionalCheckins.toArray();
 
   if (userId) {
     offlineCheckins = offlineCheckins.filter(c => c.userId === userId);
   }
 
-  console.log(`[Offline] Encontrados ${offlineCheckins.length} check-ins emocionais`);
+  offlineLogger.debug(`Encontrados ${offlineCheckins.length} check-ins emocionais`);
 
   return offlineCheckins.map(oc => JSON.parse(oc.data) as EmotionalCheckinData);
 }
@@ -901,7 +904,7 @@ export async function saveDiscipleshipRequestsOffline(
 ): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${requests.length} pedidos de discipulado para salvar...`);
+  offlineLogger.debug(`Preparando ${requests.length} pedidos de discipulado para salvar...`);
 
   const offlineRequests: OfflineDiscipleshipRequest[] = await Promise.all(
     requests.map(async request => ({
@@ -924,13 +927,13 @@ export async function saveDiscipleshipRequestsOffline(
     });
   });
 
-  console.log(`[Offline] ✅ ${requests.length} pedidos de discipulado salvos`);
+  offlineLogger.debug(`${requests.length} pedidos de discipulado salvos`);
 }
 
 export async function getDiscipleshipRequestsOffline(): Promise<DiscipleshipRequestData[]> {
-  console.log('[Offline] Buscando pedidos de discipulado do IndexedDB...');
+  offlineLogger.debug('Buscando pedidos de discipulado do IndexedDB...');
   const offlineRequests = await db.discipleshipRequests.toArray();
-  console.log(`[Offline] Encontrados ${offlineRequests.length} pedidos de discipulado`);
+  offlineLogger.debug(`Encontrados ${offlineRequests.length} pedidos de discipulado`);
 
   return offlineRequests.map(or => JSON.parse(or.data) as DiscipleshipRequestData);
 }
@@ -976,7 +979,7 @@ export interface NotificationData {
 export async function saveNotificationsOffline(notifications: NotificationData[]): Promise<void> {
   const now = Date.now();
 
-  console.log(`[Offline] Preparando ${notifications.length} notificações para salvar...`);
+  offlineLogger.debug(`Preparando ${notifications.length} notificações para salvar...`);
 
   const offlineNotifications: OfflineNotification[] = await Promise.all(
     notifications.map(async notification => ({
@@ -996,18 +999,18 @@ export async function saveNotificationsOffline(notifications: NotificationData[]
     await db.meta.put({ key: 'notifications_last_sync', value: now.toString(), updatedAt: now });
   });
 
-  console.log(`[Offline] ✅ ${notifications.length} notificações salvas`);
+  offlineLogger.debug(`${notifications.length} notificações salvas`);
 }
 
 export async function getNotificationsOffline(userId?: number): Promise<NotificationData[]> {
-  console.log('[Offline] Buscando notificações do IndexedDB...');
+  offlineLogger.debug('Buscando notificações do IndexedDB...');
   let offlineNotifications = await db.notifications.toArray();
 
   if (userId) {
     offlineNotifications = offlineNotifications.filter(n => n.userId === userId);
   }
 
-  console.log(`[Offline] Encontradas ${offlineNotifications.length} notificações`);
+  offlineLogger.debug(`Encontradas ${offlineNotifications.length} notificações`);
 
   return offlineNotifications.map(on => JSON.parse(on.data) as NotificationData);
 }
@@ -1064,7 +1067,7 @@ export async function saveMessagesOffline(
     await db.messages.bulkPut(offlineMessages);
   });
 
-  console.log(`[Offline] ${messages.length} mensagens salvas (criptografadas)`);
+  offlineLogger.debug(`${messages.length} mensagens salvas (criptografadas)`);
 }
 
 export async function getMessagesOffline(conversationId: number): Promise<Message[]> {
@@ -1110,7 +1113,7 @@ export async function addToSyncQueue(item: SyncQueueInput): Promise<number> {
   };
 
   const id = await db.syncQueue.add(queueItem);
-  console.log(`[Offline] Adicionado à fila de sync: ${item.entity} ${item.type}`);
+  offlineLogger.debug(`Adicionado à fila de sync: ${item.entity} ${item.type}`);
   return id as number;
 }
 
@@ -1164,7 +1167,7 @@ export async function recordConflict(
   };
 
   const id = await db.conflicts.add(conflict);
-  console.log(`[Offline] Conflito registrado: ${entity} #${entityId}`);
+  offlineLogger.debug(`Conflito registrado: ${entity} #${entityId}`);
   return id as number;
 }
 
@@ -1174,7 +1177,7 @@ export async function getUnresolvedConflicts(): Promise<ConflictRecord[]> {
     const conflicts = await db.conflicts.toArray();
     return conflicts.filter(c => !c.resolvedAt);
   } catch (error) {
-    console.error('[Offline] Erro ao buscar conflitos:', error);
+    offlineLogger.error('Erro ao buscar conflitos:', error);
     return [];
   }
 }
@@ -1217,7 +1220,7 @@ export async function resolveConflict(
       isModified: false,
     });
 
-    console.log(`[Offline] Conflito ${conflictId} resolvido: ${resolution}`);
+    offlineLogger.debug(`Conflito ${conflictId} resolvido: ${resolution}`);
   });
 }
 
@@ -1293,8 +1296,8 @@ export async function cleanExpiredData(): Promise<{
     }
   );
 
-  console.log(
-    `[Offline] Limpeza: ${result.users} usuários, ${result.events} eventos, ${result.tasks} tarefas, ${result.messages} mensagens`
+  offlineLogger.debug(
+    `Limpeza: ${result.users} usuários, ${result.events} eventos, ${result.tasks} tarefas, ${result.messages} mensagens`
   );
   return result;
 }
@@ -1313,7 +1316,7 @@ export async function clearAllOfflineData(): Promise<void> {
       await db.conflicts.clear();
     }
   );
-  console.log('[Offline] Todos os dados offline limpos');
+  offlineLogger.debug('Todos os dados offline limpos');
 }
 
 export async function getStorageUsage(): Promise<{

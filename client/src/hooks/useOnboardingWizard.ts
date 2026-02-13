@@ -4,6 +4,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { type OnboardingData } from '@/types/pastor-invite';
+import { createLogger } from '@/lib/logger';
+
+const onboardingLogger = createLogger('Onboarding');
 
 interface WizardState {
   currentStep: number;
@@ -37,7 +40,7 @@ export function useOnboardingWizard(token: string) {
           data: parsed.data || { completedSteps: [], lastStepAt: new Date().toISOString() },
         }));
       } catch (error) {
-        console.error('Erro ao carregar rascunho:', error);
+        onboardingLogger.error('Erro ao carregar rascunho:', error);
       }
     }
   }, [token]);

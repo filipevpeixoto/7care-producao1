@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { performanceLogger } from '@/lib/logger';
 
 /**
  * Hook para debounce de valores
@@ -198,7 +199,7 @@ export function useLocalStorage<T>(
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error);
+      performanceLogger.warn(`Error reading localStorage key "${key}":`, error);
       return initialValue;
     }
   });
@@ -212,7 +213,7 @@ export function useLocalStorage<T>(
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
         }
       } catch (error) {
-        console.warn(`Error setting localStorage key "${key}":`, error);
+        performanceLogger.warn(`Error setting localStorage key "${key}":`, error);
       }
     },
     [key, storedValue]
@@ -265,7 +266,7 @@ export function usePrefetch<T>(
 
     fetcher()
       .then(setData)
-      .catch(console.error)
+      .catch(performanceLogger.error)
       .finally(() => setIsLoading(false));
   }, [fetcher, enabled, isLoading]);
 

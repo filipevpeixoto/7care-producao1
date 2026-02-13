@@ -303,7 +303,6 @@ export const onboardingRoutes = (app: Express): void => {
         churches: data.churches || [],
         excelData: data.excelData,
         churchValidation: data.churchValidation,
-        dracmaConfig: data.dracmaConfig,
         gamificationConfig: data.gamificationConfig,
         passwordHash,
         completedSteps: [1, 2, 3, 4, 5, 6, 7, 8],

@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { STALE_TIME, GC_TIME } from '@/lib/queryConstants';
+import { createLogger } from '@/lib/logger';
+
+const tasksLogger = createLogger('Tasks');
 
 interface Task {
   id: number;
@@ -60,7 +63,7 @@ export function useTasks() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      console.log('📖 Carregando tarefas...');
+      tasksLogger.debug('Carregando tarefas...');
       
       // 1. SEMPRE tentar carregar do localStorage primeiro (rápido)
       let cachedTasks: Task[] = [];
@@ -68,10 +71,10 @@ export function useTasks() {
         const cached = localStorage.getItem(TASKS_CACHE_KEY);
         if (cached) {
           cachedTasks = JSON.parse(cached);
-          console.log(`💾 ${cachedTasks.length} tarefas do cache local`);
+          tasksLogger.debug(`${cachedTasks.length} tarefas do cache local`);
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao ler cache:', error);
+        tasksLogger.warn('Erro ao ler cache:', error);
       }
       
       // 2. Se conectado e autenticado, buscar do servidor
@@ -83,25 +86,25 @@ export function useTasks() {
             const result = await response.json();
             const serverTasks = result.tasks || [];
             
-            console.log(`🌐 ${serverTasks.length} tarefas do servidor`);
+            tasksLogger.debug(`${serverTasks.length} tarefas do servidor`);
             
             // Salvar no localStorage para cache
             try {
               localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(serverTasks));
-              console.log('💾 Cache atualizado no localStorage');
+              tasksLogger.debug('Cache atualizado no localStorage');
             } catch (error) {
-              console.warn('⚠️ Erro ao salvar cache:', error);
+              tasksLogger.warn('Erro ao salvar cache:', error);
             }
             
             return serverTasks;
           } else {
-            console.warn(`⚠️ Servidor retornou ${response.status}, usando cache`);
+            tasksLogger.warn(`Servidor retornou ${response.status}, usando cache`);
           }
         } catch (error) {
-          console.warn('⚠️ Erro ao buscar do servidor, usando cache:', error);
+          tasksLogger.warn('Erro ao buscar do servidor, usando cache:', error);
         }
       } else {
-        console.log('📴 Sem conexão - usando cache local');
+        tasksLogger.debug('Sem conexão - usando cache local');
       }
       
       // 3. Retornar cache (se sem conexão ou erro)
@@ -145,9 +148,9 @@ export function useTasks() {
         const tasks = cached ? JSON.parse(cached) : [];
         tasks.push(newTask);
         localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(tasks));
-        console.log('💾 Cache atualizado após criação');
+        tasksLogger.debug('Cache atualizado após criação');
       } catch (error) {
-        console.warn('⚠️ Erro ao atualizar cache:', error);
+        tasksLogger.warn('Erro ao atualizar cache:', error);
       }
       
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -228,9 +231,9 @@ export function useTasks() {
         const tasks = cached ? JSON.parse(cached) : [];
         const filteredTasks = tasks.filter((t: Task) => t.id !== result.id);
         localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(filteredTasks));
-        console.log(`💾 Cache atualizado após deleção (${tasks.length} -> ${filteredTasks.length})`);
+        tasksLogger.debug(`Cache atualizado após deleção (${tasks.length} -> ${filteredTasks.length})`);
       } catch (error) {
-        console.warn('⚠️ Erro ao atualizar cache:', error);
+        tasksLogger.warn('Erro ao atualizar cache:', error);
       }
       
       // Invalidar e refazer a query imediatamente

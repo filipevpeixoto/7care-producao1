@@ -34,7 +34,7 @@ interface PageHelpModalProps {
  */
 export function PageHelpModal({ open, onOpenChange }: PageHelpModalProps) {
   const navigate = useNavigate();
-  const { pageHelp, executeAction, isAdmin } = usePageHelp();
+  const { pageHelp, executeAction } = usePageHelp();
   const { startTour } = useAppTour();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -121,7 +121,7 @@ export function PageHelpModal({ open, onOpenChange }: PageHelpModalProps) {
               O que você pode fazer aqui
             </h3>
 
-            {pageHelp.items.map((item, index) => {
+            {pageHelp.items.map((item) => {
               const ItemIcon = item.icon;
               const isHovered = hoveredItem === item.id;
               const isClickable = item.action !== 'info';

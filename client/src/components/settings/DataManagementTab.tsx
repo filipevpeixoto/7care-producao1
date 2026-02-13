@@ -1,5 +1,6 @@
-/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
+import { settingsLogger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Database, Download, Upload, Trash2, Loader2, AlertTriangle, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 import { useLastImportDate } from '@/hooks/useLastImportDate';
 import { useQueryClient } from '@tanstack/react-query';
 import { ImportUsersModal } from '@/components/settings/ImportUsersModal';
@@ -68,12 +70,8 @@ export function DataManagementTab({ user, userDistrictId, userDistrictName }: Da
     if (!userDistrictId) return;
     setIsClearingDistrict(true);
     try {
-      const response = await fetch(`/api/districts/${userDistrictId}/data`, {
+      const response = await fetchWithAuth(`/api/districts/${userDistrictId}/data`, {
         method: 'DELETE',
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Erro ao limpar dados');
@@ -112,15 +110,14 @@ export function DataManagementTab({ user, userDistrictId, userDistrictName }: Da
     try {
       setIsLoading(true);
 
-      console.log('🧹 Iniciando limpeza completa do sistema...');
+      settingsLogger.debug('Iniciando limpeza completa do sistema...');
 
       // 1. Limpar banco de dados no servidor
-      console.log('📡 Limpando banco de dados...');
+      settingsLogger.debug('Limpando banco de dados...');
       const response = await fetch('/api/system/clear-all', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
         },
       });
 
@@ -130,30 +127,30 @@ export function DataManagementTab({ user, userDistrictId, userDistrictName }: Da
         throw new Error(result.error || 'Falha ao limpar dados do servidor');
       }
 
-      console.log('✅ Banco de dados limpo');
+      settingsLogger.debug('Banco de dados limpo');
 
       // 2. Limpar React Query Cache
-      console.log('🗑️ Limpando React Query cache...');
+      settingsLogger.debug('Limpando React Query cache...');
       queryClient.clear();
-      console.log('✅ React Query cache limpo');
+      settingsLogger.debug('React Query cache limpo');
 
       // 3. Limpar IndexedDB
-      console.log('🗑️ Limpando IndexedDB...');
+      settingsLogger.debug('Limpando IndexedDB...');
       try {
         const databases = await indexedDB.databases();
         for (const db of databases) {
           if (db.name) {
-            console.log(`  Deletando database: ${db.name}`);
+            settingsLogger.debug(`  Deletando database: ${db.name}`);
             indexedDB.deleteDatabase(db.name);
           }
         }
-        console.log('✅ IndexedDB limpo');
+        settingsLogger.debug('IndexedDB limpo');
       } catch (error) {
-        console.warn('⚠️ Erro ao limpar IndexedDB:', error);
+        settingsLogger.warn('Erro ao limpar IndexedDB:', error);
       }
 
       // 4. Limpar localStorage (exceto configurações essenciais)
-      console.log('🗑️ Limpando localStorage...');
+      settingsLogger.debug('Limpando localStorage...');
       const keysToKeep = ['theme', 'language'];
       const keysToRemove: string[] = [];
 
@@ -165,55 +162,55 @@ export function DataManagementTab({ user, userDistrictId, userDistrictName }: Da
       }
 
       keysToRemove.forEach((key) => {
-        console.log(`  Removendo: ${key}`);
+        settingsLogger.debug(`  Removendo: ${key}`);
         localStorage.removeItem(key);
       });
-      console.log('✅ localStorage limpo');
+      settingsLogger.debug('localStorage limpo');
 
       // 5. Limpar sessionStorage
-      console.log('🗑️ Limpando sessionStorage...');
+      settingsLogger.debug('Limpando sessionStorage...');
       sessionStorage.clear();
-      console.log('✅ sessionStorage limpo');
+      settingsLogger.debug('sessionStorage limpo');
 
       // 6. Limpar Service Worker Cache
-      console.log('🗑️ Limpando Service Worker cache...');
+      settingsLogger.debug('Limpando Service Worker cache...');
       try {
         const cacheNames = await caches.keys();
         for (const cacheName of cacheNames) {
-          console.log(`  Deletando cache: ${cacheName}`);
+          settingsLogger.debug(`  Deletando cache: ${cacheName}`);
           await caches.delete(cacheName);
         }
-        console.log('✅ Service Worker cache limpo');
+        settingsLogger.debug('Service Worker cache limpo');
       } catch (error) {
-        console.warn('⚠️ Erro ao limpar Service Worker cache:', error);
+        settingsLogger.warn('Erro ao limpar Service Worker cache:', error);
       }
 
       // 7. Desregistrar Service Worker
-      console.log('🗑️ Desregistrando Service Worker...');
+      settingsLogger.debug('Desregistrando Service Worker...');
       try {
         if ('serviceWorker' in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
-          console.log(`  Encontrados ${registrations.length} Service Workers registrados`);
+          settingsLogger.debug(`  Encontrados ${registrations.length} Service Workers registrados`);
 
           for (const registration of registrations) {
-            console.log(`  Desregistrando SW: ${registration.scope}`);
+            settingsLogger.debug(`  Desregistrando SW: ${registration.scope}`);
             await registration.unregister();
           }
 
-          console.log('✅ Service Worker desregistrado');
+          settingsLogger.debug('Service Worker desregistrado');
 
           // Limpar controller atual
           if (navigator.serviceWorker.controller) {
-            console.log('  Enviando mensagem de SKIP_WAITING para SW ativo');
+            settingsLogger.debug('  Enviando mensagem de SKIP_WAITING para SW ativo');
             navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
           }
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao desregistrar Service Worker:', error);
+        settingsLogger.warn('Erro ao desregistrar Service Worker:', error);
       }
 
-      console.log('\n🎉 LIMPEZA COMPLETA CONCLUÍDA!');
-      console.log('ℹ️ A página será recarregada em 3 segundos...');
+      settingsLogger.info('LIMPEZA COMPLETA CONCLUÍDA!');
+      settingsLogger.info('A página será recarregada em 3 segundos...');
 
       toast({
         title: 'Sistema limpo com sucesso',
@@ -227,7 +224,7 @@ export function DataManagementTab({ user, userDistrictId, userDistrictName }: Da
         window.location.reload();
       }, 3000);
     } catch (error) {
-      console.error('❌ Erro ao limpar dados:', error);
+      settingsLogger.error('Erro ao limpar dados:', error);
       toast({
         title: 'Erro ao limpar dados',
         description: error instanceof Error ? error.message : 'Ocorreu um erro inesperado.',

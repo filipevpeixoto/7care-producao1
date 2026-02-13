@@ -2,6 +2,9 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Camera, X, RotateCcw, Loader2, Check } from 'lucide-react';
 import { Button } from './button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog';
+import { createLogger } from '@/lib/logger';
+
+const cameraLogger = createLogger('Camera');
 
 interface CameraCaptureProps {
   isOpen: boolean;
@@ -69,7 +72,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
       setIsStreamActive(true);
       setHasPermission(true);
     } catch (error) {
-      console.error('Erro ao acessar câmera:', error);
+      cameraLogger.error('Erro ao acessar câmera:', error);
       setHasPermission(false);
       setIsStreamActive(false);
     }
@@ -155,7 +158,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
       setStream(mediaStream);
       setIsStreamActive(true);
     } catch (error) {
-      console.error('Erro ao trocar câmera:', error);
+      cameraLogger.error('Erro ao trocar câmera:', error);
       startCamera(); // Volta para a câmera anterior
     }
   };

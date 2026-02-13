@@ -69,10 +69,9 @@ function sendToAnalytics(metric: WebVitalMetric): void {
   // Não envia se não houver conexão
   if (!navigator.onLine) return;
 
-  // Analytics desabilitado - endpoint não implementado no Netlify Functions
-  // Para habilitar, configure um serviço de analytics (Google Analytics, Sentry, etc.)
-  // e defina ANALYTICS_ENABLED como true
-  const ANALYTICS_ENABLED = false;
+  // Analytics habilitado em produção — envia métricas para Sentry breadcrumbs
+  // e (se configurado) para o endpoint /api/analytics/vitals
+  const ANALYTICS_ENABLED = import.meta.env.PROD;
   if (!ANALYTICS_ENABLED) return;
 
   // Enviar para endpoint de analytics (se configurado)

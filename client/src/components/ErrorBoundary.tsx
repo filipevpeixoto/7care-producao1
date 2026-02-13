@@ -2,6 +2,7 @@ import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { uiLogger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -34,8 +35,8 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ errorInfo });
     
     // Log do erro para debugging
-    console.error('🚨 ErrorBoundary capturou um erro:', error);
-    console.error('📍 Component Stack:', errorInfo.componentStack);
+    uiLogger.error('ErrorBoundary capturou um erro:', error);
+    uiLogger.error('Component Stack:', errorInfo.componentStack);
     
     // Callback opcional para tracking de erros (ex: Sentry)
     this.props.onError?.(error, errorInfo);

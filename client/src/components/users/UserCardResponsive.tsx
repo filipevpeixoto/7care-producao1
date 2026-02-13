@@ -109,7 +109,7 @@ export const UserCardResponsive = memo(({
   const [showMarkVisitModal, setShowMarkVisitModal] = useState(false);
   const [showPhotoPreview, setIsPhotoPreviewOpen] = useState(false);
   const [showVisitHistory, setShowVisitHistory] = useState(false);
-  const [visitHistory, setVisitHistory] = useState<VisitHistoryItem[]>([]);
+  const [visitHistory] = useState<VisitHistoryItem[]>([]);
   const [openSituationPopover, setOpenSituationPopover] = useState(false);
   const [selectedSituation, setSelectedSituation] = useState(localUser.interestedSituation || (localUser as any).interested_situation || '');
   const [userSpiritual, setUserSpiritual] = useState<SpiritualData | null>(null);
@@ -350,18 +350,6 @@ export const UserCardResponsive = memo(({
       month: '2-digit',
       year: 'numeric',
     });
-  };
-
-  const _loadVisitHistory = async (userId: number) => {
-    try {
-      const response = await fetch(`/api/visits/user/${userId}`);
-      if (response.ok) {
-        const history = await response.json();
-        setVisitHistory(history);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar histórico de visitas:', error);
-    }
   };
 
   const generateFirstAccessUsername = (name: string) => {

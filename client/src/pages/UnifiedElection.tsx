@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useNavigate } from 'react-router-dom';
+import { fetchWithAuth } from '@/lib/api';
 
 interface ElectionConfig {
   id: number;
@@ -54,7 +55,7 @@ interface ActiveElection {
 }
 
 export default function UnifiedElection() {
-  const { user, realUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -86,10 +87,9 @@ export default function UnifiedElection() {
 
   const loadConfigs = async () => {
     try {
-      const response = await fetch('/api/elections/configs', {
+      const response = await fetchWithAuth('/api/elections/configs', {
         headers: {
           'Cache-Control': 'no-cache',
-          'x-user-id': user?.id?.toString() || '',
         },
       });
       if (response.ok) {
@@ -108,11 +108,10 @@ export default function UnifiedElection() {
         return;
       }
 
-      const response = await fetch('/api/elections/active', {
+      const response = await fetchWithAuth('/api/elections/active', {
         headers: {
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
-          'x-user-id': user.id.toString(),
         },
       });
 

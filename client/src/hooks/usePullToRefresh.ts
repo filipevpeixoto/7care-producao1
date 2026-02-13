@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { uiLogger } from '@/lib/logger';
 
 interface PullToRefreshOptions {
   onRefresh: () => Promise<void> | void;
@@ -73,7 +74,7 @@ export const usePullToRefresh = ({
       try {
         await onRefresh();
       } catch (error) {
-        console.error('Erro ao atualizar:', error);
+        uiLogger.error('Erro ao atualizar:', error);
       } finally {
         // Delay para mostrar animação
         setTimeout(() => {

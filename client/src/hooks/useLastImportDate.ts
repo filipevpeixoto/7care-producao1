@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const importLogger = createLogger('Import');
 
 interface ImportSuccessEvent {
   type: 'users' | 'calendar-events' | 'other';
@@ -21,12 +24,12 @@ export const useLastImportDate = () => {
           // Salvar no localStorage para persistência
           localStorage.setItem('lastImportDate', newTimestamp);
 
-          console.log(
-            `📅 Data da última importação atualizada: ${newTimestamp} (${event.detail.type})`
+          importLogger.debug(
+            `Data da última importação atualizada: ${newTimestamp} (${event.detail.type})`
           );
         }
       } catch (error) {
-        console.error('❌ Erro no handleImportSuccess:', error);
+        importLogger.error('Erro no handleImportSuccess:', error);
       }
     };
 

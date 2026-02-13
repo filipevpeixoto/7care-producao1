@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { canManagePastors } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/api';
 
 interface Pastor {
   id: number;
@@ -40,7 +41,7 @@ interface Pastor {
 }
 
 export default function Pastors() {
-  const { user, realUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,11 +63,7 @@ export default function Pastors() {
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['/api/pastors', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/pastors', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/pastors');
       if (!response.ok) throw new Error('Erro ao buscar pastores');
       return response.json();
     },
@@ -80,11 +77,7 @@ export default function Pastors() {
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['/api/districts', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/districts', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/districts');
       if (!response.ok) return [];
       return response.json();
     },
@@ -96,12 +89,8 @@ export default function Pastors() {
   // Criar pastor
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch('/api/pastors', {
+      const response = await fetchWithAuth('/api/pastors', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -132,12 +121,8 @@ export default function Pastors() {
   // Atualizar pastor
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await fetch(`/api/pastors/${id}`, {
+      const response = await fetchWithAuth(`/api/pastors/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -169,11 +154,8 @@ export default function Pastors() {
   // Deletar pastor
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/pastors/${id}`, {
+      const response = await fetchWithAuth(`/api/pastors/${id}`, {
         method: 'DELETE',
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-        },
       });
       if (!response.ok) {
         const error = await response.json();

@@ -18,6 +18,9 @@ import {
   recordConflict,
   type SyncQueueItem,
 } from './database';
+import { createLogger } from '@/lib/logger';
+
+const offlineLogger = createLogger('Offline');
 
 // ===== TIPOS =====
 
@@ -121,17 +124,17 @@ function getNextRetryTimestamp(retryCount: number): number {
  */
 export async function processQueue(): Promise<SyncResult> {
   if (isSyncing) {
-    console.log('[Sync] Já está sincronizando...');
+    offlineLogger.debug('Já está sincronizando...');
     return { success: 0, failed: 0, conflicts: 0, skipped: 0, errors: [] };
   }
 
   if (isPaused) {
-    console.log('[Sync] Sincronização pausada');
+    offlineLogger.debug('Sincronização pausada');
     return { success: 0, failed: 0, conflicts: 0, skipped: 0, errors: [] };
   }
 
   if (!navigator.onLine) {
-    console.log('[Sync] Sem conexão, adiando sincronização');
+    offlineLogger.debug('Sem conexão, adiando sincronização');
     notifyListeners({ status: 'idle', lastError: 'Sem conexão' });
     return { success: 0, failed: 0, conflicts: 0, skipped: 0, errors: [] };
   }
@@ -150,26 +153,26 @@ export async function processQueue(): Promise<SyncResult> {
     const total = queue.length;
 
     if (total === 0) {
-      console.log('[Sync] Fila vazia');
+      offlineLogger.debug('Fila vazia');
       notifyListeners({ status: 'idle', current: 0, total: 0 });
       return result;
     }
 
-    console.log(`[Sync] Processando ${total} itens...`);
+    offlineLogger.debug(`Processando ${total} itens...`);
     notifyListeners({ status: 'syncing', current: 0, total });
 
     // Processar em batches para não sobrecarregar
     for (let i = 0; i < queue.length; i++) {
       // Verificar se foi pausado
       if (isPaused) {
-        console.log('[Sync] Sincronização pausada pelo usuário');
+        offlineLogger.debug('Sincronização pausada pelo usuário');
         result.skipped = queue.length - i;
         break;
       }
 
       // Verificar conexão periodicamente
       if (!navigator.onLine) {
-        console.log('[Sync] Conexão perdida durante sincronização');
+        offlineLogger.debug('Conexão perdida durante sincronização');
         result.skipped = queue.length - i;
         notifyListeners({ status: 'error', lastError: 'Conexão perdida' });
         break;
@@ -187,11 +190,11 @@ export async function processQueue(): Promise<SyncResult> {
 
         if (processResult.conflict) {
           result.conflicts++;
-          console.log(`[Sync] ⚡ Conflito detectado: ${item.entity} ${item.type}`);
+          offlineLogger.debug(`Conflito detectado: ${item.entity} ${item.type}`);
         } else {
           await removeSyncQueueItem(item.id!);
           result.success++;
-          console.log(`[Sync] ✓ ${item.entity} ${item.type} (${i + 1}/${total})`);
+          offlineLogger.debug(`${item.entity} ${item.type} (${i + 1}/${total})`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -199,13 +202,13 @@ export async function processQueue(): Promise<SyncResult> {
 
         if (item.retryCount >= MAX_RETRIES) {
           result.failed++;
-          console.error(`[Sync] ✗ ${item.entity} ${item.type} - Máximo de tentativas atingido`);
+          offlineLogger.error(`${item.entity} ${item.type} - Máximo de tentativas atingido`);
           // Mover para "dead letter" ou remover
           await removeSyncQueueItem(item.id!);
         } else {
           const nextRetry = getNextRetryTimestamp(item.retryCount + 1);
-          console.warn(
-            `[Sync] ⚠ ${item.entity} ${item.type} - Tentativa ${item.retryCount + 1}/${MAX_RETRIES}, ` +
+          offlineLogger.warn(
+            `${item.entity} ${item.type} - Tentativa ${item.retryCount + 1}/${MAX_RETRIES}, ` +
             `próxima em ${Math.round((nextRetry - Date.now()) / 1000)}s`
           );
 
@@ -231,12 +234,12 @@ export async function processQueue(): Promise<SyncResult> {
       lastError: result.failed > 0 ? `${result.failed} itens falharam` : undefined,
     });
 
-    console.log(
-      `[Sync] Concluído: ${result.success} sucesso, ${result.failed} falhas, ` +
+    offlineLogger.debug(
+      `Concluído: ${result.success} sucesso, ${result.failed} falhas, ` +
       `${result.conflicts} conflitos, ${result.skipped} pulados`
     );
   } catch (error) {
-    console.error('[Sync] Erro fatal:', error);
+    offlineLogger.error('Erro fatal na sincronização:', error);
     notifyListeners({
       status: 'error',
       lastError: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -321,7 +324,7 @@ export function pauseSync(): void {
   if (isSyncing) {
     notifyListeners({ status: 'paused' });
   }
-  console.log('[Sync] Sincronização pausada');
+  offlineLogger.debug('Sincronização pausada');
 }
 
 /**
@@ -329,7 +332,7 @@ export function pauseSync(): void {
  */
 export function resumeSync(): void {
   isPaused = false;
-  console.log('[Sync] Sincronização retomada');
+  offlineLogger.debug('Sincronização retomada');
 
   // Se estava sincronizando, o processo vai continuar
   // Se não, verificar se há itens pendentes
@@ -365,7 +368,7 @@ let autoSyncSetup = false;
  */
 export function setupAutoSync(): void {
   if (autoSyncSetup) {
-    console.log('[Sync] Auto sync já configurado');
+    offlineLogger.debug('Auto sync já configurado');
     return;
   }
 
@@ -380,11 +383,11 @@ export function setupAutoSync(): void {
   // Verificar se há itens pendentes ao iniciar
   checkPendingOnStartup();
 
-  console.log('[Sync] Auto sync configurado');
+  offlineLogger.debug('Auto sync configurado');
 }
 
 async function handleOnline(): Promise<void> {
-  console.log('[Sync] Conexão restaurada');
+  offlineLogger.debug('Conexão restaurada');
   notifyListeners({ lastError: undefined });
 
   // Aguardar um pouco para garantir que a conexão está estável
@@ -393,14 +396,14 @@ async function handleOnline(): Promise<void> {
   if (navigator.onLine && !isPaused) {
     const count = await getPendingSyncCount();
     if (count > 0) {
-      console.log(`[Sync] ${count} itens pendentes, iniciando sync...`);
+      offlineLogger.debug(`${count} itens pendentes, iniciando sync...`);
       processQueue();
     }
   }
 }
 
 function handleOffline(): void {
-  console.log('[Sync] Conexão perdida');
+  offlineLogger.debug('Conexão perdida');
   notifyListeners({ status: 'idle', lastError: 'Sem conexão' });
 }
 
@@ -408,7 +411,7 @@ async function checkPendingOnStartup(): Promise<void> {
   try {
     const count = await getPendingSyncCount();
     if (count > 0 && navigator.onLine) {
-      console.log(`[Sync] ${count} itens pendentes ao iniciar`);
+      offlineLogger.debug(`${count} itens pendentes ao iniciar`);
       // Pequeno delay para não interferir no carregamento inicial
       await sleep(3000);
       if (navigator.onLine && !isPaused) {
@@ -416,7 +419,7 @@ async function checkPendingOnStartup(): Promise<void> {
       }
     }
   } catch (error) {
-    console.warn('[Sync] Erro ao verificar itens pendentes:', error);
+    offlineLogger.warn('Erro ao verificar itens pendentes:', error);
   }
 }
 
@@ -427,7 +430,7 @@ export function teardownAutoSync(): void {
   window.removeEventListener('online', handleOnline);
   window.removeEventListener('offline', handleOffline);
   autoSyncSetup = false;
-  console.log('[Sync] Auto sync removido');
+  offlineLogger.debug('Auto sync removido');
 }
 
 // ===== SYNC MANUAL =====
@@ -522,6 +525,6 @@ export async function clearFailedItems(): Promise<number> {
     }
   }
 
-  console.log(`[Sync] ${cleared} itens com falhas removidos`);
+  offlineLogger.debug(`${cleared} itens com falhas removidos`);
   return cleared;
 }

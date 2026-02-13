@@ -1,7 +1,9 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './i18n';
 import { initWebVitals } from './lib/webVitals';
+import { initSentry } from './lib/sentry';
 
 // Global error handler for Chrome extension messages and service worker errors
 window.addEventListener('unhandledrejection', event => {
@@ -55,7 +57,7 @@ declare const chrome:
 if (typeof chrome !== 'undefined' && chrome?.runtime) {
   try {
     chrome.runtime.onMessage?.addListener(
-      (message: unknown, sender: unknown, sendResponse: (response: unknown) => void) => {
+      (_message: unknown, _sender: unknown, sendResponse: (response: unknown) => void) => {
         try {
           sendResponse({ success: true });
         } catch (_e) {
@@ -107,6 +109,9 @@ if (!isTauri && 'serviceWorker' in navigator) {
     }
   });
 }
+
+// Inicializar Sentry (carrega apenas quando VITE_SENTRY_DSN está configurado)
+initSentry();
 
 // Inicializar Web Vitals monitoring
 initWebVitals();

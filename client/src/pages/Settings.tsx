@@ -1,6 +1,7 @@
-/* eslint-disable no-console, @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 // TODO: Remove eslint-disable once Settings.tsx is fully decomposed (Action #6)
 import { useState, useEffect } from 'react';
+import { settingsLogger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -101,7 +102,7 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Push notifications hook
-  const { isSupported, isSubscribed, requestPermission, subscribe, unsubscribe } =
+  const { isSupported, subscribe, unsubscribe } =
     usePushNotifications();
 
   // Estado local para controlar o switch
@@ -110,7 +111,7 @@ export default function Settings() {
   // Função para salvar subscription no backend
   const saveSubscriptionToServer = async (subscription: PushSubscription) => {
     try {
-      console.log('💾 PUSH: Salvando subscription no servidor para usuário:', user?.id);
+      settingsLogger.debug('PUSH: Salvando subscription no servidor para usuário:', user?.id);
 
       const response = await fetch('/api/push/subscribe', {
         method: 'POST',
@@ -123,19 +124,19 @@ export default function Settings() {
         }),
       });
 
-      console.log('📡 PUSH: Resposta do servidor:', response.status, response.statusText);
+      settingsLogger.debug('PUSH: Resposta do servidor:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ PUSH: Erro na resposta do servidor:', errorText);
+        settingsLogger.error('PUSH: Erro na resposta do servidor:', errorText);
         throw new Error('Failed to save subscription');
       }
 
       const result = await response.json();
-      console.log('✅ PUSH: Subscription salva com sucesso:', result);
+      settingsLogger.debug('PUSH: Subscription salva com sucesso:', result);
       return result;
     } catch (error) {
-      console.error('❌ PUSH: Erro ao salvar subscription:', error);
+      settingsLogger.error('PUSH: Erro ao salvar subscription:', error);
       throw error;
     }
   };
@@ -159,7 +160,7 @@ export default function Settings() {
 
       return await response.json();
     } catch (error) {
-      console.error('Error removing subscription:', error);
+      settingsLogger.error('Error removing subscription:', error);
       throw error;
     }
   };
@@ -172,8 +173,8 @@ export default function Settings() {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   // Logo management states
-  const [currentLogo, setCurrentLogo] = useState<string>('');
-  const { refreshLogo, clearLogoSystem } = useSystemLogo();
+  const [, setCurrentLogo] = useState<string>('');
+  useSystemLogo();
 
   // Inicializar userDistrictId a partir do user autenticado
   useEffect(() => {
@@ -222,7 +223,7 @@ export default function Settings() {
             }
           }
         } catch (error) {
-          console.error('Erro ao verificar subscription do usuário:', error);
+          settingsLogger.error('Erro ao verificar subscription do usuário:', error);
         }
       }
     };
@@ -419,16 +420,16 @@ export default function Settings() {
                   <Switch
                     checked={isPushEnabled}
                     onCheckedChange={async (checked) => {
-                      console.log('🔄 Tentando alterar notificações push para:', checked);
-                      console.log('🔍 isSupported:', isSupported);
+                      settingsLogger.debug('Tentando alterar notificações push para:', checked);
+                      settingsLogger.debug('isSupported:', isSupported);
 
                       try {
                         if (checked) {
                           // Ativar push notifications
-                          console.log('📱 Ativando push notifications...');
+                          settingsLogger.debug('Ativando push notifications...');
 
                           if (!isSupported) {
-                            console.log('❌ Push notifications não suportadas');
+                            settingsLogger.debug('Push notifications não suportadas');
                             toast({
                               title: 'Não suportado',
                               description: 'Seu navegador não suporta notificações push.',
@@ -437,13 +438,13 @@ export default function Settings() {
                             return;
                           }
 
-                          console.log('🔑 Solicitando permissão...');
+                          settingsLogger.debug('Solicitando permissão...');
                           const subscription = await subscribe();
-                          console.log('✅ Subscription criada:', subscription);
+                          settingsLogger.debug('Subscription criada:', subscription);
 
-                          console.log('💾 Salvando no servidor...');
+                          settingsLogger.debug('Salvando no servidor...');
                           await saveSubscriptionToServer(subscription);
-                          console.log('✅ Subscription salva no servidor');
+                          settingsLogger.debug('Subscription salva no servidor');
 
                           setIsPushEnabled(true);
                           updateSetting('notifications', 'pushEnabled', true);
@@ -454,7 +455,7 @@ export default function Settings() {
                           });
                         } else {
                           // Desativar push notifications
-                          console.log('📱 Desativando push notifications...');
+                          settingsLogger.debug('Desativando push notifications...');
 
                           await unsubscribe();
                           await removeSubscriptionFromServer();
@@ -468,7 +469,7 @@ export default function Settings() {
                           });
                         }
                       } catch (error) {
-                        console.error('❌ Error toggling push notifications:', error);
+                        settingsLogger.error('Error toggling push notifications:', error);
                         toast({
                           title: 'Erro',
                           description: `Não foi possível alterar as configurações de notificação: ${(error as Error).message}`,

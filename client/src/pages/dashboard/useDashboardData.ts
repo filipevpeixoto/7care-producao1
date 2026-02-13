@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSpiritualCheckIn } from '@/hooks/useSpiritualCheckIn';
 import { useToast } from '@/components/ui/use-toast';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/api';
 import type {
   SheetTask,
   DashboardUser,
@@ -37,12 +38,7 @@ export function useDashboardData() {
   const { data: unifiedData, isLoading: unifiedLoading } = useQuery({
     queryKey: ['/api/dashboard/unified', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/dashboard/unified', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/dashboard/unified');
       if (!response.ok) throw new Error('Failed to fetch unified dashboard');
       return response.json();
     },
@@ -56,12 +52,7 @@ export function useDashboardData() {
   const { data: usersDataRaw } = useQuery({
     queryKey: ['/api/users', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/users?limit=5000', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users?limit=5000');
       if (!response.ok) return [];
       const data = await response.json();
       return Array.isArray(data) ? data : data?.data || [];
@@ -83,13 +74,8 @@ export function useDashboardData() {
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      const u = JSON.parse(localStorage.getItem('user') || '{}');
-      const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
+      const response = await fetchWithAuth(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': u?.id ? String(u.id) : '1',
-        },
         body: JSON.stringify({
           action: 'getTasks',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
@@ -138,9 +124,7 @@ export function useDashboardData() {
     queryKey: ['/api/dashboard/stats', user?.id],
     queryFn: async () => {
       if (unifiedData?.stats) return unifiedData.stats;
-      const response = await fetch('/api/dashboard/stats', {
-        headers: { 'x-user-id': user?.id?.toString() || '' },
-      });
+      const response = await fetchWithAuth('/api/dashboard/stats');
       if (!response.ok) throw new Error('Failed to fetch dashboard stats');
       return response.json();
     },
@@ -220,12 +204,7 @@ export function useDashboardData() {
   const { data: birthdayData, isLoading: birthdayLoading } = useQuery({
     queryKey: ['/api/users/birthdays', user?.id, user?.role],
     queryFn: async () => {
-      const headers: Record<string, string> = {};
-      if (user?.id) {
-        headers['x-user-id'] = user.id.toString();
-        headers['x-user-role'] = user.role;
-      }
-      const response = await fetch('/api/users/birthdays', { headers });
+      const response = await fetchWithAuth('/api/users/birthdays');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
@@ -244,12 +223,7 @@ export function useDashboardData() {
   } = useQuery({
     queryKey: ['/api/dashboard/visits', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/dashboard/visits', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/dashboard/visits');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
@@ -264,12 +238,7 @@ export function useDashboardData() {
     queryKey: ['/api/relationships/missionary', user?.id],
     queryFn: async () => {
       if (!user?.id || user.role !== 'missionary') return [];
-      const response = await fetch(`/api/relationships/missionary/${user.id}`, {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth(`/api/relationships/missionary/${user.id}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
@@ -284,12 +253,7 @@ export function useDashboardData() {
     queryKey: ['/api/events', user?.id, user?.role],
     queryFn: async () => {
       if (!user?.role) return [];
-      const response = await fetch(`/api/events?role=${user.role}`, {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth(`/api/events?role=${user.role}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
@@ -304,12 +268,7 @@ export function useDashboardData() {
     queryKey: ['/api/emotional-checkins/admin', user?.id],
     queryFn: async () => {
       if (!hasAdminAccess(user)) return [];
-      const response = await fetch('/api/emotional-checkins/admin', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/emotional-checkins/admin');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
@@ -324,9 +283,7 @@ export function useDashboardData() {
     queryKey: ['/api/districts', 'count', user?.id],
     queryFn: async () => {
       if (unifiedData?.districtsCount !== undefined) return unifiedData.districtsCount;
-      const response = await fetch('/api/districts', {
-        headers: { 'x-user-id': user?.id?.toString() || '' },
-      });
+      const response = await fetchWithAuth('/api/districts');
       if (!response.ok) return 0;
       const data = await response.json();
       return Array.isArray(data) ? data.length : 0;
@@ -341,9 +298,7 @@ export function useDashboardData() {
     queryKey: ['/api/pastors', 'count', user?.id],
     queryFn: async () => {
       if (unifiedData?.pastorsCount !== undefined) return unifiedData.pastorsCount;
-      const response = await fetch('/api/pastors', {
-        headers: { 'x-user-id': user?.id?.toString() || '' },
-      });
+      const response = await fetchWithAuth('/api/pastors');
       if (!response.ok) return 0;
       const data = await response.json();
       return Array.isArray(data) ? data.length : 0;
@@ -385,9 +340,7 @@ export function useDashboardData() {
     queryKey: ['church-interested', user?.id],
     queryFn: async () => {
       if (!user?.id || (user.role !== 'member' && user.role !== 'missionary')) return [];
-      const response = await fetch('/api/my-interested', {
-        headers: { 'x-user-id': user.id.toString() },
-      });
+      const response = await fetchWithAuth('/api/my-interested');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
@@ -402,12 +355,7 @@ export function useDashboardData() {
     queryKey: ['my-relationships', user?.id],
     queryFn: async () => {
       if (!user?.id || (user.role !== 'member' && user.role !== 'missionary')) return [];
-      const response = await fetch(`/api/relationships/missionary/${user.id}`, {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth(`/api/relationships/missionary/${user.id}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
@@ -422,12 +370,7 @@ export function useDashboardData() {
     queryKey: ['/api/users', user?.id, 'points-details'],
     queryFn: async () => {
       if (!user?.id) return null;
-      const response = await fetch(`/api/users/${user.id}/points-details`, {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth(`/api/users/${user.id}/points-details`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },

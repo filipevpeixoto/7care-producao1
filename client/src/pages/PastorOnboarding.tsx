@@ -113,7 +113,7 @@ export default function PastorOnboarding() {
         }
         setValidating(false);
       })
-      .catch(err => {
+      .catch(_err => {
         setValidationError('Erro ao validar convite');
         setValidating(false);
       });

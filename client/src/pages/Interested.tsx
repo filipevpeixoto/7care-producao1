@@ -60,13 +60,6 @@ const statusLabels = {
   inactive: 'Inativo',
 };
 
-const sourceLabels = {
-  site: 'Site',
-  whatsapp: 'WhatsApp',
-  indicacao: 'Indicação',
-  evento: 'Evento',
-};
-
 const Interested = () => {
   const { user } = useAuth();
   const [interested, setInterested] = useState(mockInterested);

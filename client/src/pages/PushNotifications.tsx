@@ -38,6 +38,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { hasAdminAccess } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/api';
 
 // Service Worker agora atualiza automaticamente via main.tsx
 
@@ -76,12 +77,7 @@ export default function PushNotifications() {
 
   const loadUsers = async () => {
     try {
-      const res = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const res = await fetchWithAuth('/api/users');
       if (!res.ok) return;
       const data = await res.json();
       // A API pode retornar { data: [], pagination: {} }, { users: [] } ou array diretamente
@@ -551,7 +547,7 @@ export default function PushNotifications() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {subscriptionsList.map((subscription, index) => {
+                {subscriptionsList.map((subscription) => {
                   const isActive = subscription.is_active !== false; // Por padrão, considerar ativo
 
                   // Extrair informação do dispositivo do user_agent ou endpoint
@@ -618,7 +614,7 @@ export default function PushNotifications() {
                         </Button>
                         <Switch
                           checked={isActive}
-                          onCheckedChange={checked => toggleSubscription(subscription.id, isActive)}
+                          onCheckedChange={() => toggleSubscription(subscription.id, isActive)}
                         />
                       </div>
                     </div>

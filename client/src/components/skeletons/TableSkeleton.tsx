@@ -24,8 +24,6 @@ export function TableSkeleton({
   showHeader = true,
   showCheckbox = false,
 }: TableSkeletonProps) {
-  const _totalColumns = showCheckbox ? columns + 1 : columns;
-
   return (
     <div className="rounded-md border animate-pulse">
       <Table>

@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Trophy, Mountain, RefreshCw, AlertCircle, Crown } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { PointsBreakdown } from '@/components/gamification/PointsBreakdown';
 
@@ -28,7 +27,6 @@ import { MountIcon } from '@/components/ui/mount-icon';
 import { useUserPoints } from '@/hooks/useUserPoints';
 
 export default function Gamification() {
-  const { user } = useAuth();
   const { data, isLoading, error, refetch } = useUserPoints();
   const [activeTab, setActiveTab] = useState('my-progress');
   const [isIconModalOpen, setIsIconModalOpen] = useState(false);

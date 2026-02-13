@@ -40,6 +40,10 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { notificationService } from '@/lib/notificationService';
+import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const tasksLogger = createLogger('Tasks');
 
 interface Task {
   id: number;
@@ -139,9 +143,7 @@ export default function Tasks() {
   } = useQuery({
     queryKey: ['tasks', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/tasks', {
-        headers: { 'x-user-id': user?.id?.toString() || '' },
-      });
+      const response = await fetchWithAuth('/api/tasks');
       if (!response.ok) throw new Error('Erro ao buscar tarefas');
       const data = await response.json();
       return (data?.data?.tasks || data?.tasks || []) as Task[];
@@ -182,12 +184,8 @@ export default function Tasks() {
         status: 'pending' as const,
       };
 
-      const response = await fetch('/api/tasks', {
+      const response = await fetchWithAuth('/api/tasks', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify(taskData),
       });
 
@@ -212,11 +210,11 @@ export default function Tasks() {
         try {
           await notificationService.notifyTaskCreated(newTask.title, parseInt(newTask.assigned_to));
         } catch (error) {
-          console.error('Erro ao enviar notificação:', error);
+          tasksLogger.error('Erro ao enviar notificação:', error);
         }
       }
     } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
+      tasksLogger.error('Erro ao criar tarefa:', error);
       toast.error('Erro ao criar tarefa');
     }
   };
@@ -240,12 +238,8 @@ export default function Tasks() {
         status: editingTask.status,
       };
 
-      const response = await fetch(`/api/tasks/${editingTask.id}`, {
+      const response = await fetchWithAuth(`/api/tasks/${editingTask.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify(updates),
       });
 
@@ -256,7 +250,7 @@ export default function Tasks() {
       setEditingTask(null);
       toast.success('Tarefa atualizada!');
     } catch (error) {
-      console.error('Erro ao atualizar tarefa:', error);
+      tasksLogger.error('Erro ao atualizar tarefa:', error);
       toast.error('Erro ao atualizar tarefa');
     }
   };
@@ -265,9 +259,8 @@ export default function Tasks() {
     if (!confirm('Tem certeza que deseja deletar esta tarefa?')) return;
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
+      const response = await fetchWithAuth(`/api/tasks/${taskId}`, {
         method: 'DELETE',
-        headers: { 'x-user-id': user?.id?.toString() || '' },
       });
 
       if (!response.ok && response.status !== 404) {
@@ -277,7 +270,7 @@ export default function Tasks() {
       await refetch();
       toast.success('Tarefa deletada!');
     } catch (error: any) {
-      console.error('Erro ao deletar:', error);
+      tasksLogger.error('Erro ao deletar:', error);
       toast.error(`Erro ao deletar: ${error.message}`);
     }
   };
@@ -307,9 +300,8 @@ export default function Tasks() {
 
     try {
       for (const taskId of selectedTasks) {
-        await fetch(`/api/tasks/${taskId}`, {
+        await fetchWithAuth(`/api/tasks/${taskId}`, {
           method: 'DELETE',
-          headers: { 'x-user-id': user?.id?.toString() || '' },
         });
       }
 
@@ -317,7 +309,7 @@ export default function Tasks() {
       setSelectedTasks([]);
       toast.success(`${count} tarefa${count > 1 ? 's deletadas' : ' deletada'}!`);
     } catch (error: any) {
-      console.error('Erro ao deletar múltiplas:', error);
+      tasksLogger.error('Erro ao deletar múltiplas:', error);
       toast.error(`Erro: ${error.message}`);
     }
   };
@@ -327,12 +319,8 @@ export default function Tasks() {
       task.status === 'completed' ? 'pending' : 'completed';
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}`, {
+      const response = await fetchWithAuth(`/api/tasks/${task.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           status: newStatus,
         }),
@@ -341,7 +329,7 @@ export default function Tasks() {
       if (!response.ok) throw new Error('Erro ao atualizar');
       await refetch();
     } catch (error) {
-      console.error('Erro ao alterar status:', error);
+      tasksLogger.error('Erro ao alterar status:', error);
       toast.error('Erro ao alterar status');
     }
   };
@@ -350,9 +338,7 @@ export default function Tasks() {
   const { data: usersData } = useQuery({
     queryKey: ['tasks-users', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/tasks/users', {
-        headers: { 'x-user-id': user?.id?.toString() || '' },
-      });
+      const response = await fetchWithAuth('/api/tasks/users');
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       const data = await response.json();
       return data?.data?.users || data?.users || [];

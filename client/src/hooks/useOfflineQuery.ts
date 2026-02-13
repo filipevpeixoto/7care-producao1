@@ -31,7 +31,10 @@ import {
 } from '@/lib/offline';
 import { useAuth } from './useAuth';
 import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
 import type { User, Event, Message } from '@shared/schema';
+
+const offlineQueryLogger = createLogger('OfflineQuery');
 
 // ===== TIPOS =====
 
@@ -94,7 +97,7 @@ export function useOfflineUsers(options?: OfflineQueryOptions<User[]>) {
         // Salvar no cache offline se tiver permissão
         if (hasAccess && Array.isArray(data)) {
           saveUsersOffline(data, userRole).catch((err) =>
-            console.warn('[useOfflineUsers] Erro ao salvar cache:', err)
+            offlineQueryLogger.warn('Erro ao salvar cache de usuários:', err)
           );
         }
 
@@ -102,7 +105,7 @@ export function useOfflineUsers(options?: OfflineQueryOptions<User[]>) {
       } catch (error) {
         // Se offline e tem permissão, buscar do cache local
         if (!navigator.onLine && hasAccess) {
-          console.log('[useOfflineUsers] Buscando do cache offline');
+          offlineQueryLogger.debug('Buscando usuários do cache offline');
           const offlineData = await getUsersOffline();
           if (offlineData.length > 0) {
             return offlineData;
@@ -141,7 +144,7 @@ export function useOfflineEvents(options?: OfflineQueryOptions<Event[]>) {
         // Salvar no cache offline
         if (hasAccess && Array.isArray(data)) {
           saveEventsOffline(data).catch((err) =>
-            console.warn('[useOfflineEvents] Erro ao salvar cache:', err)
+            offlineQueryLogger.warn('Erro ao salvar cache de eventos:', err)
           );
         }
 
@@ -149,7 +152,7 @@ export function useOfflineEvents(options?: OfflineQueryOptions<Event[]>) {
       } catch (error) {
         // Se offline, buscar do cache local
         if (!navigator.onLine && hasAccess) {
-          console.log('[useOfflineEvents] Buscando do cache offline');
+          offlineQueryLogger.debug('Buscando eventos do cache offline');
           const offlineData = await getEventsOffline();
           if (offlineData.length > 0) {
             return offlineData;
@@ -187,7 +190,7 @@ export function useOfflineTasks(options?: OfflineQueryOptions<TaskData[]>) {
         // Salvar no cache offline
         if (hasAccess && Array.isArray(data)) {
           saveTasksOffline(data).catch((err) =>
-            console.warn('[useOfflineTasks] Erro ao salvar cache:', err)
+            offlineQueryLogger.warn('Erro ao salvar cache de tarefas:', err)
           );
         }
 
@@ -195,7 +198,7 @@ export function useOfflineTasks(options?: OfflineQueryOptions<TaskData[]>) {
       } catch (error) {
         // Se offline, buscar do cache local
         if (!navigator.onLine && hasAccess) {
-          console.log('[useOfflineTasks] Buscando do cache offline');
+          offlineQueryLogger.debug('Buscando tarefas do cache offline');
           const offlineData = await getTasksOffline();
           if (offlineData.length > 0) {
             return offlineData;
@@ -236,7 +239,7 @@ export function useOfflineMessages(
         // Salvar no cache offline
         if (hasAccess && Array.isArray(data)) {
           saveMessagesOffline(data, conversationId).catch((err) =>
-            console.warn('[useOfflineMessages] Erro ao salvar cache:', err)
+            offlineQueryLogger.warn('Erro ao salvar cache de mensagens:', err)
           );
         }
 
@@ -244,7 +247,7 @@ export function useOfflineMessages(
       } catch (error) {
         // Se offline, buscar do cache local
         if (!navigator.onLine && hasAccess) {
-          console.log('[useOfflineMessages] Buscando do cache offline');
+          offlineQueryLogger.debug('Buscando mensagens do cache offline');
           const offlineData = await getMessagesOffline(conversationId);
           if (offlineData.length > 0) {
             return offlineData;
@@ -336,7 +339,7 @@ export function useOfflineMutation<TData, TVariables extends Record<string, unkn
       }
     },
     onError: (error, variables, context) => {
-      console.error('[useOfflineMutation] Erro:', error);
+      offlineQueryLogger.error('Erro na mutação offline:', error);
       if (options?.onError) {
         (options.onError as (error: Error, variables: TVariables, context: unknown) => void)(
           error,

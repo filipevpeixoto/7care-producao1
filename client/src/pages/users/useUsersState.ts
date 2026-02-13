@@ -12,6 +12,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const usersLogger = createLogger('Users');
 import { useAuth } from '@/hooks/useAuth';
 import { useUserPoints } from '@/hooks/useUserPoints';
 import { useToast } from '@/hooks/use-toast';
@@ -102,7 +105,7 @@ export function useUsersState() {
         const users = Array.isArray(data) ? data : data?.data || [];
         return users as UserType[];
       } catch (_error) {
-        console.error('Erro ao carregar usuários:', _error);
+        usersLogger.error('Erro ao carregar usuários:', _error);
         return [];
       }
     },
@@ -126,7 +129,7 @@ export function useUsersState() {
         const relationships = Array.isArray(data) ? data : data?.data || [];
         return relationships;
       } catch (_error) {
-        console.error('Erro ao buscar relacionamentos:', _error);
+        usersLogger.error('Erro ao buscar relacionamentos:', _error);
         return [];
       }
     },
@@ -692,7 +695,7 @@ export function useUsersState() {
           }),
         });
         if (!rejectResponse.ok) {
-          console.error(`Erro ao rejeitar solicitação ${request.id}:`, await rejectResponse.text());
+          usersLogger.error(`Erro ao rejeitar solicitação ${request.id}:`, await rejectResponse.text());
         }
       }
 
@@ -720,7 +723,7 @@ export function useUsersState() {
         description: `O relacionamento foi removido e ${allApprovedRequests.length} solicitações foram rejeitadas automaticamente.`,
       });
     } catch (error: unknown) {
-      console.error('❌ Erro ao remover discipulado:', error);
+      usersLogger.error('Erro ao remover discipulado:', error);
       toast({
         title: '❌ Erro ao remover',
         description: error instanceof Error ? error.message : 'Não foi possível remover o discipulado.',
@@ -794,7 +797,7 @@ export function useUsersState() {
   // Escutar mudanças nas configurações de situação
   useEffect(() => {
     const handleSituationLevelsUpdate = () => {
-      console.warn('🔄 Configurações de situação atualizadas em Users, forçando refresh...');
+      usersLogger.debug('Configurações de situação atualizadas em Users, forçando refresh...');
       queryClient.invalidateQueries({ queryKey: ['situation-levels'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
     };

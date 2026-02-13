@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { calendarLogger } from '@/lib/logger';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -34,7 +35,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
   ): string | { startDate: string; endDate: string } | null => {
     if (!dateStr) return null;
 
-    console.log(`📅 Parsing date: "${dateStr}"`);
+    calendarLogger.debug(`Parsing date: "${dateStr}"`);
 
     // Se já é uma data válida, retornar
     if (dateStr instanceof Date) {
@@ -50,7 +51,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
       if (ddmmyyyy) {
         const [, day, month, year] = ddmmyyyy;
         const date = new Date(year, month - 1, day);
-        console.log(`✅ Parsed DD/MM/YYYY: ${date.toISOString()}`);
+        calendarLogger.debug(`Parsed DD/MM/YYYY: ${date.toISOString()}`);
         return date.toISOString();
       }
 
@@ -66,7 +67,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
           startDate: new Date(startParts[2], startParts[1] - 1, startParts[0]).toISOString(),
           endDate: new Date(endParts[2], endParts[1] - 1, endParts[0]).toISOString(),
         };
-        console.log(`✅ Parsed full period: ${result.startDate} - ${result.endDate}`);
+        calendarLogger.debug(`Parsed full period: ${result.startDate} - ${result.endDate}`);
         return result;
       }
 
@@ -79,7 +80,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
           startDate: new Date(currentYear, startMonth - 1, startDay).toISOString(),
           endDate: new Date(currentYear, endMonth - 1, endDay).toISOString(),
         };
-        console.log(`✅ Parsed period: ${result.startDate} - ${result.endDate}`);
+        calendarLogger.debug(`Parsed period: ${result.startDate} - ${result.endDate}`);
         return result;
       }
 
@@ -89,7 +90,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         const [, day, month] = ddmm;
         const currentYear = new Date().getFullYear();
         const date = new Date(currentYear, month - 1, day);
-        console.log(`✅ Parsed DD/MM: ${date.toISOString()}`);
+        calendarLogger.debug(`Parsed DD/MM: ${date.toISOString()}`);
         return date.toISOString();
       }
 
@@ -98,10 +99,10 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         try {
           const excelDate = parseFloat(dateStr);
           const date = new Date((excelDate - 25569) * 86400 * 1000);
-          console.log(`✅ Parsed Excel date: ${date.toISOString()}`);
+          calendarLogger.debug(`Parsed Excel date: ${date.toISOString()}`);
           return date.toISOString();
         } catch (e) {
-          console.log(`⚠️ Erro ao converter data Excel: ${(e as Error).message}`);
+          calendarLogger.warn(`Erro ao converter data Excel: ${(e as Error).message}`);
         }
       }
     }
@@ -109,11 +110,11 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
     // Tentar parsear como data normal
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
-      console.log(`✅ Parsed as Date: ${date.toISOString()}`);
+      calendarLogger.debug(`Parsed as Date: ${date.toISOString()}`);
       return date.toISOString();
     }
 
-    console.log(`❌ Could not parse date: ${dateStr}`);
+    calendarLogger.warn(`Could not parse date: ${dateStr}`);
     return null;
   };
 
@@ -133,9 +134,9 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
     try {
       const { data: jsonData, sheetName } = await readExcelAsRawData(file);
 
-      console.log('📋 Planilha encontrada:', sheetName);
-      console.log('📄 Total de linhas na planilha:', jsonData.length);
-      console.log('📄 Primeiras linhas:', jsonData.slice(0, 5));
+      calendarLogger.debug('Planilha encontrada:', sheetName);
+      calendarLogger.debug('Total de linhas na planilha:', jsonData.length);
+      calendarLogger.debug('Primeiras linhas:', jsonData.slice(0, 5));
 
       if (jsonData.length < 2) {
         throw new Error(
@@ -153,7 +154,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
 
       if (jsonData.length > 0) {
         const headers = jsonData[0];
-        console.log('📋 Cabeçalhos encontrados:', headers);
+        calendarLogger.debug('Cabeçalhos encontrados:', headers);
 
         // Tentar encontrar colunas por nome
         (headers as string[]).forEach((header, index) => {
@@ -176,7 +177,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         columnIndexes.data === -1 ||
         columnIndexes.evento === -1
       ) {
-        console.log('🔍 Usando índices fixos como fallback...');
+        calendarLogger.debug('Usando índices fixos como fallback...');
         columnIndexes = {
           mes: 0, // Primeira coluna
           categoria: 1, // Segunda coluna
@@ -185,7 +186,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         };
       }
 
-      console.log('🔍 Índices de colunas finais:', columnIndexes);
+      calendarLogger.debug('Índices de colunas finais:', columnIndexes);
 
       const events: any[] = [];
 
@@ -200,7 +201,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
 
         // Pular linhas vazias ou sem dados relevantes
         if (!row || row.length === 0 || !row.some(cell => cell)) {
-          console.log(`⏭️ Linha ${i} vazia, pulando`);
+          calendarLogger.debug(`Linha ${i} vazia, pulando`);
           skippedRows++;
           continue;
         }
@@ -210,11 +211,11 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         const data = row[columnIndexes.data];
         const evento = row[columnIndexes.evento];
 
-        console.log(`🔍 Processando linha ${i}:`, { mes, categoria, data, evento });
+        calendarLogger.debug(`Processando linha ${i}:`, { mes, categoria, data, evento });
 
         // Pular se não tem evento
         if (!evento || evento.toString().trim() === '') {
-          console.log(`⏭️ Linha ${i} sem evento, pulando`);
+          calendarLogger.debug(`Linha ${i} sem evento, pulando`);
           skippedRows++;
           continue;
         }
@@ -233,7 +234,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
             startDate = dateInfo;
             endDate = null;
           } else {
-            console.warn(`⚠️ Data inválida na linha ${i}: ${data}. Pulando evento.`);
+            calendarLogger.warn(`Data inválida na linha ${i}: ${data}. Pulando evento.`);
             errorRows++;
             continue;
           }
@@ -254,25 +255,25 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
             },
           };
           events.push(event);
-          console.log(
-            `✅ Evento criado (${events.length}): ${event.title} (${event.type}) - ${startDate}`
+          calendarLogger.debug(
+            `Evento criado (${events.length}): ${event.title} (${event.type}) - ${startDate}`
           );
         } catch (error) {
-          console.error(`❌ Erro ao processar linha ${i}:`, error);
+          calendarLogger.error(`Erro ao processar linha ${i}:`, error);
           errorRows++;
         }
       }
 
-      console.log(`📊 Resumo do processamento:`);
-      console.log(`   - Linhas processadas: ${processedRows}`);
-      console.log(`   - Eventos criados: ${events.length}`);
-      console.log(`   - Linhas puladas: ${skippedRows}`);
-      console.log(`   - Linhas com erro: ${errorRows}`);
+      calendarLogger.debug(`Resumo do processamento:`);
+      calendarLogger.debug(`   - Linhas processadas: ${processedRows}`);
+      calendarLogger.debug(`   - Eventos criados: ${events.length}`);
+      calendarLogger.debug(`   - Linhas puladas: ${skippedRows}`);
+      calendarLogger.debug(`   - Linhas com erro: ${errorRows}`);
 
-      console.log(`🎉 Total de eventos processados: ${events.length}`);
+      calendarLogger.debug(`Total de eventos processados: ${events.length}`);
       return events;
     } catch (error) {
-      console.error('❌ Erro ao processar Excel:', error);
+      calendarLogger.error('Erro ao processar Excel:', error);
       throw new Error(`Erro ao processar arquivo Excel: ${(error as Error).message}`);
     }
   };
@@ -337,7 +338,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         setMessage(`❌ ${result.error || 'Erro ao importar eventos'}`);
       }
     } catch (error) {
-      console.error('Erro ao importar:', error);
+      calendarLogger.error('Erro ao importar:', error);
       setMessage(`❌ ${(error as Error).message || 'Erro ao processar arquivo Excel'}`);
     } finally {
       setIsLoading(false);

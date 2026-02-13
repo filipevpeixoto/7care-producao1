@@ -18,6 +18,8 @@
  * ```
  */
 
+import { apiLogger } from '@/lib/logger';
+
 /**
  * Base URL para chamadas de API.
  * - No browser (web): string vazia (URLs relativas funcionam via proxy)
@@ -37,22 +39,21 @@ export function resolveApiUrl(url: string): string {
 }
 
 /**
- * Extrai o ID do usuário atual do localStorage
+ * Lê o token CSRF do cookie (padrão double-submit cookie)
+ *
+ * O server define um cookie `csrf-token` com httpOnly=false para
+ * que o client possa lê-lo e reenviá-lo como header `x-csrf-token`.
  *
  * @private
- * @returns {string} ID do usuário ou string vazia se não autenticado
+ * @returns {string | null} Token CSRF ou null se não disponível
  */
-function getUserId(): string {
+function getCsrfToken(): string | null {
   try {
-    const auth = localStorage.getItem('7care_auth');
-    if (auth) {
-      const user = JSON.parse(auth);
-      return user?.id?.toString() || '';
-    }
+    const match = document.cookie.match(/csrf-token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
   } catch {
-    // Ignora erros de parse
+    return null;
   }
-  return '';
 }
 
 /**
@@ -61,24 +62,24 @@ function getUserId(): string {
  * Inclui automaticamente:
  * - Content-Type: application/json
  * - Authorization: Bearer {token} (se disponível)
- * - x-user-id: {userId} (se disponível)
+ * - x-csrf-token: {csrfToken} (se disponível, para proteção CSRF)
  *
  * @returns {HeadersInit} Objeto de headers para fetch
  *
  * @example
  * ```typescript
  * const headers = getAuthHeaders();
- * // { 'Content-Type': 'application/json', 'Authorization': 'Bearer xxx', 'x-user-id': '123' }
+ * // { 'Content-Type': 'application/json', 'Authorization': 'Bearer xxx', 'x-csrf-token': 'abc...' }
  * ```
  */
 export function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('7care_token');
-  const userId = getUserId();
+  const csrfToken = getCsrfToken();
 
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(userId ? { 'x-user-id': userId } : {}),
+    ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
   };
 }
 
@@ -106,18 +107,13 @@ export function getAuthHeaders(): HeadersInit {
  */
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = localStorage.getItem('7care_token');
-  const userId = getUserId();
-
-  // Debug log para verificar se token existe
-  if (!token) {
-    console.warn('[fetchWithAuth] Token JWT não encontrado no localStorage. URL:', url);
-  }
+  const csrfToken = getCsrfToken();
 
   const headers = {
     ...options.headers,
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(userId ? { 'x-user-id': userId } : {}),
+    ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
   };
 
   const resolvedUrl = resolveApiUrl(url);
@@ -217,8 +213,8 @@ export async function fetchWithRetry(
 
       // Aguarda com backoff antes de tentar novamente
       const delay = calculateBackoff(attempt, config.initialDelayMs, config.maxDelayMs);
-      console.warn(
-        `[API] Retry ${attempt + 1}/${config.maxAttempts} para ${url} após ${delay}ms (status: ${response.status})`
+      apiLogger.warn(
+        `Retry ${attempt + 1}/${config.maxAttempts} para ${url} após ${delay}ms (status: ${response.status})`
       );
       await sleep(delay);
     } catch (error) {
@@ -231,8 +227,8 @@ export async function fetchWithRetry(
 
       // Aguarda com backoff antes de tentar novamente
       const delay = calculateBackoff(attempt, config.initialDelayMs, config.maxDelayMs);
-      console.warn(
-        `[API] Retry ${attempt + 1}/${config.maxAttempts} para ${url} após ${delay}ms (erro: ${lastError.message})`
+      apiLogger.warn(
+        `Retry ${attempt + 1}/${config.maxAttempts} para ${url} após ${delay}ms (erro: ${lastError.message})`
       );
       await sleep(delay);
     }

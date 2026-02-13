@@ -9,6 +9,9 @@ import { getLevelIcon } from '@/lib/gamification';
 import { fetchWithAuth } from '@/lib/api';
 import { useSituationLevels } from '@/hooks/useSituationLevels';
 import type { UserMember, ActiveRelationship } from '@/types/domain';
+import { createLogger } from '@/lib/logger';
+
+const myInterestedLogger = createLogger('MyInterested');
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -183,7 +186,7 @@ export function useMyInterestedState() {
     try {
       return isAdmin ? allUsers || [] : churchInterested || [];
     } catch (error) {
-      console.error('Error in interestedBase:', error);
+      myInterestedLogger.error('Error in interestedBase:', error);
       return [];
     }
   }, [isAdmin, allUsers, churchInterested]);
@@ -436,7 +439,7 @@ export function useMyInterestedState() {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Erro PUT situação:', response.status, errorText);
+        myInterestedLogger.error('Erro PUT situação:', response.status, errorText);
         throw new Error(`Erro ao atualizar situação: ${response.status}`);
       }
       const data = await response.json();
@@ -493,7 +496,7 @@ export function useMyInterestedState() {
       });
     },
     onError: (error: Error, _variables, context) => {
-      console.error('❌ Erro ao atualizar situação:', error);
+      myInterestedLogger.error('Erro ao atualizar situação:', error);
       if (context?.previousChurch) {
         queryClient.setQueryData(['church-interested', user?.id], context.previousChurch);
       }
@@ -631,7 +634,7 @@ export function useMyInterestedState() {
 
   // Debug logging
   useEffect(() => {
-    console.warn('📊 Estado MyInterested:', {
+    myInterestedLogger.debug('Estado MyInterested:', {
       isPastorUser,
       isAdmin,
       selectedTab,
@@ -644,7 +647,7 @@ export function useMyInterestedState() {
   // Listen for situation-levels config changes
   useEffect(() => {
     const handleSituationLevelsUpdate = () => {
-      console.warn('🔄 Configurações de situação atualizadas, forçando refresh...');
+      myInterestedLogger.debug('Configurações de situação atualizadas, forçando refresh...');
       queryClient.invalidateQueries({ queryKey: ['situation-levels'] });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['church-interested'] });
@@ -661,7 +664,7 @@ export function useMyInterestedState() {
   const getSituationOption = (situation?: string) => getLevelByValue(situation);
 
   const handleSituationChange = (userId: number, situation: string) => {
-    console.warn('🔄 Atualizando situação:', { userId, situation, isPastorUser, selectedTab });
+    myInterestedLogger.debug('Atualizando situação:', { userId, situation, isPastorUser, selectedTab });
     setUpdatingSituation(userId);
     updateSituationMutation.mutate({ userId, situation });
   };

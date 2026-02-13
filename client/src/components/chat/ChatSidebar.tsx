@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Plus, Users, MessageCircle, Pin, Archive, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
 
 interface ChatUser {
   id: number;
@@ -38,95 +39,6 @@ interface Conversation {
   isPinned?: boolean;
   isArchived?: boolean;
 }
-
-const mockConversations: Conversation[] = [
-  {
-    id: 1,
-    type: 'direct',
-    name: 'Pastor João Silva',
-    participants: [{ id: 1, name: 'Pastor João Silva', role: 'admin', isOnline: true }],
-    lastMessage: {
-      content: 'Esperamos cerca de 80-90 pessoas. Ana confirmou que vai trazer 3 interessados...',
-      timestamp: '2025-01-26T14:40:00',
-      senderId: 1,
-      senderName: 'Pastor João Silva',
-    },
-    unreadCount: 0,
-    isPinned: true,
-    isArchived: false,
-  },
-  {
-    id: 2,
-    type: 'group',
-    name: 'Liderança da Igreja',
-    participants: [
-      { id: 1, name: 'Pastor João Silva', role: 'admin', isOnline: true },
-      { id: 2, name: 'Maria Santos', role: 'missionary', isOnline: true },
-      { id: 3, name: 'Carlos Oliveira', role: 'member', isOnline: false, lastSeen: '2h atrás' },
-    ],
-    lastMessage: {
-      content: 'Maria Santos: Vou confirmar com todos os departamentos até amanhã',
-      timestamp: '2025-01-26T16:15:00',
-      senderId: 2,
-      senderName: 'Maria Santos',
-    },
-    unreadCount: 3,
-    isPinned: true,
-    isArchived: false,
-  },
-  {
-    id: 3,
-    type: 'direct',
-    name: 'Ana Costa',
-    participants: [
-      { id: 4, name: 'Ana Costa', role: 'interested', isOnline: false, lastSeen: '1h atrás' },
-    ],
-    lastMessage: {
-      content: 'Obrigada pelos estudos! Estou ansiosa para o próximo encontro 🙏',
-      timestamp: '2025-01-26T12:30:00',
-      senderId: 4,
-      senderName: 'Ana Costa',
-    },
-    unreadCount: 1,
-    isPinned: false,
-    isArchived: false,
-  },
-  {
-    id: 4,
-    type: 'group',
-    name: 'Jovens da Igreja',
-    participants: [
-      { id: 3, name: 'Carlos Oliveira', role: 'member', isOnline: false },
-      { id: 5, name: 'Pedro Almeida', role: 'member', isOnline: true },
-      { id: 6, name: 'Júlia Santos', role: 'member', isOnline: true },
-      { id: 7, name: 'Lucas Silva', role: 'member', isOnline: false },
-    ],
-    lastMessage: {
-      content: 'Pedro Almeida: Pessoal, lembrem do encontro de amanhã às 19h!',
-      timestamp: '2025-01-26T10:45:00',
-      senderId: 5,
-      senderName: 'Pedro Almeida',
-    },
-    unreadCount: 0,
-    isPinned: false,
-    isArchived: false,
-  },
-  {
-    id: 5,
-    type: 'direct',
-    name: 'Maria Santos',
-    participants: [{ id: 2, name: 'Maria Santos', role: 'missionary', isOnline: true }],
-    lastMessage: {
-      content: 'Perfeito! Vou preparar os materiais para a Escola Sabatina',
-      timestamp: '2025-01-25T20:15:00',
-      senderId: 2,
-      senderName: 'Maria Santos',
-    },
-    unreadCount: 0,
-    isPinned: false,
-    isArchived: false,
-  },
-];
 
 interface ChatSidebarProps {
   mode?: 'conversations' | 'users';
@@ -188,16 +100,12 @@ export const ChatSidebar = ({
 
   useEffect(() => {
     if (mode === 'users') {
-      const headers = {
-        'x-user-id': user?.id?.toString() || '',
-        'x-user-role': user?.role || '',
-      };
-      fetch('/api/users/chat-list', { headers })
+      fetchWithAuth('/api/users/chat-list')
         .then(r => r.json())
         .then((list: any[]) => setAllUsers(list))
         .catch(() => {
           // Fallback para API de usuários normal
-          fetch('/api/users', { headers })
+          fetchWithAuth('/api/users')
             .then(r => r.json())
             .then((list: any[]) => setAllUsers(list))
             .catch(() => setAllUsers([]));

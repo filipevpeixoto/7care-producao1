@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { type ExtendedNavigator } from '@/types/extensions';
+import { createLogger } from '@/lib/logger';
+
+const pwaLogger = createLogger('PWA');
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -69,7 +72,7 @@ export const usePWAInstall = () => {
       }
       return false;
     } catch (error) {
-      console.error('Error installing app:', error);
+      pwaLogger.error('Error installing app:', error);
       return false;
     }
   };

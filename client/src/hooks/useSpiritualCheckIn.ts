@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const spiritualLogger = createLogger('Spiritual');
 
 export const useSpiritualCheckIn = () => {
   const [shouldShowCheckIn, setShouldShowCheckIn] = useState(false);
@@ -17,7 +20,7 @@ export const useSpiritualCheckIn = () => {
         setShouldShowCheckIn(true);
       }
     } catch (error) {
-      console.error('Erro ao verificar check-in:', error);
+      spiritualLogger.error('Erro ao verificar check-in:', error);
     } finally {
       setIsLoading(false);
     }

@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
+import { calendarLogger } from '@/lib/logger';
 
 // ============================================
 // TYPES
@@ -82,7 +83,7 @@ export function useGoogleCalendarSync() {
 
       return data;
     } catch (err) {
-      console.error('Erro ao carregar status:', err);
+      calendarLogger.error('Erro ao carregar status:', err);
       setConnectionStatus('disconnected');
       return { connected: false };
     }
@@ -105,7 +106,7 @@ export function useGoogleCalendarSync() {
         setConfig(data);
       }
     } catch (err) {
-      console.error('Erro ao carregar config:', err);
+      calendarLogger.error('Erro ao carregar config:', err);
     }
   }, []);
 
@@ -179,11 +180,11 @@ export function useGoogleCalendarSync() {
             setIsLoading(false);
           }
         } catch (err) {
-          console.error('Erro no polling:', err);
+          calendarLogger.error('Erro no polling:', err);
         }
       }, 500);
     } catch (err) {
-      console.error('Erro ao conectar:', err);
+      calendarLogger.error('Erro ao conectar:', err);
       setError((err as Error).message);
       setIsLoading(false);
       setConnectionStatus('disconnected');
@@ -215,7 +216,7 @@ export function useGoogleCalendarSync() {
         syncInterval: 60,
       });
     } catch (err) {
-      console.error('Erro ao desconectar:', err);
+      calendarLogger.error('Erro ao desconectar:', err);
       setError((err as Error).message);
     } finally {
       setIsLoading(false);
@@ -245,7 +246,7 @@ export function useGoogleCalendarSync() {
 
       return data;
     } catch (err) {
-      console.error('Erro ao carregar calendários:', err);
+      calendarLogger.error('Erro ao carregar calendários:', err);
       setError((err as Error).message);
       return [];
     } finally {
@@ -288,7 +289,7 @@ export function useGoogleCalendarSync() {
 
         return result;
       } catch (err) {
-        console.error('Erro ao sincronizar:', err);
+        calendarLogger.error('Erro ao sincronizar:', err);
         setError((err as Error).message);
         return null;
       } finally {
@@ -319,7 +320,7 @@ export function useGoogleCalendarSync() {
 
       return true;
     } catch (err) {
-      console.error('Erro ao salvar config:', err);
+      calendarLogger.error('Erro ao salvar config:', err);
       setError((err as Error).message);
       return false;
     } finally {

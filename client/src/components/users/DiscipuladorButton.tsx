@@ -18,8 +18,11 @@ import {
 } from '@/components/ui/command';
 import { UserPlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
 import { formatEmailDisplay } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
+
+const usersLogger = createLogger('Users');
 
 interface DiscipuladorButtonProps {
   interestedId: number;
@@ -37,7 +40,6 @@ export function DiscipuladorButton({
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   // Carregar membros disponíveis quando o modal abrir
   useEffect(() => {
@@ -49,28 +51,23 @@ export function DiscipuladorButton({
   const loadPotentialMissionaries = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (!response.ok) {
         throw new Error('Erro ao carregar usuários');
       }
 
       const users = await response.json();
-      console.log('🔍 Usuários carregados:', users.length);
+      usersLogger.debug('Usuários carregados:', users.length);
 
       // Filtrar apenas membros/missionários (independente do status)
       const members = users.filter(
         (user: any) => user.role.includes('member') || user.role.includes('missionary')
       );
 
-      console.log('🔍 Membros filtrados:', members.length);
+      usersLogger.debug('Membros filtrados:', members.length);
       setPotentialMissionaries(members);
     } catch (error) {
-      console.error('Erro ao carregar membros:', error);
+      usersLogger.error('Erro ao carregar membros:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar a lista de membros',
@@ -85,7 +82,7 @@ export function DiscipuladorButton({
     async (missionaryId: number) => {
       setIsAdding(true);
       try {
-        console.log('🔍 Adicionando discipulador via API...');
+        usersLogger.debug('Adicionando discipulador via API...');
 
         const response = await fetch('/api/relationships', {
           method: 'POST',
@@ -126,7 +123,7 @@ export function DiscipuladorButton({
 
         setOpen(false);
       } catch (error) {
-        console.error('Erro ao adicionar discipulador:', error);
+        usersLogger.error('Erro ao adicionar discipulador:', error);
         toast({
           title: 'Erro',
           description: 'Não foi possível adicionar o discipulador',

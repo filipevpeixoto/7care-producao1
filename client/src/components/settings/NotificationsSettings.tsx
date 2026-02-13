@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -33,6 +32,8 @@ import {
 import { Bell, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { fetchWithAuth } from '@/lib/api';
+import { settingsLogger } from '@/lib/logger';
 
 interface NotificationsSettingsProps {
   settings: {
@@ -54,7 +55,6 @@ export function NotificationsSettings({
   userId,
 }: NotificationsSettingsProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
   const { isSupported, isSubscribed, requestPermission, subscribe, unsubscribe } =
     usePushNotifications();
 
@@ -98,7 +98,7 @@ export function NotificationsSettings({
 
       return await response.json();
     } catch (error) {
-      console.error('Error saving subscription:', error);
+      settingsLogger.error('Error saving subscription:', error);
       throw error;
     }
   };
@@ -121,25 +121,20 @@ export function NotificationsSettings({
 
       return await response.json();
     } catch (error) {
-      console.error('Error removing subscription:', error);
+      settingsLogger.error('Error removing subscription:', error);
       throw error;
     }
   };
 
   const loadUsers = async () => {
     try {
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (response.ok) {
         const data = await response.json();
         setUsersList(data.users || []);
       }
     } catch (error) {
-      console.error('Error loading users:', error);
+      settingsLogger.error('Error loading users:', error);
     }
   };
 
@@ -151,7 +146,7 @@ export function NotificationsSettings({
         setSubscriptionsList(data.subscriptions || []);
       }
     } catch (error) {
-      console.error('Error loading subscriptions:', error);
+      settingsLogger.error('Error loading subscriptions:', error);
     }
   };
 
@@ -196,7 +191,7 @@ export function NotificationsSettings({
         });
       }
     } catch (error) {
-      console.error('Error toggling push notifications:', error);
+      settingsLogger.error('Error toggling push notifications:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível alterar as notificações push.',
@@ -250,7 +245,7 @@ export function NotificationsSettings({
 
       await loadSubscriptions();
     } catch (error) {
-      console.error('Error sending notification:', error);
+      settingsLogger.error('Error sending notification:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível enviar a notificação.',

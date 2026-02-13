@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +36,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { fetchWithAuth } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 
 interface ElectionConfig {
@@ -53,7 +53,6 @@ interface ElectionConfig {
 }
 
 export default function ElectionDashboard() {
-  const { user, realUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -106,12 +105,7 @@ export default function ElectionDashboard() {
 
   const loadVoteLog = async (electionId: number) => {
     try {
-      const response = await fetch(`/api/elections/vote-log/${electionId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
-      });
+      const response = await fetchWithAuth(`/api/elections/vote-log/${electionId}`);
       if (response.ok) {
         const data = await response.json();
         setVoteLog(data);

@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy } from 'lucide-react';
 import {
-  getLevelByPoints,
   getMountName,
   getLevelIcon,
   getNextLevel,
@@ -56,7 +55,6 @@ export const QuickGamificationCard = ({
     const calculated = PointsCalculator.calculateDetailedPoints(data);
     total = calculated.total;
   }
-  const _currentLevel = getLevelByPoints(total);
   const nextLevel = getNextLevel(total);
   const progress = getProgressToNextLevel(total);
   const pointsToNext = getPointsToNextLevel(total);

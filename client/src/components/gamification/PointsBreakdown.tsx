@@ -857,9 +857,6 @@ export const PointsBreakdown = ({
   const totalCalculated =
     categories.reduce((total, cat) => total + cat.points, 0) + totalEscolaSabatina;
 
-  const _totalPossiblePoints = 3000; // Estimativa baseada nos critérios
-  const _percentage = Math.round((actualPoints / _totalPossiblePoints) * 100);
-
   // Loading state
   if (loading) {
     return (

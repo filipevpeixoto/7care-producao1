@@ -28,27 +28,9 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '@/lib/api';
+import { settingsLogger } from '@/lib/logger';
 
-// Helper para obter headers de autenticação
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('7care_token');
-  let userId = '';
-  let userRole = '';
-  try {
-    const auth = localStorage.getItem('7care_auth');
-    if (auth) {
-      const user = JSON.parse(auth);
-      userId = user?.id?.toString() || '';
-      userRole = user?.role || '';
-    }
-  } catch {}
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(userId ? { 'x-user-id': userId } : {}),
-    ...(userRole ? { 'x-user-role': userRole } : {}),
-  };
-}
 
 interface PointsConfig {
   engajamento: {
@@ -202,9 +184,7 @@ export const PointsConfiguration = () => {
         setIsInitialLoading(true);
 
         // Primeiro, tentar carregar configuração específica do distrito
-        const districtResponse = await fetch('/api/settings/my-district/points-config', {
-          headers: getAuthHeaders(),
-        });
+        const districtResponse = await fetchWithAuth('/api/settings/my-district/points-config');
 
         // Tipo para configuração do backend (pode ter camelCase ou lowercase)
         type BackendConfig = Partial<PointsConfig> & {
@@ -228,9 +208,7 @@ export const PointsConfiguration = () => {
 
             // Buscar nome do distrito
             try {
-              const districtInfoResponse = await fetch(`/api/districts/${districtData.districtId}`, {
-                headers: getAuthHeaders(),
-              });
+              const districtInfoResponse = await fetchWithAuth(`/api/districts/${districtData.districtId}`);
               if (districtInfoResponse.ok) {
                 const districtInfo = await districtInfoResponse.json();
                 setDistrictName(districtInfo.name || `Distrito ${districtData.districtId}`);
@@ -243,9 +221,7 @@ export const PointsConfiguration = () => {
           backendConfig = districtData.config || {};
         } else {
           // Fallback para API global antiga
-          const response = await fetch('/api/system/points-config', {
-            headers: getAuthHeaders(),
-          });
+          const response = await fetchWithAuth('/api/system/points-config');
           if (response.ok) {
             backendConfig = await response.json();
             setIsGlobalConfig(true);
@@ -350,7 +326,7 @@ export const PointsConfiguration = () => {
         setConfig(configCompleta);
         // Configuração carregada e mesclada com valores padrão
       } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
+        settingsLogger.error('Erro ao carregar configurações:', error);
         setConfig(defaultConfig);
       } finally {
         setIsInitialLoading(false);
@@ -377,9 +353,7 @@ export const PointsConfiguration = () => {
 
     try {
       // Buscar média atual dos usuários
-      const usersResponse = await fetch('/api/users', {
-        headers: getAuthHeaders(),
-      });
+      const usersResponse = await fetchWithAuth('/api/users');
       if (!usersResponse.ok) {
         throw new Error('Erro ao buscar usuários');
       }
@@ -396,10 +370,10 @@ export const PointsConfiguration = () => {
       // Calcular fator de ajuste
       const adjustmentFactor = targetValue / currentAvg;
 
-      console.log(`📊 Cálculo de Preset Automático:`);
-      console.log(`   Média atual: ${Math.round(currentAvg)}`);
-      console.log(`   Média desejada: ${targetValue}`);
-      console.log(`   Fator de ajuste: ${adjustmentFactor.toFixed(2)}x`);
+      settingsLogger.debug(`Cálculo de Preset Automático:`);
+      settingsLogger.debug(`   Média atual: ${Math.round(currentAvg)}`);
+      settingsLogger.debug(`   Média desejada: ${targetValue}`);
+      settingsLogger.debug(`   Fator de ajuste: ${adjustmentFactor.toFixed(2)}x`);
 
       // Preset base (configuração atual ajustada)
       const newConfig: PointsConfig = {
@@ -479,7 +453,7 @@ export const PointsConfiguration = () => {
         duration: 6000,
       });
     } catch (error) {
-      console.error('Erro ao calcular preset:', error);
+      settingsLogger.error('Erro ao calcular preset:', error);
       toast({
         title: '❌ Erro',
         description: 'Não foi possível calcular o preset automaticamente.',
@@ -562,16 +536,15 @@ export const PointsConfiguration = () => {
         },
       };
 
-      console.log('💾 Salvando configuração completa:', configCompleta);
+      settingsLogger.debug('Salvando configuração completa:', configCompleta);
 
       // Usar API por distrito se disponível, senão usar API global
       const saveUrl = districtId
         ? '/api/settings/my-district/points-config'
         : '/api/system/points-config';
 
-      const response = await fetch(saveUrl, {
+      const response = await fetchWithAuth(saveUrl, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify(districtId ? { config: configCompleta } : configCompleta),
       });
 
@@ -584,7 +557,7 @@ export const PointsConfiguration = () => {
 
       // ATUALIZAR estado local com a configuração completa que foi salva
       setConfig(configCompleta);
-      console.log('✅ Estado local atualizado com configuração salva');
+      settingsLogger.debug('Estado local atualizado com configuração salva');
 
       toast({
         title: '✅ Configurações salvas!',
@@ -592,23 +565,22 @@ export const PointsConfiguration = () => {
       });
 
       // DISPARAR RECÁLCULO EM ROTA SEPARADA (evita timeout)
-      console.log('🔄 Disparando recálculo de pontos...');
+      settingsLogger.debug('Disparando recálculo de pontos...');
       try {
-        const recalcResponse = await fetch('/api/users/recalculate-all-points', {
+        const recalcResponse = await fetchWithAuth('/api/users/recalculate-all-points', {
           method: 'POST',
-          headers: getAuthHeaders(),
         });
 
         if (recalcResponse.ok) {
           const recalcResult = await recalcResponse.json();
-          console.log('✅ Recálculo concluído:', recalcResult);
+          settingsLogger.debug('Recálculo concluído:', recalcResult);
 
           toast({
             title: '✅ Recálculo concluído!',
             description: `${recalcResult.updatedUsers || 0} usuários atualizados.`,
           });
         } else {
-          console.warn('⚠️ Recálculo falhou, mas config foi salva');
+          settingsLogger.warn('Recálculo falhou, mas config foi salva');
           toast({
             title: '⚠️ Atenção',
             description: 'Configuração salva, mas houve erro ao recalcular pontos.',
@@ -616,7 +588,7 @@ export const PointsConfiguration = () => {
           });
         }
       } catch (recalcError) {
-        console.error('❌ Erro ao disparar recálculo:', recalcError);
+        settingsLogger.error('Erro ao disparar recálculo:', recalcError);
         toast({
           title: '⚠️ Atenção',
           description: 'Configuração salva. Recalcule manualmente se necessário.',
@@ -628,7 +600,7 @@ export const PointsConfiguration = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+      settingsLogger.error('Erro ao salvar configurações:', error);
       toast({
         title: '❌ Erro ao salvar',
         description: 'Não foi possível salvar as configurações.',
@@ -642,9 +614,8 @@ export const PointsConfiguration = () => {
   const handleCalculatePoints = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/users/recalculate-all-points', {
+      const response = await fetchWithAuth('/api/users/recalculate-all-points', {
         method: 'POST',
-        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -666,7 +637,7 @@ export const PointsConfiguration = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
-      console.error('Erro ao recalcular pontos:', error);
+      settingsLogger.error('Erro ao recalcular pontos:', error);
       toast({
         title: '❌ Erro ao recalcular',
         description: 'Não foi possível recalcular os pontos dos usuários.',
@@ -685,9 +656,8 @@ export const PointsConfiguration = () => {
         ? '/api/settings/my-district/points-config/reset'
         : '/api/system/points-config/reset';
 
-      const response = await fetch(resetUrl, {
+      const response = await fetchWithAuth(resetUrl, {
         method: 'POST',
-        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -703,9 +673,7 @@ export const PointsConfiguration = () => {
       const configUrl = districtId
         ? '/api/settings/my-district/points-config'
         : '/api/system/points-config';
-      const configResponse = await fetch(configUrl, {
-        headers: getAuthHeaders(),
-      });
+      const configResponse = await fetchWithAuth(configUrl);
       if (configResponse.ok) {
         const responseData = await configResponse.json();
         const backendConfig = districtId ? responseData.config || {} : responseData;
@@ -826,7 +794,7 @@ export const PointsConfiguration = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
-      console.error('Erro ao resetar configurações:', error);
+      settingsLogger.error('Erro ao resetar configurações:', error);
       toast({
         title: '❌ Erro ao resetar',
         description: 'Não foi possível resetar as configurações.',

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { type UserData } from '@/lib/pointsCalculator';
+import { createLogger } from '@/lib/logger';
+
+const pointsLogger = createLogger('Points');
 
 interface UserPointsData {
   points: number;
@@ -34,7 +37,7 @@ export const useUserPoints = () => {
           setPointsConfig(config);
         }
       } catch (err) {
-        console.warn('Não foi possível carregar configuração de pontuação:', err);
+        pointsLogger.warn('Não foi possível carregar configuração de pontuação:', err);
       }
     };
 
@@ -45,7 +48,7 @@ export const useUserPoints = () => {
     // Validação robusta do user.id
     const userId = Number(user?.id);
     if (!user?.id || isNaN(userId) || userId <= 0) {
-      console.log('🔍 useUserPoints: No valid user ID, skipping fetch');
+      pointsLogger.debug('No valid user ID, skipping fetch');
       setIsLoading(false);
       return;
     }
@@ -59,7 +62,7 @@ export const useUserPoints = () => {
       if (!response.ok) {
         // 404 significa usuário não encontrado - não é um erro crítico
         if (response.status === 404) {
-          console.log(`🔍 useUserPoints: Usuário ${user.id} não encontrado no banco de dados`);
+          pointsLogger.debug(`Usuário ${user.id} não encontrado no banco de dados`);
           setData(null);
           return;
         }
@@ -154,7 +157,7 @@ export const useUserPoints = () => {
         result.userData.actualPoints = apiPoints;
       }
     } catch (err) {
-      console.error('Erro ao buscar dados de pontuação:', err);
+      pointsLogger.error('Erro ao buscar dados de pontuação:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setIsLoading(false);
@@ -169,7 +172,7 @@ export const useUserPoints = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && user?.id) {
-        console.log('🔄 useUserPoints: Refetching on visibility change');
+        pointsLogger.debug('Refetching on visibility change');
         fetchUserPoints();
       }
     };
@@ -186,7 +189,7 @@ export const useUserPoints = () => {
     if (!user?.id || isNaN(userId) || userId <= 0) return;
 
     const interval = setInterval(() => {
-      console.log('🔄 useUserPoints: Auto-refetch interval (5 min)');
+      pointsLogger.debug('Auto-refetch interval (5 min)');
       fetchUserPoints();
     }, 300000); // 5 minutos
 

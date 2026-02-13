@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useNavigate, useParams } from 'react-router-dom';
+import { electionLogger } from '@/lib/logger';
 
 interface ElectionResult {
   positionId: string;
@@ -61,8 +62,8 @@ export default function ElectionResults() {
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   useEffect(() => {
-    console.log('ElectionResults mounted, user:', user);
-    console.log('configId from params:', configId);
+    electionLogger.debug('ElectionResults mounted, user:', user);
+    electionLogger.debug('configId from params:', configId);
 
     // Temporariamente removendo verificação de admin para debug
     // if (user?.role !== 'admin') {
@@ -71,7 +72,7 @@ export default function ElectionResults() {
     //   return;
     // }
 
-    console.log('Loading dashboard...');
+    electionLogger.debug('Loading dashboard...');
     loadDashboard();
 
     // Auto refresh a cada 5 segundos
@@ -87,7 +88,7 @@ export default function ElectionResults() {
 
   const loadDashboard = async () => {
     try {
-      console.log('Loading dashboard data for configId:', configId);
+      electionLogger.debug('Loading dashboard data for configId:', configId);
       const response = await fetch(`/api/elections/dashboard/${configId}`, {
         headers: {
           'Cache-Control': 'no-cache',
@@ -95,11 +96,11 @@ export default function ElectionResults() {
         },
       });
 
-      console.log('Dashboard response:', response.status);
+      electionLogger.debug('Dashboard response:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Dashboard data:', data);
+        electionLogger.debug('Dashboard data:', data);
         setDashboardData(data);
       } else if (response.status === 404) {
         const errorData = await response.json();
@@ -113,7 +114,7 @@ export default function ElectionResults() {
         throw new Error('Erro ao carregar dashboard');
       }
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
+      electionLogger.error('Erro ao carregar dashboard:', error);
       toast({
         title: 'Erro',
         description: 'Erro ao carregar resultados da nomeação',

@@ -9,6 +9,9 @@ import {
   saveTasksOffline,
   canAccessFullOfflineData,
 } from '@/lib/offline';
+import { createLogger } from '@/lib/logger';
+
+const offlineLogger = createLogger('Offline');
 
 export interface PrepareOfflineProgress {
   step: string;
@@ -84,29 +87,29 @@ export async function prepareForOffline(
       const data = await response.json();
 
       if (!Array.isArray(data)) {
-        console.warn(`[PrepareOffline] ${endpoint.key}: dados não são array`);
+        offlineLogger.warn(`${endpoint.key}: dados não são array`);
         continue;
       }
 
       // Salvar no IndexedDB
       switch (endpoint.key) {
         case 'users':
-          console.log(`[PrepareOffline] Salvando ${data.length} usuários...`);
+          offlineLogger.debug(`Salvando ${data.length} usuários...`);
           await saveUsersOffline(data, userRole);
           result.usersCount = data.length;
-          console.log(`[PrepareOffline] ✓ ${data.length} usuários salvos`);
+          offlineLogger.debug(`${data.length} usuários salvos`);
           break;
         case 'events':
-          console.log(`[PrepareOffline] Salvando ${data.length} eventos...`);
+          offlineLogger.debug(`Salvando ${data.length} eventos...`);
           await saveEventsOffline(data);
           result.eventsCount = data.length;
-          console.log(`[PrepareOffline] ✓ ${data.length} eventos salvos`);
+          offlineLogger.debug(`${data.length} eventos salvos`);
           break;
         case 'tasks':
-          console.log(`[PrepareOffline] Salvando ${data.length} tarefas...`);
+          offlineLogger.debug(`Salvando ${data.length} tarefas...`);
           await saveTasksOffline(data);
           result.tasksCount = data.length;
-          console.log(`[PrepareOffline] ✓ ${data.length} tarefas salvas`);
+          offlineLogger.debug(`${data.length} tarefas salvas`);
           break;
       }
 
@@ -117,7 +120,7 @@ export async function prepareForOffline(
         status: 'success',
       });
 
-      console.log(`[PrepareOffline] ✓ ${endpoint.label}: ${data.length} itens`);
+      offlineLogger.debug(`${endpoint.label}: ${data.length} itens`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
       result.errors.push(`${endpoint.label}: ${errorMsg}`);
@@ -131,7 +134,7 @@ export async function prepareForOffline(
         error: errorMsg,
       });
 
-      console.error(`[PrepareOffline] ✗ ${endpoint.label}:`, error);
+      offlineLogger.error(`${endpoint.label}:`, error);
     }
   }
 
@@ -148,9 +151,9 @@ export async function prepareForOffline(
           '/users',
         ],
       });
-      console.log('[PrepareOffline] Service Worker notificado para cachear páginas');
+      offlineLogger.debug('Service Worker notificado para cachear páginas');
     } catch (error) {
-      console.warn('[PrepareOffline] Erro ao notificar SW:', error);
+      offlineLogger.warn('Erro ao notificar SW:', error);
     }
   }
 
@@ -186,7 +189,7 @@ export async function getOfflineDataStatus(): Promise<{
       lastSync,
     };
   } catch (error) {
-    console.warn('[PrepareOffline] Erro ao verificar status:', error);
+    offlineLogger.warn('Erro ao verificar status:', error);
     return {
       users: 0,
       events: 0,

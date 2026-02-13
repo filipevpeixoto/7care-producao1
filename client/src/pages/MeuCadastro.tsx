@@ -18,6 +18,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { createLogger } from '@/lib/logger';
+
+const meuCadastroLogger = createLogger('MeuCadastro');
 
 const MeuCadastro = () => {
   const { user, refreshUserData } = useAuth();
@@ -63,7 +66,7 @@ const MeuCadastro = () => {
       }
     };
 
-    console.log('🔄 MeuCadastro - Atualizando formData com dados do usuário:', {
+    meuCadastroLogger.debug('Atualizando formData com dados do usuário:', {
       name: user?.name,
       email: user?.email,
       phone: user?.phone,
@@ -80,7 +83,7 @@ const MeuCadastro = () => {
 
   // Garante que carregamos os dados completos (telefone/data) ao abrir a página
   useEffect(() => {
-    console.log('🔄 MeuCadastro - Carregando dados atualizados do usuário...');
+    meuCadastroLogger.debug('Carregando dados atualizados do usuário...');
     // Sempre tentar carregar dados atualizados ao abrir a página
     refreshUserData?.();
   }, [refreshUserData]);
@@ -104,7 +107,7 @@ const MeuCadastro = () => {
         throw new Error('Falha ao fazer upload da foto');
       }
 
-      const result = await response.json();
+      await response.json();
 
       // Atualizar o usuário localmente
       if (refreshUserData) {
@@ -116,7 +119,7 @@ const MeuCadastro = () => {
         description: 'Sua foto de perfil foi atualizada com sucesso',
       });
     } catch (error) {
-      console.error('Erro ao fazer upload:', error);
+      meuCadastroLogger.error('Erro ao fazer upload:', error);
       toast({
         title: 'Erro ao atualizar foto',
         description: 'Não foi possível atualizar sua foto. Tente novamente.',
@@ -149,7 +152,7 @@ const MeuCadastro = () => {
         description: 'Sua foto de perfil foi removida com sucesso',
       });
     } catch (error) {
-      console.error('Erro ao remover foto:', error);
+      meuCadastroLogger.error('Erro ao remover foto:', error);
       toast({
         title: 'Erro ao remover foto',
         description: 'Não foi possível remover sua foto. Tente novamente.',
@@ -185,7 +188,7 @@ const MeuCadastro = () => {
         description: 'Suas informações foram salvas com sucesso',
       });
     } catch (error) {
-      console.error('Erro ao salvar:', error);
+      meuCadastroLogger.error('Erro ao salvar:', error);
       toast({
         title: 'Erro ao salvar',
         description: 'Não foi possível salvar suas informações. Tente novamente.',

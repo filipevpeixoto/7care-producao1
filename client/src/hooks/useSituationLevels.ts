@@ -46,7 +46,7 @@ export function useSituationLevels() {
       if (!response.ok) throw new Error('Erro ao salvar níveis de situação');
       return response.json();
     },
-    onSuccess: async (data, variables) => {
+    onSuccess: async (_data, variables) => {
       // Atualizar cache imediatamente com os novos valores
       queryClient.setQueryData(['situation-levels'], variables);
       

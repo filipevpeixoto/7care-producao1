@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const pushLogger = createLogger('Push');
 
 export interface NotificationOptions {
   title: string;
@@ -28,13 +31,13 @@ export const usePushNotifications = () => {
       setSubscription(sub);
       setIsSubscribed(!!sub);
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      pushLogger.error('Error checking subscription:', error);
     }
   };
 
   const requestPermission = async (): Promise<boolean> => {
     if (!('Notification' in window)) {
-      console.error('This browser does not support notifications');
+      pushLogger.error('This browser does not support notifications');
       return false;
     }
 
@@ -48,29 +51,29 @@ export const usePushNotifications = () => {
 
   const subscribe = async () => {
     try {
-      console.log('🔔 PUSH: Iniciando processo de inscrição...');
+      pushLogger.debug('Iniciando processo de inscrição...');
       
       const hasPermission = await requestPermission();
       if (!hasPermission) {
-        console.error('❌ PUSH: Permissão negada para notificações');
+        pushLogger.error('Permissão negada para notificações');
         throw new Error('Permission denied for notifications');
       }
       
-      console.log('✅ PUSH: Permissão concedida');
+      pushLogger.debug('Permissão concedida');
 
       const registration = await navigator.serviceWorker.ready;
-      console.log('✅ PUSH: Service Worker pronto');
+      pushLogger.debug('Service Worker pronto');
       
       // VAPID public key
       const vapidPublicKey = 'BD6cS7ooCOhh1lfv-D__PNYDv3S_S9EyR4bpowVJHcBxYIl5gtTFs8AThEO-MZnpzsKIZuRY3iR2oOMBDAOH2wY';
-      console.log('🔑 PUSH: Chave VAPID configurada');
+      pushLogger.debug('Chave VAPID configurada');
       
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: vapidPublicKey,
       });
 
-      console.log('✅ PUSH: Inscrição criada com sucesso:', {
+      pushLogger.debug('Inscrição criada com sucesso:', {
         endpoint: sub.endpoint,
         keys: {
           p256dh: sub.getKey('p256dh') ? 'presente' : 'ausente',
@@ -82,11 +85,11 @@ export const usePushNotifications = () => {
       setIsSubscribed(true);
       
       // Aqui você enviaria a subscription para o servidor
-      console.log('📤 PUSH: Subscription pronta para envio ao servidor');
+      pushLogger.debug('Subscription pronta para envio ao servidor');
       
       return sub;
     } catch (error) {
-      console.error('❌ PUSH: Erro ao se inscrever nas notificações:', error);
+      pushLogger.error('Erro ao se inscrever nas notificações:', error);
       throw error;
     }
   };
@@ -99,7 +102,7 @@ export const usePushNotifications = () => {
         setIsSubscribed(false);
       }
     } catch (error) {
-      console.error('Error unsubscribing from push notifications:', error);
+      pushLogger.error('Error unsubscribing from push notifications:', error);
       throw error;
     }
   };
@@ -121,7 +124,7 @@ export const usePushNotifications = () => {
         data: options.data,
       } as NotificationOptions);
     } catch (error) {
-      console.error('Error sending local notification:', error);
+      pushLogger.error('Error sending local notification:', error);
       throw error;
     }
   };

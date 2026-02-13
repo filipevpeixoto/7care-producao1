@@ -27,7 +27,11 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { isSuperAdmin } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
+import { createLogger } from '@/lib/logger';
+
+const districtsLogger = createLogger('Districts');
 
 interface District {
   id: number;
@@ -44,7 +48,7 @@ interface District {
 }
 
 export default function Districts() {
-  const { user, realUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -73,39 +77,35 @@ export default function Districts() {
   } = useQuery<District[]>({
     queryKey: ['/api/districts', user?.id],
     queryFn: async () => {
-      console.log('🔍 Districts: Buscando distritos para usuário:', user?.id);
+      districtsLogger.debug('Buscando distritos para usuário:', user?.id);
       const userId = user?.id?.toString() || '';
 
       if (!userId) {
-        console.warn('⚠️ Districts: Usuário não autenticado');
+        districtsLogger.warn('Usuário não autenticado');
         throw new Error('Usuário não autenticado');
       }
 
-      const response = await fetch('/api/districts', {
-        headers: {
-          'x-user-id': userId,
-        },
-      });
+      const response = await fetchWithAuth('/api/districts');
 
-      console.log('🔍 Districts: Response status:', response.status);
+      districtsLogger.debug('Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Districts: Erro na resposta:', response.status, errorText);
+        districtsLogger.error('Erro na resposta:', response.status, errorText);
         throw new Error(`Erro ao buscar distritos: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('🔍 Districts: Distritos recebidos:', data);
+      districtsLogger.debug('Distritos recebidos:', data);
 
       if (!Array.isArray(data)) {
-        console.error('❌ Districts: Resposta não é um array:', data);
+        districtsLogger.error('Resposta não é um array:', data);
         return [];
       }
 
       // Log detalhado de cada distrito para debug
       data.forEach((district: any) => {
-        console.log(`🔍 Districts: Distrito "${district.name}":`, {
+        districtsLogger.debug(`Distrito "${district.name}":`, {
           id: district.id,
           pastor_id: district.pastor_id,
           pastor_name: district.pastor_name,
@@ -118,24 +118,20 @@ export default function Districts() {
       const districtsWithChurches = await Promise.all(
         data.map(async (district: District) => {
           try {
-            const churchesResponse = await fetch(`/api/districts/${district.id}/churches`, {
-              headers: {
-                'x-user-id': userId,
-              },
-            });
+            const churchesResponse = await fetchWithAuth(`/api/districts/${district.id}/churches`);
             if (churchesResponse.ok) {
               const churches = await churchesResponse.json();
-              console.log(`🔍 Districts: Distrito ${district.name} tem ${churches.length} igrejas`);
+              districtsLogger.debug(`Distrito ${district.name} tem ${churches.length} igrejas`);
               return { ...district, churchesCount: churches.length, churches };
             }
           } catch (error) {
-            console.error(`❌ Erro ao buscar igrejas do distrito ${district.id}:`, error);
+            districtsLogger.error(`Erro ao buscar igrejas do distrito ${district.id}:`, error);
           }
           return { ...district, churchesCount: 0, churches: [] };
         })
       );
 
-      console.log('✅ Districts: Total de distritos processados:', districtsWithChurches.length);
+      districtsLogger.debug('Total de distritos processados:', districtsWithChurches.length);
       return districtsWithChurches;
     },
     enabled: !!user?.id, // Só executar se o usuário estiver autenticado
@@ -151,11 +147,7 @@ export default function Districts() {
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['/api/pastors', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/pastors', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/pastors');
       if (!response.ok) return [];
       return response.json();
     },
@@ -169,11 +161,7 @@ export default function Districts() {
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['/api/churches/unassigned', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/churches/unassigned', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/churches/unassigned');
       if (!response.ok) return [];
       return response.json();
     },
@@ -185,12 +173,8 @@ export default function Districts() {
   // Criar distrito
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch('/api/districts', {
+      const response = await fetchWithAuth('/api/districts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -220,12 +204,8 @@ export default function Districts() {
   // Atualizar distrito
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await fetch(`/api/districts/${id}`, {
+      const response = await fetchWithAuth(`/api/districts/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -256,11 +236,8 @@ export default function Districts() {
   // Deletar distrito
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/districts/${id}`, {
+      const response = await fetchWithAuth(`/api/districts/${id}`, {
         method: 'DELETE',
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-        },
       });
       if (!response.ok) {
         const error = await response.json();
@@ -289,12 +266,8 @@ export default function Districts() {
   // Vincular igrejas ao distrito
   const linkChurchesMutation = useMutation({
     mutationFn: async ({ districtId, churchIds }: { districtId: number; churchIds: number[] }) => {
-      const response = await fetch(`/api/districts/${districtId}/churches/bulk`, {
+      const response = await fetchWithAuth(`/api/districts/${districtId}/churches/bulk`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({ churchIds }),
       });
       if (!response.ok) {
@@ -407,11 +380,7 @@ export default function Districts() {
 
       // Se temos pastor_id, buscar dados completos do usuário (não necessariamente com role='pastor')
       if (pastorId) {
-        const response = await fetch(`/api/users/${pastorId}`, {
-          headers: {
-            'x-user-id': user?.id?.toString() || '',
-          },
-        });
+        const response = await fetchWithAuth(`/api/users/${pastorId}`);
 
         if (!response.ok) {
           throw new Error('Erro ao buscar dados do responsável pelo distrito');
@@ -455,7 +424,7 @@ export default function Districts() {
       // Redirecionar para o dashboard
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('Erro ao visualizar como pastor:', error);
+      districtsLogger.error('Erro ao visualizar como pastor:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível visualizar como pastor.',

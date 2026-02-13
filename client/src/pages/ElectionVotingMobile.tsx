@@ -21,6 +21,8 @@ import {
   X,
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { fetchWithAuth } from '@/lib/api';
+import { electionLogger } from '@/lib/logger';
 
 interface Candidate {
   id: number;
@@ -62,7 +64,7 @@ interface ElectionData {
 
 export default function ElectionVotingMobile() {
   const { configId } = useParams<{ configId: string }>();
-  const { user, realUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -79,9 +81,8 @@ export default function ElectionVotingMobile() {
   // Função para buscar eleições ativas e encontrar a correta
   const findActiveElection = async () => {
     try {
-      const response = await fetch('/api/elections/active', {
+      const response = await fetchWithAuth('/api/elections/active', {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
         },
@@ -89,24 +90,24 @@ export default function ElectionVotingMobile() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 Eleições ativas encontradas:', data);
+        electionLogger.debug('Eleições ativas encontradas:', data);
 
         if (data.elections && data.elections.length > 0) {
           // Usar a primeira eleição ativa encontrada
           const activeElection = data.elections[0];
-          console.log('🔍 Usando eleição ativa:', activeElection);
+          electionLogger.debug('Usando eleição ativa:', activeElection);
           return activeElection.config_id;
         }
       }
 
       return null;
     } catch (error) {
-      console.error('❌ Erro ao buscar eleições ativas:', error);
+      electionLogger.error('Erro ao buscar eleições ativas:', error);
       return null;
     }
   };
 
-  const loadElectionData = async (electionConfigId?: number, silentUpdate = false) => {
+  const loadElectionData = async (_electionConfigId?: number, silentUpdate = false) => {
     try {
       // Só mostrar loading se não for uma atualização silenciosa
       if (!silentUpdate) {
@@ -117,7 +118,7 @@ export default function ElectionVotingMobile() {
       // Se não foi fornecido um configId, tentar encontrar eleição ativa
       let targetConfigId = configId;
       if (!targetConfigId || targetConfigId === 'undefined') {
-        console.log('🔍 ConfigId não fornecido, buscando eleição ativa...');
+        electionLogger.debug('ConfigId não fornecido, buscando eleição ativa...');
         const activeConfigId = await findActiveElection();
         if (activeConfigId) {
           targetConfigId = activeConfigId.toString();
@@ -130,13 +131,12 @@ export default function ElectionVotingMobile() {
         }
       }
 
-      console.log('🔍 Carregando dados da eleição com configId:', targetConfigId);
+      electionLogger.debug('Carregando dados da eleição com configId:', targetConfigId);
 
       // Adicionar timestamp para evitar cache e garantir dados atualizados
       const timestamp = Date.now();
-      const response = await fetch(`/api/elections/voting/${targetConfigId}?t=${timestamp}`, {
+      const response = await fetchWithAuth(`/api/elections/voting/${targetConfigId}?t=${timestamp}`, {
         headers: {
-          'x-user-id': user?.id?.toString() || '',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           Pragma: 'no-cache',
           Expires: '0',
@@ -145,7 +145,7 @@ export default function ElectionVotingMobile() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Dados da eleição recebidos:', data);
+        electionLogger.debug('Dados da eleição recebidos:', data);
 
         // Validar dados recebidos
         if (!data.election) {
@@ -154,14 +154,14 @@ export default function ElectionVotingMobile() {
 
         // Se não há candidatos, tentar carregar sem filtros
         if (!data.candidates || data.candidates.length === 0) {
-          console.log('⚠️ Nenhum candidato encontrado, tentando carregar todos os membros...');
+          electionLogger.debug('Nenhum candidato encontrado, tentando carregar todos os membros...');
           await loadAllMembers(data.election.id);
           return;
         }
 
         // Se a posição mudou, resetar o candidato selecionado
         if (electionData && electionData.currentPosition !== data.currentPosition) {
-          console.log('🔄 Posição mudou, resetando candidato selecionado');
+          electionLogger.debug('Posição mudou, resetando candidato selecionado');
           setSelectedCandidate(null);
           setSubmitting(false);
         }
@@ -174,7 +174,7 @@ export default function ElectionVotingMobile() {
             electionData.hasVoted !== data.hasVoted ||
             electionData.hasNominated !== data.hasNominated)
         ) {
-          console.log('🔄 Usuário votou/indicou, resetando seleção');
+          electionLogger.debug('Usuário votou/indicou, resetando seleção');
           setSelectedCandidate(null);
         }
 
@@ -222,7 +222,7 @@ export default function ElectionVotingMobile() {
             name => !currentCandidateNames.includes(name)
           );
 
-          console.log('🔄 [CANDIDATOS] Lista de candidatos atualizada:', {
+          electionLogger.debug('Lista de candidatos atualizada:', {
             anterior: previousCandidatesCount,
             atual: currentCandidatesCount,
             removidos: previousCandidatesCount - currentCandidatesCount,
@@ -235,7 +235,7 @@ export default function ElectionVotingMobile() {
         }
 
         setElectionData(enrichedData);
-        console.log('📊 Dados normalizados da eleição:', {
+        electionLogger.debug('Dados normalizados da eleição:', {
           configId: enrichedData.election?.config_id,
           position: enrichedData.currentPositionName,
           phase: enrichedData.phase,
@@ -257,10 +257,10 @@ export default function ElectionVotingMobile() {
         setRetryCount(0); // Reset retry count on success
       } else if (response.status === 404) {
         // Se não encontrou eleição com este configId, tentar encontrar ativa
-        console.log('❌ Eleição não encontrada, buscando eleição ativa...');
+        electionLogger.debug('Eleição não encontrada, buscando eleição ativa...');
         const activeConfigId = await findActiveElection();
         if (activeConfigId && activeConfigId.toString() !== configId) {
-          console.log('🔄 Redirecionando para eleição ativa:', activeConfigId);
+          electionLogger.debug('Redirecionando para eleição ativa:', activeConfigId);
           navigate(`/election-vote/${activeConfigId}`, { replace: true });
           return;
         }
@@ -272,12 +272,12 @@ export default function ElectionVotingMobile() {
         throw new Error(errorData.error || 'Erro ao carregar eleição');
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar dados da eleição:', error);
+      electionLogger.error('Erro ao carregar dados da eleição:', error);
       setError(error instanceof Error ? error.message : 'Erro desconhecido');
 
       // Se ainda não tentou buscar eleição ativa, tentar agora
       if (retryCount === 0 && configId) {
-        console.log('🔄 Tentando buscar eleição ativa...');
+        electionLogger.debug('Tentando buscar eleição ativa...');
         setRetryCount(1);
         await loadElectionData();
         return;
@@ -301,15 +301,15 @@ export default function ElectionVotingMobile() {
   }, [loadElectionData]);
 
   // Função para carregar todos os membros como candidatos (fallback)
-  const loadAllMembers = async (electionId: number) => {
+  const loadAllMembers = async (_electionId: number) => {
     try {
-      console.log('🔍 Carregando todos os membros como candidatos...');
+      electionLogger.debug('Carregando todos os membros como candidatos...');
 
       // Buscar todos os membros da igreja
       const response = await fetch('/api/debug/users');
       if (response.ok) {
         const data = await response.json();
-        console.log('👥 Membros encontrados:', data.users.length);
+        electionLogger.debug('Membros encontrados:', data.users.length);
 
         // Converter membros em candidatos
         const candidates: Candidate[] = data.users.map((member: any) => ({
@@ -338,7 +338,7 @@ export default function ElectionVotingMobile() {
         });
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar membros:', error);
+      electionLogger.error('Erro ao carregar membros:', error);
       toast({
         title: 'Aviso',
         description: 'Não foi possível carregar candidatos. Tente novamente.',
@@ -350,18 +350,10 @@ export default function ElectionVotingMobile() {
   const handleVote = async (candidateId: number, phase: string) => {
     if (submitting || !electionData) return;
 
-    // Buscar nome do candidato
-    const candidate = electionData.candidates.find(c => c.id === candidateId);
-    const candidateName = candidate?.name || 'candidato selecionado';
-
     setSubmitting(true);
     try {
-      const response = await fetch('/api/elections/vote', {
+      const response = await fetchWithAuth('/api/elections/vote', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           configId,
           candidateId,
@@ -370,7 +362,7 @@ export default function ElectionVotingMobile() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
 
         // Não mostrar toast, vamos mostrar uma tela especial
         // Recarregar dados para atualizar o estado
@@ -381,7 +373,7 @@ export default function ElectionVotingMobile() {
         throw new Error(errorData.error || 'Erro ao registrar voto');
       }
     } catch (error) {
-      console.error('❌ Erro ao votar:', error);
+      electionLogger.error('Erro ao votar:', error);
       toast({
         title: 'Erro',
         description:
@@ -458,13 +450,13 @@ export default function ElectionVotingMobile() {
     // O polling continua mesmo quando electionData ainda não foi carregado
     const interval = setInterval(() => {
       if (electionData) {
-        console.log('🔄 [POLLING] Atualizando dados da eleição em tempo real...');
+        electionLogger.debug('Atualizando dados da eleição em tempo real...');
       }
       loadElectionDataRef.current?.(undefined, true); // true = silentUpdate (sem mostrar loading)
     }, 1000); // 1 segundo - mais responsivo para mudanças do admin (remoção de candidatos)
 
     return () => {
-      console.log('🛑 [POLLING] Parando atualização automática');
+      electionLogger.debug('Parando atualização automática');
       clearInterval(interval);
     };
   }, [user?.id, configId]); // Polling sempre ativo quando há usuário e configId
@@ -852,12 +844,6 @@ export default function ElectionVotingMobile() {
                       const cardClickable = isNominationPhase
                         ? !submitting && (!nominationLimitReached || isNominationSelected)
                         : isVotingPhase && !electionData.hasVoted && !submitting;
-
-                      // Determinar o texto a mostrar (nome_unidade se disponível, senão church)
-                      const displayUnit =
-                        candidate.nomeUnidade && candidate.nomeUnidade.trim()
-                          ? candidate.nomeUnidade
-                          : candidate.unit || 'N/A';
 
                       return (
                         <div

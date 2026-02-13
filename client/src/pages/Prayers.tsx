@@ -10,6 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Heart, MessageCircle, Lock, Calendar, Search, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { createLogger } from '@/lib/logger';
+
+const prayersLogger = createLogger('Prayers');
 
 interface PrayerRequest {
   id: number;
@@ -126,7 +129,7 @@ const Prayers = () => {
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar orações:', error);
+      prayersLogger.error('Erro ao carregar orações:', error);
       toast({
         title: 'Erro ao carregar orações',
         description: 'Não foi possível carregar os pedidos de oração.',
@@ -225,7 +228,7 @@ const Prayers = () => {
         return;
       }
 
-      console.log(`🗑️ Frontend: Tentando excluir oração ${prayerId}`);
+      prayersLogger.debug(`Tentando excluir oração ${prayerId}`);
 
       const response = await fetchWithAuth(
         `/api/prayers/${prayerId}`,
@@ -243,7 +246,7 @@ const Prayers = () => {
         });
       } else {
         const errorData = await response.json();
-        console.log(`❌ Frontend: Erro na resposta do servidor:`, errorData);
+        prayersLogger.debug(`Erro na resposta do servidor:`, errorData);
 
         toast({
           title: 'Erro ao excluir oração',
@@ -252,7 +255,7 @@ const Prayers = () => {
         });
       }
     } catch (error) {
-      console.error('❌ Frontend: Erro na requisição:', error);
+      prayersLogger.error('Erro na requisição:', error);
       toast({
         title: 'Erro ao excluir oração',
         description: 'Não foi possível excluir a oração.',
@@ -297,7 +300,7 @@ const Prayers = () => {
         }
       }
     } catch (error) {
-      console.error('Erro ao gerenciar intercessor:', error);
+      prayersLogger.error('Erro ao gerenciar intercessor:', error);
       toast({
         title: 'Erro',
         description: 'Erro ao gerenciar intercessor',
@@ -323,7 +326,7 @@ const Prayers = () => {
         setIntercessors(prev => ({ ...prev, [prayerId]: mappedData }));
       }
     } catch (error) {
-      console.error('Erro ao carregar intercessores:', error);
+      prayersLogger.error('Erro ao carregar intercessores:', error);
     } finally {
       setLoadingIntercessors(prev => ({ ...prev, [prayerId]: false }));
     }
@@ -366,7 +369,7 @@ const Prayers = () => {
         minute: '2-digit',
       });
     } catch (error) {
-      console.error('Erro ao formatar data:', error, dateString);
+      prayersLogger.error('Erro ao formatar data:', error, dateString);
       return 'Data inválida';
     }
   };

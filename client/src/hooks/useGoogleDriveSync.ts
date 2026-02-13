@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const syncLogger = createLogger('GoogleDriveSync');
 
 interface GoogleDriveConfig {
   spreadsheetUrl: string;
@@ -54,7 +57,7 @@ export function useGoogleDriveSync() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar configuração do Google Drive:', error);
+      syncLogger.error('Erro ao carregar configuração do Google Drive:', error);
       setSyncStatus(prev => ({
         ...prev,
         error: 'Erro ao carregar configuração'
@@ -75,7 +78,7 @@ export function useGoogleDriveSync() {
     setSyncStatus(prev => ({ ...prev, isRunning: true, error: undefined }));
 
     try {
-      console.log('🔄 Hook syncNow - URL configurada:', config.spreadsheetUrl);
+      syncLogger.debug('Hook syncNow - URL configurada:', config.spreadsheetUrl);
       
       // Converter URL para CSV
       const convertToCsvUrl = (url: string): string => {
@@ -106,7 +109,7 @@ export function useGoogleDriveSync() {
       };
 
       const csvUrl = convertToCsvUrl(config.spreadsheetUrl);
-      console.log('📊 Hook syncNow - CSV URL gerada:', csvUrl);
+      syncLogger.debug('Hook syncNow - CSV URL gerada:', csvUrl);
       
       const response = await fetchWithAuth('/api/calendar/sync-google-drive', {
         method: 'POST',
@@ -117,7 +120,7 @@ export function useGoogleDriveSync() {
       });
 
       const result = await response.json();
-      console.log('📊 Hook syncNow - Resposta da API:', result);
+      syncLogger.debug('Hook syncNow - Resposta da API:', result);
 
       if (result.success) {
         const now = new Date().toISOString();

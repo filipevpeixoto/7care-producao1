@@ -21,7 +21,11 @@ import {
 import { X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import { createLogger } from '@/lib/logger';
+
+const usersLogger = createLogger('Users');
 
 interface DiscipuladoresManagerProps {
   interestedId: number;
@@ -46,12 +50,7 @@ export function DiscipuladoresManager({
   const { data: allUsersRaw, isLoading: loading } = useQuery<any>({
     queryKey: ['users', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (!response.ok) {
         throw new Error('Erro ao carregar usuários');
       }
@@ -71,8 +70,8 @@ export function DiscipuladoresManager({
 
   // Filtrar membros disponíveis de forma otimizada (useMemo)
   const potentialMissionaries = useMemo(() => {
-    console.log('🔍 Filtrando discipuladores para igreja:', interestedChurch);
-    console.log('📊 Total de usuários carregados:', allUsers.length);
+    usersLogger.debug('Filtrando discipuladores para igreja:', interestedChurch);
+    usersLogger.debug('Total de usuários carregados:', allUsers.length);
 
     const currentIds = currentDiscipuladores.map(d => d.id);
 
@@ -84,8 +83,8 @@ export function DiscipuladoresManager({
       return isMemberOrMissionary && isNotCurrent && isSameChurch;
     });
 
-    console.log('✅ Membros filtrados da mesma igreja:', filtered.length);
-    console.log('📋 Igrejas únicas nos resultados:', [
+    usersLogger.debug('Membros filtrados da mesma igreja:', filtered.length);
+    usersLogger.debug('Igrejas únicas nos resultados:', [
       ...new Set(filtered.map((u: any) => u.church)),
     ]);
 
@@ -96,7 +95,7 @@ export function DiscipuladoresManager({
     async (missionaryId: number) => {
       setIsAdding(true);
       try {
-        console.log('🔍 Adicionando discipulador via API...');
+        usersLogger.debug('Adicionando discipulador via API...');
 
         const response = await fetch('/api/relationships', {
           method: 'POST',
@@ -138,7 +137,7 @@ export function DiscipuladoresManager({
 
         setShowAddModal(false);
       } catch (error) {
-        console.error('Erro ao adicionar discipulador:', error);
+        usersLogger.error('Erro ao adicionar discipulador:', error);
         toast({
           title: 'Erro',
           description: 'Não foi possível adicionar o discipulador',
@@ -176,7 +175,7 @@ export function DiscipuladoresManager({
 
         // A lista de disponíveis será atualizada automaticamente pelo useMemo
       } catch (error) {
-        console.error('Erro ao remover discipulador:', error);
+        usersLogger.error('Erro ao remover discipulador:', error);
         toast({
           title: 'Erro',
           description: 'Não foi possível remover o discipulador',

@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import { settingsLogger } from '@/lib/logger';
 import {
   Table,
   TableBody,
@@ -108,7 +109,7 @@ export function ImportUsersModal({
         setImportStep('mapping');
       }, 500);
     } catch (_error) {
-      console.error('Error processing file:', _error);
+      settingsLogger.error('Error processing file:', _error);
       toast({
         title: 'Erro no arquivo',
         description: 'Não foi possível processar o arquivo. Verifique o formato.',
@@ -395,7 +396,7 @@ export function ImportUsersModal({
 
       window.dispatchEvent(new CustomEvent('user-imported'));
     } catch (error) {
-      console.error('Import error:', error);
+      settingsLogger.error('Import error:', error);
 
       let errorMessage = 'Ocorreu um erro durante a importação.';
       if (error instanceof Error) {
@@ -679,8 +680,8 @@ export function ImportUsersModal({
               )}
 
               <div className="flex gap-2">
-                <Button onClick={performImport} data-testid="start-import">
-                  {importErrors.length > 0 ? 'Importar (ignorar erros)' : 'Iniciar Importação'}
+                <Button onClick={performImport} disabled={(importStep as ImportStep) === 'importing'} data-testid="start-import">
+                  {(importStep as ImportStep) === 'importing' ? 'Importando...' : importErrors.length > 0 ? 'Importar (ignorar erros)' : 'Iniciar Importação'}
                 </Button>
                 <Button
                   variant="outline"

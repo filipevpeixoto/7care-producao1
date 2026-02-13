@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Home, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { uiLogger } from '@/lib/logger';
 
 const NotFound = () => {
   const location = useLocation();
@@ -10,7 +11,7 @@ const NotFound = () => {
   useEffect(() => {
     // Log apenas em desenvolvimento
     if (process.env.NODE_ENV === 'development') {
-      console.error(
+      uiLogger.error(
         "404 Error: User attempted to access non-existent route:",
         location.pathname
       );

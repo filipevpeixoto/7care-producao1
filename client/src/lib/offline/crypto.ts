@@ -10,6 +10,10 @@
  * - Verificação de integridade
  */
 
+import { createLogger } from '@/lib/logger';
+
+const offlineLogger = createLogger('Offline');
+
 // Constantes de configuração
 const CRYPTO_SALT_KEY = '7care_device_salt';
 const CRYPTO_KEY_CHECK = '7care_key_check';
@@ -130,7 +134,7 @@ async function migrateLegacyKey(): Promise<CryptoKey | null> {
 
     // Remover chave legada após migração
     localStorage.removeItem(CRYPTO_LEGACY_KEY);
-    console.log('[Crypto] Chave legada migrada com sucesso');
+    offlineLogger.debug('Chave legada migrada com sucesso');
 
     return legacyKey;
   } catch {
@@ -187,7 +191,7 @@ async function verifyKeyIntegrity(key: CryptoKey): Promise<void> {
     keyVersion = decrypted.version || 1;
   } catch {
     // Chave mudou - limpar dados antigos e recriar verificação
-    console.warn('[Crypto] Chave do dispositivo mudou, recriando verificação');
+    offlineLogger.warn('Chave do dispositivo mudou, recriando verificação');
     await clearAllEncryptedData();
     const testData = { check: 'integrity', version: keyVersion, timestamp: Date.now() };
     const encrypted = await encryptWithKey(key, testData);
@@ -203,7 +207,7 @@ async function clearAllEncryptedData(): Promise<void> {
     const { clearAllOfflineData } = await import('./database');
     await clearAllOfflineData();
   } catch (error) {
-    console.error('[Crypto] Erro ao limpar dados:', error);
+    offlineLogger.error('Erro ao limpar dados:', error);
   }
 }
 
@@ -262,7 +266,7 @@ async function decryptWithKey<T>(key: CryptoKey, encryptedString: string): Promi
     encryptedData = combined.slice(1 + IV_LENGTH);
 
     if (version !== keyVersion) {
-      console.warn(`[Crypto] Versão da chave diferente: ${version} vs ${keyVersion}`);
+      offlineLogger.warn(`Versão da chave diferente: ${version} vs ${keyVersion}`);
     }
   } else {
     // Formato legado: IV + dados
@@ -298,10 +302,10 @@ export async function encryptData<T>(data: T): Promise<string> {
     const key = await getOrCreateDeviceKey();
     return await encryptWithKey(key, data);
   } catch (error) {
-    console.error('[Crypto] Erro ao criptografar:', error);
+    offlineLogger.error('Erro ao criptografar:', error);
     // Fallback APENAS em desenvolvimento para facilitar debug
     if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
-      console.warn('[Crypto] Usando fallback não criptografado (DEV ONLY)');
+      offlineLogger.warn('Usando fallback não criptografado (DEV ONLY)');
       return JSON.stringify({ __unencrypted: true, __warning: 'DEV_ONLY', data });
     }
     throw new Error('Falha ao criptografar dados sensíveis');
@@ -320,7 +324,7 @@ export async function decryptData<T>(encryptedString: string): Promise<T> {
       const parsed = JSON.parse(encryptedString);
       if (parsed.__unencrypted) {
         if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'development') {
-          console.error('[Crypto] Dados não criptografados detectados em produção');
+          offlineLogger.error('Dados não criptografados detectados em produção');
         }
         return parsed.data as T;
       }
@@ -335,7 +339,7 @@ export async function decryptData<T>(encryptedString: string): Promise<T> {
     const key = await getOrCreateDeviceKey();
     return await decryptWithKey<T>(key, encryptedString);
   } catch (error) {
-    console.error('[Crypto] Erro ao descriptografar:', error);
+    offlineLogger.error('Erro ao descriptografar:', error);
     throw new Error('Falha ao descriptografar dados');
   }
 }
@@ -373,7 +377,7 @@ export async function rotateKey(): Promise<void> {
   const encrypted = await encryptWithKey(key, testData);
   localStorage.setItem(CRYPTO_KEY_CHECK, encrypted);
 
-  console.log(`[Crypto] Chave rotacionada para versão ${keyVersion}`);
+  offlineLogger.debug(`Chave rotacionada para versão ${keyVersion}`);
 }
 
 /**

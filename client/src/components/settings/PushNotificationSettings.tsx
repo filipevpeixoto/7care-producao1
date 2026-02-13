@@ -14,9 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bell, Send, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import type { UserListItem } from '@/../../shared/types/user';
+import { settingsLogger } from '@/lib/logger';
 
 type User = UserListItem;
 
@@ -55,18 +57,13 @@ export function PushNotificationSettings() {
 
   const loadUsers = async () => {
     try {
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (response.ok) {
         const data = await response.json();
         setAllUsers(data);
       }
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      settingsLogger.error('Erro ao carregar usuários:', error);
     }
   };
 
@@ -78,7 +75,7 @@ export function PushNotificationSettings() {
         setSubscriptions(data);
       }
     } catch (error) {
-      console.error('Erro ao carregar inscrições:', error);
+      settingsLogger.error('Erro ao carregar inscrições:', error);
     }
   };
 

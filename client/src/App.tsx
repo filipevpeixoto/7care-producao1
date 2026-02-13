@@ -27,6 +27,7 @@ import { SkipLink } from './components/accessibility/SkipLink';
 import { RouteAnnouncer } from './components/accessibility/RouteAnnouncer';
 import { getSkeletonForRoute } from './components/ui/page-skeleton';
 import { usePrefetchOnMount } from './hooks/usePrefetch';
+import { uiLogger } from '@/lib/logger';
 
 // View Transitions CSS
 import './styles/view-transitions.css';
@@ -37,9 +38,9 @@ import './styles/view-transitions.css';
 function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
   return lazy(() =>
     importFn().catch((err) => {
-      console.error('[LazyLoad] Chunk load failed, retrying…', err);
+      uiLogger.error('[LazyLoad] Chunk load failed, retrying…', err);
       return importFn().catch((retryErr) => {
-        console.error('[LazyLoad] Retry also failed — reloading page', retryErr);
+        uiLogger.error('[LazyLoad] Retry also failed — reloading page', retryErr);
         // Avoid infinite reload loop by checking a sessionStorage flag
         const key = `chunk_reload_${window.location.pathname}`;
         if (!sessionStorage.getItem(key)) {
@@ -132,7 +133,7 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('🚨 Erro na rota:', error, info.componentStack);
+    uiLogger.error('Erro na rota:', error, info.componentStack);
   }
 
   render() {
@@ -452,7 +453,7 @@ const App = () => {
         event.reason?.message?.includes('listener indicated an asynchronous response') ||
         event.reason?.message?.includes('Extension context invalidated')
       ) {
-        console.warn('🔇 Erro de extensão do Chrome suprimido:', event.reason?.message);
+        uiLogger.warn('Erro de extensão do Chrome suprimido:', event.reason?.message);
         event.preventDefault();
         event.stopPropagation();
       }
@@ -465,7 +466,7 @@ const App = () => {
         event.message?.includes('listener indicated an asynchronous response') ||
         event.message?.includes('Extension context invalidated')
       ) {
-        console.warn('🔇 Erro de extensão do Chrome suprimido:', event.message);
+        uiLogger.warn('Erro de extensão do Chrome suprimido:', event.message);
         event.preventDefault();
         event.stopPropagation();
       }

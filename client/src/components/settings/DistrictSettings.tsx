@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
 import { useSituationLevels } from '@/hooks/useSituationLevels';
 import { SituationLevelsConfig } from './SituationLevelsConfig';
+import { settingsLogger } from '@/lib/logger';
 
 interface DistrictSettingsData {
   // Notificações
@@ -160,7 +161,7 @@ export function DistrictSettings() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
+      settingsLogger.error('Erro ao carregar configurações:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar as configurações do distrito',
@@ -201,7 +202,7 @@ export function DistrictSettings() {
         throw new Error(data.error || 'Erro ao salvar');
       }
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+      settingsLogger.error('Erro ao salvar configurações:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível salvar as configurações',

@@ -13,12 +13,13 @@ import { EventModal } from '@/components/calendar/EventModal';
 import { useEventFilterPermissions } from '@/hooks/useEventFilterPermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { hasAdminAccess } from '@/lib/permissions';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { type CalendarEvent, EVENT_TYPES } from '@/types/calendar';
 import { notificationService } from '@/lib/notificationService';
+import { fetchWithAuth } from '@/lib/api';
 import { toast as sonnerToast } from 'sonner';
+import { calendarLogger } from '@/lib/logger';
 
 // 🎯 CONFIGURAÇÃO DO GOOGLE SHEETS PARA EVENTOS
 const GOOGLE_SHEETS_CONFIG = {
@@ -30,7 +31,6 @@ const GOOGLE_SHEETS_CONFIG = {
 export default function Calendar() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const _queryClient = useQueryClient();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
@@ -38,9 +38,7 @@ export default function Calendar() {
   const [showBirthdays, setShowBirthdays] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const _isAdmin = hasAdminAccess(user);
   const {
-    getAvailableEventTypes,
     canFilterEventType,
     permissions,
     isLoading: permissionsLoading,
@@ -65,18 +63,13 @@ export default function Calendar() {
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['events', user?.id],
     queryFn: async () => {
-      console.log('📡 [API] Buscando eventos do servidor...');
-      const response = await fetch('/api/calendar/events', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      calendarLogger.debug('Buscando eventos do servidor...');
+      const response = await fetchWithAuth('/api/calendar/events');
       if (!response.ok) throw new Error('Erro ao buscar eventos');
       const rawEvents = await response.json();
       // A API pode retornar { data: [] } ou array diretamente
       const events = Array.isArray(rawEvents) ? rawEvents : rawEvents?.data || [];
-      console.log(`✅ [API] ${events.length} eventos carregados da API`);
+      calendarLogger.debug(`${events.length} eventos carregados da API`);
 
       // Remover duplicatas no frontend (proteção extra)
       const uniqueEvents = Array.from(
@@ -84,8 +77,8 @@ export default function Calendar() {
       );
 
       if (uniqueEvents.length < events.length) {
-        console.log(
-          `⚠️ [API] Removidas ${events.length - uniqueEvents.length} duplicatas do frontend`
+        calendarLogger.debug(
+          `Removidas ${events.length - uniqueEvents.length} duplicatas do frontend`
         );
       }
 
@@ -146,7 +139,7 @@ export default function Calendar() {
    */
   const syncFromGoogleSheets = async (showToast = false) => {
     try {
-      console.log('⬅️ [SYNC] Sincronizando do Google Sheets...');
+      calendarLogger.debug('Sincronizando do Google Sheets...');
       if (showToast) sonnerToast.info('Sincronizando...');
 
       // Buscar config
@@ -154,7 +147,7 @@ export default function Calendar() {
       const config = await configResponse.json();
 
       if (!config.spreadsheetUrl) {
-        console.log('⚠️ Nenhuma planilha configurada');
+        calendarLogger.debug('Nenhuma planilha configurada');
         return;
       }
 
@@ -170,8 +163,8 @@ export default function Calendar() {
         const hasChanges =
           result.importedCount > 0 || result.updatedCount > 0 || result.deletedCount > 0;
 
-        console.log(
-          `✅ [SYNC] ${result.importedCount || 0} novos, ${result.updatedCount || 0} atualizados, ${result.deletedCount || 0} removidos`
+        calendarLogger.debug(
+          `${result.importedCount || 0} novos, ${result.updatedCount || 0} atualizados, ${result.deletedCount || 0} removidos`
         );
 
         // Atualizar APENAS se houver mudanças
@@ -181,7 +174,7 @@ export default function Calendar() {
         }
       }
     } catch (error) {
-      console.error('❌ Erro:', error);
+      calendarLogger.error('Erro:', error);
       if (showToast) sonnerToast.error('Erro ao sincronizar');
     }
   };
@@ -195,7 +188,7 @@ export default function Calendar() {
       filtersInitialized.current = true;
       const allTypes = dynamicEventTypes.map(t => t.id);
       setActiveFilters(allTypes);
-      console.log('🎯 Filtros inicializados com TODAS as categorias:', allTypes);
+      calendarLogger.debug('Filtros inicializados com TODAS as categorias:', allTypes);
     }
   }, [user?.role, permissions, permissionsLoading, dynamicEventTypes]);
 
@@ -208,13 +201,13 @@ export default function Calendar() {
         if (!isMounted) return;
 
         if (event.detail && event.detail.type === 'calendar-events') {
-          console.log(
-            `📅 Importação de eventos bem-sucedida: ${event.detail.count} eventos importados`
+          calendarLogger.debug(
+            `Importação de eventos bem-sucedida: ${event.detail.count} eventos importados`
           );
           // A data da última importação será atualizada automaticamente pelo Settings
         }
       } catch (error) {
-        console.error('❌ Erro no handleImportSuccess:', error);
+        calendarLogger.error('Erro no handleImportSuccess:', error);
       }
     };
 
@@ -257,9 +250,8 @@ export default function Calendar() {
     try {
       if (isCreatingEvent) {
         // Criar novo evento no banco
-        const response = await fetch('/api/calendar/events', {
+        const response = await fetchWithAuth('/api/calendar/events', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id?.toString() || '' },
           body: JSON.stringify({
             title: eventData.title,
             description: eventData.description || '',
@@ -284,14 +276,13 @@ export default function Calendar() {
           try {
             await notificationService.notifyEventCreated(eventData.title, eventData.startDate);
           } catch (error) {
-            console.error('Erro ao enviar notificação:', error);
+            calendarLogger.error('Erro ao enviar notificação:', error);
           }
         }
       } else if (selectedEvent) {
         // Atualizar evento
-        const response = await fetch(`/api/calendar/events/${selectedEvent.id}`, {
+        const response = await fetchWithAuth(`/api/calendar/events/${selectedEvent.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id?.toString() || '' },
           body: JSON.stringify({
             title: eventData.title,
             description: eventData.description,
@@ -315,7 +306,7 @@ export default function Calendar() {
       await refetch();
       setShowEventModal(false);
     } catch (error: any) {
-      console.error('❌ Erro ao salvar evento:', error);
+      calendarLogger.error('Erro ao salvar evento:', error);
       sonnerToast.error(`Erro: ${error?.message || 'Erro desconhecido'}`);
     }
   };
@@ -323,9 +314,8 @@ export default function Calendar() {
   const handleDeleteEvent = async (eventId: number) => {
     try {
       // Deletar do banco
-      const response = await fetch(`/api/calendar/events/${eventId}`, {
+      const response = await fetchWithAuth(`/api/calendar/events/${eventId}`, {
         method: 'DELETE',
-        headers: { 'x-user-id': user?.id?.toString() || '' },
       });
 
       if (!response.ok) throw new Error('Erro ao deletar evento');
@@ -339,7 +329,7 @@ export default function Calendar() {
       await refetch();
       setShowEventModal(false);
     } catch (error) {
-      console.error('❌ Erro ao deletar:', error);
+      calendarLogger.error('Erro ao deletar:', error);
       sonnerToast.error('Erro ao deletar evento');
     }
   };
@@ -363,12 +353,8 @@ export default function Calendar() {
         local: event.location || '',
       };
 
-      const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
+      const response = await fetchWithAuth(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           action: 'addEvent',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
@@ -380,11 +366,11 @@ export default function Calendar() {
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          console.log(`✅ [ADD] Evento ${event.id} adicionado ao Google Sheets!`);
+          calendarLogger.debug(`Evento ${event.id} adicionado ao Google Sheets!`);
         }
       }
     } catch (error) {
-      console.error(`❌ [ADD] Erro ao adicionar evento ao Google Sheets:`, error);
+      calendarLogger.error(`Erro ao adicionar evento ao Google Sheets:`, error);
     }
   };
 
@@ -394,12 +380,8 @@ export default function Calendar() {
   const updateEventInGoogleSheets = async (event: any) => {
     try {
       // Deletar linha antiga
-      await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
+      await fetchWithAuth(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           action: 'deleteEvent',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
@@ -410,9 +392,9 @@ export default function Calendar() {
 
       // Adicionar com dados atualizados
       await addEventToGoogleSheets(event);
-      console.log(`✅ [UPDATE] Evento ${event.id} atualizado no Google Sheets!`);
+      calendarLogger.debug(`Evento ${event.id} atualizado no Google Sheets!`);
     } catch (error) {
-      console.error(`❌ [UPDATE] Erro ao atualizar evento no Google Sheets:`, error);
+      calendarLogger.error(`Erro ao atualizar evento no Google Sheets:`, error);
     }
   };
 
@@ -421,14 +403,10 @@ export default function Calendar() {
    */
   const deleteEventFromGoogleSheets = async (eventId: number) => {
     try {
-      console.log(`🗑️ [DELETE] Deletando evento ${eventId} do Google Sheets...`);
+      calendarLogger.debug(`Deletando evento ${eventId} do Google Sheets...`);
 
-      const response = await fetch(GOOGLE_SHEETS_CONFIG.proxyUrl, {
+      const response = await fetchWithAuth(GOOGLE_SHEETS_CONFIG.proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({
           action: 'deleteEvent',
           spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
@@ -440,11 +418,11 @@ export default function Calendar() {
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          console.log(`✅ [DELETE] Evento ${eventId} deletado do Google Sheets`);
+          calendarLogger.debug(`Evento ${eventId} deletado do Google Sheets`);
         }
       }
     } catch (error) {
-      console.error(`❌ [DELETE] Erro ao deletar evento do Google Sheets:`, error);
+      calendarLogger.error(`Erro ao deletar evento do Google Sheets:`, error);
     }
   };
 
@@ -475,16 +453,6 @@ export default function Calendar() {
 
   const clearAllFilters = () => {
     setActiveFilters([]);
-  };
-
-  const _selectAllFilters = () => {
-    if (user?.role) {
-      const availableTypes = getAvailableEventTypes(user.role);
-      setActiveFilters(availableTypes);
-    } else {
-      // Incluir todos os tipos, incluindo os dinâmicos
-      setActiveFilters(dynamicEventTypes.map(type => type.id));
-    }
   };
 
   return (

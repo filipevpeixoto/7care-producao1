@@ -1,5 +1,6 @@
-/* eslint-disable no-console, react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
+import { settingsLogger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -24,26 +25,26 @@ export function MobileHeaderLayoutEditor() {
 
   // Load mobile header layout from localStorage
   useEffect(() => {
-    console.log('🔧 Settings - Carregando layout do localStorage...');
+    settingsLogger.debug('Carregando layout do localStorage...');
     const savedLayout = localStorage.getItem('mobileHeaderLayout');
-    console.log('🔧 Settings - Layout salvo encontrado:', savedLayout);
+    settingsLogger.debug('Layout salvo encontrado:', savedLayout);
 
     if (savedLayout) {
       try {
         const parsedLayout = JSON.parse(savedLayout);
-        console.log('🔧 Settings - Layout parseado com sucesso:', parsedLayout);
+        settingsLogger.debug('Layout parseado com sucesso:', parsedLayout);
         setMobileHeaderLayout(parsedLayout);
       } catch (error) {
-        console.error('❌ Settings - Erro ao carregar layout do mobile header:', error);
+        settingsLogger.error('Erro ao carregar layout do mobile header:', error);
       }
     } else {
-      console.log('🔧 Settings - Nenhum layout salvo encontrado, usando padrão');
+      settingsLogger.debug('Nenhum layout salvo encontrado, usando padrão');
     }
   }, []);
 
   // Debug: Log sempre que o layout mudar
   useEffect(() => {
-    console.log('🔧 Settings - Estado do layout atualizado:', mobileHeaderLayout);
+    settingsLogger.debug('Estado do layout atualizado:', mobileHeaderLayout);
   }, [mobileHeaderLayout]);
 
   const updateMobileHeaderLayout = (
@@ -51,7 +52,7 @@ export function MobileHeaderLayoutEditor() {
     axis: 'offsetX' | 'offsetY',
     value: number
   ) => {
-    console.log(`🔧 Settings - Atualizando layout: ${element}.${axis} = ${value}`);
+    settingsLogger.debug(`Atualizando layout: ${element}.${axis} = ${value}`);
     setMobileHeaderLayout((prev) => {
       const newLayout = {
         ...prev,
@@ -60,30 +61,30 @@ export function MobileHeaderLayoutEditor() {
           [axis]: value,
         },
       };
-      console.log(`🔧 Settings - Novo layout:`, newLayout);
+      settingsLogger.debug(`Novo layout:`, newLayout);
       return newLayout;
     });
   };
 
   const resetMobileHeaderLayout = () => {
-    console.log('🔧 Settings - Resetando layout para valores padrão');
+    settingsLogger.debug('Resetando layout para valores padrão');
     setMobileHeaderLayout(defaultLayout);
-    console.log('🔧 Settings - Layout resetado:', defaultLayout);
+    settingsLogger.debug('Layout resetado:', defaultLayout);
   };
 
   const saveMobileHeaderLayout = () => {
-    console.log('🔧 Settings - Salvando layout:', mobileHeaderLayout);
+    settingsLogger.debug('Salvando layout:', mobileHeaderLayout);
 
     localStorage.setItem('mobileHeaderLayout', JSON.stringify(mobileHeaderLayout));
-    console.log('🔧 Settings - Layout salvo no localStorage');
+    settingsLogger.debug('Layout salvo no localStorage');
 
     // Disparar evento para notificar o MobileHeader
     const layoutEvent = new CustomEvent('mobileHeaderLayoutUpdated', {
       detail: { layout: mobileHeaderLayout },
     });
-    console.log('🔧 Settings - Disparando evento:', layoutEvent);
+    settingsLogger.debug('Disparando evento:', layoutEvent);
     window.dispatchEvent(layoutEvent);
-    console.log('🔧 Settings - Evento disparado com sucesso');
+    settingsLogger.debug('Evento disparado com sucesso');
 
     toast({
       title: 'Layout salvo',
@@ -315,12 +316,12 @@ export function MobileHeaderLayoutEditor() {
               variant="outline"
               size="sm"
               onClick={() => {
-                console.log('🔧 Settings - Teste manual do evento');
+                settingsLogger.debug('Teste manual do evento');
                 const testEvent = new CustomEvent('mobileHeaderLayoutUpdated', {
                   detail: { layout: mobileHeaderLayout },
                 });
                 window.dispatchEvent(testEvent);
-                console.log('🔧 Settings - Evento de teste disparado');
+                settingsLogger.debug('Evento de teste disparado');
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >

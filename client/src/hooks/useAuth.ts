@@ -27,6 +27,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { AuthUser as User } from '@/../../shared/types/user';
 import type { AuthState } from '@/types/auth';
 import { saveUsersOffline, canAccessFullOfflineData, clearEncryptionKey } from '@/lib/offline';
+import { authLogger } from '@/lib/logger';
 
 /**
  * Limpa o cache de API do Service Worker
@@ -44,10 +45,10 @@ async function clearApiCache(): Promise<void> {
         await caches.delete(cacheName);
       }
       
-      console.log('[Auth] Cache de Service Worker limpo');
+      authLogger.debug('Cache de Service Worker limpo');
     }
   } catch (error) {
-    console.warn('[Auth] Erro ao limpar cache SW:', error);
+    authLogger.warn('Erro ao limpar cache SW:', error);
   }
 }
 
@@ -59,9 +60,9 @@ async function clearReactQueryCache(): Promise<void> {
   try {
     const { queryClient } = await import('@/App');
     queryClient.clear();
-    console.log('[Auth] Cache do React Query limpo');
+    authLogger.debug('Cache do React Query limpo');
   } catch (error) {
-    console.warn('[Auth] Erro ao limpar cache RQ:', error);
+    authLogger.warn('Erro ao limpar cache RQ:', error);
   }
 }
 
@@ -78,12 +79,7 @@ async function clearAllCaches(): Promise<void> {
 /** User type com propriedades estendidas */
 type ExtendedUser = User;
 
-/** Logger condicional - só loga em desenvolvimento */
-const isDev = import.meta.env.DEV;
-const authLogger = {
-  debug: (...args: unknown[]) => isDev && console.log('[Auth]', ...args),
-  error: (...args: unknown[]) => console.error('[Auth Error]', ...args),
-};
+// authLogger is imported from @/lib/logger
 
 /** Chaves de armazenamento local */
 const AUTH_STORAGE_KEY = '7care_auth';

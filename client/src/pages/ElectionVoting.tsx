@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Vote, Users, ArrowRight, AlertCircle, Loader2, Church, Calendar } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { fetchWithAuth } from '@/lib/api';
 
 interface ActiveElection {
   election_id: number;
@@ -20,7 +20,6 @@ interface ActiveElection {
 
 export default function ElectionVoting() {
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const [activeElections, setActiveElections] = useState<ActiveElection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,11 +36,10 @@ export default function ElectionVoting() {
         return;
       }
 
-      const response = await fetch('/api/elections/active', {
+      const response = await fetchWithAuth('/api/elections/active', {
         headers: {
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
-          'x-user-id': user.id.toString(),
         },
       });
 

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RefreshCw, ExternalLink, Calendar, Settings, Clock } from 'lucide-react';
+import { calendarLogger } from '@/lib/logger';
 // import { useGoogleDriveSync } from '@/hooks/useGoogleDriveSync'; // Removido - usando implementação direta
 
 interface GoogleDriveImportModalProps {
@@ -62,7 +63,7 @@ export function GoogleDriveImportModal({
         }));
       }
     } catch (error) {
-      console.error('Erro ao carregar configuração:', error);
+      calendarLogger.error('Erro ao carregar configuração:', error);
     }
   };
 
@@ -71,7 +72,7 @@ export function GoogleDriveImportModal({
     if (!config.spreadsheetUrl) return;
 
     try {
-      console.log('🔍 [POLLING] Verificando mudanças...');
+      calendarLogger.debug('Verificando mudanças...');
 
       const response = await fetch('/api/calendar/check-changes', {
         method: 'POST',
@@ -88,13 +89,13 @@ export function GoogleDriveImportModal({
       setLastCheckResult(result);
 
       if (result.hasChanges) {
-        console.log('🔄 [POLLING] Mudanças detectadas!', result.changeReason);
+        calendarLogger.debug('Mudanças detectadas!', result.changeReason);
         setMessage(`🔄 Mudanças detectadas: ${result.changeReason}`);
 
         // Executar sincronização automática
         await handleSync();
       } else {
-        console.log('✅ [POLLING] Nenhuma mudança detectada');
+        calendarLogger.debug('Nenhuma mudança detectada');
       }
 
       // Atualizar timestamp da última verificação
@@ -103,7 +104,7 @@ export function GoogleDriveImportModal({
         lastCheck: result.checkedAt,
       }));
     } catch (error) {
-      console.error('❌ [POLLING] Erro ao verificar mudanças:', error);
+      calendarLogger.error('Erro ao verificar mudanças:', error);
       setMessage('❌ Erro ao verificar mudanças na planilha');
     }
   };
@@ -124,7 +125,7 @@ export function GoogleDriveImportModal({
     }, config.pollingInterval * 1000);
 
     setPollingInterval(interval);
-    console.log('🚀 [POLLING] Iniciado com intervalo de', config.pollingInterval, 'segundos');
+    calendarLogger.debug('Polling iniciado com intervalo de', config.pollingInterval, 'segundos');
   };
 
   // Parar polling
@@ -135,7 +136,7 @@ export function GoogleDriveImportModal({
     }
     setIsPolling(false);
     setMessage('⏹️ Monitoramento parado');
-    console.log('⏹️ [POLLING] Parado');
+    calendarLogger.debug('Polling parado');
   };
 
   // Carregar configuração salva
@@ -236,23 +237,23 @@ export function GoogleDriveImportModal({
   };
 
   const handleSync = async () => {
-    console.log('🚀 INÍCIO DA SINCRONIZAÇÃO');
-    console.log('📋 Config atual:', config);
+    calendarLogger.debug('INÍCIO DA SINCRONIZAÇÃO');
+    calendarLogger.debug('Config atual:', config);
 
     if (!config.spreadsheetUrl || !config.spreadsheetUrl.trim()) {
-      console.error('❌ URL não configurada');
+      calendarLogger.error('URL não configurada');
       setMessage('❌ Por favor, configure a URL da planilha primeiro');
       return;
     }
 
-    console.log('✅ URL válida, iniciando sincronização...');
+    calendarLogger.debug('URL válida, iniciando sincronização...');
     setIsLoading(true);
     setSyncStatus('syncing');
     setMessage('Sincronizando com Google Drive...');
 
     try {
       const url = config.spreadsheetUrl.trim();
-      console.log('🔄 URL sendo processada:', url);
+      calendarLogger.debug('URL sendo processada:', url);
 
       // Extrair ID da planilha
       let spreadsheetId = '';
@@ -262,14 +263,14 @@ export function GoogleDriveImportModal({
       const match1 = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
       if (match1) {
         spreadsheetId = match1[1];
-        console.log('✅ ID da planilha extraído:', spreadsheetId);
+        calendarLogger.debug('ID da planilha extraído:', spreadsheetId);
       }
 
       // Extrair gid se presente
       const gidMatch = url.match(/[?&]gid=(\d+)/);
       if (gidMatch) {
         gid = gidMatch[1];
-        console.log('✅ GID extraído:', gid);
+        calendarLogger.debug('GID extraído:', gid);
       }
 
       if (!spreadsheetId) {
@@ -277,10 +278,10 @@ export function GoogleDriveImportModal({
       }
 
       const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-      console.log('📊 CSV URL final:', csvUrl);
+      calendarLogger.debug('CSV URL final:', csvUrl);
 
       // Fazer a chamada para a API
-      console.log('🌐 Fazendo chamada para API...');
+      calendarLogger.debug('Fazendo chamada para API...');
       const response = await fetch('/api/calendar/sync-google-drive', {
         method: 'POST',
         headers: {
@@ -292,18 +293,18 @@ export function GoogleDriveImportModal({
         }),
       });
 
-      console.log('📡 Status da resposta:', response.status);
-      console.log('📡 Headers da resposta:', Object.fromEntries(response.headers.entries()));
+      calendarLogger.debug('Status da resposta:', response.status);
+      calendarLogger.debug('Headers da resposta:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         throw new Error(`Erro HTTP: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('📊 Resultado da API:', result);
+      calendarLogger.debug('Resultado da API:', result);
 
       if (result && result.success) {
-        console.log('✅ Sincronização bem-sucedida!');
+        calendarLogger.debug('Sincronização bem-sucedida!');
         setSyncStatus('success');
         setMessage(
           `✅ Sincronização concluída! ${result.importedCount || 0} eventos importados com sucesso`
@@ -324,18 +325,18 @@ export function GoogleDriveImportModal({
           onImportComplete?.();
         }, 2000);
       } else {
-        console.error('❌ API retornou erro:', result);
+        calendarLogger.error('API retornou erro:', result);
         setSyncStatus('error');
         setMessage(
           `❌ Erro na sincronização: ${result?.error || result?.message || 'Erro desconhecido'}`
         );
       }
     } catch (error) {
-      console.error('💥 ERRO CRÍTICO na sincronização:', error);
+      calendarLogger.error('ERRO CRÍTICO na sincronização:', error);
       setSyncStatus('error');
       setMessage(`❌ Erro ao sincronizar: ${(error as Error).message}`);
     } finally {
-      console.log('🏁 Finalizando sincronização...');
+      calendarLogger.debug('Finalizando sincronização...');
       setIsLoading(false);
     }
   };

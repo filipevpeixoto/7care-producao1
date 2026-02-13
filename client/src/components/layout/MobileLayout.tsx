@@ -4,7 +4,6 @@ import { MobileHeader } from './MobileHeader';
 import { MobileBottomNav } from './MobileBottomNav';
 import { Breadcrumbs } from './Breadcrumbs';
 import { useAuth } from '@/hooks/useAuth';
-import { hasAdminAccess } from '@/lib/permissions';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { RefreshCw } from 'lucide-react';
 
@@ -22,9 +21,7 @@ export const MobileLayout = ({
   fullscreen = false,
   showBreadcrumbs = true,
 }: MobileLayoutProps) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
-
-  const _isAdmin = hasAdminAccess(user);
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Pull to Refresh - DESABILITADO para evitar conflito com navegação
   const { containerRef, pullDistance, isRefreshing, progress } = usePullToRefresh({

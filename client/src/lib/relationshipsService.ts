@@ -1,6 +1,10 @@
 // Serviço temporário de relacionamentos usando LocalStorage
 // Este serviço será usado até que a API de relacionamentos seja corrigida
 
+import { createLogger } from '@/lib/logger';
+
+const relationshipsLogger = createLogger('Relationships');
+
 export interface Relationship {
   id: number;
   interestedId: number;
@@ -21,7 +25,7 @@ export class RelationshipsService {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Erro ao carregar relacionamentos do localStorage:', error);
+      relationshipsLogger.error('Erro ao carregar relacionamentos do localStorage:', error);
       return [];
     }
   }
@@ -30,14 +34,14 @@ export class RelationshipsService {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(relationships));
     } catch (error) {
-      console.error('Erro ao salvar relacionamentos no localStorage:', error);
+      relationshipsLogger.error('Erro ao salvar relacionamentos no localStorage:', error);
     }
   }
 
   static async getAllRelationships(): Promise<Relationship[]> {
-    console.log('🔍 Buscando relacionamentos do localStorage...');
+    relationshipsLogger.debug('Buscando relacionamentos do localStorage...');
     const relationships = this.getRelationships();
-    console.log('✅ Relacionamentos encontrados:', relationships.length);
+    relationshipsLogger.debug('Relacionamentos encontrados:', relationships.length);
     return relationships;
   }
 
@@ -47,7 +51,7 @@ export class RelationshipsService {
     status: string;
     notes?: string;
   }): Promise<Relationship> {
-    console.log('🔍 Criando relacionamento no localStorage:', data);
+    relationshipsLogger.debug('Criando relacionamento no localStorage:', data);
     
     const relationships = this.getRelationships();
     const newRelationship: Relationship = {
@@ -63,43 +67,43 @@ export class RelationshipsService {
     relationships.push(newRelationship);
     this.saveRelationships(relationships);
     
-    console.log('✅ Relacionamento criado:', newRelationship);
+    relationshipsLogger.debug('Relacionamento criado:', newRelationship);
     return newRelationship;
   }
 
   static async deleteRelationship(id: number): Promise<boolean> {
-    console.log('🔍 Deletando relacionamento do localStorage:', id);
+    relationshipsLogger.debug('Deletando relacionamento do localStorage:', id);
     
     const relationships = this.getRelationships();
     const filtered = relationships.filter(rel => rel.id !== id);
     
     if (filtered.length === relationships.length) {
-      console.log('❌ Relacionamento não encontrado');
+      relationshipsLogger.debug('Relacionamento não encontrado');
       return false;
     }
 
     this.saveRelationships(filtered);
-    console.log('✅ Relacionamento deletado');
+    relationshipsLogger.debug('Relacionamento deletado');
     return true;
   }
 
   static async getRelationshipsByInterested(interestedId: number): Promise<Relationship[]> {
-    console.log('🔍 Buscando relacionamentos por interessado:', interestedId);
+    relationshipsLogger.debug('Buscando relacionamentos por interessado:', interestedId);
     
     const relationships = this.getRelationships();
     const filtered = relationships.filter(rel => rel.interestedId === interestedId);
     
-    console.log('✅ Relacionamentos encontrados para interessado:', filtered.length);
+    relationshipsLogger.debug('Relacionamentos encontrados para interessado:', filtered.length);
     return filtered;
   }
 
   static async getRelationshipsByMissionary(missionaryId: number): Promise<Relationship[]> {
-    console.log('🔍 Buscando relacionamentos por missionário:', missionaryId);
+    relationshipsLogger.debug('Buscando relacionamentos por missionário:', missionaryId);
     
     const relationships = this.getRelationships();
     const filtered = relationships.filter(rel => rel.missionaryId === missionaryId);
     
-    console.log('✅ Relacionamentos encontrados para missionário:', filtered.length);
+    relationshipsLogger.debug('Relacionamentos encontrados para missionário:', filtered.length);
     return filtered;
   }
 

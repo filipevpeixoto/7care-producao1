@@ -24,6 +24,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { Church } from '@/types/domain';
 import { EditableField } from '@/components/ui/EditableField';
+import { fetchWithAuth } from '@/lib/api';
+import { settingsLogger } from '@/lib/logger';
 
 interface ChurchManagementTabProps {
   user: any;
@@ -48,9 +50,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
             ? `/api/churches?districtId=${userDistrictId}`
             : '/api/churches';
 
-      const response = await fetch(churchesUrl, {
-        headers: { 'x-user-id': user?.id?.toString() || '' },
-      });
+      const response = await fetchWithAuth(churchesUrl);
       if (response.ok) {
         const rawChurches = await response.json();
         const churches = Array.isArray(rawChurches) ? rawChurches : rawChurches?.data || [];
@@ -72,7 +72,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
         setChurchesList(formattedChurches);
       }
     } catch (error) {
-      console.error('Error loading churches:', error);
+      settingsLogger.error('Error loading churches:', error);
     }
   };
 
@@ -87,7 +87,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
         }
       }
     } catch (error) {
-      console.error('Error loading default church:', error);
+      settingsLogger.error('Error loading default church:', error);
     }
   };
 
@@ -121,7 +121,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
         throw new Error('Failed to update default church');
       }
     } catch (error) {
-      console.error('Error saving default church:', error);
+      settingsLogger.error('Error saving default church:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível definir a igreja padrão.',
@@ -137,12 +137,8 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
     if (!church) return;
 
     try {
-      const response = await fetch(`/api/churches/${churchId}`, {
+      const response = await fetchWithAuth(`/api/churches/${churchId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({ isActive: !church.active }),
       });
 
@@ -170,12 +166,8 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
 
   const addNewChurch = async () => {
     try {
-      const response = await fetch('/api/churches', {
+      const response = await fetchWithAuth('/api/churches', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({ name: 'Nova Igreja', address: 'Endereço da igreja' }),
       });
 
@@ -197,12 +189,8 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
 
   const updateChurchField = async (churchId: number, field: string, value: string) => {
     try {
-      const response = await fetch(`/api/churches/${churchId}`, {
+      const response = await fetchWithAuth(`/api/churches/${churchId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id?.toString() || '',
-        },
         body: JSON.stringify({ [field]: value }),
       });
 

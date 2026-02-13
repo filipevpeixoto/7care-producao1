@@ -69,6 +69,7 @@ export const EventModal = ({
     propEventTypes.map(t => ({ value: t.id, label: t.label })) : 
     defaultEventTypes;
   const [isEditing, setIsEditing] = useState(initialEditing || !event);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<CalendarEvent>>(event || {
     title: '',
     description: '',
@@ -83,11 +84,16 @@ export const EventModal = ({
   });
 
 
-  const handleSave = () => {
-    onSave(formData);
-    setIsEditing(false);
-    if (!event) {
-      onClose();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      onSave(formData);
+      setIsEditing(false);
+      if (!event) {
+        onClose();
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -178,14 +184,15 @@ export const EventModal = ({
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={handleSave}
+                  disabled={isSaving}
                   data-testid="button-save-event"
                   className="h-6 px-2 text-xs"
                 >
                   <Save className="h-3 w-3 mr-1" />
-                  Salvar
+                  {isSaving ? 'Salvando...' : 'Salvar'}
                 </Button>
               </div>
             )}

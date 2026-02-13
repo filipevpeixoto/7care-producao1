@@ -8,6 +8,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { calendarLogger } from '@/lib/logger';
 
 interface CalendarEvent {
   id: number;
@@ -48,13 +49,13 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
   // Buscar eventos
   const fetchEvents = async () => {
     try {
-      console.log('🔍 Buscando eventos...');
+      calendarLogger.debug('Buscando eventos...');
       const response = await fetch('/api/events');
       const data = await response.json();
-      console.log('📅 Eventos recebidos:', data);
+      calendarLogger.debug('Eventos recebidos:', data);
       setEvents(data || []);
     } catch (error) {
-      console.error('Erro ao buscar eventos:', error);
+      calendarLogger.error('Erro ao buscar eventos:', error);
       setEvents([]);
     } finally {
       setIsLoading(false);
@@ -142,7 +143,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
         churchId: 1,
       };
 
-      console.log('🔧 Criando evento:', eventData);
+      calendarLogger.debug('Criando evento:', eventData);
 
       const response = await fetch('/api/events', {
         method: 'POST',
@@ -153,7 +154,7 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
       });
 
       if (response.ok) {
-        console.log('✅ Evento criado com sucesso');
+        calendarLogger.debug('Evento criado com sucesso');
         setNewEvent({
           title: '',
           description: '',
@@ -165,10 +166,10 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
         setIsCreateModalOpen(false);
         fetchEvents();
       } else {
-        console.error('Erro ao criar evento');
+        calendarLogger.error('Erro ao criar evento');
       }
     } catch (error) {
-      console.error('Erro ao criar evento:', error);
+      calendarLogger.error('Erro ao criar evento:', error);
     }
   };
 

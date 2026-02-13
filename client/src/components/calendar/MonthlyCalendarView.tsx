@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEventFilterPermissions } from '@/hooks/useEventFilterPermissions';
 import { type CalendarEvent, EVENT_TYPES } from '@/types/calendar';
 import { useBirthdays } from '@/hooks/useBirthdays';
+import { calendarLogger } from '@/lib/logger';
 
 // Função utilitária para formatar datas sem problemas de fuso horário
 const formatDateSafe = (dateString: string): string => {
@@ -136,7 +137,7 @@ const fetchEvents = async (userRole?: string): Promise<CalendarEvent[]> => {
     // Combinar todos os eventos (apenas dados reais do banco)
     const allEvents = [...eventsFromMeetings, ...eventsFromApi];
 
-    console.log('📊 Resumo dos eventos:', {
+    calendarLogger.debug('Resumo dos eventos:', {
       meetingsCount: eventsFromMeetings.length,
       apiEventsCount: eventsFromApi.length,
       totalEvents: allEvents.length,
@@ -147,7 +148,7 @@ const fetchEvents = async (userRole?: string): Promise<CalendarEvent[]> => {
 
     return allEvents;
   } catch (error) {
-    console.error('❌ Erro ao buscar eventos:', error);
+    calendarLogger.error('Erro ao buscar eventos:', error);
     return [];
   }
 };
@@ -284,7 +285,7 @@ export const MonthlyCalendarView = memo(({
   }, []);
 
   // Debug log para verificar o estado
-  console.log('🎂 Estado dos aniversariantes:', {
+  calendarLogger.debug('Estado dos aniversariantes:', {
     showBirthdays,
     birthdaysCount: birthdays.all?.length || 0,
     thisMonthCount: birthdays.thisMonth?.length || 0,
@@ -305,7 +306,7 @@ export const MonthlyCalendarView = memo(({
   });
 
   // Debug log para verificar os eventos carregados
-  console.log('📅 [MonthlyCalendarView] Eventos:', {
+  calendarLogger.debug('[MonthlyCalendarView] Eventos:', {
     source: propsEvents && propsEvents.length > 0 ? 'props' : 'api fetch',
     propsEventsCount: propsEvents?.length || 0,
     fetchedEventsCount: allEvents?.length || 0,
@@ -323,7 +324,7 @@ export const MonthlyCalendarView = memo(({
     // Use activeFilters from props
     if (activeFilters.length > 0) {
       const isIncluded = activeFilters.includes(event.type);
-      console.log(`🔍 Filtro de evento "${event.title}":`, {
+      calendarLogger.debug(`Filtro de evento "${event.title}":`, {
         eventType: event.type,
         activeFilters,
         isIncluded,
@@ -334,7 +335,7 @@ export const MonthlyCalendarView = memo(({
     return true;
   });
 
-  console.log('🔍 Eventos filtrados:', {
+  calendarLogger.debug('Eventos filtrados:', {
     totalEvents: allEvents?.length || 0,
     filteredEvents: filteredEvents?.length || 0,
     activeFilters,
@@ -349,7 +350,7 @@ export const MonthlyCalendarView = memo(({
   };
 
   const getEventsByDate = (date: string) => {
-    console.log(`🔍 getEventsByDate para ${date}:`, {
+    calendarLogger.debug(`getEventsByDate para ${date}:`, {
       filteredEventsCount: filteredEvents?.length || 0,
       filteredEvents,
     });
@@ -365,7 +366,6 @@ export const MonthlyCalendarView = memo(({
         const endDate = new Date(`${eventEnd}T23:59:59`); // Incluir o dia inteiro
 
         const isInRange = currentDate >= startDate && currentDate <= endDate;
-        const _isMultiDay = event.endDate && event.startDate !== event.endDate;
 
         // Log específico para eventos de múltiplos dias
         // if (isMultiDay) {
@@ -398,7 +398,7 @@ export const MonthlyCalendarView = memo(({
         return isInRange;
       }) || [];
 
-    console.log(`🔍 Eventos encontrados para ${date}:`, events);
+    calendarLogger.debug(`Eventos encontrados para ${date}:`, events);
 
     // Ordenar eventos: eventos de múltiplos dias primeiro (maior duração = maior prioridade)
     return events.sort((a, b) => {
@@ -425,7 +425,7 @@ export const MonthlyCalendarView = memo(({
 
   const getBirthdaysForDate = (date: Date): BirthdayUser[] => {
     if (!showBirthdays) {
-      console.log('🎂 showBirthdays está false, retornando array vazio');
+      calendarLogger.debug('showBirthdays está false, retornando array vazio');
       return [];
     }
 
@@ -433,8 +433,8 @@ export const MonthlyCalendarView = memo(({
     const currentMonth = date.getMonth();
     const currentDay = date.getDate();
 
-    console.log(`🎂 Verificando aniversariantes para ${currentDay}/${currentMonth + 1}`);
-    console.log(`🎂 Total de aniversariantes disponíveis: ${birthdays.all?.length || 0}`);
+    calendarLogger.debug(`Verificando aniversariantes para ${currentDay}/${currentMonth + 1}`);
+    calendarLogger.debug(`Total de aniversariantes disponíveis: ${birthdays.all?.length || 0}`);
 
     // Filtrar aniversariantes do mês atual do calendário (não do mês atual do sistema)
     const filteredBirthdays = (birthdays.all || []).filter(user => {
@@ -450,22 +450,22 @@ export const MonthlyCalendarView = memo(({
       const birthMonth = parseInt(month) - 1; // Mês começa em 0
       const birthDay = parseInt(day);
 
-      console.log(
-        `🎂 ${user.name}: ${birthDay}/${birthMonth + 1} vs ${currentDay}/${currentMonth + 1}`
+      calendarLogger.debug(
+        `${user.name}: ${birthDay}/${birthMonth + 1} vs ${currentDay}/${currentMonth + 1}`
       );
 
       // Compara mês e dia - CORRIGIDO
       const matches = birthMonth === currentMonth && birthDay === currentDay;
 
       if (matches) {
-        console.log(`🎂 ✅ MATCH: ${user.name} faz aniversário em ${birthDay}/${birthMonth + 1}`);
+        calendarLogger.debug(`MATCH: ${user.name} faz aniversário em ${birthDay}/${birthMonth + 1}`);
       }
 
       return matches;
     });
 
-    console.log(
-      `🎂 Total de aniversariantes para ${currentDay}/${currentMonth + 1}: ${filteredBirthdays.length}`
+    calendarLogger.debug(
+      `Total de aniversariantes para ${currentDay}/${currentMonth + 1}: ${filteredBirthdays.length}`
     );
 
     return filteredBirthdays;
@@ -505,7 +505,7 @@ export const MonthlyCalendarView = memo(({
   // });
 
   // Debug log para verificar a data atual
-  console.log('📅 Data atual do calendário:', {
+  calendarLogger.debug('Data atual do calendário:', {
     currentMonth: currentDate.getMonth(),
     currentMonthName: monthNames[currentDate.getMonth()],
     currentYear: currentDate.getFullYear(),
@@ -821,14 +821,14 @@ export const MonthlyCalendarView = memo(({
                   const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 
                   dayBirthdays = getBirthdaysForDate(date);
-                  console.log(
-                    `🎂 Dia ${dateString} (${day}/${month}): ${dayBirthdays.length} aniversariantes encontrados`
+                  calendarLogger.debug(
+                    `Dia ${dateString} (${day}/${month}): ${dayBirthdays.length} aniversariantes encontrados`
                   );
 
                   // Debug adicional
                   if (dayBirthdays.length > 0) {
-                    console.log(
-                      `🎂 Aniversariantes para ${dateString}:`,
+                    calendarLogger.debug(
+                      `Aniversariantes para ${dateString}:`,
                       dayBirthdays.map(b => b.name)
                     );
                   }

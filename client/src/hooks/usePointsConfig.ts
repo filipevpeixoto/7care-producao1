@@ -3,6 +3,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { hasAdminAccess } from '@/lib/permissions';
+import { createLogger } from '@/lib/logger';
+
+const pointsLogger = createLogger('Points');
 
 export interface PointsConfig {
   engajamento: {
@@ -134,7 +137,7 @@ export const usePointsConfig = () => {
   const [config, setConfig] = useState<PointsConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  useAuth();
 
   // Carregar configurações do localStorage ou backend
   useEffect(() => {
@@ -155,7 +158,7 @@ export const usePointsConfig = () => {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
+        pointsLogger.error('Erro ao carregar configurações:', error);
         // Fallback para localStorage
         const savedConfig = localStorage.getItem('pointsConfig');
         if (savedConfig) {
@@ -189,15 +192,15 @@ export const usePointsConfig = () => {
 
       // Mostrar mensagem de sucesso com informações do recálculo
       if (result.updatedUsers > 0) {
-        console.log(
-          `✅ Configuração salva e ${result.updatedUsers} usuários atualizados automaticamente!`
+        pointsLogger.debug(
+          `Configuração salva e ${result.updatedUsers} usuários atualizados automaticamente!`
         );
         toast({
           title: 'Configurações salvas!',
           description: `${result.updatedUsers} usuários tiveram seus pontos recalculados automaticamente.`,
         });
       } else {
-        console.log('✅ Configuração salva com sucesso!');
+        pointsLogger.debug('Configuração salva com sucesso!');
         toast({
           title: 'Configurações salvas!',
           description: 'As configurações foram salvas com sucesso.',
@@ -206,7 +209,7 @@ export const usePointsConfig = () => {
 
       return true;
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+      pointsLogger.error('Erro ao salvar configurações:', error);
 
       toast({
         title: 'Erro ao salvar',
@@ -298,7 +301,7 @@ export const usePointsConfig = () => {
       const result = await response.json();
       return result.success ? parseFloat(result.currentAverage) : 0;
     } catch (error) {
-      console.error('Erro ao obter média atual:', error);
+      pointsLogger.error('Erro ao obter média atual:', error);
       return 0;
     }
   };
@@ -335,7 +338,7 @@ export const usePointsConfig = () => {
       }, 0);
       return totalPoints / regularUsers.length;
     } catch (error) {
-      console.error('Erro ao calcular média dos usuários:', error);
+      pointsLogger.error('Erro ao calcular média dos usuários:', error);
       return 0;
     }
   };

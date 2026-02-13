@@ -5,6 +5,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { createLogger } from '@/lib/logger';
+
+const notificationsLogger = createLogger('Notifications');
 
 interface Notification {
   id: string;
@@ -35,7 +38,7 @@ export default function NotificationsHistory() {
         const res = await fetch(`/api/notifications/${user.id}?limit=50`);
         if (res.ok) {
           const dbNotifications = await res.json();
-          console.log('📥 Notificações do banco:', dbNotifications.length);
+          notificationsLogger.debug('Notificações do banco:', dbNotifications.length);
 
           // Converter formato do BD para o formato da interface
           const formattedNotifications = dbNotifications.map((notif: any) => ({
@@ -59,7 +62,7 @@ export default function NotificationsHistory() {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar notificações:', error);
+        notificationsLogger.error('Erro ao carregar notificações:', error);
 
         // Fallback para localStorage
         try {
@@ -69,7 +72,7 @@ export default function NotificationsHistory() {
             setNotifications(parsed);
           }
         } catch (e) {
-          console.error('Erro ao carregar do localStorage:', e);
+          notificationsLogger.error('Erro ao carregar do localStorage:', e);
         }
       }
     };
@@ -131,7 +134,7 @@ export default function NotificationsHistory() {
       });
 
       audio.play().catch(err => {
-        console.error('Erro ao tocar áudio:', err);
+        notificationsLogger.error('Erro ao tocar áudio:', err);
         toast({
           title: 'Erro ao reproduzir',
           description: 'Por favor, tente novamente.',
@@ -140,7 +143,7 @@ export default function NotificationsHistory() {
         setPlayingAudioId(null);
       });
     } catch (error) {
-      console.error('Erro ao criar áudio:', error);
+      notificationsLogger.error('Erro ao criar áudio:', error);
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro ao tentar reproduzir o áudio.',

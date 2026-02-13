@@ -1,4 +1,5 @@
 // Configurações de performance para o aplicativo
+import logger from '@/lib/logger';
 export const PERFORMANCE_CONFIG = {
   // Configurações de React Query
   queryDefaults: {
@@ -111,24 +112,13 @@ export const throttle = <T extends (...args: any[]) => any>(
 };
 
 /**
- * Logger condicional que só exibe logs em desenvolvimento
+ * Logger condicional que delega ao logger estruturado
  * Use este em vez de console.log diretamente
  */
 export const devLog = {
-  log: (...args: unknown[]) => {
-    if (isDevelopment()) console.log(...args);
-  },
-  info: (...args: unknown[]) => {
-    if (isDevelopment()) console.info(...args);
-  },
-  warn: (...args: unknown[]) => {
-    if (isDevelopment()) console.warn(...args);
-  },
-  error: (...args: unknown[]) => {
-    // Erros são sempre logados, mesmo em produção
-    console.error(...args);
-  },
-  debug: (...args: unknown[]) => {
-    if (isDevelopment()) console.debug(...args);
-  }
+  log: (...args: unknown[]) => logger.debug(...args),
+  info: (...args: unknown[]) => logger.info(...args),
+  warn: (...args: unknown[]) => logger.warn(...args),
+  error: (...args: unknown[]) => logger.error(...args),
+  debug: (...args: unknown[]) => logger.debug(...args),
 };

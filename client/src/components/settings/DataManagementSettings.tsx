@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
 import { useLastImportDate } from '@/hooks/useLastImportDate';
 import { ImportExcelModal } from '@/components/calendar/ImportExcelModal';
 import { GoogleDriveImportModal } from '@/components/calendar/GoogleDriveImportModal';
@@ -56,12 +57,7 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
   const exportData = async (format: 'json' | 'xlsx') => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (!response.ok) throw new Error('Erro ao buscar dados');
 
       const users = await response.json();
@@ -109,12 +105,8 @@ export function DataManagementSettings({ onImportComplete }: DataManagementProps
     if (!user?.districtId) return;
     setIsClearing(true);
     try {
-      const response = await fetch(`/api/districts/${user.districtId}/data`, {
+      const response = await fetchWithAuth(`/api/districts/${user.districtId}/data`, {
         method: 'DELETE',
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Erro ao limpar dados');

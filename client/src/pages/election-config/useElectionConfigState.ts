@@ -308,8 +308,7 @@ export function useElectionConfigState() {
           headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
         });
         if (response.ok) {
-          const rawConfigs = await response.json();
-          const configs = Array.isArray(rawConfigs) ? rawConfigs : rawConfigs?.data || [];
+          await response.json();
           // Permitir múltiplas configurações
           setConfigExists(false);
         }

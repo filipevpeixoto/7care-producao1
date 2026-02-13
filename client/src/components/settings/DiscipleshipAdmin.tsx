@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UserListItem } from '@/../../shared/types/user';
 import {
@@ -60,12 +61,7 @@ export function DiscipleshipAdmin() {
   const { data: users = [] } = useQuery({
     queryKey: ['users', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       return response.json();
     },

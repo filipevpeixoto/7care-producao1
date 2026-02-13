@@ -36,6 +36,9 @@ import {
   canAccessFullOfflineData,
   hashData,
 } from '@/lib/offline';
+import { createLogger } from '@/lib/logger';
+
+const offlineLogger = createLogger('Offline');
 
 // ===== TIPOS =====
 
@@ -143,7 +146,7 @@ let isIntercepting = false;
  */
 export function setOfflineUserRole(role: string | null): void {
   currentUserRole = role;
-  console.log(`[OfflineFetch] Role definido: ${role || 'nenhum'}`);
+  offlineLogger.debug(`Role definido: ${role || 'nenhum'}`);
 }
 
 /**
@@ -169,14 +172,14 @@ export function hasOfflineAccess(): boolean {
       const user = JSON.parse(storedAuth);
       if (user?.role) {
         currentUserRole = user.role;
-        console.log(
-          `[OfflineFetch] Role recuperado do localStorage em hasOfflineAccess: ${user.role}`
+        offlineLogger.debug(
+          `Role recuperado do localStorage em hasOfflineAccess: ${user.role}`
         );
         return canAccessFullOfflineData(user.role);
       }
     }
   } catch (e) {
-    console.warn('[OfflineFetch] Erro ao recuperar role:', e);
+    offlineLogger.warn('Erro ao recuperar role:', e);
   }
 
   return false;
@@ -222,7 +225,7 @@ async function handleGetRequest(
 ): Promise<Response> {
   const baseUrl = getBaseUrl(url);
 
-  console.log(`[OfflineFetch] GET ${url}`, {
+  offlineLogger.debug(`GET ${url}`, {
     baseUrl,
     canUseOffline,
     isOnline: navigator.onLine,
@@ -239,13 +242,13 @@ async function handleGetRequest(
 
       // Processar em background para não bloquear
       processAndCacheResponse(baseUrl, clonedResponse).catch(err =>
-        console.warn('[OfflineFetch] Erro ao cachear resposta:', err)
+        offlineLogger.warn('Erro ao cachear resposta:', err)
       );
     }
 
     return response;
   } catch (error) {
-    console.log(`[OfflineFetch] Erro de rede para ${url}:`, {
+    offlineLogger.debug(`Erro de rede para ${url}:`, {
       error: error instanceof Error ? error.message : String(error),
       isOfflineError: isOfflineError(error),
       navigatorOnline: navigator.onLine,
@@ -254,14 +257,14 @@ async function handleGetRequest(
 
     // Se offline ou erro de rede, tentar buscar do cache
     if (canUseOffline && (isOfflineError(error) || !navigator.onLine)) {
-      console.log(`[OfflineFetch] Tentando buscar do cache: ${url}`);
+      offlineLogger.debug(`Tentando buscar do cache: ${url}`);
 
       const cachedResponse = await getCachedResponse(baseUrl, url);
       if (cachedResponse) {
-        console.log(`[OfflineFetch] ✓ Dados retornados do cache para ${url}`);
+        offlineLogger.debug(`Dados retornados do cache para ${url}`);
         return cachedResponse;
       } else {
-        console.warn(`[OfflineFetch] ✗ Nenhum dado no cache para ${url}`);
+        offlineLogger.warn(`Nenhum dado no cache para ${url}`);
       }
     }
 
@@ -320,10 +323,10 @@ async function processAndCacheResponse(baseUrl: string, response: Response): Pro
 
       // Atualizar timestamp do cache
       cacheTimestamps.set(baseUrl, Date.now());
-      console.log(`[OfflineFetch] Cache atualizado: ${baseUrl} (${data.length} itens)`);
+      offlineLogger.debug(`Cache atualizado: ${baseUrl} (${data.length} itens)`);
     }
   } catch (err) {
-    console.warn('[OfflineFetch] Erro ao processar resposta para cache:', err);
+    offlineLogger.warn('Erro ao processar resposta para cache:', err);
   }
 }
 
@@ -339,7 +342,7 @@ async function getCachedResponse(baseUrl: string, originalUrl: string): Promise<
     const params = extractUrlParams(originalUrl);
     const cachedData = await handler.get(params);
 
-    console.log(`[OfflineFetch] Buscando do cache ${baseUrl}:`, {
+    offlineLogger.debug(`Buscando do cache ${baseUrl}:`, {
       found: !!cachedData,
       length: cachedData?.length || 0,
       params,
@@ -348,7 +351,7 @@ async function getCachedResponse(baseUrl: string, originalUrl: string): Promise<
     if (cachedData && cachedData.length > 0) {
       const cachedAt = cacheTimestamps.get(baseUrl);
 
-      console.log(`[OfflineFetch] ✓ Retornando ${cachedData.length} itens do cache offline`);
+      offlineLogger.debug(`Retornando ${cachedData.length} itens do cache offline`);
 
       return new Response(JSON.stringify(cachedData), {
         status: 200,
@@ -360,10 +363,10 @@ async function getCachedResponse(baseUrl: string, originalUrl: string): Promise<
         },
       });
     } else {
-      console.warn(`[OfflineFetch] ⚠️ Cache vazio para ${baseUrl}`);
+      offlineLogger.warn(`Cache vazio para ${baseUrl}`);
     }
   } catch (cacheError) {
-    console.error('[OfflineFetch] ❌ Erro ao buscar do cache:', cacheError);
+    offlineLogger.error('Erro ao buscar do cache:', cacheError);
   }
 
   return null;
@@ -393,7 +396,7 @@ async function queueForSync(
   init: FetchOptions | undefined,
   method: HttpMethod
 ): Promise<Response> {
-  console.log(`[OfflineFetch] Offline - adicionando à fila de sync: ${method} ${url}`);
+  offlineLogger.debug(`Offline - adicionando à fila de sync: ${method} ${url}`);
 
   const baseUrl = getBaseUrl(url);
   const entity = getEntityFromUrl(baseUrl);
@@ -612,7 +615,7 @@ function isOfflineError(error: unknown): boolean {
  */
 export function enableGlobalOfflineFetch(): void {
   if (isIntercepting) {
-    console.log('[OfflineFetch] Interceptação já está ativa');
+    offlineLogger.debug('Interceptação já está ativa');
     return;
   }
 
@@ -623,11 +626,11 @@ export function enableGlobalOfflineFetch(): void {
       const user = JSON.parse(storedAuth);
       if (user?.role) {
         currentUserRole = user.role;
-        console.log(`[OfflineFetch] Role recuperado do localStorage: ${user.role}`);
+        offlineLogger.debug(`Role recuperado do localStorage: ${user.role}`);
       }
     }
   } catch (e) {
-    console.warn('[OfflineFetch] Erro ao recuperar role do localStorage:', e);
+    offlineLogger.warn('Erro ao recuperar role do localStorage:', e);
   }
 
   originalFetch = window.fetch.bind(window);
@@ -651,7 +654,7 @@ export function enableGlobalOfflineFetch(): void {
     return originalFetch!(input, init);
   };
 
-  console.log('[OfflineFetch] Interceptação global ativada');
+  offlineLogger.debug('Interceptação global ativada');
 }
 
 /**
@@ -659,7 +662,7 @@ export function enableGlobalOfflineFetch(): void {
  */
 export function disableGlobalOfflineFetch(): void {
   if (!isIntercepting || !originalFetch) {
-    console.log('[OfflineFetch] Interceptação não está ativa');
+    offlineLogger.debug('Interceptação não está ativa');
     return;
   }
 
@@ -667,7 +670,7 @@ export function disableGlobalOfflineFetch(): void {
   originalFetch = null;
   isIntercepting = false;
 
-  console.log('[OfflineFetch] Interceptação global desativada');
+  offlineLogger.debug('Interceptação global desativada');
 }
 
 /**
@@ -693,10 +696,10 @@ export async function cacheCurrentUser(user: unknown): Promise<void> {
 
     if (userData?.id && userData?.name && userData?.email && userData?.role) {
       await saveCurrentUserOffline(user as Parameters<typeof saveCurrentUserOffline>[0]);
-      console.log('[OfflineFetch] Usuário atual cacheado');
+      offlineLogger.debug('Usuário atual cacheado');
     }
   } catch (error) {
-    console.warn('[OfflineFetch] Erro ao cachear usuário:', error);
+    offlineLogger.warn('Erro ao cachear usuário:', error);
   }
 }
 
@@ -707,7 +710,7 @@ export async function getCachedCurrentUser(): Promise<unknown | null> {
   try {
     return await getCurrentUserOffline();
   } catch (error) {
-    console.warn('[OfflineFetch] Erro ao recuperar usuário do cache:', error);
+    offlineLogger.warn('Erro ao recuperar usuário do cache:', error);
     return null;
   }
 }
@@ -717,5 +720,5 @@ export async function getCachedCurrentUser(): Promise<unknown | null> {
  */
 export function clearCacheTimestamps(): void {
   cacheTimestamps.clear();
-  console.log('[OfflineFetch] Cache timestamps limpos');
+  offlineLogger.debug('Cache timestamps limpos');
 }

@@ -20,6 +20,7 @@ import {
 import { Bell, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { hasAdminAccess } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/api';
 
 interface SendNotificationModalProps {
   isOpen: boolean;
@@ -33,18 +34,14 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
   const [notificationTitle, setNotificationTitle] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState('general');
+  const [isSending, setIsSending] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | string | null>(null);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [_subscriptionsList, setSubscriptionsList] = useState<any[]>([]);
 
   const loadUsers = async () => {
     try {
-      const response = await fetch('/api/users', {
-        headers: {
-          'x-user-id': user?.id?.toString() || '',
-          'x-user-role': user?.role || '',
-        },
-      });
+      const response = await fetchWithAuth('/api/users');
       if (response.ok) {
         const data = await response.json();
         setUsersList(data.users || []);
@@ -67,6 +64,7 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
   };
 
   const sendNotification = async () => {
+    if (isSending) return;
     try {
       if (!notificationTitle || !notificationMessage) {
         toast({
@@ -77,6 +75,7 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
         return;
       }
 
+      setIsSending(true);
       const response = await fetch('/api/push/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,6 +112,8 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
         description: 'Não foi possível enviar a notificação.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -212,10 +213,10 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
           </Button>
           <Button
             onClick={sendNotification}
-            disabled={!notificationTitle || !notificationMessage}
+            disabled={!notificationTitle || !notificationMessage || isSending}
           >
             <Send className="h-4 w-4 mr-2" />
-            Enviar
+            {isSending ? 'Enviando...' : 'Enviar'}
           </Button>
         </div>
       </DialogContent>
