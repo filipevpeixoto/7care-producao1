@@ -113,7 +113,7 @@
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "express-rate-limit": "^8.2.1",
-    "framer-motion": "^11.13.1",
+    "framer-motion": "^12.34.0",
     "googleapis": "^171.2.0",
     "helmet": "^8.1.0",
     "i18next": "^25.8.0",
