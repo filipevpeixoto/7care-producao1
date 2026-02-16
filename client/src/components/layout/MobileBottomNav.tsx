@@ -348,8 +348,9 @@ export const MobileBottomNav = memo(() => {
                           <button
                             key={subIndex}
                             role="menuitem"
-                            onClick={(e) => {
+                            onPointerDown={(e) => {
                               e.stopPropagation();
+                              e.preventDefault();
                               setAdminMenuOpen(false);
                               handleNavigation(subItem.path);
                             }}
