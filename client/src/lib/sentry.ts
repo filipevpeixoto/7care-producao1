@@ -9,13 +9,16 @@
  * automatically once Sentry is initialized here.
  */
 
+import { createLogger } from '@/lib/logger';
+
+const sentryLogger = createLogger('Sentry');
+
 interface SentryLike {
   captureException: (error: unknown, context?: Record<string, unknown>) => void;
   addBreadcrumb: (breadcrumb: Record<string, unknown>) => void;
   captureMessage: (message: string, level?: string) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare global {
   interface Window {
     __SENTRY__?: SentryLike;
@@ -33,8 +36,8 @@ export async function initSentry(): Promise<void> {
   if (!dsn) return;
 
   try {
-    // @ts-expect-error — @sentry/react is loaded dynamically only when DSN is configured
-    const Sentry = await import('@sentry/react');
+    const sentryModule = '@sentry/react';
+    const Sentry = await import(sentryModule);
 
     Sentry.init({
       dsn,
@@ -66,9 +69,9 @@ export async function initSentry(): Promise<void> {
         Sentry.captureMessage(message, level as string),
     };
 
-    console.log('[Sentry] Initialized for', import.meta.env.MODE);
+    sentryLogger.info('Initialized for', import.meta.env.MODE);
   } catch (error) {
     // Sentry não disponível — app funciona normalmente sem ele
-    console.warn('[Sentry] Failed to initialize:', error);
+    sentryLogger.warn('Failed to initialize:', error);
   }
 }

@@ -1,11 +1,12 @@
 import { db } from './neonConfig';
+import { logger } from './utils/logger';
 
 export async function migrateToNeon() {
-  console.log('🚀 Iniciando migração para Neon Database...');
+  logger.info('🚀 Iniciando migração para Neon Database...');
 
   try {
     // Criar tabelas
-    console.log('📋 Criando tabelas...');
+    logger.info('📋 Criando tabelas...');
 
     // Tabela de usuários
     await db.execute(`
@@ -368,23 +369,25 @@ export async function migrateToNeon() {
       );
     `);
 
-    console.log('✅ Tabelas criadas com sucesso!');
+    logger.info('✅ Tabelas criadas com sucesso!');
 
     // Criar super administrador se não existir
-    console.log('👤 Verificando super administrador...');
+    logger.info('👤 Verificando super administrador...');
 
     const existingAdmin = await db.execute(`
       SELECT id FROM users WHERE email = 'admin@7care.com' LIMIT 1
     `);
 
     if (existingAdmin.rows.length === 0) {
-      console.log('🔐 Criando super administrador...');
+      logger.info('🔐 Criando super administrador...');
 
       const bcrypt = await import('bcryptjs');
       const { generateTemporaryPassword, BCRYPT_SALT_ROUNDS } = await import('./config/security');
       const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || generateTemporaryPassword();
       const hashedPassword = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
-      console.log(`🔑 Senha do admin: ${process.env.DEFAULT_ADMIN_PASSWORD ? '(via env)' : adminPassword}`);
+      logger.info(
+        `🔑 Senha do admin: ${process.env.DEFAULT_ADMIN_PASSWORD ? '(via env)' : adminPassword}`
+      );
 
       const extraData = JSON.stringify({
         superAdmin: true,
@@ -421,19 +424,19 @@ export async function migrateToNeon() {
         )
       `);
 
-      console.log('✅ Super administrador criado!');
+      logger.info('✅ Super administrador criado!');
     } else {
       await db.execute(`
         UPDATE users
         SET role = 'superadmin', status = 'active', is_approved = true
         WHERE email = 'admin@7care.com'
       `);
-      console.log('✅ Super administrador já existe!');
+      logger.info('✅ Super administrador já existe!');
     }
 
-    console.log('🎉 Migração para Neon Database concluída com sucesso!');
+    logger.info('🎉 Migração para Neon Database concluída com sucesso!');
   } catch (error) {
-    console.error('❌ Erro na migração:', error);
+    logger.error('❌ Erro na migração', error);
     throw error;
   }
 }

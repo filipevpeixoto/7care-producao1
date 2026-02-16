@@ -1,5 +1,5 @@
-/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
+import { settingsLogger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { exportToExcel } from '@/lib/excel';
 
 interface CalendarManagementTabProps {
-  user: any;
+  user: Pick<import('@/types/domain').UserMember, 'id' | 'role' | 'church' | 'districtId'>;
   userDistrictId: number | null;
   userDistrictName: string;
 }
@@ -110,7 +110,7 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
         throw new Error(result.error || 'Falha ao limpar eventos');
       }
     } catch (error) {
-      console.error('Clear events error:', error);
+      settingsLogger.error('Clear events error:', error);
       toast({
         title: 'Erro ao limpar eventos',
         description: error instanceof Error ? error.message : 'Ocorreu um erro inesperado.',
@@ -130,8 +130,8 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
 
       const events = Array.isArray(result) ? result : result.events || [];
 
-      console.log('🔍 Debug Export - Total eventos encontrados:', events.length);
-      console.log('🔍 Debug Export - Primeiro evento:', events[0]);
+      settingsLogger.debug('🔍 Debug Export - Total eventos encontrados:', events.length);
+      settingsLogger.debug('🔍 Debug Export - Primeiro evento:', events[0]);
 
       if (events.length === 0) {
         toast({
@@ -188,7 +188,7 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
         }
       );
 
-      console.log('🔍 Debug Export - Dados processados para Excel:', exportData.slice(0, 3));
+      settingsLogger.debug('🔍 Debug Export - Dados processados para Excel:', exportData.slice(0, 3));
 
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
@@ -201,7 +201,7 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
         description: `${events.length} eventos exportados com sucesso para ${fileName}`,
       });
     } catch (error) {
-      console.error('Erro ao exportar agenda:', error);
+      settingsLogger.error('Erro ao exportar agenda:', error);
       toast({
         title: 'Erro na exportação',
         description: 'Não foi possível exportar a agenda. Tente novamente.',

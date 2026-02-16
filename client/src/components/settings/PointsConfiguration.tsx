@@ -3,164 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Trophy,
-  TrendingUp,
-  Users,
-  Gift,
-  Heart,
-  Calendar,
-  Award,
-  CheckCircle,
-  Book,
-  Crown,
-  Star,
-  Mountain,
   Save,
   RefreshCw,
   AlertTriangle,
   Calculator,
   Loader2,
   Zap,
-  Globe,
-  Building2,
+  TrendingUp,
+  Star,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
 import { settingsLogger } from '@/lib/logger';
-
-
-interface PointsConfig {
-  engajamento: {
-    baixo: number;
-    medio: number;
-    alto: number;
-  };
-  classificacao: {
-    frequente: number;
-    naoFrequente: number;
-  };
-  dizimista: {
-    naoDizimista: number;
-    pontual: number;
-    sazonal: number;
-    recorrente: number;
-  };
-  ofertante: {
-    naoOfertante: number;
-    pontual: number;
-    sazonal: number;
-    recorrente: number;
-  };
-  tempoBatismo: {
-    doisAnos: number;
-    cincoAnos: number;
-    dezAnos: number;
-    vinteAnos: number;
-    maisVinte: number;
-  };
-  cargos: {
-    umCargo: number;
-    doisCargos: number;
-    tresOuMais: number;
-  };
-  nomeUnidade: {
-    comUnidade: number;
-    semUnidade?: number;
-  };
-  temLicao: {
-    comLicao: number;
-    semLicao?: number;
-  };
-  pontuacaoDinamica: {
-    multiplicador: number;
-  };
-  totalPresenca: {
-    zeroATres: number;
-    quatroASete: number;
-    oitoATreze: number;
-  };
-  escolaSabatina: {
-    comunhao: number;
-    missao: number;
-    estudoBiblico: number;
-    batizouAlguem: number;
-    discipuladoPosBatismo: number;
-  };
-  cpfValido: {
-    valido: number;
-    invalido?: number;
-  };
-  camposVaziosACMS: {
-    semCamposVazios: number;
-    incompletos?: number;
-  };
-}
-
-const defaultConfig: PointsConfig = {
-  engajamento: {
-    baixo: 200,
-    medio: 400,
-    alto: 600,
-  },
-  classificacao: {
-    frequente: 300,
-    naoFrequente: 150,
-  },
-  dizimista: {
-    naoDizimista: 0,
-    pontual: 100,
-    sazonal: 200,
-    recorrente: 300,
-  },
-  ofertante: {
-    naoOfertante: 0,
-    pontual: 60,
-    sazonal: 120,
-    recorrente: 180,
-  },
-  tempoBatismo: {
-    doisAnos: 100,
-    cincoAnos: 200,
-    dezAnos: 400,
-    vinteAnos: 600,
-    maisVinte: 800,
-  },
-  cargos: {
-    umCargo: 200,
-    doisCargos: 400,
-    tresOuMais: 600,
-  },
-  nomeUnidade: {
-    comUnidade: 100,
-  },
-  temLicao: {
-    comLicao: 120,
-  },
-  pontuacaoDinamica: {
-    multiplicador: 25,
-  },
-  totalPresenca: {
-    zeroATres: 0,
-    quatroASete: 200,
-    oitoATreze: 400,
-  },
-  escolaSabatina: {
-    comunhao: 40,
-    missao: 60,
-    estudoBiblico: 20,
-    batizouAlguem: 400,
-    discipuladoPosBatismo: 80,
-  },
-  cpfValido: {
-    valido: 100,
-  },
-  camposVaziosACMS: {
-    semCamposVazios: 200,
-  },
-};
+import { defaultConfig, type PointsConfig } from './pointsConfigurationConfig';
+import {
+  DistrictIndicator,
+  PointsSectionCard,
+  SummaryCard,
+  pointsSections,
+} from './PointsConfigurationParts';
 
 export const PointsConfiguration = () => {
   const [config, setConfig] = useState<PointsConfig>(defaultConfig);
@@ -360,9 +224,9 @@ export const PointsConfiguration = () => {
 
       const users = await usersResponse.json();
       const nonAdminUsers = users.filter(
-        (u: any) => u.role !== 'superadmin' && u.role !== 'pastor'
+        (u: { role: string; points?: number }) => u.role !== 'superadmin' && u.role !== 'pastor'
       );
-      const totalPoints = nonAdminUsers.reduce((sum: number, u: any) => sum + (u.points || 0), 0);
+      const totalPoints = nonAdminUsers.reduce((sum: number, u: { role: string; points?: number }) => sum + (u.points || 0), 0);
       const currentAvg = totalPoints / nonAdminUsers.length;
 
       setCurrentAverage(Math.round(currentAvg));
@@ -505,11 +369,11 @@ export const PointsConfiguration = () => {
         },
         nomeUnidade: {
           comUnidade: config.nomeUnidade?.comUnidade ?? 25,
-          semUnidade: (config.nomeUnidade as any)?.semUnidade ?? 0,
+          semUnidade: config.nomeUnidade?.semUnidade ?? 0,
         },
         temLicao: {
           comLicao: config.temLicao?.comLicao ?? 30,
-          semLicao: (config.temLicao as any)?.semLicao ?? 0,
+          semLicao: config.temLicao?.semLicao ?? 0,
         },
         pontuacaoDinamica: {
           multiplicador: config.pontuacaoDinamica?.multiplicador ?? 1,
@@ -528,11 +392,11 @@ export const PointsConfiguration = () => {
         },
         cpfValido: {
           valido: config.cpfValido?.valido ?? 25,
-          invalido: (config.cpfValido as any)?.invalido ?? 0,
+          invalido: config.cpfValido?.invalido ?? 0,
         },
         camposVaziosACMS: {
           semCamposVazios: config.camposVaziosACMS?.semCamposVazios ?? 50,
-          incompletos: (config.camposVaziosACMS as any)?.incompletos ?? 0,
+          incompletos: config.camposVaziosACMS?.incompletos ?? 0,
         },
       };
 
@@ -857,92 +721,14 @@ export const PointsConfiguration = () => {
     );
   }
 
-  const renderSection = (
-    title: string,
-    icon: any,
-    section: keyof PointsConfig,
-    fields: { key: string; label: string; description: string }[]
-  ) => {
-    const IconComponent = icon;
-
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconComponent className="h-5 w-5 text-primary" />
-            {title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {fields.map(field => (
-              <div key={field.key} className="space-y-2">
-                <Label htmlFor={field.key} className="text-sm font-medium">
-                  {field.label}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id={field.key}
-                    type="number"
-                    min="0"
-                    value={
-                      config[section]?.[field.key as keyof (typeof config)[typeof section]] || 0
-                    }
-                    onChange={e => updateConfig(section, field.key, parseInt(e.target.value) || 0)}
-                    className="w-24"
-                  />
-                  <Badge variant="secondary" className="text-xs">
-                    pontos
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">{field.description}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   return (
     <div className="space-y-6">
       {/* Indicador de Distrito */}
-      {districtId && (
-        <div
-          className={`p-4 rounded-lg border ${isGlobalConfig ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {isGlobalConfig ? (
-                <>
-                  <Globe className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium text-blue-900">Usando configuração global</p>
-                    <p className="text-sm text-blue-700">
-                      {districtName} ainda não tem configuração própria. Salve para criar uma.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Building2 className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="font-medium text-green-900">Configuração do {districtName}</p>
-                    <p className="text-sm text-green-700">
-                      Este distrito tem sua própria escala de pontuação.
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-            {!isGlobalConfig && (
-              <Badge variant="outline" className="bg-green-100 text-green-800">
-                Personalizado
-              </Badge>
-            )}
-          </div>
-        </div>
-      )}
+      <DistrictIndicator
+        districtId={districtId}
+        isGlobalConfig={isGlobalConfig}
+        districtName={districtName}
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -1085,137 +871,25 @@ export const PointsConfiguration = () => {
 
       {/* Configuration Sections */}
       <div className="space-y-6">
-        {renderSection('Engajamento', TrendingUp, 'engajamento', [
-          { key: 'baixo', label: 'Baixo', description: 'Engajamento baixo' },
-          { key: 'medio', label: 'Médio', description: 'Engajamento médio' },
-          { key: 'alto', label: 'Alto', description: 'Engajamento alto' },
-        ])}
-
-        {renderSection('Classificação', Users, 'classificacao', [
-          { key: 'frequente', label: 'Frequente', description: 'Usuários frequentes' },
-          { key: 'naoFrequente', label: 'Não Frequente', description: 'Usuários não frequentes' },
-        ])}
-
-        {renderSection('Dizimista', Gift, 'dizimista', [
-          { key: 'naoDizimista', label: 'Não dizimista', description: 'Sem contribuição' },
-          { key: 'pontual', label: 'Pontual (1-3 meses)', description: 'Contribuição pontual' },
-          { key: 'sazonal', label: 'Sazonal (4-7 meses)', description: 'Contribuição sazonal' },
-          {
-            key: 'recorrente',
-            label: 'Recorrente (8-12 meses)',
-            description: 'Contribuição recorrente',
-          },
-        ])}
-
-        {renderSection('Ofertante', Heart, 'ofertante', [
-          { key: 'naoOfertante', label: 'Não ofertante', description: 'Sem ofertas' },
-          { key: 'pontual', label: 'Pontual (1-3 meses)', description: 'Ofertas pontuais' },
-          { key: 'sazonal', label: 'Sazonal (4-7 meses)', description: 'Ofertas sazonais' },
-          {
-            key: 'recorrente',
-            label: 'Recorrente (8-12 meses)',
-            description: 'Ofertas recorrentes',
-          },
-        ])}
-
-        {renderSection('Tempo de Batismo', Calendar, 'tempoBatismo', [
-          { key: 'doisAnos', label: '0-2 anos', description: 'Batismo recente' },
-          { key: 'cincoAnos', label: '3-5 anos', description: 'Batismo intermediário' },
-          { key: 'dezAnos', label: '6-10 anos', description: 'Batismo consolidado' },
-          { key: 'vinteAnos', label: '11-20 anos', description: 'Batismo maduro' },
-          { key: 'maisVinte', label: '20+ anos', description: 'Batismo veterano' },
-        ])}
-
-        {renderSection('Cargos', Award, 'cargos', [
-          { key: 'umCargo', label: '1 cargo', description: 'Um cargo de liderança' },
-          { key: 'doisCargos', label: '2 cargos', description: 'Dois cargos de liderança' },
-          { key: 'tresOuMais', label: '3+ cargos', description: 'Três ou mais cargos' },
-        ])}
-
-        {renderSection('Nome da Unidade', CheckCircle, 'nomeUnidade', [
-          { key: 'comUnidade', label: 'Com unidade', description: 'Unidade cadastrada' },
-        ])}
-
-        {renderSection('Tem Lição', Book, 'temLicao', [
-          { key: 'comLicao', label: 'Com lição', description: 'Participação em estudos' },
-        ])}
-
-        {renderSection('Pontuação Dinâmica', Star, 'pontuacaoDinamica', [
-          {
-            key: 'multiplicador',
-            label: 'Multiplicador',
-            description: 'Multiplicador para valores 0-13',
-          },
-        ])}
-
-        {renderSection('Total de Presença', Calendar, 'totalPresenca', [
-          { key: 'zeroATres', label: '0-3 presenças', description: 'Baixa frequência' },
-          { key: 'quatroASete', label: '4-7 presenças', description: 'Frequência regular' },
-          { key: 'oitoATreze', label: '8-13 presenças', description: 'Alta frequência' },
-        ])}
-
-        {renderSection('Escola Sabatina', Crown, 'escolaSabatina', [
-          { key: 'comunhao', label: 'Comunhão', description: 'Presença na comunhão' },
-          { key: 'missao', label: 'Missão', description: 'Participação em missões' },
-          {
-            key: 'estudoBiblico',
-            label: 'Estudo Bíblico',
-            description: 'Participação em estudos bíblicos',
-          },
-          { key: 'batizouAlguem', label: 'Batizou Alguém', description: 'Liderança em batismos' },
-          {
-            key: 'discipuladoPosBatismo',
-            label: 'Discipulado Pós-Batismo',
-            description: 'Participação em estudos de discipulado',
-          },
-        ])}
-
-        {renderSection('CPF Válido', CheckCircle, 'cpfValido', [
-          { key: 'valido', label: 'Válido', description: 'Documentação em dia' },
-        ])}
-
-        {renderSection('Campos Vazios ACMS', Mountain, 'camposVaziosACMS', [
-          {
-            key: 'semCamposVazios',
-            label: 'Sem campos vazios',
-            description: 'Perfil completo no sistema',
-          },
-        ])}
+        {pointsSections.map(section => (
+          <PointsSectionCard
+            key={section.section}
+            title={section.title}
+            icon={section.icon}
+            section={section.section}
+            fields={section.fields}
+            config={config}
+            onUpdate={updateConfig}
+          />
+        ))}
       </div>
 
       {/* Summary */}
-      <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-yellow-600" />
-            Resumo da Base de Cálculo
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {getTotalMaxPoints()}
-              </div>
-              <div className="text-sm text-muted-foreground">Pontos Máximos Possíveis</div>
-            </div>
-
-            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {getConfigSummary().categoriesCount}
-              </div>
-              <div className="text-sm text-muted-foreground">Categorias Configuradas</div>
-            </div>
-
-            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {getConfigSummary().criteriaCount}
-              </div>
-              <div className="text-sm text-muted-foreground">Critérios de Pontuação</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SummaryCard
+        totalMaxPoints={getTotalMaxPoints()}
+        categoriesCount={getConfigSummary().categoriesCount}
+        criteriaCount={getConfigSummary().criteriaCount}
+      />
     </div>
   );
 };

@@ -157,6 +157,903 @@ async function checkReadOnlyAccess(userId, sql) {
   }
 }
 
+async function handleGoogleDriveRoutes({ path, method, body, sql, headers }) {
+  async function addEventsToGoogleDrive(events) {
+    try {
+      console.log('📊 [GOOGLE-DRIVE] Tentando adicionar eventos diretamente à planilha...');
+
+      const configResult = await sql`
+        SELECT value FROM system_settings 
+        WHERE key = 'google_drive_config'
+        LIMIT 1
+      `;
+
+      if (configResult.length === 0 || !configResult[0].value) {
+        console.log('⚠️ [GOOGLE-DRIVE] Configuração do Google Drive não encontrada');
+        return { success: false, message: 'Configuração do Google Drive não encontrada' };
+      }
+
+      const config =
+        typeof configResult[0].value === 'object' ? configResult[0].value : JSON.parse(configResult[0].value);
+
+      if (!config.spreadsheetUrl) {
+        console.log('⚠️ [GOOGLE-DRIVE] URL da planilha não configurada');
+        return { success: false, message: 'URL da planilha não configurada' };
+      }
+
+      console.log(`📊 [GOOGLE-DRIVE] Configuração encontrada: ${config.spreadsheetUrl}`);
+
+      const match = config.spreadsheetUrl.match(
+        /\/spreadsheets\/d\/([a-zA-Z0-9-_]+).*[#?].*gid=([0-9]+)/
+      );
+      if (!match) {
+        throw new Error('URL inválida da planilha');
+      }
+
+      const spreadsheetId = match[1];
+      const gid = match[2];
+
+      console.log(`📊 [GOOGLE-DRIVE] Spreadsheet ID: ${spreadsheetId}, GID: ${gid}`);
+
+      let addedCount = 0;
+
+      for (const event of events) {
+        try {
+          let formattedDate = '';
+
+          if (event.date) {
+            const eventDate = new Date(event.date);
+
+            if (!isNaN(eventDate.getTime())) {
+              const day = String(eventDate.getDate()).padStart(2, '0');
+              const month = String(eventDate.getMonth() + 1).padStart(2, '0');
+              const year = eventDate.getFullYear();
+              formattedDate = `${day}/${month}/${year}`;
+            } else {
+              const today = new Date();
+              const day = String(today.getDate()).padStart(2, '0');
+              const month = String(today.getMonth() + 1).padStart(2, '0');
+              const year = today.getFullYear();
+              formattedDate = `${day}/${month}/${year}`;
+            }
+          } else {
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const year = today.getFullYear();
+            formattedDate = `${day}/${month}/${year}`;
+          }
+
+          const rowData = [
+            event.title || '',
+            formattedDate,
+            event.type || '',
+            event.description || '',
+            event.location || '',
+            'Sistema',
+          ];
+
+          console.log(`📊 [GOOGLE-DRIVE] Adicionando evento: ${event.title} (${formattedDate})`);
+
+          const GOOGLE_SCRIPT_URL =
+            process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
+
+          const scriptData = {
+            title: event.title,
+            date: event.date,
+            type: event.type,
+            description: event.description || '',
+            location: event.location || '',
+          };
+
+          console.log(`📊 [GOOGLE-DRIVE] Enviando evento para Google Apps Script: ${event.title}`);
+
+          try {
+            const scriptResponse = await fetch(GOOGLE_SCRIPT_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(scriptData),
+            });
+
+            const scriptResult = await scriptResponse.json();
+
+            if (scriptResult.success) {
+              console.log(
+                `✅ [GOOGLE-DRIVE] Evento "${event.title}" adicionado à planilha via Google Apps Script`
+              );
+              addedCount++;
+            } else {
+              throw new Error(`Google Apps Script falhou: ${scriptResult.message}`);
+            }
+          } catch (scriptError) {
+            console.log(
+              `⚠️ [GOOGLE-DRIVE] Google Apps Script falhou para "${event.title}":`,
+              scriptError.message
+            );
+
+            await sql`
+              INSERT INTO pending_google_drive_events (title, date, type, description, location, organizer, spreadsheet_id, created_at)
+              VALUES (${event.title}, ${event.date}, ${event.type}, ${event.description || ''}, ${event.location || ''}, 'Sistema', ${spreadsheetId}, NOW())
+            `;
+
+            console.log(`✅ [GOOGLE-DRIVE] Evento "${event.title}" salvo para processamento posterior`);
+            addedCount++;
+          }
+        } catch (error) {
+          console.error(`❌ [GOOGLE-DRIVE] Erro ao processar evento "${event.title}":`, error.message);
+        }
+      }
+
+      const result = {
+        success: addedCount > 0,
+        message: `${addedCount} de ${events.length} eventos adicionados diretamente à planilha`,
+        addedCount,
+        totalEvents: events.length,
+      };
+
+      console.log(`✅ [GOOGLE-DRIVE] Resultado: ${result.message}`);
+      return result;
+    } catch (error) {
+      console.error('❌ [GOOGLE-DRIVE] Erro ao adicionar eventos à planilha:', error);
+      return { success: false, message: `Erro: ${error.message}` };
+    }
+  }
+
+  if (path === '/api/check-google-script' && method === 'GET') {
+    const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        hasGoogleScriptUrl: !!GOOGLE_SCRIPT_URL,
+        googleScriptUrl: GOOGLE_SCRIPT_URL ? GOOGLE_SCRIPT_URL.substring(0, 50) + '...' : 'Não configurado',
+        message: GOOGLE_SCRIPT_URL ? 'Google Apps Script configurado' : 'Google Apps Script não configurado',
+      }),
+    };
+  }
+
+  if (path === '/api/test-google-drive' && method === 'POST') {
+    try {
+      console.log('🧪 [TEST] Testando integração com Google Drive...');
+
+      const testEvent = {
+        title: 'Teste de Integração - ' + new Date().toLocaleString(),
+        date: new Date().toISOString(),
+        type: 'teste',
+        description: 'Evento de teste para verificar integração com Google Drive',
+        location: 'Sistema de Teste',
+      };
+
+      const result = await addEventsToGoogleDrive([testEvent]);
+
+      console.log('🧪 [TEST] Resultado do teste:', result);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: 'Teste de integração executado',
+          testEvent,
+          result,
+        }),
+      };
+    } catch (error) {
+      console.error('❌ [TEST] Erro no teste de integração:', error);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: `Erro no teste: ${error.message}`,
+        }),
+      };
+    }
+  }
+
+  if (path === '/api/google-sheets/proxy' && method === 'POST') {
+    try {
+      const { action, spreadsheetId, sheetName, taskData, taskId, eventData } = JSON.parse(body);
+
+      console.log(`📊 Proxy Google Sheets - Ação: ${action}`);
+
+      const googleScriptUrl =
+        'https://script.google.com/macros/s/AKfycbz_AIumumkUMdw_yCX-N2aScgn08Yy7_Quma3U6sFZOJ0Mi5snRAcIyJq3QdUVeV3fV/exec';
+
+      const payload = {
+        action,
+        spreadsheetId,
+        sheetName,
+        taskData,
+        taskId,
+        eventData,
+      };
+
+      console.log(`📤 Enviando para Google Apps Script:`, action);
+
+      const response = await fetch(googleScriptUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        redirect: 'follow',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google Apps Script retornou ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ Resposta do Google Apps Script:`, result.success ? 'Sucesso' : 'Falha');
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(result),
+      };
+    } catch (error) {
+      console.error('❌ Erro no proxy Google Sheets:', error);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: error.message,
+        }),
+      };
+    }
+  }
+
+  if (path === '/api/google-drive/pending-events' && method === 'GET') {
+    try {
+      const pendingEvents = await sql`
+        SELECT * FROM pending_google_drive_events 
+        ORDER BY created_at DESC 
+        LIMIT 50
+      `;
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          pendingEvents,
+          count: pendingEvents.length,
+        }),
+      };
+    } catch (error) {
+      console.error('❌ Erro ao buscar eventos pendentes:', error);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: `Erro: ${error.message}`,
+        }),
+      };
+    }
+  }
+
+  if (path === '/api/google-drive/update-processed-status' && method === 'POST') {
+    try {
+      const result = await sql`
+        UPDATE pending_google_drive_events 
+        SET status = 'processed'
+        WHERE processed_at IS NOT NULL AND status = 'pending'
+      `;
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: `Status de eventos processados atualizado`,
+          updated: result.count || 0,
+        }),
+      };
+    } catch (error) {
+      console.error('❌ Erro ao atualizar status:', error);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'Erro ao atualizar status: ' + error.message,
+        }),
+      };
+    }
+  }
+
+  if (path === '/api/google-drive/fix-invalid-dates' && method === 'POST') {
+    try {
+      const eventsWithInvalidDates = await sql`
+        SELECT id, title, date, type, description, location, organizer, spreadsheet_id, created_at
+        FROM pending_google_drive_events 
+        WHERE date = 'NaN/NaN/NaN' OR date IS NULL
+        ORDER BY created_at DESC
+      `;
+
+      if (eventsWithInvalidDates.length === 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Nenhum evento com data inválida encontrado',
+            fixed: 0,
+          }),
+        };
+      }
+
+      let fixedCount = 0;
+
+      for (const event of eventsWithInvalidDates) {
+        const createdDate = new Date(event.created_at);
+        const day = String(createdDate.getDate()).padStart(2, '0');
+        const month = String(createdDate.getMonth() + 1).padStart(2, '0');
+        const year = createdDate.getFullYear();
+        const correctedDate = `${day}/${month}/${year}`;
+
+        await sql`
+          UPDATE pending_google_drive_events 
+          SET date = ${correctedDate}
+          WHERE id = ${event.id}
+        `;
+
+        fixedCount++;
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: `${fixedCount} eventos com datas inválidas foram corrigidos`,
+          fixed: fixedCount,
+        }),
+      };
+    } catch (error) {
+      console.error('❌ Erro ao corrigir datas inválidas:', error);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'Erro ao corrigir datas inválidas: ' + error.message,
+        }),
+      };
+    }
+  }
+
+  if (path === '/api/google-drive/process-pending' && method === 'POST') {
+    try {
+      console.log('🔄 [PENDING] Processando eventos pendentes...');
+
+      const pendingEvents = await sql`
+        SELECT * FROM pending_google_drive_events 
+        WHERE processed_at IS NULL
+        ORDER BY created_at ASC
+        LIMIT 10
+      `;
+
+      if (pendingEvents.length === 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Nenhum evento pendente para processar',
+            processed: 0,
+          }),
+        };
+      }
+
+      const events = pendingEvents.map((event) => ({
+        title: event.title,
+        date: event.date,
+        type: event.type,
+        description: event.description,
+        location: event.location,
+      }));
+
+      const result = await addEventsToGoogleDrive(events);
+
+      if (result.success) {
+        await sql`
+          UPDATE pending_google_drive_events 
+          SET processed_at = NOW() 
+          WHERE id = ANY(${pendingEvents.map((e) => e.id)})
+        `;
+
+        console.log(`✅ [PENDING] ${result.addedCount} eventos processados com sucesso`);
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: `${result.addedCount} eventos processados`,
+          result,
+        }),
+      };
+    } catch (error) {
+      console.error('❌ Erro ao processar eventos pendentes:', error);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: `Erro: ${error.message}`,
+        }),
+      };
+    }
+  }
+
+  return null;
+}
+
+async function handleDashboardStatsRoute({ path, method, event, sql, headers }) {
+  if (path !== '/api/dashboard/stats' || method !== 'GET') {
+    return null;
+  }
+  try {
+    console.log('🔍 [DASHBOARD STATS] Iniciando...');
+    
+    const userId = event.headers['x-user-id'];
+    let userChurch = null;
+    let userData = null;
+    let userDistrictId = null;
+    
+    console.log(`🔍 [DASHBOARD STATS] userId: ${userId}`);
+    
+    if (userId) {
+      userData = await sql`SELECT church, role, district_id FROM users WHERE id = ${userId} LIMIT 1`;
+      console.log(`🔍 [DASHBOARD STATS] userData:`, userData);
+      if (userData.length > 0) {
+        userChurch = userData[0].church;
+        userDistrictId = userData[0].district_id;
+        const userRole = userData[0].role;
+        console.log(`🔍 Dashboard stats para usuário ${userId} (${userRole}) da igreja: ${userChurch}, distrito: ${userDistrictId}`);
+      }
+    }
+
+    if (userData && userData.length > 0 && hasAdminAccess(userData[0])) {
+      if (isSuperAdmin(userData[0]) || (isPastor(userData[0]) && userDistrictId)) {
+        console.log(`🔍 Dashboard stats do distrito ${userDistrictId} (${userData[0].role})`);
+        
+        const districtChurches = await sql`
+          SELECT id, name FROM churches WHERE district_id = ${userDistrictId}
+        `;
+        const districtChurchNames = districtChurches.map(ch => ch.name);
+        
+        let churchFilterSQL = '';
+        if (districtChurchNames.length > 0) {
+          const churchList = districtChurchNames.map(name => `'${name.replace(/'/g, "''")}'`).join(',');
+          churchFilterSQL = `(church IN (${churchList}) OR district_id = ${userDistrictId})`;
+        } else {
+          churchFilterSQL = `district_id = ${userDistrictId}`;
+        }
+        
+        const usersQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL}`;
+        const users = await sql(usersQuery);
+        
+        const events = await sql`SELECT COUNT(*) as count FROM events`;
+        
+        const interestedQuery = `SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
+        const interested = await sql(interestedQuery);
+        
+        const membersQuery = `SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
+        const members = await sql(membersQuery);
+        
+        const adminsQuery = `SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
+        const admins = await sql(adminsQuery);
+        
+        const missionariesQuery = `SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
+        const missionaries = await sql(missionariesQuery);
+        
+        const today = new Date();
+        const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        const thisWeekEvents = await sql`
+          SELECT COUNT(*) as count FROM events 
+          WHERE date >= ${weekStart.toISOString().split('T')[0]}
+          AND date <= ${today.toISOString().split('T')[0]}
+        `;
+        
+        const thisMonthEvents = await sql`
+          SELECT COUNT(*) as count FROM events 
+          WHERE date >= ${monthStart.toISOString().split('T')[0]}
+          AND date <= ${today.toISOString().split('T')[0]}
+        `;
+        
+        const birthdaysTodayQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL} AND birth_date IS NOT NULL AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())`;
+        const birthdaysToday = await sql(birthdaysTodayQuery);
+        
+        const birthdaysThisWeekQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL} AND birth_date IS NOT NULL AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')`;
+        const birthdaysThisWeek = await sql(birthdaysThisWeekQuery);
+        
+        const pendingTasks = await sql`
+          SELECT COUNT(*) as count FROM tasks 
+          WHERE status = 'pending'
+        `;
+        
+        let interestedBeingDiscipled = 0;
+        try {
+          let relationshipFilterSQL = churchFilterSQL.replace(/district_id/g, 'u.district_id').replace(/church/g, 'u.church');
+          const relationshipsQuery = `SELECT r.* FROM relationships r INNER JOIN users u ON r.interested_id = u.id WHERE r.status = 'active' AND u.email != 'admin@7care.com' AND ${relationshipFilterSQL}`;
+          const relationships = await sql(relationshipsQuery);
+          
+          const uniqueInterested = new Set(
+            relationships.map(rel => rel.interested_id).filter(id => id != null)
+          );
+          interestedBeingDiscipled = uniqueInterested.size;
+        } catch (error) {
+          console.error('⚠️ Erro ao contar interessados sendo discipulados:', error);
+        }
+        
+        const stats = {
+          totalUsers: parseInt(users[0].count),
+          totalEvents: parseInt(events[0].count),
+          totalInterested: parseInt(interested[0].count),
+          interestedBeingDiscipled: interestedBeingDiscipled,
+          totalMembers: parseInt(members[0].count),
+          totalAdmins: parseInt(admins[0].count),
+          totalMissionaries: parseInt(missionaries[0].count),
+          pendingApprovals: parseInt(pendingTasks[0].count),
+          thisWeekEvents: parseInt(thisWeekEvents[0].count),
+          thisMonthEvents: parseInt(thisMonthEvents[0].count),
+          birthdaysToday: parseInt(birthdaysToday[0].count),
+          birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
+          approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count) + parseInt(admins[0].count),
+          totalChurches: districtChurches.length
+        };
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(stats)
+        };
+      }
+    }
+
+    if (!userId || !userChurch || userChurch === 'Sistema' || (userData && userData.length > 0 && hasAdminAccess(userData[0]))) {
+      console.log('🔍 Dashboard stats globais (admin sem distrito ou sem userId)');
+      const users = await sql`SELECT COUNT(*) as count FROM users`;
+      const events = await sql`SELECT COUNT(*) as count FROM events`;
+      const interested = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested'`;
+      const members = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'member'`;
+      const admins = await sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor')`;
+      const missionaries = await sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%'`;
+      
+      const today = new Date();
+      const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      const thisWeekEvents = await sql`
+        SELECT COUNT(*) as count FROM events 
+        WHERE date >= ${weekStart.toISOString().split('T')[0]}
+        AND date <= ${today.toISOString().split('T')[0]}
+      `;
+      
+      const thisMonthEvents = await sql`
+        SELECT COUNT(*) as count FROM events 
+        WHERE date >= ${monthStart.toISOString().split('T')[0]}
+        AND date <= ${today.toISOString().split('T')[0]}
+      `;
+      
+      const birthdaysToday = await sql`
+        SELECT COUNT(*) as count FROM users 
+        WHERE birth_date IS NOT NULL 
+        AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+        AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
+      `;
+      
+      const birthdaysThisWeek = await sql`
+        SELECT COUNT(*) as count FROM users 
+        WHERE birth_date IS NOT NULL 
+        AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+        AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')
+      `;
+      
+      const pendingTasks = await sql`
+        SELECT COUNT(*) as count FROM tasks 
+        WHERE status = 'pending'
+      `;
+      
+      const completedTasks = await sql`
+        SELECT COUNT(*) as count FROM tasks 
+        WHERE status = 'completed'
+      `;
+      
+      console.log(`📋 Tarefas - Pendentes: ${parseInt(pendingTasks[0].count)}, Concluídas: ${parseInt(completedTasks[0].count)}`);
+      
+      let interestedBeingDiscipled = 0;
+      try {
+        const relationships = await sql`
+          SELECT * FROM relationships
+        `;
+        
+        console.log(`🔍 DEBUG - Total de relacionamentos: ${relationships.length}`);
+        
+        const activeRelationships = relationships.filter(rel => rel.status === 'active');
+        console.log(`✅ Relacionamentos ativos: ${activeRelationships.length}`);
+        
+        const uniqueInterested = new Set(
+          activeRelationships
+            .map(rel => rel.interested_id)
+            .filter(id => id != null)
+        );
+        
+        interestedBeingDiscipled = uniqueInterested.size;
+        console.log(`👥 Interessados únicos com discipulador: ${interestedBeingDiscipled}`);
+        console.log(`📋 IDs: [${Array.from(uniqueInterested).join(', ')}]`);
+      } catch (error) {
+        console.error('⚠️ Erro ao contar interessados sendo discipulados:', error);
+      }
+      
+      const stats = {
+        totalUsers: parseInt(users[0].count),
+        totalEvents: parseInt(events[0].count),
+        totalInterested: parseInt(interested[0].count),
+        interestedBeingDiscipled: interestedBeingDiscipled,
+        totalMembers: parseInt(members[0].count),
+        totalAdmins: parseInt(admins[0].count),
+        totalMissionaries: parseInt(missionaries[0].count),
+        pendingApprovals: parseInt(pendingTasks[0].count),
+        completedTasks: parseInt(completedTasks[0].count),
+        thisWeekEvents: parseInt(thisWeekEvents[0].count),
+        thisMonthEvents: parseInt(thisMonthEvents[0].count),
+        birthdaysToday: parseInt(birthdaysToday[0].count),
+        birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
+        approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count) + parseInt(admins[0].count),
+        totalChurches: 6
+      };
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(stats)
+      };
+    }
+
+    const users = await sql`SELECT COUNT(*) as count FROM users WHERE church = ${userChurch}`;
+    const events = await sql`SELECT COUNT(*) as count FROM events`;
+    const interested = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND church = ${userChurch}`;
+    const members = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND church = ${userChurch}`;
+    const missionaries = await sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND church = ${userChurch}`;
+    
+    const today = new Date();
+    const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const thisWeekEvents = await sql`
+      SELECT COUNT(*) as count FROM events 
+      WHERE date >= ${weekStart.toISOString().split('T')[0]}
+      AND date <= ${today.toISOString().split('T')[0]}
+    `;
+    
+    const thisMonthEvents = await sql`
+      SELECT COUNT(*) as count FROM events 
+      WHERE date >= ${monthStart.toISOString().split('T')[0]}
+      AND date <= ${today.toISOString().split('T')[0]}
+    `;
+    
+    const birthdaysToday = await sql`
+      SELECT COUNT(*) as count FROM users 
+      WHERE church = ${userChurch} 
+      AND birth_date IS NOT NULL 
+      AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+      AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
+    `;
+    
+    const birthdaysThisWeek = await sql`
+      SELECT COUNT(*) as count FROM users 
+      WHERE church = ${userChurch} 
+      AND birth_date IS NOT NULL 
+      AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+      AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')
+    `;
+    
+    const pendingTasks = await sql`
+      SELECT COUNT(*) as count FROM tasks 
+      WHERE status = 'pending'
+    `;
+    
+    const stats = {
+      totalUsers: parseInt(users[0].count),
+      totalEvents: parseInt(events[0].count),
+      totalInterested: parseInt(interested[0].count),
+      totalMembers: parseInt(members[0].count),
+      totalAdmins: 0,
+      totalMissionaries: parseInt(missionaries[0].count),
+      pendingApprovals: parseInt(pendingTasks[0].count),
+      thisWeekEvents: parseInt(thisWeekEvents[0].count),
+      thisMonthEvents: parseInt(thisMonthEvents[0].count),
+      birthdaysToday: parseInt(birthdaysToday[0].count),
+      birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
+      approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count),
+      totalChurches: 1,
+      userChurch: userChurch
+    };
+
+    console.log(`📊 Stats da igreja ${userChurch}:`, stats);
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(stats)
+    };
+  } catch (error) {
+    console.error('❌ Dashboard stats error:', error);
+    console.error('❌ Dashboard stats error stack:', error.stack);
+    console.error('❌ Dashboard stats error details:', {
+      name: error.name,
+      message: error.message,
+      userId: event.headers['x-user-id']
+    });
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Erro ao buscar estatísticas', details: error.message })
+    };
+  }
+}
+
+async function handleBirthdaysRoute({ path, method, event, sql, headers }) {
+  if (path !== '/api/users/birthdays' || method !== 'GET') {
+    return null;
+  }
+  try {
+    console.log('🎂 Endpoint de aniversários chamado');
+    
+    const now = new Date();
+    const brazilOffset = -3 * 60;
+    const utcOffset = now.getTimezoneOffset();
+    const brazilTime = new Date(now.getTime() + (utcOffset + brazilOffset) * 60 * 1000);
+    
+    const currentMonth = brazilTime.getMonth();
+    const currentDay = brazilTime.getDate();
+    
+    console.log(`🎂 Data Brasil: ${brazilTime.toISOString()}, Mês: ${currentMonth + 1}, Dia: ${currentDay}`);
+    
+    const currentUser = await resolveCurrentUser(event, sql);
+    const currentUserDistrictId = currentUser?.district_id || null;
+    const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+    
+    let users;
+    if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+      if (districtChurchNames.length > 0) {
+        users = await sql`
+          SELECT id, name, birth_date, church, district_id,
+                 EXTRACT(MONTH FROM birth_date)::int as birth_month,
+                 EXTRACT(DAY FROM birth_date)::int as birth_day
+          FROM users 
+          WHERE birth_date IS NOT NULL 
+            AND (district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames}))
+          ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
+        `;
+      } else {
+        users = await sql`
+          SELECT id, name, birth_date, church, district_id,
+                 EXTRACT(MONTH FROM birth_date)::int as birth_month,
+                 EXTRACT(DAY FROM birth_date)::int as birth_day
+          FROM users 
+          WHERE birth_date IS NOT NULL 
+            AND district_id = ${currentUserDistrictId}
+          ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
+        `;
+      }
+    } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church && currentUser.church !== 'Sistema') {
+      users = await sql`
+        SELECT id, name, birth_date, church,
+               EXTRACT(MONTH FROM birth_date)::int as birth_month,
+               EXTRACT(DAY FROM birth_date)::int as birth_day
+        FROM users 
+        WHERE birth_date IS NOT NULL 
+          AND church = ${currentUser.church}
+        ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
+      `;
+    } else {
+      users = await sql`
+        SELECT id, name, birth_date, church,
+               EXTRACT(MONTH FROM birth_date)::int as birth_month,
+               EXTRACT(DAY FROM birth_date)::int as birth_day
+        FROM users 
+        WHERE birth_date IS NOT NULL 
+        ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
+      `;
+    }
+    
+    console.log(`🎂 Usuários encontrados: ${users.length}`);
+    
+    const birthdaysToday = users.filter(user => {
+      return user.birth_month === (currentMonth + 1) && user.birth_day === currentDay;
+    });
+    
+    const birthdaysThisMonth = users.filter(user => {
+      return user.birth_month === (currentMonth + 1) && user.birth_day !== currentDay;
+    });
+    
+    console.log(`🎂 Aniversariantes hoje: ${birthdaysToday.length}`);
+    console.log(`🎂 Aniversariantes do mês: ${birthdaysThisMonth.length}`);
+    if (birthdaysThisMonth.length > 0) {
+      console.log(`🎂 Primeiros 3 do mês:`, birthdaysThisMonth.slice(0, 3).map(u => ({ name: u.name, birth_month: u.birth_month, birth_day: u.birth_day })));
+    }
+    
+    const formatBirthdayUser = (user) => {
+      let birthDate = null;
+      if (user.birth_date) {
+        try {
+          if (user.birth_month && user.birth_day) {
+            const date = new Date(user.birth_date);
+            const year = date.getUTCFullYear();
+            const month = String(user.birth_month).padStart(2, '0');
+            const day = String(user.birth_day).padStart(2, '0');
+            birthDate = `${year}-${month}-${day}`;
+          } else {
+            const date = new Date(user.birth_date);
+            if (!isNaN(date.getTime())) {
+              const year = date.getUTCFullYear();
+              const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+              const day = String(date.getUTCDate()).padStart(2, '0');
+              birthDate = `${year}-${month}-${day}`;
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao formatar data:', error);
+          birthDate = null;
+        }
+      }
+      
+      return {
+        id: user.id,
+        name: user.name,
+        birthDate: birthDate,
+        church: user.church || null
+      };
+    };
+    
+    const result = {
+      today: birthdaysToday.map(formatBirthdayUser),
+      thisMonth: birthdaysThisMonth.map(formatBirthdayUser),
+      all: users.map(formatBirthdayUser),
+      timestamp: new Date().toISOString(),
+      userChurch: currentUser?.church || null,
+      debug: {
+        currentMonth: currentMonth + 1,
+        currentDay: currentDay,
+        totalUsers: users.length,
+        thisMonthCount: birthdaysThisMonth.length,
+        todayCount: birthdaysToday.length,
+        filteredByChurch: !!(currentUser?.church)
+      }
+    };
+    
+    console.log('🎂 Resultado final:', JSON.stringify(result.debug, null, 2));
+  
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(result)
+    };
+    
+  } catch (error) {
+    console.error('❌ Erro no endpoint de aniversariantes:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Erro interno do servidor', details: error.message })
+    };
+  }
+}
+
 // Middleware de autenticação
 function requireAuth(event) {
   const authHeader = event.headers['authorization'] || event.headers['Authorization'];
@@ -380,803 +1277,13 @@ exports.handler = async (event, context) => {
     
     console.log(`🔍 API Request: ${method} ${path}`);
 
-    // Função para adicionar eventos diretamente à planilha do Google Drive
-    async function addEventsToGoogleDrive(events) {
-      try {
-        console.log('📊 [GOOGLE-DRIVE] Tentando adicionar eventos diretamente à planilha...');
-        
-        // Buscar configuração do Google Drive
-        const configResult = await sql`
-          SELECT value FROM system_settings 
-          WHERE key = 'google_drive_config'
-          LIMIT 1
-        `;
-        
-        if (configResult.length === 0 || !configResult[0].value) {
-          console.log('⚠️ [GOOGLE-DRIVE] Configuração do Google Drive não encontrada');
-          return { success: false, message: 'Configuração do Google Drive não encontrada' };
-        }
-        
-        const config = typeof configResult[0].value === 'object' ? 
-          configResult[0].value : 
-          JSON.parse(configResult[0].value);
-        
-        if (!config.spreadsheetUrl) {
-          console.log('⚠️ [GOOGLE-DRIVE] URL da planilha não configurada');
-          return { success: false, message: 'URL da planilha não configurada' };
-        }
-        
-        console.log(`📊 [GOOGLE-DRIVE] Configuração encontrada: ${config.spreadsheetUrl}`);
-        
-        // Extrair ID da planilha e gid
-        const match = config.spreadsheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+).*[#?].*gid=([0-9]+)/);
-        if (!match) {
-          throw new Error('URL inválida da planilha');
-        }
-        
-        const spreadsheetId = match[1];
-        const gid = match[2];
-        
-        console.log(`📊 [GOOGLE-DRIVE] Spreadsheet ID: ${spreadsheetId}, GID: ${gid}`);
-        
-        let addedCount = 0;
-        
-        // Para cada evento, tentar adicionar diretamente à planilha
-        for (const event of events) {
-          try {
-            // Converter data para formato brasileiro (DD/MM/YYYY)
-            let formattedDate = '';
-            
-            if (event.date) {
-              const eventDate = new Date(event.date);
-              
-              // Verificar se a data é válida
-              if (!isNaN(eventDate.getTime())) {
-                const day = String(eventDate.getDate()).padStart(2, '0');
-                const month = String(eventDate.getMonth() + 1).padStart(2, '0');
-                const year = eventDate.getFullYear();
-                formattedDate = `${day}/${month}/${year}`;
-              } else {
-                // Se a data for inválida, usar a data atual
-                const today = new Date();
-                const day = String(today.getDate()).padStart(2, '0');
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const year = today.getFullYear();
-                formattedDate = `${day}/${month}/${year}`;
-              }
-            } else {
-              // Se não houver data, usar a data atual
-              const today = new Date();
-              const day = String(today.getDate()).padStart(2, '0');
-              const month = String(today.getMonth() + 1).padStart(2, '0');
-              const year = today.getFullYear();
-              formattedDate = `${day}/${month}/${year}`;
-            }
-            
-            // Preparar dados para adicionar à planilha
-            const rowData = [
-              event.title || '',
-              formattedDate,
-              event.type || '',
-              event.description || '',
-              event.location || '',
-              'Sistema'
-            ];
-            
-            console.log(`📊 [GOOGLE-DRIVE] Adicionando evento: ${event.title} (${formattedDate})`);
-            
-        // Método direto: Tentar adicionar via Google Apps Script
-          // URL do Google Apps Script (substitua pela sua URL)
-          const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
-          
-          // Preparar dados para o Google Apps Script
-          const scriptData = {
-            title: event.title,
-            date: event.date, // Enviar data original, não formatada
-            type: event.type,
-            description: event.description || '',
-            location: event.location || ''
-          };
-          
-          console.log(`📊 [GOOGLE-DRIVE] Enviando evento para Google Apps Script: ${event.title}`);
-          
-          try {
-            // Tentar adicionar via Google Apps Script
-            const scriptResponse = await fetch(GOOGLE_SCRIPT_URL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(scriptData)
-            });
-            
-            const scriptResult = await scriptResponse.json();
-            
-            if (scriptResult.success) {
-              console.log(`✅ [GOOGLE-DRIVE] Evento "${event.title}" adicionado à planilha via Google Apps Script`);
-              addedCount++;
-            } else {
-              throw new Error(`Google Apps Script falhou: ${scriptResult.message}`);
-            }
-            
-          } catch (scriptError) {
-            console.log(`⚠️ [GOOGLE-DRIVE] Google Apps Script falhou para "${event.title}":`, scriptError.message);
-            
-            // Fallback: Salvar para processamento posterior
-            await sql`
-              INSERT INTO pending_google_drive_events (title, date, type, description, location, organizer, spreadsheet_id, created_at)
-              VALUES (${event.title}, ${event.date}, ${event.type}, ${event.description || ''}, ${event.location || ''}, 'Sistema', ${spreadsheetId}, NOW())
-            `;
-            
-            console.log(`✅ [GOOGLE-DRIVE] Evento "${event.title}" salvo para processamento posterior`);
-            addedCount++;
-          }
-          
-        } catch (error) {
-            console.error(`❌ [GOOGLE-DRIVE] Erro ao processar evento "${event.title}":`, error.message);
-          }
-        }
-        
-        const result = {
-          success: addedCount > 0,
-          message: `${addedCount} de ${events.length} eventos adicionados diretamente à planilha`,
-          addedCount,
-          totalEvents: events.length
-        };
-        
-        console.log(`✅ [GOOGLE-DRIVE] Resultado: ${result.message}`);
-        return result;
-        
-      } catch (error) {
-        console.error('❌ [GOOGLE-DRIVE] Erro ao adicionar eventos à planilha:', error);
-        return { success: false, message: `Erro: ${error.message}` };
-      }
+    const googleDriveResponse = await handleGoogleDriveRoutes({ path, method, body, sql, headers });
+    if (googleDriveResponse) {
+      return googleDriveResponse;
     }
-
-    // Rota para verificar configuração do Google Apps Script
-    if (path === '/api/check-google-script' && method === 'GET') {
-      const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          hasGoogleScriptUrl: !!GOOGLE_SCRIPT_URL,
-          googleScriptUrl: GOOGLE_SCRIPT_URL ? GOOGLE_SCRIPT_URL.substring(0, 50) + '...' : 'Não configurado',
-          message: GOOGLE_SCRIPT_URL ? 'Google Apps Script configurado' : 'Google Apps Script não configurado'
-        })
-      };
-    }
-
-    // Rota para testar integração com Google Drive
-    if (path === '/api/test-google-drive' && method === 'POST') {
-      try {
-        console.log('🧪 [TEST] Testando integração com Google Drive...');
-        
-        // Criar evento de teste
-        const testEvent = {
-          title: 'Teste de Integração - ' + new Date().toLocaleString(),
-          date: new Date().toISOString(),
-          type: 'teste',
-          description: 'Evento de teste para verificar integração com Google Drive',
-          location: 'Sistema de Teste'
-        };
-        
-        // Tentar adicionar à planilha
-        const result = await addEventsToGoogleDrive([testEvent]);
-        
-        console.log('🧪 [TEST] Resultado do teste:', result);
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            message: 'Teste de integração executado',
-            testEvent,
-            result
-          })
-        };
-        
-      } catch (error) {
-        console.error('❌ [TEST] Erro no teste de integração:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: `Erro no teste: ${error.message}`
-          })
-        };
-      }
-    }
-
-    // 🔧 PROXY PARA GOOGLE SHEETS (EVITAR CORS)
-    if (path === '/api/google-sheets/proxy' && method === 'POST') {
-      try {
-        const { action, spreadsheetId, sheetName, taskData, taskId, eventData } = JSON.parse(body);
-        
-        console.log(`📊 Proxy Google Sheets - Ação: ${action}`);
-        
-        const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbz_AIumumkUMdw_yCX-N2aScgn08Yy7_Quma3U6sFZOJ0Mi5snRAcIyJq3QdUVeV3fV/exec';
-        
-        const payload = {
-          action,
-          spreadsheetId,
-          sheetName,
-          taskData,
-          taskId,
-          eventData
-        };
-        
-        console.log(`📤 Enviando para Google Apps Script:`, action);
-        
-        const response = await fetch(googleScriptUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          redirect: 'follow'
-        });
-
-        if (!response.ok) {
-          throw new Error(`Google Apps Script retornou ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log(`✅ Resposta do Google Apps Script:`, result.success ? 'Sucesso' : 'Falha');
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify(result)
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro no proxy Google Sheets:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: error.message
-          })
-        };
-      }
-    }
-
-    // Rota para verificar eventos pendentes do Google Drive
-    if (path === '/api/google-drive/pending-events' && method === 'GET') {
-      try {
-        const pendingEvents = await sql`
-          SELECT * FROM pending_google_drive_events 
-          ORDER BY created_at DESC 
-          LIMIT 50
-        `;
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            pendingEvents,
-            count: pendingEvents.length
-          })
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro ao buscar eventos pendentes:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: `Erro: ${error.message}`
-          })
-        };
-      }
-    }
-
-    // Rota para processar eventos pendentes
-    // Rota para atualizar status de eventos processados
-    if (path === '/api/google-drive/update-processed-status' && method === 'POST') {
-      try {
-        // Atualizar eventos que foram processados mas ainda estão com status pending
-        const result = await sql`
-          UPDATE pending_google_drive_events 
-          SET status = 'processed'
-          WHERE processed_at IS NOT NULL AND status = 'pending'
-        `;
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            message: `Status de eventos processados atualizado`,
-            updated: result.count || 0
-          })
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro ao atualizar status:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            message: 'Erro ao atualizar status: ' + error.message
-          })
-        };
-      }
-    }
-
-    // Rota para corrigir datas inválidas nos eventos pendentes
-    if (path === '/api/google-drive/fix-invalid-dates' && method === 'POST') {
-      try {
-        // Buscar eventos com datas inválidas
-        const eventsWithInvalidDates = await sql`
-          SELECT id, title, date, type, description, location, organizer, spreadsheet_id, created_at
-          FROM pending_google_drive_events 
-          WHERE date = 'NaN/NaN/NaN' OR date IS NULL
-          ORDER BY created_at DESC
-        `;
-        
-        if (eventsWithInvalidDates.length === 0) {
-          return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-              success: true,
-              message: 'Nenhum evento com data inválida encontrado',
-              fixed: 0
-            })
-          };
-        }
-        
-        let fixedCount = 0;
-        
-        // Corrigir cada evento com data inválida
-        for (const event of eventsWithInvalidDates) {
-          // Usar a data de criação como fallback
-          const createdDate = new Date(event.created_at);
-          const day = String(createdDate.getDate()).padStart(2, '0');
-          const month = String(createdDate.getMonth() + 1).padStart(2, '0');
-          const year = createdDate.getFullYear();
-          const correctedDate = `${day}/${month}/${year}`;
-          
-          // Atualizar o evento com a data corrigida
-          await sql`
-            UPDATE pending_google_drive_events 
-            SET date = ${correctedDate}
-            WHERE id = ${event.id}
-          `;
-          
-          fixedCount++;
-        }
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            message: `${fixedCount} eventos com datas inválidas foram corrigidos`,
-            fixed: fixedCount
-          })
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro ao corrigir datas inválidas:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            message: 'Erro ao corrigir datas inválidas: ' + error.message
-          })
-        };
-      }
-    }
-
-    if (path === '/api/google-drive/process-pending' && method === 'POST') {
-      try {
-        console.log('🔄 [PENDING] Processando eventos pendentes...');
-        
-        const pendingEvents = await sql`
-          SELECT * FROM pending_google_drive_events 
-          WHERE processed_at IS NULL
-          ORDER BY created_at ASC
-          LIMIT 10
-        `;
-        
-        if (pendingEvents.length === 0) {
-          return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-              success: true,
-              message: 'Nenhum evento pendente para processar',
-              processed: 0
-            })
-          };
-        }
-        
-        // Converter para formato esperado pela função
-        const events = pendingEvents.map(event => ({
-          title: event.title,
-          date: event.date,
-          type: event.type,
-          description: event.description,
-          location: event.location
-        }));
-        
-        // Tentar adicionar à planilha
-        const result = await addEventsToGoogleDrive(events);
-        
-        if (result.success) {
-          // Marcar como processados
-          await sql`
-            UPDATE pending_google_drive_events 
-            SET processed_at = NOW() 
-            WHERE id = ANY(${pendingEvents.map(e => e.id)})
-          `;
-          
-          console.log(`✅ [PENDING] ${result.addedCount} eventos processados com sucesso`);
-        }
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            message: `${result.addedCount} eventos processados`,
-            result
-          })
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro ao processar eventos pendentes:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: `Erro: ${error.message}`
-          })
-        };
-      }
-    }
-
-    // Rota para estatísticas do dashboard
-    if (path === '/api/dashboard/stats' && method === 'GET') {
-      try {
-        console.log('🔍 [DASHBOARD STATS] Iniciando...');
-        
-        // Obter ID do usuário do header (se fornecido)
-        const userId = event.headers['x-user-id'];
-        let userChurch = null;
-        let userData = null;
-        let userDistrictId = null;
-        
-        console.log(`🔍 [DASHBOARD STATS] userId: ${userId}`);
-        
-        // Se userId fornecido, buscar dados do usuário
-        if (userId) {
-          userData = await sql`SELECT church, role, district_id FROM users WHERE id = ${userId} LIMIT 1`;
-          console.log(`🔍 [DASHBOARD STATS] userData:`, userData);
-          if (userData.length > 0) {
-            userChurch = userData[0].church;
-            userDistrictId = userData[0].district_id;
-            const userRole = userData[0].role;
-            console.log(`🔍 Dashboard stats para usuário ${userId} (${userRole}) da igreja: ${userChurch}, distrito: ${userDistrictId}`);
-          }
-        }
-
-        // Se for superadmin ou pastor, filtrar por distrito se tiver districtId
-        if (userData && userData.length > 0 && hasAdminAccess(userData[0])) {
-          if (isSuperAdmin(userData[0]) || (isPastor(userData[0]) && userDistrictId)) {
-            // Superadmin ou pastor com districtId: ver apenas dados do distrito
-            console.log(`🔍 Dashboard stats do distrito ${userDistrictId} (${userData[0].role})`);
-            
-            // Buscar igrejas do distrito
-            const districtChurches = await sql`
-              SELECT id, name FROM churches WHERE district_id = ${userDistrictId}
-            `;
-            const districtChurchNames = districtChurches.map(ch => ch.name);
-            
-            // Filtrar usuários do distrito
-            // Construir filtro de igrejas usando template string
-            let churchFilterSQL = '';
-            if (districtChurchNames.length > 0) {
-              const churchList = districtChurchNames.map(name => `'${name.replace(/'/g, "''")}'`).join(',');
-              churchFilterSQL = `(church IN (${churchList}) OR district_id = ${userDistrictId})`;
-            } else {
-              churchFilterSQL = `district_id = ${userDistrictId}`;
-            }
-            
-            // Usar template string para construir queries
-            const usersQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL}`;
-            const users = await sql(usersQuery);
-            
-            const events = await sql`SELECT COUNT(*) as count FROM events`;
-            
-            const interestedQuery = `SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-            const interested = await sql(interestedQuery);
-            
-            const membersQuery = `SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-            const members = await sql(membersQuery);
-            
-            const adminsQuery = `SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-            const admins = await sql(adminsQuery);
-            
-            const missionariesQuery = `SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-            const missionaries = await sql(missionariesQuery);
-            
-            // Calcular eventos desta semana e mês
-            const today = new Date();
-            const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
-            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-            
-            const thisWeekEvents = await sql`
-              SELECT COUNT(*) as count FROM events 
-              WHERE date >= ${weekStart.toISOString().split('T')[0]}
-              AND date <= ${today.toISOString().split('T')[0]}
-            `;
-            
-            const thisMonthEvents = await sql`
-              SELECT COUNT(*) as count FROM events 
-              WHERE date >= ${monthStart.toISOString().split('T')[0]}
-              AND date <= ${today.toISOString().split('T')[0]}
-            `;
-            
-            // Calcular aniversariantes do distrito
-            const birthdaysTodayQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL} AND birth_date IS NOT NULL AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())`;
-            const birthdaysToday = await sql(birthdaysTodayQuery);
-            
-            const birthdaysThisWeekQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL} AND birth_date IS NOT NULL AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')`;
-            const birthdaysThisWeek = await sql(birthdaysThisWeekQuery);
-            
-            // Contar tarefas pendentes
-            const pendingTasks = await sql`
-              SELECT COUNT(*) as count FROM tasks 
-              WHERE status = 'pending'
-            `;
-            
-            // Contar interessados sendo discipulados do distrito
-            let interestedBeingDiscipled = 0;
-            try {
-              // Ajustar filtro para usar alias u.
-              let relationshipFilterSQL = churchFilterSQL.replace(/district_id/g, 'u.district_id').replace(/church/g, 'u.church');
-              const relationshipsQuery = `SELECT r.* FROM relationships r INNER JOIN users u ON r.interested_id = u.id WHERE r.status = 'active' AND u.email != 'admin@7care.com' AND ${relationshipFilterSQL}`;
-              const relationships = await sql(relationshipsQuery);
-              
-              const uniqueInterested = new Set(
-                relationships.map(rel => rel.interested_id).filter(id => id != null)
-              );
-              interestedBeingDiscipled = uniqueInterested.size;
-            } catch (error) {
-              console.error('⚠️ Erro ao contar interessados sendo discipulados:', error);
-            }
-            
-            const stats = {
-              totalUsers: parseInt(users[0].count),
-              totalEvents: parseInt(events[0].count),
-              totalInterested: parseInt(interested[0].count),
-              interestedBeingDiscipled: interestedBeingDiscipled,
-              totalMembers: parseInt(members[0].count),
-              totalAdmins: parseInt(admins[0].count),
-              totalMissionaries: parseInt(missionaries[0].count),
-              pendingApprovals: parseInt(pendingTasks[0].count),
-              thisWeekEvents: parseInt(thisWeekEvents[0].count),
-              thisMonthEvents: parseInt(thisMonthEvents[0].count),
-              birthdaysToday: parseInt(birthdaysToday[0].count),
-              birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
-              approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count) + parseInt(admins[0].count),
-              totalChurches: districtChurches.length
-            };
-            
-            return {
-              statusCode: 200,
-              headers,
-              body: JSON.stringify(stats)
-            };
-          }
-        }
-
-        // Se for admin sem districtId, igreja "Sistema" ou não tiver userId, mostrar estatísticas globais
-        if (!userId || !userChurch || userChurch === 'Sistema' || (userData && userData.length > 0 && hasAdminAccess(userData[0]))) {
-          console.log('🔍 Dashboard stats globais (admin sem distrito ou sem userId)');
-      const users = await sql`SELECT COUNT(*) as count FROM users`;
-      const events = await sql`SELECT COUNT(*) as count FROM events`;
-      const interested = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested'`;
-      const members = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'member'`;
-      const admins = await sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor')`;
-      const missionaries = await sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%'`;
-      
-      // Calcular eventos desta semana e mês
-      const today = new Date();
-      const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      
-      const thisWeekEvents = await sql`
-        SELECT COUNT(*) as count FROM events 
-        WHERE date >= ${weekStart.toISOString().split('T')[0]}
-        AND date <= ${today.toISOString().split('T')[0]}
-      `;
-      
-      const thisMonthEvents = await sql`
-        SELECT COUNT(*) as count FROM events 
-        WHERE date >= ${monthStart.toISOString().split('T')[0]}
-        AND date <= ${today.toISOString().split('T')[0]}
-      `;
-      
-      // Calcular aniversariantes hoje e esta semana
-      const birthdaysToday = await sql`
-        SELECT COUNT(*) as count FROM users 
-        WHERE birth_date IS NOT NULL 
-        AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-        AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
-      `;
-      
-      const birthdaysThisWeek = await sql`
-        SELECT COUNT(*) as count FROM users 
-        WHERE birth_date IS NOT NULL 
-        AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-        AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')
-      `;
-      
-      // Contar tarefas pendentes e concluídas
-      const pendingTasks = await sql`
-        SELECT COUNT(*) as count FROM tasks 
-        WHERE status = 'pending'
-      `;
-      
-      const completedTasks = await sql`
-        SELECT COUNT(*) as count FROM tasks 
-        WHERE status = 'completed'
-      `;
-      
-      console.log(`📋 Tarefas - Pendentes: ${parseInt(pendingTasks[0].count)}, Concluídas: ${parseInt(completedTasks[0].count)}`);
-      
-      // Contar interessados sendo discipulados
-      let interestedBeingDiscipled = 0;
-      try {
-        const relationships = await sql`
-          SELECT * FROM relationships
-        `;
-        
-        console.log(`🔍 DEBUG - Total de relacionamentos: ${relationships.length}`);
-        
-        // Filtrar apenas ativos
-        const activeRelationships = relationships.filter(rel => rel.status === 'active');
-        console.log(`✅ Relacionamentos ativos: ${activeRelationships.length}`);
-        
-        // Contar interessados únicos
-        const uniqueInterested = new Set(
-          activeRelationships
-            .map(rel => rel.interested_id)
-            .filter(id => id != null)
-        );
-        
-        interestedBeingDiscipled = uniqueInterested.size;
-        console.log(`👥 Interessados únicos com discipulador: ${interestedBeingDiscipled}`);
-        console.log(`📋 IDs: [${Array.from(uniqueInterested).join(', ')}]`);
-      } catch (error) {
-        console.error('⚠️ Erro ao contar interessados sendo discipulados:', error);
-      }
-      
-      const stats = {
-        totalUsers: parseInt(users[0].count),
-        totalEvents: parseInt(events[0].count),
-        totalInterested: parseInt(interested[0].count),
-        interestedBeingDiscipled: interestedBeingDiscipled,
-        totalMembers: parseInt(members[0].count),
-        totalAdmins: parseInt(admins[0].count),
-        totalMissionaries: parseInt(missionaries[0].count),
-        pendingApprovals: parseInt(pendingTasks[0].count), // Tarefas pendentes
-        completedTasks: parseInt(completedTasks[0].count), // Tarefas concluídas
-        thisWeekEvents: parseInt(thisWeekEvents[0].count),
-        thisMonthEvents: parseInt(thisMonthEvents[0].count),
-        birthdaysToday: parseInt(birthdaysToday[0].count),
-        birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
-        approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count) + parseInt(admins[0].count),
-        totalChurches: 6
-      };
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(stats)
-      };
-        }
-
-        // Para membros/missionários, filtrar por igreja
-        const users = await sql`SELECT COUNT(*) as count FROM users WHERE church = ${userChurch}`;
-        const events = await sql`SELECT COUNT(*) as count FROM events`;
-        const interested = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND church = ${userChurch}`;
-        const members = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND church = ${userChurch}`;
-        const missionaries = await sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND church = ${userChurch}`;
-        
-        // Calcular eventos desta semana e mês para a igreja
-        const today = new Date();
-        const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        
-        const thisWeekEvents = await sql`
-          SELECT COUNT(*) as count FROM events 
-          WHERE date >= ${weekStart.toISOString().split('T')[0]}
-          AND date <= ${today.toISOString().split('T')[0]}
-        `;
-        
-        const thisMonthEvents = await sql`
-          SELECT COUNT(*) as count FROM events 
-          WHERE date >= ${monthStart.toISOString().split('T')[0]}
-          AND date <= ${today.toISOString().split('T')[0]}
-        `;
-        
-        // Buscar aniversariantes da igreja
-        const birthdaysToday = await sql`
-          SELECT COUNT(*) as count FROM users 
-          WHERE church = ${userChurch} 
-          AND birth_date IS NOT NULL 
-          AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-          AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
-        `;
-        
-        const birthdaysThisWeek = await sql`
-          SELECT COUNT(*) as count FROM users 
-          WHERE church = ${userChurch} 
-          AND birth_date IS NOT NULL 
-          AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-          AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')
-        `;
-        
-        // Contar tarefas pendentes
-        const pendingTasks = await sql`
-          SELECT COUNT(*) as count FROM tasks 
-          WHERE status = 'pending'
-        `;
-        
-        const stats = {
-          totalUsers: parseInt(users[0].count),
-          totalEvents: parseInt(events[0].count),
-          totalInterested: parseInt(interested[0].count),
-          totalMembers: parseInt(members[0].count),
-          totalAdmins: 0, // Membros não veem admins
-          totalMissionaries: parseInt(missionaries[0].count),
-          pendingApprovals: parseInt(pendingTasks[0].count), // Tarefas pendentes
-          thisWeekEvents: parseInt(thisWeekEvents[0].count),
-          thisMonthEvents: parseInt(thisMonthEvents[0].count),
-          birthdaysToday: parseInt(birthdaysToday[0].count),
-          birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
-          approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count),
-          totalChurches: 1, // Apenas sua igreja
-          userChurch: userChurch // Adicionar igreja do usuário
-        };
-
-        console.log(`📊 Stats da igreja ${userChurch}:`, stats);
-
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify(stats)
-        };
-      } catch (error) {
-        console.error('❌ Dashboard stats error:', error);
-        console.error('❌ Dashboard stats error stack:', error.stack);
-        console.error('❌ Dashboard stats error details:', {
-          name: error.name,
-          message: error.message,
-          userId: event.headers['x-user-id']
-        });
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ error: 'Erro ao buscar estatísticas', details: error.message })
-        };
-      }
+    const dashboardStatsResponse = await handleDashboardStatsRoute({ path, method, event, sql, headers });
+    if (dashboardStatsResponse) {
+      return dashboardStatsResponse;
     }
 
     // Rota de teste para diagnosticar o problema
@@ -2798,160 +2905,9 @@ exports.handler = async (event, context) => {
         })
       };
     }
-
-    // Rota para aniversariantes
-    if (path === '/api/users/birthdays' && method === 'GET') {
-      try {
-        console.log('🎂 Endpoint de aniversários chamado');
-        
-        // Usar data local do Brasil (UTC-3) para evitar problemas de fuso horário
-        const now = new Date();
-        // Ajustar para fuso horário do Brasil (UTC-3)
-        const brazilOffset = -3 * 60; // -3 horas em minutos
-        const utcOffset = now.getTimezoneOffset(); // offset local em minutos
-        const brazilTime = new Date(now.getTime() + (utcOffset + brazilOffset) * 60 * 1000);
-        
-        const currentMonth = brazilTime.getMonth(); // 0-indexed (Janeiro = 0)
-        const currentDay = brazilTime.getDate();
-        
-        console.log(`🎂 Data Brasil: ${brazilTime.toISOString()}, Mês: ${currentMonth + 1}, Dia: ${currentDay}`);
-        
-        const currentUser = await resolveCurrentUser(event, sql);
-        const currentUserDistrictId = currentUser?.district_id || null;
-        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
-        
-        // Usar EXTRACT no SQL para pegar mês e dia diretamente do banco (evita problemas de fuso)
-        let users;
-        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
-          if (districtChurchNames.length > 0) {
-            users = await sql`
-              SELECT id, name, birth_date, church, district_id,
-                     EXTRACT(MONTH FROM birth_date)::int as birth_month,
-                     EXTRACT(DAY FROM birth_date)::int as birth_day
-              FROM users 
-              WHERE birth_date IS NOT NULL 
-                AND (district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames}))
-              ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
-            `;
-          } else {
-            users = await sql`
-              SELECT id, name, birth_date, church, district_id,
-                     EXTRACT(MONTH FROM birth_date)::int as birth_month,
-                     EXTRACT(DAY FROM birth_date)::int as birth_day
-              FROM users 
-              WHERE birth_date IS NOT NULL 
-                AND district_id = ${currentUserDistrictId}
-              ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
-            `;
-          }
-        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church && currentUser.church !== 'Sistema') {
-          users = await sql`
-            SELECT id, name, birth_date, church,
-                   EXTRACT(MONTH FROM birth_date)::int as birth_month,
-                   EXTRACT(DAY FROM birth_date)::int as birth_day
-            FROM users 
-            WHERE birth_date IS NOT NULL 
-              AND church = ${currentUser.church}
-            ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
-          `;
-        } else {
-          users = await sql`
-            SELECT id, name, birth_date, church,
-                   EXTRACT(MONTH FROM birth_date)::int as birth_month,
-                   EXTRACT(DAY FROM birth_date)::int as birth_day
-            FROM users 
-            WHERE birth_date IS NOT NULL 
-            ORDER BY EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)
-          `;
-        }
-        
-        console.log(`🎂 Usuários encontrados: ${users.length}`);
-        
-        // Filtrar aniversariantes de hoje usando birth_month e birth_day do SQL
-        // IMPORTANTE: birth_month do SQL é 1-indexed, currentMonth é 0-indexed
-        const birthdaysToday = users.filter(user => {
-          return user.birth_month === (currentMonth + 1) && user.birth_day === currentDay;
-        });
-        
-        // Filtrar aniversariantes do mês atual (exceto hoje)
-        const birthdaysThisMonth = users.filter(user => {
-          return user.birth_month === (currentMonth + 1) && user.birth_day !== currentDay;
-        });
-        
-        console.log(`🎂 Aniversariantes hoje: ${birthdaysToday.length}`);
-        console.log(`🎂 Aniversariantes do mês: ${birthdaysThisMonth.length}`);
-        if (birthdaysThisMonth.length > 0) {
-          console.log(`🎂 Primeiros 3 do mês:`, birthdaysThisMonth.slice(0, 3).map(u => ({ name: u.name, birth_month: u.birth_month, birth_day: u.birth_day })));
-        }
-        
-        // Formatar dados dos aniversariantes
-        const formatBirthdayUser = (user) => {
-          let birthDate = null;
-          if (user.birth_date) {
-            try {
-              // Usar birth_month e birth_day do SQL para evitar problemas de fuso
-              if (user.birth_month && user.birth_day) {
-                const date = new Date(user.birth_date);
-                const year = date.getUTCFullYear();
-                const month = String(user.birth_month).padStart(2, '0');
-                const day = String(user.birth_day).padStart(2, '0');
-                birthDate = `${year}-${month}-${day}`;
-              } else {
-                // Fallback: usar UTC para evitar problemas de fuso
-                const date = new Date(user.birth_date);
-                if (!isNaN(date.getTime())) {
-                  const year = date.getUTCFullYear();
-                  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-                  const day = String(date.getUTCDate()).padStart(2, '0');
-                  birthDate = `${year}-${month}-${day}`;
-                }
-              }
-            } catch (error) {
-              console.error('Erro ao formatar data:', error);
-              birthDate = null;
-            }
-          }
-          
-          return {
-            id: user.id,
-            name: user.name,
-            birthDate: birthDate,
-            church: user.church || null
-          };
-        };
-        
-        const result = {
-          today: birthdaysToday.map(formatBirthdayUser),
-          thisMonth: birthdaysThisMonth.map(formatBirthdayUser),
-          all: users.map(formatBirthdayUser),
-          timestamp: new Date().toISOString(),
-          userChurch: currentUser?.church || null,
-          debug: {
-            currentMonth: currentMonth + 1,
-            currentDay: currentDay,
-            totalUsers: users.length,
-            thisMonthCount: birthdaysThisMonth.length,
-            todayCount: birthdaysToday.length,
-            filteredByChurch: !!(currentUser?.church)
-          }
-        };
-        
-        console.log('🎂 Resultado final:', JSON.stringify(result.debug, null, 2));
-      
-      return {
-        statusCode: 200,
-        headers,
-          body: JSON.stringify(result)
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro no endpoint de aniversariantes:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ error: 'Erro interno do servidor', details: error.message })
-        };
-      }
+    const birthdaysResponse = await handleBirthdaysRoute({ path, method, event, sql, headers });
+    if (birthdaysResponse) {
+      return birthdaysResponse;
     }
 
     // ============================================

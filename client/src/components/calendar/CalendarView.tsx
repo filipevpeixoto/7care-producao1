@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { calendarLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,7 @@ import {
   Cloud,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ariaLabels } from '@/lib/accessibility';
 import { useBirthdays } from '@/hooks/useBirthdays';
 import { GoogleDriveImportModal } from './GoogleDriveImportModal';
 import { ImportExcelModal } from './ImportExcelModal';
@@ -273,7 +275,7 @@ export const CalendarView = ({
         alert(`✅ Sincronização concluída! Planilha já está sincronizada.`);
       }
     } catch (error) {
-      console.error('Erro na sincronização:', error);
+      calendarLogger.error('Erro na sincronização:', error);
       alert('❌ Erro na sincronização. Verifique a conexão.');
     } finally {
       setIsSyncing(false);
@@ -371,6 +373,7 @@ export const CalendarView = ({
               size="sm"
               onClick={() => navigateWeek('prev')}
               data-testid="button-prev-week"
+              aria-label={ariaLabels.previousWeek}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -385,6 +388,7 @@ export const CalendarView = ({
               size="sm"
               onClick={() => navigateWeek('next')}
               data-testid="button-next-week"
+              aria-label={ariaLabels.nextWeek}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -718,7 +722,7 @@ export const CalendarView = ({
         onImportComplete={() => {
           setShowGoogleDriveModal(false);
           // Aqui você pode adicionar lógica para recarregar os eventos
-          console.log('Sincronização com Google Drive concluída!');
+          calendarLogger.info('Sincronização com Google Drive concluída!');
         }}
       />
 
@@ -729,7 +733,7 @@ export const CalendarView = ({
         onImportComplete={() => {
           setShowImportExcelModal(false);
           // Aqui você pode adicionar lógica para recarregar os eventos
-          console.log('Importação Excel concluída!');
+          calendarLogger.info('Importação Excel concluída!');
         }}
       />
     </div>

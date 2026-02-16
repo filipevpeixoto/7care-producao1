@@ -11,15 +11,13 @@ import {
   sendUnauthorized,
   sendValidationError,
   sendInternalError,
-} from './electionHelpers';
-import type {
-  Express,
-  Request,
-  Response,
-  ElectionRow,
-  CandidateRow,
-  NormalizedCandidate,
-  VoteResultRow,
+  type Express,
+  type Request,
+  type Response,
+  type ElectionRow,
+  type CandidateRow,
+  type NormalizedCandidate,
+  type VoteResultRow,
 } from './electionHelpers';
 
 export const electionVotingRoutes = (app: Express): void => {
@@ -358,7 +356,7 @@ export const electionVotingRoutes = (app: Express): void => {
       // Normalizar estrutura dos candidatos
       let normalizedCandidates: NormalizedCandidate[] = candidates.flatMap(c => {
         const candidateId = c.id ?? c.candidate_id;
-        if (candidateId == null) {
+        if (candidateId === null || candidateId === undefined) {
           return [];
         }
         return [

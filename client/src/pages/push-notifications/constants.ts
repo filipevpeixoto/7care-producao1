@@ -1,0 +1,36 @@
+import { createLogger } from '@/lib/logger';
+
+export const pushLogger = createLogger('Push');
+
+export const POPULAR_EMOJIS = [
+  '😀',
+  '😊',
+  '😂',
+  '🤗',
+  '😍',
+  '🥰',
+  '😎',
+  '🤩',
+  '🥳',
+  '🎉',
+  '❤️',
+  '💕',
+  '💖',
+  '💯',
+  '🔥',
+  '✨',
+  '🌟',
+  '🙏',
+  '👍',
+  '👏',
+  '🎊',
+  '🎈',
+  '🎁',
+  '🎂',
+  '🍰',
+  '☕',
+  '🍕',
+  '🎵',
+  '🎶',
+  '📱',
+];

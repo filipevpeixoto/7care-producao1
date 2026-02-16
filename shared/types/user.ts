@@ -158,6 +158,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  isImpersonating?: boolean;
   church?: string | null;
   churchCode?: string | null;
   churchId?: number | null;

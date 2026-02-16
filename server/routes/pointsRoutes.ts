@@ -82,6 +82,7 @@ interface PointsConfig {
   camposVaziosACMS?: { completos?: number };
 }
 
+/** Registers gamification and points routes */
 export const pointsRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const pointsRepo = getRepository('pointsRepository');
@@ -567,11 +568,10 @@ export const pointsRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       // Obter usuário que está fazendo a requisição
       const requestingUserId = getAuthUserId(req);
-      let requestingUser = null;
       let districtFilter: number | null = null;
 
       if (requestingUserId) {
-        requestingUser = await userRepo.getUserById(requestingUserId);
+        const requestingUser = await userRepo.getUserById(requestingUserId);
 
         // Se for pastor, filtrar por distrito
         if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
@@ -700,10 +700,9 @@ export const pointsRoutes = (app: Express): void => {
       // Obter usuário que está fazendo a requisição para filtro por distrito
       const requestingUserId = getAuthUserId(req);
       let districtFilter: number | null = null;
-      let requestingUser = null;
 
       if (requestingUserId) {
-        requestingUser = await userRepo.getUserById(requestingUserId);
+        const requestingUser = await userRepo.getUserById(requestingUserId);
         if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
           districtFilter = requestingUser.districtId;
           logger.info(`🏛️ Ajuste de média filtrado por distrito: ${districtFilter}`);

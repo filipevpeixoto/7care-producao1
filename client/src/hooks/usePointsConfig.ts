@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { hasAdminAccess } from '@/lib/permissions';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const pointsLogger = createLogger('Points');
 
@@ -43,9 +45,11 @@ export interface PointsConfig {
   };
   nomeUnidade: {
     comUnidade: number;
+    semUnidade?: number;
   };
   temLicao: {
     comLicao: number;
+    semLicao?: number;
   };
   pontuacaoDinamica: {
     multiplicador: number;
@@ -64,9 +68,11 @@ export interface PointsConfig {
   };
   cpfValido: {
     valido: number;
+    invalido?: number;
   };
   camposVaziosACMS: {
     semCamposVazios: number;
+    incompletos?: number;
   };
 }
 
@@ -135,45 +141,44 @@ const defaultConfig: PointsConfig = {
 
 export const usePointsConfig = () => {
   const [config, setConfig] = useState<PointsConfig>(defaultConfig);
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   useAuth();
 
-  // Carregar configurações do localStorage ou backend
-  useEffect(() => {
-    const loadConfig = async () => {
+  const { data: loadedConfig, isLoading: isLoadingConfig } = useQuery({
+    queryKey: queryKeys.system.pointsConfig(),
+    queryFn: async () => {
       try {
-        // Tentar carregar do backend primeiro
         const response = await fetchWithAuth('/api/system/points-config');
         if (response.ok) {
           const backendConfig = await response.json();
-          setConfig(backendConfig);
-          // Salvar no localStorage como backup
           localStorage.setItem('pointsConfig', JSON.stringify(backendConfig));
-        } else {
-          // Fallback para localStorage
-          const savedConfig = localStorage.getItem('pointsConfig');
-          if (savedConfig) {
-            setConfig(JSON.parse(savedConfig));
-          }
+          return backendConfig as PointsConfig;
         }
       } catch (error) {
         pointsLogger.error('Erro ao carregar configurações:', error);
-        // Fallback para localStorage
-        const savedConfig = localStorage.getItem('pointsConfig');
-        if (savedConfig) {
-          setConfig(JSON.parse(savedConfig));
-        }
       }
-    };
 
-    loadConfig();
-  }, []);
+      const savedConfig = localStorage.getItem('pointsConfig');
+      if (savedConfig) {
+        return JSON.parse(savedConfig) as PointsConfig;
+      }
 
-  const saveConfig = async (newConfig: PointsConfig) => {
-    setIsLoading(true);
-    try {
-      // Salvar no backend (agora com recálculo automático)
+      return defaultConfig;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (loadedConfig) {
+      setConfig(loadedConfig);
+    }
+  }, [loadedConfig]);
+
+  const saveConfigMutation = useMutation({
+    mutationFn: async (newConfig: PointsConfig) => {
       const response = await fetchWithAuth('/api/system/points-config', {
         method: 'POST',
         body: JSON.stringify(newConfig),
@@ -183,14 +188,18 @@ export const usePointsConfig = () => {
         throw new Error('Erro ao salvar no servidor');
       }
 
-      const result = await response.json();
+      return response.json();
+    },
+  });
 
-      // Salvar no localStorage como backup
+  const saveConfig = async (newConfig: PointsConfig) => {
+    try {
+      const result = await saveConfigMutation.mutateAsync(newConfig);
+
       localStorage.setItem('pointsConfig', JSON.stringify(newConfig));
-
       setConfig(newConfig);
+      queryClient.setQueryData(queryKeys.system.pointsConfig(), newConfig);
 
-      // Mostrar mensagem de sucesso com informações do recálculo
       if (result.updatedUsers > 0) {
         pointsLogger.debug(
           `Configuração salva e ${result.updatedUsers} usuários atualizados automaticamente!`
@@ -218,8 +227,6 @@ export const usePointsConfig = () => {
       });
 
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -245,10 +252,10 @@ export const usePointsConfig = () => {
 
   const getTotalMaxPoints = () => {
     // Pontos base (nível raiz)
-    const basicPoints = (config as any).basicPoints || 0;
-    const attendancePoints = (config as any).attendancePoints || 0;
-    const eventPoints = (config as any).eventPoints || 0;
-    const donationPoints = (config as any).donationPoints || 0;
+    const basicPoints = 0;
+    const attendancePoints = 0;
+    const eventPoints = 0;
+    const donationPoints = 0;
 
     // Pontos por categoria (apenas valores máximos)
     const categoryPoints =
@@ -316,14 +323,14 @@ export const usePointsConfig = () => {
       const users = await response.json();
 
       // Filtrar apenas usuários regulares (não admin)
-      const regularUsers = users.filter((user: any) => user.email !== 'admin@7care.com');
+      const regularUsers = users.filter((user: { email: string; points?: number; role?: string }) => user.email !== 'admin@7care.com');
 
       if (regularUsers.length === 0) {
         return 0;
       }
 
       // Calcular média dos pontos dos usuários (usando campo points ou calculando mock)
-      const totalPoints = regularUsers.reduce((sum: number, user: any) => {
+      const totalPoints = regularUsers.reduce((sum: number, user: { email: string; points?: number; role?: string }) => {
         // Se o usuário tem pontos, usar; senão calcular mock baseado no role
         const points =
           user.points ||
@@ -345,7 +352,7 @@ export const usePointsConfig = () => {
 
   return {
     config,
-    isLoading,
+    isLoading: isLoadingConfig || saveConfigMutation.isPending,
     saveConfig,
     resetConfig,
     updateConfig,

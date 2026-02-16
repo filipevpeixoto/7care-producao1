@@ -11,7 +11,7 @@ import type { ElectionConfigData } from './types';
 
 export interface StepCriteriaProps {
   config: ElectionConfigData;
-  handleCriteriaChange: (path: string, value: any) => void;
+  handleCriteriaChange: (path: string, value: string | number | boolean) => void;
 }
 
 export function StepCriteria({ config, handleCriteriaChange }: StepCriteriaProps) {

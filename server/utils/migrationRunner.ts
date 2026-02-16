@@ -195,19 +195,18 @@ if (isMainModule) {
     case 'status':
       getMigrationStatus()
         .then(migrations => {
-          console.table(
-            migrations.map(m => ({
-              name: m.name,
-              executed: m.executedAt ? '✅' : '❌',
-              date: m.executedAt?.toISOString() || '-',
-            }))
-          );
+          const rows = migrations.map(m => ({
+            name: m.name,
+            executed: m.executedAt ? '✅' : '❌',
+            date: m.executedAt?.toISOString() || '-',
+          }));
+          logger.info('📋 Status das migrações', rows);
           process.exit(0);
         })
         .catch(() => process.exit(1));
       break;
     default:
-      console.log('Uso: npx tsx server/utils/migrationRunner.ts [up|down|status]');
+      logger.info('Uso: npx tsx server/utils/migrationRunner.ts [up|down|status]');
       process.exit(1);
   }
 }

@@ -7,7 +7,6 @@
  * Uses supertest with a real Express app and mocked repositories.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import './setup';
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';

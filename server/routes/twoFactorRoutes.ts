@@ -215,4 +215,5 @@ router.post(
   })
 );
 
+/** Express router with two-factor authentication (2FA) routes */
 export default router;

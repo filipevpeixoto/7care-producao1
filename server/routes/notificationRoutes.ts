@@ -9,6 +9,7 @@ import { validateParams, type ValidatedRequest } from '../middleware/validation'
 import { idParamSchema, userIdParamSchema } from '../schemas';
 import { getRepository, getService } from '../container';
 
+/** Registers notification and push notification routes */
 export const notificationRoutes = (app: Express): void => {
   const notificationRepo = getRepository('notificationRepository');
   const pushSubRepo = getRepository('pushSubscriptionRepository');

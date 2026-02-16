@@ -9,6 +9,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { calendarLogger } from '@/lib/logger';
+import { ariaLabels } from '@/lib/accessibility';
 
 interface CalendarEvent {
   id: number;
@@ -209,10 +210,20 @@ export function SimpleCalendarView({ onEventClick }: SimpleCalendarViewProps) {
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </h2>
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousMonth}
+              aria-label={ariaLabels.previousMonth}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={goToNextMonth}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextMonth}
+              aria-label={ariaLabels.nextMonth}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

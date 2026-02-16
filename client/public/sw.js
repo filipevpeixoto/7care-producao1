@@ -3,6 +3,8 @@
  * Permite acesso offline completo à aplicação
  */
 
+const { caches, fetch, console, URL, Response } = globalThis;
+const self = globalThis;
 const CACHE_NAME = '7care-v2';
 const STATIC_CACHE = '7care-static-v2';
 const API_CACHE = '7care-api-v2';
@@ -19,16 +21,6 @@ const STATIC_ASSETS = [
   '/pwa-512x512.png',
   '/placeholder.svg',
   '/offline.html',
-];
-
-// APIs para cachear
-const API_ROUTES = [
-  '/api/users',
-  '/api/events',
-  '/api/tasks',
-  '/api/churches',
-  '/api/districts',
-  '/api/messages',
 ];
 
 // Instalar Service Worker

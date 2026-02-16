@@ -5,7 +5,7 @@
  * entre Google Calendar API e o sistema 7Care.
  */
 
-import { google, type calendar_v3 } from 'googleapis';
+import { google, type calendar_v3, type Auth } from 'googleapis';
 import crypto from 'crypto';
 import type { NeonAdapter } from '../neonAdapter';
 import { logger } from '../utils/logger';
@@ -14,6 +14,7 @@ import { logger } from '../utils/logger';
 // TYPES & INTERFACES
 // ============================================
 
+/** Encrypted OAuth2 tokens for a user's Google Calendar connection. */
 export interface GoogleCalendarTokens {
   userId: number;
   districtId?: number;
@@ -23,6 +24,7 @@ export interface GoogleCalendarTokens {
   scope: string;
 }
 
+/** User-specific configuration for Google Calendar sync behavior. */
 export interface GoogleCalendarConfig {
   userId: number;
   calendarId: string;
@@ -31,6 +33,7 @@ export interface GoogleCalendarConfig {
   lastSync?: string;
 }
 
+/** Result of a Google Calendar event synchronization operation. */
 export interface SyncResult {
   imported: number;
   updated: number;
@@ -38,6 +41,7 @@ export interface SyncResult {
   errors?: string[];
 }
 
+/** Summary information about a Google Calendar. */
 export interface CalendarInfo {
   id: string;
   name: string;
@@ -116,8 +120,11 @@ function categorizeEvent(summary: string, description?: string): string {
 // MAIN SERVICE CLASS
 // ============================================
 
+/**
+ * Service for OAuth2 authentication and event synchronization with Google Calendar.
+ */
 export class GoogleCalendarService {
-  private oauth2Client: any;
+  private oauth2Client: Auth.OAuth2Client;
   private storage: NeonAdapter;
 
   constructor(storage: NeonAdapter) {
@@ -397,7 +404,10 @@ export class GoogleCalendarService {
         }
       }
     } catch (error) {
-      throw new Error(`Failed to sync events: ${(error as Error).message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to sync events: ${error.message}`, { cause: error });
+      }
+      throw new Error(`Failed to sync events: ${String(error)}`, { cause: error });
     }
 
     // Update last sync time

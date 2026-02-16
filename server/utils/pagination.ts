@@ -35,6 +35,19 @@ export const PAGINATION_LIMITS = {
   DEFAULT_PAGE: 1,
 } as const;
 
+export function getPaginationLimits() {
+  const maxLimit =
+    parseInt(process.env.PAGINATION_MAX_LIMIT || '') || PAGINATION_LIMITS.MAX_LIMIT;
+  const defaultLimit =
+    parseInt(process.env.PAGINATION_DEFAULT_LIMIT || '') || PAGINATION_LIMITS.DEFAULT_LIMIT;
+
+  return {
+    ...PAGINATION_LIMITS,
+    MAX_LIMIT: Math.max(PAGINATION_LIMITS.MIN_LIMIT, maxLimit),
+    DEFAULT_LIMIT: Math.min(Math.max(PAGINATION_LIMITS.MIN_LIMIT, defaultLimit), maxLimit),
+  };
+}
+
 /**
  * Extrai parâmetros de paginação do request
  */
@@ -42,16 +55,17 @@ export function extractPaginationParams(
   req: Request,
   defaults?: Partial<PaginationParams>
 ): PaginationParams {
+  const limits = getPaginationLimits();
   const page = Math.max(
-    PAGINATION_LIMITS.DEFAULT_PAGE,
-    parseInt(req.query.page as string) || defaults?.page || PAGINATION_LIMITS.DEFAULT_PAGE
+    limits.DEFAULT_PAGE,
+    parseInt(req.query.page as string) || defaults?.page || limits.DEFAULT_PAGE
   );
 
   const requestedLimit =
-    parseInt(req.query.limit as string) || defaults?.limit || PAGINATION_LIMITS.DEFAULT_LIMIT;
+    parseInt(req.query.limit as string) || defaults?.limit || limits.DEFAULT_LIMIT;
   const limit = Math.min(
-    Math.max(PAGINATION_LIMITS.MIN_LIMIT, requestedLimit),
-    PAGINATION_LIMITS.MAX_LIMIT
+    Math.max(limits.MIN_LIMIT, requestedLimit),
+    limits.MAX_LIMIT
   );
 
   const offset = (page - 1) * limit;
@@ -112,18 +126,19 @@ export function validatePaginationParams(
   page: number,
   limit: number
 ): { valid: boolean; errors: string[] } {
+  const limits = getPaginationLimits();
   const errors: string[] = [];
 
   if (page < 1) {
     errors.push('Página deve ser maior que 0');
   }
 
-  if (limit < PAGINATION_LIMITS.MIN_LIMIT) {
-    errors.push(`Limite mínimo é ${PAGINATION_LIMITS.MIN_LIMIT}`);
+  if (limit < limits.MIN_LIMIT) {
+    errors.push(`Limite mínimo é ${limits.MIN_LIMIT}`);
   }
 
-  if (limit > PAGINATION_LIMITS.MAX_LIMIT) {
-    errors.push(`Limite máximo é ${PAGINATION_LIMITS.MAX_LIMIT}`);
+  if (limit > limits.MAX_LIMIT) {
+    errors.push(`Limite máximo é ${limits.MAX_LIMIT}`);
   }
 
   return {

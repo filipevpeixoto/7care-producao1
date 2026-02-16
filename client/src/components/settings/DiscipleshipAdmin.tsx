@@ -102,7 +102,7 @@ export function DiscipleshipAdmin() {
       setSelectedRequest(null);
       setAdminNotes('');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: '❌ Erro ao processar',
         description: error.message || 'Não foi possível processar a solicitação.',

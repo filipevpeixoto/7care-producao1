@@ -6,6 +6,7 @@
  */
 
 import { neon } from '@neondatabase/serverless';
+import { logger } from '../utils/logger';
 
 const indexes = [
   // Índices para tabela users
@@ -56,13 +57,13 @@ async function runMigration() {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
-    console.error('❌ DATABASE_URL não definida');
+    logger.error('❌ DATABASE_URL não definida');
     process.exit(1);
   }
 
   const sql = neon(databaseUrl);
 
-  console.log('🚀 Iniciando criação de índices de performance...\n');
+  logger.info('🚀 Iniciando criação de índices de performance...');
 
   let success = 0;
   let failed = 0;
@@ -70,26 +71,26 @@ async function runMigration() {
   for (const indexQuery of indexes) {
     const indexName = indexQuery.match(/idx_\w+/)?.[0] || 'unknown';
     try {
-      console.log(`📌 Criando: ${indexName}`);
+      logger.info(`📌 Criando: ${indexName}`);
       await sql`${indexQuery}`;
-      console.log(`   ✅ Sucesso!\n`);
+      logger.info('✅ Sucesso!');
       success++;
     } catch (error: unknown) {
       if ((error as Error).message?.includes('already exists')) {
-        console.log(`   ⏭️ Índice já existe\n`);
+        logger.info('⏭️ Índice já existe');
         success++;
       } else {
-        console.error(`   ❌ Erro: ${(error as Error).message}\n`);
+        logger.error(`❌ Erro: ${(error as Error).message}`);
         failed++;
       }
     }
   }
 
-  console.log(`\n${'='.repeat(50)}`);
-  console.log(`📊 Resumo da migração:`);
-  console.log(`   ✅ Sucesso: ${success}`);
-  console.log(`   ❌ Falhas: ${failed}`);
-  console.log(`${'='.repeat(50)}\n`);
+  logger.info(`${'='.repeat(50)}`);
+  logger.info('📊 Resumo da migração:');
+  logger.info(`✅ Sucesso: ${success}`);
+  logger.info(`❌ Falhas: ${failed}`);
+  logger.info(`${'='.repeat(50)}`);
 
   if (failed > 0) {
     process.exit(1);
@@ -97,4 +98,7 @@ async function runMigration() {
 }
 
 // Executar se chamado diretamente
-runMigration().catch(console.error);
+runMigration().catch(error => {
+  logger.error('Erro na migração', error);
+  process.exit(1);
+});

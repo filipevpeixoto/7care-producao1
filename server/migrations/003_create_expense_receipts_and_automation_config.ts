@@ -4,9 +4,10 @@
  */
 
 import { type NeonQueryFunction } from '@neondatabase/serverless';
+import { logger } from '../utils/logger';
 
 export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('📋 Criando tabela expense_receipts...');
+  logger.info('📋 Criando tabela expense_receipts...');
 
   await sql`
     CREATE TABLE IF NOT EXISTS expense_receipts (
@@ -43,7 +44,7 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
     )
   `;
 
-  console.log('📋 Criando índices para expense_receipts...');
+  logger.info('📋 Criando índices para expense_receipts...');
 
   await sql`CREATE INDEX IF NOT EXISTS idx_expense_receipts_user_id ON expense_receipts(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_expense_receipts_status ON expense_receipts(status)`;
@@ -51,9 +52,9 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
   await sql`CREATE INDEX IF NOT EXISTS idx_expense_receipts_whatsapp_number ON expense_receipts(whatsapp_number)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_expense_receipts_created_at ON expense_receipts(created_at)`;
 
-  console.log('✅ Tabela expense_receipts criada com sucesso!');
+  logger.info('✅ Tabela expense_receipts criada com sucesso!');
 
-  console.log('📋 Criando tabela automation_config...');
+  logger.info('📋 Criando tabela automation_config...');
 
   await sql`
     CREATE TABLE IF NOT EXISTS automation_config (
@@ -65,13 +66,13 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
     )
   `;
 
-  console.log('📋 Criando índice para automation_config...');
+  logger.info('📋 Criando índice para automation_config...');
 
   await sql`CREATE INDEX IF NOT EXISTS idx_automation_config_key ON automation_config(key)`;
 
-  console.log('✅ Tabela automation_config criada com sucesso!');
+  logger.info('✅ Tabela automation_config criada com sucesso!');
 
-  console.log('📋 Inserindo configurações iniciais...');
+  logger.info('📋 Inserindo configurações iniciais...');
 
   // Inserir configurações vazias (usuário deve preencher depois)
   await sql`
@@ -84,11 +85,11 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
     ON CONFLICT (key) DO NOTHING
   `;
 
-  console.log('✅ Configurações iniciais inseridas!');
+  logger.info('✅ Configurações iniciais inseridas!');
 }
 
 export async function down(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('📋 Removendo índices de expense_receipts...');
+  logger.info('📋 Removendo índices de expense_receipts...');
 
   await sql`DROP INDEX IF EXISTS idx_expense_receipts_user_id`;
   await sql`DROP INDEX IF EXISTS idx_expense_receipts_status`;
@@ -96,19 +97,19 @@ export async function down(sql: NeonQueryFunction<boolean, boolean>): Promise<vo
   await sql`DROP INDEX IF EXISTS idx_expense_receipts_whatsapp_number`;
   await sql`DROP INDEX IF EXISTS idx_expense_receipts_created_at`;
 
-  console.log('📋 Removendo tabela expense_receipts...');
+  logger.info('📋 Removendo tabela expense_receipts...');
 
   await sql`DROP TABLE IF EXISTS expense_receipts CASCADE`;
 
-  console.log('✅ Tabela expense_receipts removida!');
+  logger.info('✅ Tabela expense_receipts removida!');
 
-  console.log('📋 Removendo índice de automation_config...');
+  logger.info('📋 Removendo índice de automation_config...');
 
   await sql`DROP INDEX IF EXISTS idx_automation_config_key`;
 
-  console.log('📋 Removendo tabela automation_config...');
+  logger.info('📋 Removendo tabela automation_config...');
 
   await sql`DROP TABLE IF EXISTS automation_config CASCADE`;
 
-  console.log('✅ Tabela automation_config removida!');
+  logger.info('✅ Tabela automation_config removida!');
 }

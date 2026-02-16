@@ -5,9 +5,10 @@
  */
 
 import { type NeonQueryFunction } from '@neondatabase/serverless';
+import { logger } from '../utils/logger';
 
 export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('📋 Criando tabela tasks...');
+  logger.info('📋 Criando tabela tasks...');
 
   await sql`
     CREATE TABLE IF NOT EXISTS tasks (
@@ -30,7 +31,7 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
     )
   `;
 
-  console.log('📋 Criando índices para tasks...');
+  logger.info('📋 Criando índices para tasks...');
 
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to_id)`;
@@ -40,13 +41,13 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at)`;
 
-  console.log('✅ Tabela tasks criada com sucesso!');
+  logger.info('✅ Tabela tasks criada com sucesso!');
 }
 
 export async function down(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('🗑️ Removendo tabela tasks...');
+  logger.info('🗑️ Removendo tabela tasks...');
 
   await sql`DROP TABLE IF EXISTS tasks CASCADE`;
 
-  console.log('✅ Tabela tasks removida!');
+  logger.info('✅ Tabela tasks removida!');
 }

@@ -23,6 +23,9 @@ export interface CacheStats {
   isRedisConnected: boolean;
 }
 
+/**
+ * Distributed cache service with Redis support and in-memory fallback.
+ */
 export class CacheService {
   private memoryCache = new Map<string, { value: string; expiry: number }>();
   private redisClient: RedisClientType | null = null;
@@ -193,14 +196,19 @@ export class CacheService {
   }
 }
 
+/** Singleton instance of the cache service. */
 export const cacheService = new CacheService();
 
-// Exportar funções compatíveis com o código existente
+/** Initializes the Redis connection. Delegates to {@link CacheService.initRedis}. */
 export const initRedis = () => cacheService.initRedis();
+/** Closes the Redis connection. Delegates to {@link CacheService.closeRedis}. */
 export const closeRedis = () => cacheService.closeRedis();
+/** Sets a value in the cache with an optional TTL. */
 export const cacheSet = (key: string, value: unknown, ttlSeconds?: number) =>
   cacheService.set(key, value, ttlSeconds);
+/** Retrieves a value from the cache by key. */
 export const cacheGet = <T>(key: string) => cacheService.get<T>(key);
+/** Deletes a value from the cache by key. */
 export const cacheDel = (key: string) => cacheService.del(key);
 
 /**

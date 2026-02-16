@@ -10,6 +10,8 @@ import { logger } from '../utils/logger';
 import type { Notification } from '../../shared/schema';
 import type { CreateNotificationInput, UpdateNotificationInput } from '../types/storage';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 export class NotificationRepository {
   /**
    * Busca todas as notificações
@@ -189,10 +191,10 @@ export class NotificationRepository {
     return {
       id: Number(record.id),
       userId: Number(record.userId ?? 0),
-      title: record.title == null ? '' : String(record.title),
-      message: record.message == null ? '' : String(record.message),
-      type: record.type == null ? 'general' : String(record.type),
-      isRead: record.isRead == null ? false : Boolean(record.isRead),
+      title: isNil(record.title) ? '' : String(record.title),
+      message: isNil(record.message) ? '' : String(record.message),
+      type: isNil(record.type) ? 'general' : String(record.type),
+      isRead: isNil(record.isRead) ? false : Boolean(record.isRead),
       createdAt,
     };
   }

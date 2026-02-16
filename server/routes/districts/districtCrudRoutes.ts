@@ -252,7 +252,7 @@ export const districtCrudRoutes = (app: Express): void => {
         // Se código foi alterado, verificar se já existe
         if (code && code !== existing[0].code) {
           const codeExists = await sql`
-          SELECT id FROM districts WHERE code = ${code} AND id != ${districtId}
+          SELECT id FROM districts WHERE code = ${code} AND id <> ${districtId}
         `;
           if (codeExists.length > 0) {
             return sendValidationError(res, { message: 'Código já existe' });

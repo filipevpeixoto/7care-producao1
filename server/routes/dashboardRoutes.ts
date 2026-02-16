@@ -14,6 +14,7 @@ import { asyncHandler } from '../utils';
 import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
 import { getAuthUserId } from '../utils/authHelpers';
 
+/** Registers dashboard statistics and analytics routes */
 export const dashboardRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const eventRepo = getRepository('eventRepository');
@@ -60,9 +61,9 @@ export const dashboardRoutes = (app: Express): void => {
 
       const allEvents = await eventRepo.getAllEvents();
 
-      let usersToInclude: User[] = [];
-      let eventsToInclude: Event[] = [];
-      let churchesToInclude: Church[] = [];
+      let usersToInclude: User[];
+      let eventsToInclude: Event[];
+      let churchesToInclude: Church[];
 
       // PERFORMANCE & ISOLATION FIX: Usar query direta por distrito
       if (isPastor(user) && user?.districtId) {
@@ -187,12 +188,17 @@ export const dashboardRoutes = (app: Express): void => {
         const allRelationships = await relationshipRepo.getAll();
         const includedUserIds = new Set(usersToInclude.map((u: User) => u.id));
         const relationships = allRelationships.filter(
-          (rel: Relationship) => rel.interestedId != null && includedUserIds.has(rel.interestedId)
+          (rel: Relationship) =>
+            rel.interestedId !== null &&
+            rel.interestedId !== undefined &&
+            includedUserIds.has(rel.interestedId)
         );
 
         const activeRelationships = relationships.filter(rel => rel.status === 'active');
         const interestedWithMentors = new Set(
-          activeRelationships.map(rel => rel.interestedId).filter((id): id is number => id != null)
+          activeRelationships
+            .map(rel => rel.interestedId)
+            .filter((id): id is number => id !== null && id !== undefined)
         );
         interestedBeingDiscipled = interestedWithMentors.size;
       } catch (error) {
@@ -252,7 +258,7 @@ export const dashboardRoutes = (app: Express): void => {
       const allUsers = await userRepo.getAllUsers();
 
       // Filtrar por distrito se for pastor
-      let filteredUsers: User[] = [];
+      let filteredUsers: User[];
       if (isSuperAdmin(user)) {
         if (user?.districtId) {
           // Super admin com distrito vinculado

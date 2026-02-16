@@ -217,6 +217,7 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
                   key={value}
                   type="button"
                   onClick={() => setTargetAverage(value.toString())}
+                  aria-label={`Definir média como ${value} pontos`}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                     targetAverage === value.toString()
                       ? 'bg-blue-600 text-white'

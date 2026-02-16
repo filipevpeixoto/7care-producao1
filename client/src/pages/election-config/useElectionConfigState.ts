@@ -6,16 +6,17 @@
  * lógica de negócio da apresentação.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
-import { ALL_POSITIONS, DEFAULT_POSITION_DESCRIPTIONS } from './index';
-import type {
-  ElectionChurch as Church,
-  ElectionMember as Member,
-  ElectionConfigData as ElectionConfig,
+import {
+  ALL_POSITIONS,
+  DEFAULT_POSITION_DESCRIPTIONS,
+  type ElectionChurch as Church,
+  type ElectionMember as Member,
+  type ElectionConfigData as ElectionConfig,
 } from './index';
 
 // ──────────────────────────────────────────────
@@ -61,8 +62,35 @@ export function useElectionConfigState() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // ── Estado de candidatos ──
-  const [eligibleCandidates, setEligibleCandidates] = useState<any[]>([]);
-  const [ineligibleCandidates, setIneligibleCandidates] = useState<any[]>([]);
+  type Candidate = Member & {
+    isTither?: string;
+    isDonor?: string;
+    attendance?: string;
+    classification?: string;
+    churchTime?: string;
+    churchTimeYears?: number;
+    extraData?: Record<string, unknown>;
+    eligibilityReasons: string[];
+  };
+
+  type RawMember = Member & {
+    status?: string;
+    church?: string;
+    isDonor?: boolean;
+    isTither?: boolean;
+    isOffering?: boolean;
+    extraData?: unknown;
+    extra_data?: unknown;
+    observations?: string | null;
+    dizimista_type?: string;
+    ofertante_type?: string;
+    tempo_batismo_anos?: number;
+    total_presenca?: number;
+    classificacao?: string;
+  };
+
+  const [eligibleCandidates, setEligibleCandidates] = useState<Candidate[]>([]);
+  const [ineligibleCandidates, setIneligibleCandidates] = useState<Candidate[]>([]);
   const [removedCandidates, setRemovedCandidates] = useState<number[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [eligibleSearchTerm, setEligibleSearchTerm] = useState('');
@@ -79,68 +107,17 @@ export function useElectionConfigState() {
   const [editingDescriptionText, setEditingDescriptionText] = useState('');
 
   // ──────────────────────────────────────────────
-  // Effects
-  // ──────────────────────────────────────────────
-
-  // Auto-carregar candidatos ao chegar no passo 5
-  useEffect(() => {
-    if (currentStep === 5 && config.churchId && eligibleCandidates.length === 0 && !loadingCandidates) {
-      loadEligibleCandidates();
-    }
-  }, [currentStep, config.churchId]);
-
-  // Carregamento inicial
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const searchParams = new URLSearchParams(window.location.search);
-        const configIdParam = searchParams.get('id');
-        const parsedConfigId = configIdParam ? parseInt(configIdParam, 10) : null;
-
-        if (parsedConfigId && !Number.isNaN(parsedConfigId)) {
-          setEditingConfigId(parsedConfigId);
-          setIsEditing(true);
-        } else {
-          setEditingConfigId(null);
-          setIsEditing(false);
-        }
-
-        await loadChurches();
-        await loadMembers();
-        await loadConfig(parsedConfigId ?? undefined);
-
-        setCustomPositions(prev => {
-          const allPositions = [...ALL_POSITIONS];
-          const existingCustom = prev || [];
-          const newPositions = allPositions.filter(pos => !existingCustom.includes(pos));
-          return [...existingCustom, ...newPositions];
-        });
-
-        setPositionDescriptions(prev => ({
-          ...prev,
-          ...DEFAULT_POSITION_DESCRIPTIONS,
-        }));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // ──────────────────────────────────────────────
   // Data loading
   // ──────────────────────────────────────────────
 
-  const loadChurches = async () => {
+  const loadChurches = useCallback(async () => {
     try {
       const response = await fetchWithAuth('/api/churches', {
         headers: { 'Cache-Control': 'no-cache' },
       });
       if (response.ok) {
         const rawData = await response.json();
-        const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
+        const data = Array.isArray(rawData) ? (rawData as Church[]) : (rawData?.data as Church[]) || [];
         setChurches(data);
 
         if (data && data.length === 1 && user?.church) {
@@ -157,20 +134,20 @@ export function useElectionConfigState() {
     } catch {
       toast({ title: 'Erro', description: 'Erro de conexão ao carregar igrejas', variant: 'destructive' });
     }
-  };
+  }, [toast, user?.church]);
 
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     try {
       const response = await fetchWithAuth('/api/users?limit=5000', {
         headers: { 'Cache-Control': 'no-cache' },
       });
       if (response.ok) {
         const rawData = await response.json();
-        const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
+        const data = Array.isArray(rawData) ? (rawData as RawMember[]) : (rawData?.data as RawMember[]) || [];
         const membersOnly = (data || []).filter(
-          (u: any) =>
-            u.role?.includes('member') &&
-            (u.status === 'active' || u.status === 'approved' || u.status === 'pending')
+          member =>
+            member.role?.includes('member') &&
+            (member.status === 'active' || member.status === 'approved' || member.status === 'pending')
         );
         setMembers(membersOnly);
       } else {
@@ -179,9 +156,9 @@ export function useElectionConfigState() {
     } catch {
       toast({ title: 'Erro', description: 'Erro de conexão ao carregar membros', variant: 'destructive' });
     }
-  };
+  }, [toast]);
 
-  const loadConfig = async (configId?: number) => {
+  const loadConfig = useCallback(async (configId?: number) => {
     try {
       const query = configId ? `?id=${configId}` : '';
       const response = await fetchWithAuth(`/api/elections/config${query}`, {
@@ -292,7 +269,7 @@ export function useElectionConfigState() {
     } catch {
       toast({ title: 'Erro', description: 'Erro ao carregar configuração de eleição', variant: 'destructive' });
     }
-  };
+  }, [toast]);
 
   // ──────────────────────────────────────────────
   // Church / Voter handlers
@@ -333,7 +310,7 @@ export function useElectionConfigState() {
   // Criteria handlers
   // ──────────────────────────────────────────────
 
-  const handleCriteriaChange = (field: string, value: any) => {
+  const handleCriteriaChange = (field: string, value: string | number | boolean) => {
     setConfig(prev => {
       const newConfig = { ...prev };
 
@@ -475,57 +452,79 @@ export function useElectionConfigState() {
   // Candidate eligibility
   // ──────────────────────────────────────────────
 
-  const handleAddIneligibleCandidate = (candidate: any) => {
+  const handleAddIneligibleCandidate = (candidate: Candidate) => {
     setIneligibleCandidates(prev => prev.filter(c => c.id !== candidate.id));
     setEligibleCandidates(prev => [...prev, candidate]);
   };
 
-  const loadEligibleCandidates = async () => {
+  const loadEligibleCandidates = useCallback(async () => {
     setLoadingCandidates(true);
     try {
       const response = await fetchWithAuth('/api/users?limit=5000');
 
       if (response.ok) {
         const rawData = await response.json();
-        const users = Array.isArray(rawData) ? rawData : rawData?.data || [];
+        const users = Array.isArray(rawData) ? (rawData as RawMember[]) : (rawData?.data as RawMember[]) || [];
 
-        const churchMembers = users.filter((u: any) => {
-          const isAdmin = u.role === 'superadmin' || u.role === 'pastor';
+        const churchMembers = users.filter(user => {
+          const userRole = user.role || '';
+          const isAdmin = user.role === 'superadmin' || user.role === 'pastor';
           return (
-            u.church === config.churchName &&
-            (u.role?.includes('member') || isAdmin) &&
-            (u.status === 'active' || u.status === 'approved' || u.status === 'pending')
+            user.church === config.churchName &&
+            (userRole.includes('member') || isAdmin) &&
+            (user.status === 'active' || user.status === 'approved' || user.status === 'pending')
           );
         });
 
-        const eligible: any[] = [];
-        const ineligible: any[] = [];
+        const eligible: Candidate[] = [];
+        const ineligible: Candidate[] = [];
 
         for (const member of churchMembers) {
           let isEligible = true;
           const eligibilityReasons: string[] = [];
 
           // Parse extraData
-          const extraData = typeof member.extraData === 'string'
-            ? JSON.parse(member.extraData || '{}') : member.extraData || {};
-          const extraDataAlt = typeof member.extra_data === 'string'
-            ? JSON.parse(member.extra_data || '{}') : member.extra_data || {};
+          const extraData =
+            typeof member.extraData === 'string'
+              ? JSON.parse(member.extraData || '{}')
+              : (member.extraData as Record<string, unknown>) || {};
+          const extraDataAlt =
+            typeof member.extra_data === 'string'
+              ? JSON.parse(member.extra_data || '{}')
+              : (member.extra_data as Record<string, unknown>) || {};
           const mergedExtraData = { ...extraDataAlt, ...extraData };
 
           // Participação das observations
           let participacaoFromObs = '';
           if (member.observations) {
-            const match = (member.observations as string).match(/Participação:\s*([^\|]+)/i);
+            const match = (member.observations as string).match(/Participação:\s*([^|]+)/i);
             if (match) participacaoFromObs = match[1].trim();
           }
 
           const normalizedData = {
-            dizimistaType: mergedExtraData.dizimistaType || mergedExtraData.dizimista || member.dizimista_type || '',
-            ofertanteType: mergedExtraData.ofertanteType || mergedExtraData.ofertante || member.ofertante_type || '',
-            teveParticipacao: mergedExtraData.teveParticipacao || mergedExtraData.participacao || participacaoFromObs || '',
-            tempoBatismoAnos: mergedExtraData.tempoBatismoAnos || mergedExtraData.tempoBatismo || member.tempo_batismo_anos || 0,
-            classificacao: mergedExtraData.classificacao || member.classificacao || '',
-            totalPresenca: mergedExtraData.totalPresenca || member.total_presenca || 0,
+            dizimistaType:
+              (mergedExtraData.dizimistaType as string) ||
+              (mergedExtraData.dizimista as string) ||
+              member.dizimista_type ||
+              '',
+            ofertanteType:
+              (mergedExtraData.ofertanteType as string) ||
+              (mergedExtraData.ofertante as string) ||
+              member.ofertante_type ||
+              '',
+            teveParticipacao:
+              (mergedExtraData.teveParticipacao as string) ||
+              (mergedExtraData.participacao as string) ||
+              participacaoFromObs ||
+              '',
+            tempoBatismoAnos:
+              (mergedExtraData.tempoBatismoAnos as number) ||
+              (mergedExtraData.tempoBatismo as number) ||
+              member.tempo_batismo_anos ||
+              0,
+            classificacao: (mergedExtraData.classificacao as string) || member.classificacao || '',
+            totalPresenca:
+              (mergedExtraData.totalPresenca as number) || member.total_presenca || 0,
           };
 
           // ── Critério de Fidelidade ──
@@ -644,7 +643,58 @@ export function useElectionConfigState() {
     } finally {
       setLoadingCandidates(false);
     }
-  };
+  }, [config.churchName, config.criteria, toast]);
+
+  // ──────────────────────────────────────────────
+  // Effects
+  // ──────────────────────────────────────────────
+
+  // Auto-carregar candidatos ao chegar no passo 5
+  useEffect(() => {
+    if (currentStep === 5 && config.churchId && eligibleCandidates.length === 0 && !loadingCandidates) {
+      loadEligibleCandidates();
+    }
+  }, [currentStep, config.churchId, eligibleCandidates.length, loadingCandidates, loadEligibleCandidates]);
+
+  // Carregamento inicial
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const configIdParam = searchParams.get('id');
+        const parsedConfigId = configIdParam ? parseInt(configIdParam, 10) : null;
+
+        if (parsedConfigId && !Number.isNaN(parsedConfigId)) {
+          setEditingConfigId(parsedConfigId);
+          setIsEditing(true);
+        } else {
+          setEditingConfigId(null);
+          setIsEditing(false);
+        }
+
+        await loadChurches();
+        await loadMembers();
+        await loadConfig(parsedConfigId ?? undefined);
+
+        setCustomPositions(prev => {
+          const allPositions = [...ALL_POSITIONS];
+          const existingCustom = prev || [];
+          const newPositions = allPositions.filter(pos => !existingCustom.includes(pos));
+          return [...existingCustom, ...newPositions];
+        });
+
+        setPositionDescriptions(prev => ({
+          ...prev,
+          ...DEFAULT_POSITION_DESCRIPTIONS,
+        }));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [loadChurches, loadMembers, loadConfig]);
 
   const handleRemoveCandidate = (candidateId: number) => {
     setRemovedCandidates(prev => [...prev, candidateId]);
@@ -709,7 +759,7 @@ export function useElectionConfigState() {
 
       if (response.ok) {
         if (isUpdate) {
-          let responseData: any = null;
+          let responseData: { message?: string } | null = null;
           try { responseData = await response.json(); } catch { responseData = null; }
           if (targetConfigId) await loadConfig(targetConfigId);
           toast({ title: 'Alterações salvas', description: responseData?.message || 'Configuração atualizada com sucesso.' });

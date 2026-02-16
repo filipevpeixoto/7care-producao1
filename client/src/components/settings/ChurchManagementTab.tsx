@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, no-nested-ternary, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,7 @@ import { fetchWithAuth } from '@/lib/api';
 import { settingsLogger } from '@/lib/logger';
 
 interface ChurchManagementTabProps {
-  user: any;
+  user: Pick<import('@/types/domain').UserMember, 'id' | 'role' | 'church' | 'districtId'>;
   userDistrictId: number | null;
   userDistrictName: string;
 }
@@ -36,7 +35,7 @@ interface ChurchManagementTabProps {
 export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: ChurchManagementTabProps) {
   const { toast } = useToast();
 
-  const [churchesList, setChurchesList] = useState<any[]>([]);
+  const [churchesList, setChurchesList] = useState<Church[]>([]);
   const [defaultChurchId, setDefaultChurchId] = useState<number | null>(null);
   const [defaultChurchName, setDefaultChurchName] = useState<string>('');
   const [isSavingDefault, setIsSavingDefault] = useState(false);
@@ -349,7 +348,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
                   </div>
                   <EditableField
                     value={church.name}
-                    onSave={(value) => updateChurchField(church.id, 'name', value)}
+                    onSave={(value) => updateChurchField(Number(church.id), 'name', value)}
                     className="font-medium"
                     data-testid={`church-name-${church.id}`}
                   />
@@ -358,8 +357,8 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Endereço:</label>
                   <EditableField
-                    value={church.address}
-                    onSave={(value) => updateChurchField(church.id, 'address', value)}
+                    value={church.address ?? ''}
+                    onSave={(value) => updateChurchField(Number(church.id), 'address', value)}
                     className="text-sm"
                     data-testid={`church-address-${church.id}`}
                   />
@@ -369,7 +368,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
                   <Button
                     variant={church.active ? 'secondary' : 'default'}
                     size="sm"
-                    onClick={() => toggleChurchStatus(church.id)}
+                    onClick={() => toggleChurchStatus(Number(church.id))}
                     className="flex-1"
                     data-testid={`toggle-church-${church.id}`}
                   >
@@ -378,8 +377,9 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => deleteChurch(church.id, church.name)}
+                    onClick={() => deleteChurch(Number(church.id), church.name)}
                     data-testid={`delete-church-${church.id}`}
+                    aria-label="Excluir igreja"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -391,7 +391,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
                 <div className="col-span-4">
                   <EditableField
                     value={church.name}
-                    onSave={(value) => updateChurchField(church.id, 'name', value)}
+                    onSave={(value) => updateChurchField(Number(church.id), 'name', value)}
                     className="font-medium"
                     data-testid={`church-name-${church.id}`}
                   />
@@ -399,8 +399,8 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
 
                 <div className="col-span-5">
                   <EditableField
-                    value={church.address}
-                    onSave={(value) => updateChurchField(church.id, 'address', value)}
+                    value={church.address ?? ''}
+                    onSave={(value) => updateChurchField(Number(church.id), 'address', value)}
                     className="text-sm"
                     data-testid={`church-address-${church.id}`}
                   />
@@ -416,16 +416,18 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
                   <Button
                     variant={church.active ? 'secondary' : 'default'}
                     size="sm"
-                    onClick={() => toggleChurchStatus(church.id)}
+                    onClick={() => toggleChurchStatus(Number(church.id))}
                     data-testid={`toggle-church-${church.id}`}
+                    aria-label={church.active ? 'Desativar igreja' : 'Ativar igreja'}
                   >
                     {church.active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => deleteChurch(church.id, church.name)}
+                    onClick={() => deleteChurch(Number(church.id), church.name)}
                     data-testid={`delete-church-${church.id}`}
+                    aria-label="Excluir igreja"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

@@ -6,16 +6,24 @@ import React from 'react';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Privacy() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-gray-900 dark:to-purple-950">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="rounded-full"
+            aria-label={t('common.back')}
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3">
@@ -23,7 +31,7 @@ export default function Privacy() {
               <Shield className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Política de Privacidade
+              {t('privacy.title')}
             </h1>
           </div>
         </div>
@@ -32,122 +40,110 @@ export default function Privacy() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 space-y-6">
           <div className="prose prose-purple max-w-none">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Última atualização: Janeiro de 2026
+              {t('privacy.lastUpdated')}
             </p>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              1. Informações que Coletamos
+              {t('privacy.section1Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Coletamos informações que você nos fornece diretamente, incluindo:
+              {t('privacy.section1Content')}
             </p>
             <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2 mt-2">
-              <li>Nome completo e dados de contato</li>
-              <li>Informações de perfil (foto, data de nascimento)</li>
-              <li>Dados de participação em atividades da igreja</li>
-              <li>Informações de comunicação e interação no aplicativo</li>
+              <li>{t('privacy.section1Item1')}</li>
+              <li>{t('privacy.section1Item2')}</li>
+              <li>{t('privacy.section1Item3')}</li>
+              <li>{t('privacy.section1Item4')}</li>
             </ul>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              2. Como Usamos suas Informações
+              {t('privacy.section2Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Utilizamos as informações coletadas para:
+              {t('privacy.section2Content')}
             </p>
             <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2 mt-2">
-              <li>Fornecer e manter nossos serviços</li>
-              <li>Personalizar sua experiência no aplicativo</li>
-              <li>Comunicar atualizações e informações relevantes</li>
-              <li>Melhorar e desenvolver novos recursos</li>
-              <li>Garantir a segurança e prevenir fraudes</li>
+              <li>{t('privacy.section2Item1')}</li>
+              <li>{t('privacy.section2Item2')}</li>
+              <li>{t('privacy.section2Item3')}</li>
+              <li>{t('privacy.section2Item4')}</li>
+              <li>{t('privacy.section2Item5')}</li>
             </ul>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              3. Compartilhamento de Informações
+              {t('privacy.section3Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Não vendemos suas informações pessoais. Podemos compartilhar dados com:
+              {t('privacy.section3Content')}
             </p>
             <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2 mt-2">
-              <li>Líderes e administradores da sua igreja (conforme necessário para gestão)</li>
-              <li>Provedores de serviços que nos auxiliam na operação do aplicativo</li>
-              <li>Autoridades legais quando exigido por lei</li>
+              <li>{t('privacy.section3Item1')}</li>
+              <li>{t('privacy.section3Item2')}</li>
+              <li>{t('privacy.section3Item3')}</li>
             </ul>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              4. Proteção de Dados (LGPD)
+              {t('privacy.section4Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Em conformidade com a Lei Geral de Proteção de Dados (LGPD), você tem os seguintes
-              direitos:
+              {t('privacy.section4Content')}
             </p>
             <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2 mt-2">
-              <li>Confirmar a existência de tratamento de dados</li>
-              <li>Acessar seus dados pessoais</li>
-              <li>Corrigir dados incompletos, inexatos ou desatualizados</li>
-              <li>Solicitar a anonimização, bloqueio ou eliminação de dados</li>
-              <li>Solicitar a portabilidade dos dados</li>
-              <li>Revogar o consentimento a qualquer momento</li>
+              <li>{t('privacy.section4Item1')}</li>
+              <li>{t('privacy.section4Item2')}</li>
+              <li>{t('privacy.section4Item3')}</li>
+              <li>{t('privacy.section4Item4')}</li>
+              <li>{t('privacy.section4Item5')}</li>
+              <li>{t('privacy.section4Item6')}</li>
             </ul>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              5. Segurança dos Dados
+              {t('privacy.section5Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Implementamos medidas de segurança técnicas e organizacionais para proteger suas
-              informações, incluindo criptografia, controle de acesso e monitoramento contínuo. No
-              entanto, nenhum método de transmissão pela internet é 100% seguro.
+              {t('privacy.section5Content')}
             </p>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              6. Retenção de Dados
+              {t('privacy.section6Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Mantemos suas informações pelo tempo necessário para fornecer nossos serviços e
-              cumprir obrigações legais. Você pode solicitar a exclusão de seus dados a qualquer
-              momento, sujeito a requisitos legais de retenção.
+              {t('privacy.section6Content')}
             </p>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              7. Cookies e Tecnologias Similares
+              {t('privacy.section7Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Utilizamos cookies e tecnologias similares para melhorar a experiência do usuário,
-              analisar o uso do aplicativo e personalizar conteúdo. Você pode gerenciar suas
-              preferências de cookies nas configurações do navegador.
+              {t('privacy.section7Content')}
             </p>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              8. Menores de Idade
+              {t('privacy.section8Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              O 7Care não é destinado a menores de 13 anos. Não coletamos intencionalmente
-              informações de crianças. Se você é pai ou responsável e acredita que seu filho nos
-              forneceu dados, entre em contato conosco.
+              {t('privacy.section8Content')}
             </p>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              9. Alterações nesta Política
+              {t('privacy.section9Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Podemos atualizar esta política periodicamente. Notificaremos sobre alterações
-              significativas através do aplicativo ou por email. Recomendamos revisar esta política
-              regularmente.
+              {t('privacy.section9Content')}
             </p>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3">
-              10. Contato
+              {t('privacy.section10Title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Para exercer seus direitos ou esclarecer dúvidas sobre esta política, entre em contato
-              através do suporte disponível no aplicativo ou pelo email de contato da sua igreja.
+              {t('privacy.section10Content')}
             </p>
           </div>
 
           <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
             <Button onClick={() => navigate(-1)} className="w-full sm:w-auto">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
+              {t('common.back')}
             </Button>
           </div>
         </div>

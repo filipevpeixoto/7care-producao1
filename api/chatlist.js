@@ -1,7 +1,9 @@
 // Vercel Serverless Function - wrapper para chatlist
-const netlifyHandler = require('../netlify/functions/chatlist.js');
+import netlifyHandler from '../netlify/functions/chatlist.js';
 
-module.exports = async (req, res) => {
+const { console } = globalThis;
+
+export default async (req, res) => {
   const event = {
     httpMethod: req.method,
     headers: req.headers,

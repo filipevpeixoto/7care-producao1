@@ -3,6 +3,8 @@
  * @module types/api
  */
 
+import type { UserRole as SharedUserRole, UserStatus as SharedUserStatus } from './user';
+
 // ============================================
 // Tipos Base
 // ============================================
@@ -16,10 +18,10 @@ export interface ApiResponse<T = unknown> {
   details?: Record<string, unknown>;
 }
 
-export interface PaginatedResponse<T> extends ApiResponse<{
+export type PaginatedResponse<T> = ApiResponse<{
   items: T[];
   pagination: PaginationInfo;
-}> {}
+}>;
 
 export interface PaginationInfo {
   total: number;
@@ -39,19 +41,27 @@ export interface PaginationParams {
 // Usuários (importados de shared/types/user.ts - fonte única de verdade)
 // ============================================
 
-export type { User, UserRole, UserStatus, AuthUser, UserListItem, UserCreateInput, UserUpdateInput } from './user';
+export type {
+  User,
+  UserRole,
+  UserStatus,
+  AuthUser,
+  UserListItem,
+  UserCreateInput,
+  UserUpdateInput,
+} from './user';
 
 export interface AuthenticatedUser {
   token: string;
   id: number;
   name: string;
   email: string;
-  role: import('./user').UserRole;
+  role: SharedUserRole;
   church?: string | null;
   churchId?: number | null;
   districtId?: number | null;
   isApproved: boolean;
-  status: import('./user').UserStatus;
+  status: SharedUserStatus;
 }
 
 export interface LoginRequest {
@@ -59,7 +69,7 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface LoginResponse extends ApiResponse<AuthenticatedUser> {}
+export type LoginResponse = ApiResponse<AuthenticatedUser>;
 
 // ============================================
 // Igrejas

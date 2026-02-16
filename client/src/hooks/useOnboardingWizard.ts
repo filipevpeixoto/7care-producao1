@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { type OnboardingData } from '@/types/pastor-invite';
 import { createLogger } from '@/lib/logger';
 
@@ -59,7 +60,7 @@ export function useOnboardingWizard(token: string) {
 
   // Atualizar dados de um passo
   const updateStepData = useCallback(
-    (step: number, data: any) => {
+    (step: number, data: Record<string, unknown>) => {
       setState(prev => {
         const completedSteps = prev.data.completedSteps || [];
         const newData = {
@@ -130,7 +131,39 @@ export function useOnboardingWizard(token: string) {
     }));
   }, []);
 
-  // Submeter tudo no final
+  // Submeter tudo no final via React Query mutation
+  const submitMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const apiPayload = {
+        name: state.data.personal?.name || '',
+        phone: state.data.personal?.phone || '',
+        password,
+        churches: state.data.churches || [],
+        district: state.data.district,
+        excelData: state.data.excelData,
+        churchValidation: state.data.churchValidation,
+        gamificationConfig: state.data.gamificationConfig,
+        situationLevels: state.data.situationLevels,
+      };
+
+      const response = await fetch(`/api/invites/onboarding/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiPayload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao enviar cadastro');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      localStorage.removeItem(`${STORAGE_KEY}_${token}`);
+    },
+  });
+
   const submit = useCallback(
     async (
       password: string
@@ -147,36 +180,7 @@ export function useOnboardingWizard(token: string) {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        // Transformar dados do frontend para o formato da API
-        const apiPayload = {
-          name: state.data.personal?.name || '',
-          phone: state.data.personal?.phone || '',
-          password,
-          churches: state.data.churches || [],
-          district: state.data.district,
-          excelData: state.data.excelData,
-          churchValidation: state.data.churchValidation,
-          gamificationConfig: state.data.gamificationConfig, // Adicionar configuração de Gamificação
-          situationLevels: state.data.situationLevels, // Níveis de situação personalizados
-        };
-
-        const response = await fetch(`/api/invites/onboarding/${token}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiPayload),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Erro ao enviar cadastro');
-        }
-
-        const data = await response.json();
-
-        // Limpar rascunho após sucesso
-        localStorage.removeItem(`${STORAGE_KEY}_${token}`);
+        const data = await submitMutation.mutateAsync(password);
 
         setState(prev => ({ ...prev, isLoading: false }));
         return {
@@ -198,7 +202,7 @@ export function useOnboardingWizard(token: string) {
         return { success: false, error: errorMessage };
       }
     },
-    [token, state.data]
+    [submitMutation]
   );
 
   // Limpar erro

@@ -3,6 +3,7 @@ import { Camera, X, RotateCcw, Loader2, Check } from 'lucide-react';
 import { Button } from './button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog';
 import { createLogger } from '@/lib/logger';
+import { ariaLabels } from '@/lib/accessibility';
 
 const cameraLogger = createLogger('Camera');
 
@@ -36,16 +37,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
     
     checkMobile();
   }, []);
-
-  useEffect(() => {
-    if (isOpen && !capturedImage) {
-      startCamera();
-    }
-    
-    return () => {
-      stopCamera();
-    };
-  }, [isOpen, capturedImage]);
 
   const startCamera = async () => {
     try {
@@ -85,6 +76,19 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
       setIsStreamActive(false);
     }
   };
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      if (isOpen && !capturedImage) {
+        startCamera();
+      }
+    });
+    
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      stopCamera();
+    };
+  }, [isOpen, capturedImage]);
 
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -264,6 +268,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
                         size="lg"
                         onClick={switchCamera}
                         className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                        aria-label={ariaLabels.switchCamera}
                       >
                         <RotateCcw className="h-5 w-5" />
                       </Button>
@@ -274,6 +279,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
                       onClick={capturePhoto}
                       disabled={!isStreamActive}
                       className="bg-white text-black hover:bg-gray-100 rounded-full w-16 h-16 p-0"
+                      aria-label={ariaLabels.capturePhoto}
                     >
                       <div className="w-12 h-12 bg-white rounded-full border-4 border-gray-300" />
                     </Button>
@@ -283,6 +289,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
                       size="lg"
                       onClick={handleClose}
                       className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      aria-label={ariaLabels.close}
                     >
                       <X className="h-5 w-5" />
                     </Button>

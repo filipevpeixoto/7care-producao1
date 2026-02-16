@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { Button } from '@/components/ui/button';
@@ -7,10 +8,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { X, Download, Smartphone } from 'lucide-react';
+import { ariaLabels } from '@/lib/accessibility';
 
 import { useSystemLogo } from '@/hooks/useSystemLogo';
 
 export const Login = () => {
+  const { t } = useTranslation();
   const [isRegistering, setIsRegistering] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(true);
   const { systemLogo } = useSystemLogo();
@@ -31,7 +34,7 @@ export const Login = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-white">Carregando...</p>
+          <p className="text-white">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -70,7 +73,7 @@ export const Login = () => {
             <AlertDescription className="pr-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="font-medium text-primary mb-1 text-sm">📱 Instale o app!</p>
+                  <p className="font-medium text-primary mb-1 text-sm">{t('login.installApp')}</p>
                   <div className="text-xs text-muted-foreground">
                     <p className="font-medium mb-1">{installInstructions.platform}:</p>
                     {installInstructions.steps.slice(0, 2).map((step, index) => (
@@ -86,7 +89,7 @@ export const Login = () => {
                         : () => {
                             // Para iOS/Safari, mostra todas as instruções em um alert
                             alert(
-                              `Como instalar o 7Care:\n\n${installInstructions.steps.join('\n')}`
+                              `${t('login.howToInstall')}\n\n${installInstructions.steps.join('\n')}`
                             );
                           }
                     }
@@ -94,7 +97,7 @@ export const Login = () => {
                     className="mt-2 bg-primary hover:bg-primary/90 text-white text-xs h-7 px-3"
                   >
                     <Download className="w-3 h-3 mr-1" />
-                    {isInstallable ? 'Instalar Agora' : 'Ver Instruções'}
+                    {isInstallable ? t('login.installNow') : t('login.viewInstructions')}
                   </Button>
                 </div>
                 <Button
@@ -102,6 +105,7 @@ export const Login = () => {
                   size="sm"
                   className="h-5 w-5 p-0 hover:bg-primary/10 ml-1"
                   onClick={() => setShowInstallPrompt(false)}
+                  aria-label={ariaLabels.closeInstallPrompt}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -133,7 +137,7 @@ export const Login = () => {
               onClick={() => setIsRegistering(!isRegistering)}
               className="text-white hover:bg-white/10 hover:text-white"
             >
-              {isRegistering ? 'Já tem uma conta? Faça login' : 'Não tem conta? Cadastre-se'}
+              {isRegistering ? t('login.hasAccount') : t('login.noAccount')}
             </Button>
           </div>
         </div>

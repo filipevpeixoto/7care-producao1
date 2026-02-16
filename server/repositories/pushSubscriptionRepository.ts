@@ -14,6 +14,8 @@ import type {
   PushSubscriptionPayload,
 } from '../types/storage';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 export class PushSubscriptionRepository {
   /**
    * Busca todas as push subscriptions
@@ -311,13 +313,13 @@ export class PushSubscriptionRepository {
     return {
       id: Number(record.id),
       userId: Number(record.userId ?? 0),
-      endpoint: record.endpoint == null ? '' : String(record.endpoint),
-      p256dh: record.p256dh == null ? '' : String(record.p256dh),
-      auth: record.auth == null ? '' : String(record.auth),
-      isActive: record.isActive == null ? true : Boolean(record.isActive),
+      endpoint: isNil(record.endpoint) ? '' : String(record.endpoint),
+      p256dh: isNil(record.p256dh) ? '' : String(record.p256dh),
+      auth: isNil(record.auth) ? '' : String(record.auth),
+      isActive: isNil(record.isActive) ? true : Boolean(record.isActive),
       createdAt: this.toDateString(record.createdAt),
       updatedAt: this.toDateString(record.updatedAt),
-      deviceName: record.deviceName == null ? null : String(record.deviceName),
+      deviceName: isNil(record.deviceName) ? null : String(record.deviceName),
     };
   }
 }

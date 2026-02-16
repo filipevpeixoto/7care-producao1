@@ -12,8 +12,9 @@ import {
   sendValidationError,
   sendInternalError,
   hasAdminAccess,
+  type ResultRow,
+  type VoteResultRow,
 } from './electionHelpers';
-import type { ResultRow, VoteResultRow } from './electionHelpers';
 
 export const electionResultsRoutes = (app: Express): void => {
 

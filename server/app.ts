@@ -17,6 +17,13 @@ import { csrfCookie, csrfProtection } from './middleware/csrf';
 import { monitoringService } from './services/monitoringService';
 import { prometheusService } from './services/prometheusService';
 import { errorHandler, notFoundHandler, setupGlobalErrorHandlers } from './middleware/errorHandler';
+import apmService from './services/apmService';
+import { initFeatureFlags, featureFlagsMiddleware } from './services/featureFlagsService';
+import {
+  sentryRequestHandler,
+  sentryTracingHandler,
+  sentryUserContext,
+} from './services/sentryService';
 
 // Configura handlers globais (uncaughtException, unhandledRejection, SIGTERM/SIGINT)
 setupGlobalErrorHandlers();
@@ -27,6 +34,10 @@ setupGlobalErrorHandlers();
  */
 export function createApp(): express.Express {
   const app = express();
+  initFeatureFlags();
+
+  app.use(sentryRequestHandler());
+  app.use(sentryTracingHandler());
 
   // Correlation ID para rastreabilidade (primeiro middleware)
   app.use(correlationIdMiddleware);
@@ -36,6 +47,10 @@ export function createApp(): express.Express {
 
   // Monitoring middleware para métricas de performance
   app.use(monitoringService.metricsMiddleware());
+  if (process.env.ENABLE_APM === 'true') {
+    app.use(apmService.metricsMiddleware);
+    app.use(apmService.tracingMiddleware);
+  }
 
   // Security Headers avançados (CSP, HSTS, etc)
   app.use(securityHeadersMiddleware);
@@ -105,6 +120,8 @@ export function createApp(): express.Express {
   // Define req.userId, req.user, req.userRole se token válido estiver presente
   // Não bloqueia se não houver token (usar requireJwtAuth para rotas protegidas)
   app.use('/api', optionalJwtAuth);
+  app.use('/api', sentryUserContext);
+  app.use('/api', featureFlagsMiddleware);
 
   // CSRF Protection — feature flag para rollout gradual
   // Ativar via ENABLE_CSRF=true em produção quando frontend enviar x-csrf-token

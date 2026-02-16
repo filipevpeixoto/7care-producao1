@@ -163,6 +163,7 @@ export function CardLoadingState({
   showAvatar?: boolean;
   className?: string;
 }) {
+  const widths = [60, 70, 80, 65, 75, 85, 90];
   return (
     <div className={cn('p-4 space-y-4 animate-pulse', className)}>
       {showAvatar && (
@@ -175,7 +176,11 @@ export function CardLoadingState({
         </div>
       )}
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-4 bg-muted rounded" style={{ width: `${Math.random() * 40 + 60}%` }} />
+        <div
+          key={i}
+          className="h-4 bg-muted rounded"
+          style={{ width: `${widths[i % widths.length]}%` }}
+        />
       ))}
     </div>
   );

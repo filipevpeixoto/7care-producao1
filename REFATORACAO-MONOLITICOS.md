@@ -16,7 +16,7 @@ Este documento detalha a refatoração realizada nos arquivos monolíticos do 7c
 
 **Situação Atual:**
 - **Arquivo principal:** 299 linhas (redução de 76%)
-- **Total modularizado:** 1.537 linhas em 12 arquivos
+- **Total modularizado:** 1.534 linhas em 12 arquivos
 
 **Estrutura Criada:**
 ```
@@ -24,7 +24,7 @@ client/src/pages/
 ├── PastorInvites.tsx (299 linhas) - Componente principal
 └── pastor-invites/
     ├── usePastorInvites.ts (149 linhas) - Hook para queries/mutations
-    ├── useApprovalProgress.ts (203 linhas) - Lógica de aprovação
+    ├── useApprovalProgress.ts (201 linhas) - Lógica de aprovação
     ├── inviteUtils.tsx (64 linhas) - Utilitários e formatação
     ├── CreateInviteDialog.tsx (75 linhas)
     ├── InviteDetailsDialog.tsx (190 linhas)
@@ -51,8 +51,9 @@ client/src/pages/
 - Múltiplas responsabilidades: tipos, configuração, CRUD, sync, migrations
 
 **Ações Realizadas:**
-- ✅ Criado `database-types.ts` (240 linhas) - Todas as interfaces TypeScript
-- ✅ Criado `database-core.ts` (169 linhas) - Classe Dexie e configurações
+- ✅ Criado `database-types.ts` (230 linhas) - Todas as interfaces TypeScript
+- ✅ Criado `database-core.ts` (155 linhas) - Classe Dexie e configurações
+- ⚠️ `database.ts` ainda concentra tipos, configuração e lógica (1.411 linhas)
 
 **Próximos Passos:**
 - Extrair funções CRUD em módulos separados por entidade
@@ -159,7 +160,7 @@ client/src/pages/
 
 ## Próximos Passos
 
-1. ✅ Completar refatoração de `offline/database.ts`
+1. ⏳ Completar refatoração de `offline/database.ts`
 2. ⏳ Refatorar `UserDetailModal.tsx`
 3. ⏳ Refatorar `Users.tsx` + `useUsersState.ts`
 4. ⏳ Refatorar `MyInterested.tsx` + `useMyInterestedState.ts`
@@ -179,6 +180,6 @@ A refatoração de arquivos monolíticos é essencial para a manutenibilidade de
 A estratégia recomendada é continuar com refatorações incrementais, priorizando os arquivos de maior impacto (UserDetailModal, Users, MyInterested) e mantendo 100% de compatibilidade em todas as mudanças.
 
 ---
-**Data:** 2026-02-12
+**Data:** 2026-02-13
 **Autor:** Claude Sonnet 4.5
 **Status:** Em Progresso

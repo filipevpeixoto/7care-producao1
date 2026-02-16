@@ -3,10 +3,12 @@ import { useEffect } from "react";
 import { Home, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uiLogger } from '@/lib/logger';
+import { useTranslation } from 'react-i18next';
 
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Log apenas em desenvolvimento
@@ -29,12 +31,12 @@ const NotFound = () => {
         
         {/* Mensagem */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-white">Página não encontrada</h1>
+          <h1 className="text-2xl font-bold text-white">{t('notFound.title')}</h1>
           <p className="text-blue-200/80">
-            A página que você está procurando não existe ou foi movida.
+            {t('notFound.description')}
           </p>
           <p className="text-sm text-blue-300/60">
-            Caminho: <code className="bg-white/10 px-2 py-1 rounded">{location.pathname}</code>
+            {t('notFound.path')} <code className="bg-white/10 px-2 py-1 rounded">{location.pathname}</code>
           </p>
         </div>
         
@@ -46,14 +48,14 @@ const NotFound = () => {
             className="bg-white/10 border-white/20 text-white hover:bg-white/20"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
+            {t('common.back')}
           </Button>
           <Button
             onClick={() => navigate('/dashboard')}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Home className="w-4 h-4 mr-2" />
-            Ir para o Início
+            {t('notFound.goHome')}
           </Button>
         </div>
       </div>

@@ -1,11 +1,13 @@
 import { Bell, Volume2, Image as ImageIcon, Clock, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { createLogger } from '@/lib/logger';
+import { useTranslation } from 'react-i18next';
 
 const notificationsLogger = createLogger('Notifications');
 
@@ -22,79 +24,86 @@ interface Notification {
   read: boolean;
 }
 
+interface RawNotification {
+  id: number | string;
+  title: string;
+  message: string;
+  type: string;
+  created_at?: string;
+  createdAt?: string;
+  is_read?: boolean;
+  isRead?: boolean;
+}
+
 export default function NotificationsHistory() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const queryClient = useQueryClient();
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
-  // Carregar notificações do banco de dados E localStorage
-  useEffect(() => {
-    const loadNotifications = async () => {
-      if (!user?.id) return;
+  const notificationsQueryKey = ['notifications', user?.id] as const;
+
+  const { data: notifications = [] } = useQuery<Notification[]>({
+    queryKey: notificationsQueryKey,
+    queryFn: async () => {
+      if (!user?.id) return [];
 
       try {
-        // 1. Buscar do banco de dados (fonte principal)
         const res = await fetch(`/api/notifications/${user.id}?limit=50`);
         if (res.ok) {
-          const dbNotifications = await res.json();
+          const dbNotifications: RawNotification[] = await res.json();
           notificationsLogger.debug('Notificações do banco:', dbNotifications.length);
 
-          // Converter formato do BD para o formato da interface
-          const formattedNotifications = dbNotifications.map((notif: any) => ({
+          return dbNotifications.map((notif) => ({
             id: notif.id.toString(),
             title: notif.title,
             message: notif.message,
             type: notif.type,
             hasAudio: false,
             hasImage: false,
-            timestamp: notif.created_at || notif.createdAt,
+            timestamp: notif.created_at || notif.createdAt || '',
             read: notif.is_read || notif.isRead || false,
           }));
-
-          setNotifications(formattedNotifications);
-        } else {
-          // Fallback para localStorage se API falhar
-          const stored = localStorage.getItem(`notifications_${user.id}`);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            setNotifications(parsed);
-          }
         }
+
+        // Fallback para localStorage se API falhar
+        const stored = localStorage.getItem(`notifications_${user.id}`);
+        if (stored) return JSON.parse(stored) as Notification[];
+        return [];
       } catch (error) {
         notificationsLogger.error('Erro ao carregar notificações:', error);
 
         // Fallback para localStorage
         try {
           const stored = localStorage.getItem(`notifications_${user.id}`);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            setNotifications(parsed);
-          }
+          if (stored) return JSON.parse(stored) as Notification[];
         } catch (e) {
           notificationsLogger.error('Erro ao carregar do localStorage:', e);
         }
+        return [];
       }
-    };
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
 
-    loadNotifications();
-
-    // Recarregar a cada 30 segundos para pegar novas notificações
-    const interval = setInterval(loadNotifications, 30000);
-
-    // Listener para novas notificações (local)
+  // Listener para novas notificações (local)
+  useEffect(() => {
     const handleNewNotification = (event: CustomEvent) => {
-      const newNotif = event.detail;
-      setNotifications(prev => [newNotif, ...prev].slice(0, 50));
+      const newNotif = event.detail as Notification;
+      queryClient.setQueryData<Notification[]>(notificationsQueryKey, (prev = []) =>
+        [newNotif, ...prev].slice(0, 50),
+      );
     };
 
     window.addEventListener('newNotification', handleNewNotification as EventListener);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('newNotification', handleNewNotification as EventListener);
     };
-  }, [user?.id]);
+  }, [queryClient, notificationsQueryKey]);
 
   const playAudio = (notification: Notification) => {
     if (!notification.audioData) return;
@@ -125,8 +134,8 @@ export default function NotificationsHistory() {
 
       audio.addEventListener('error', () => {
         toast({
-          title: 'Erro ao reproduzir áudio',
-          description: 'Não foi possível reproduzir o áudio desta notificação.',
+          title: t('notificationsHistory.audioPlaybackError'),
+          description: t('notificationsHistory.audioPlaybackErrorDesc'),
           variant: 'destructive',
         });
         setPlayingAudioId(null);
@@ -136,8 +145,8 @@ export default function NotificationsHistory() {
       audio.play().catch(err => {
         notificationsLogger.error('Erro ao tocar áudio:', err);
         toast({
-          title: 'Erro ao reproduzir',
-          description: 'Por favor, tente novamente.',
+          title: t('notificationsHistory.playbackError'),
+          description: t('notificationsHistory.tryAgain'),
           variant: 'destructive',
         });
         setPlayingAudioId(null);
@@ -145,35 +154,37 @@ export default function NotificationsHistory() {
     } catch (error) {
       notificationsLogger.error('Erro ao criar áudio:', error);
       toast({
-        title: 'Erro',
-        description: 'Ocorreu um erro ao tentar reproduzir o áudio.',
+        title: t('notificationsHistory.error'),
+        description: t('notificationsHistory.audioError'),
         variant: 'destructive',
       });
       setPlayingAudioId(null);
     }
   };
 
-  const deleteNotification = (id: string) => {
-    const updated = notifications.filter(n => n.id !== id);
-    setNotifications(updated);
-    localStorage.setItem(`notifications_${user?.id}`, JSON.stringify(updated));
+  const deleteNotification = useCallback((id: string) => {
+    queryClient.setQueryData<Notification[]>(notificationsQueryKey, (prev = []) => {
+      const updated = prev.filter(n => n.id !== id);
+      localStorage.setItem(`notifications_${user?.id}`, JSON.stringify(updated));
+      return updated;
+    });
 
     toast({
-      title: 'Notificação excluída',
-      description: 'A notificação foi removida do histórico.',
+      title: t('notificationsHistory.notificationDeleted'),
+      description: t('notificationsHistory.notificationDeletedDesc'),
     });
-  };
+  }, [queryClient, notificationsQueryKey, user?.id, toast]);
 
-  const clearAll = () => {
-    if (confirm('Deseja realmente limpar todo o histórico de notificações?')) {
-      setNotifications([]);
+  const clearAll = useCallback(() => {
+    if (confirm(t('notificationsHistory.confirmClearAll'))) {
+      queryClient.setQueryData<Notification[]>(notificationsQueryKey, []);
       localStorage.removeItem(`notifications_${user?.id}`);
       toast({
-        title: 'Histórico limpo',
-        description: 'Todas as notificações foram removidas.',
+        title: t('notificationsHistory.historyCleared'),
+        description: t('notificationsHistory.historyClearedDesc'),
       });
     }
-  };
+  }, [queryClient, notificationsQueryKey, user?.id, toast]);
 
   const formatDate = (timestamp: string) => {
     try {
@@ -184,10 +195,10 @@ export default function NotificationsHistory() {
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
 
-      if (diffMins < 1) return 'Agora';
-      if (diffMins < 60) return `Há ${diffMins} min`;
-      if (diffHours < 24) return `Há ${diffHours}h`;
-      if (diffDays < 7) return `Há ${diffDays}d`;
+      if (diffMins < 1) return t('notificationsHistory.now');
+      if (diffMins < 60) return t('notificationsHistory.minutesAgo', { count: diffMins });
+      if (diffHours < 24) return t('notificationsHistory.hoursAgo', { count: diffHours });
+      if (diffDays < 7) return t('notificationsHistory.daysAgo', { count: diffDays });
 
       return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
@@ -226,10 +237,10 @@ export default function NotificationsHistory() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    Notificações
+                    {t('notificationsHistory.title')}
                   </h1>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Histórico de notificações recebidas
+                    {t('notificationsHistory.subtitle')}
                   </p>
                 </div>
               </div>
@@ -240,7 +251,7 @@ export default function NotificationsHistory() {
                   onClick={clearAll}
                   className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
                 >
-                  Limpar tudo
+                  {t('notificationsHistory.clearAll')}
                 </Button>
               )}
             </div>
@@ -252,10 +263,10 @@ export default function NotificationsHistory() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Bell className="h-16 w-16 text-gray-400 dark:text-gray-500 mb-4" />
                 <p className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-1">
-                  Nenhuma notificação
+                  {t('notificationsHistory.noNotifications')}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Você não recebeu notificações ainda
+                  {t('notificationsHistory.noNotificationsDesc')}
                 </p>
               </CardContent>
             </Card>
@@ -309,7 +320,7 @@ export default function NotificationsHistory() {
                               className="gap-2"
                             >
                               <Volume2 className="h-4 w-4" />
-                              {playingAudioId === notification.id ? 'Tocando...' : 'Ouvir Áudio'}
+                              {playingAudioId === notification.id ? t('notificationsHistory.playing') : t('notificationsHistory.listenAudio')}
                             </Button>
                           )}
 
@@ -324,7 +335,7 @@ export default function NotificationsHistory() {
                               className="gap-2"
                             >
                               <ImageIcon className="h-4 w-4" />
-                              Ver Imagem
+                              {t('notificationsHistory.viewImage')}
                             </Button>
                           )}
 

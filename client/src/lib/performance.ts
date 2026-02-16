@@ -83,7 +83,7 @@ export const optimizeImage = (url: string, width: number, quality: number = 80) 
 };
 
 // Função para debounce
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
@@ -96,7 +96,7 @@ export const debounce = <T extends (...args: any[]) => any>(
 };
 
 // Função para throttle
-export const throttle = <T extends (...args: any[]) => any>(
+export const throttle = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   func: T,
   limit: number
 ): ((...args: Parameters<T>) => void) => {

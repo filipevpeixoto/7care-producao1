@@ -11,11 +11,12 @@ import {
   Mail,
   Heart,
 } from 'lucide-react';
+import { uiLogger } from '@/lib/logger';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { isSuperAdmin, isPastor } from '@/lib/permissions';
-import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import { useState, useRef, useMemo, useCallback, memo } from 'react';
 import { usePrefetch } from '@/hooks/usePrefetch';
 
 import { useModal } from '@/contexts/ModalContext';
@@ -44,7 +45,6 @@ export const MobileBottomNav = memo(() => {
   const location = useLocation();
   const { user } = useAuth();
   const { isAnyModalOpen } = useModal();
-  const [activeIndex, setActiveIndex] = useState(0);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const { prefetchRoute } = usePrefetch();
@@ -122,7 +122,7 @@ export const MobileBottomNav = memo(() => {
     });
 
     return baseItems;
-  }, [user?.role]);
+  }, [user]);
 
   // Filtrar itens baseado no role do usuário - memoizado
   const allowedItems = useMemo(() => {
@@ -137,7 +137,7 @@ export const MobileBottomNav = memo(() => {
       return hasAccess;
     });
 
-    console.log('🔍 MobileBottomNav - Debug:', {
+    uiLogger.debug('MobileBottomNav - Debug:', {
       userRole,
       userRoleType: typeof userRole,
       menuStructure: menuStructure.map(item => ({ title: item.title, roles: item.roles })),
@@ -147,43 +147,25 @@ export const MobileBottomNav = memo(() => {
     return filtered;
   }, [menuStructure, user]);
 
-  // Atualizar índice ativo baseado na rota atual
-  useEffect(() => {
-    const findActiveIndex = () => {
-      for (let i = 0; i < allowedItems.length; i++) {
-        const item = allowedItems[i];
+  const activeIndex = useMemo(() => {
+    for (let i = 0; i < allowedItems.length; i++) {
+      const item = allowedItems[i];
 
-        // Verificar se a rota atual é o item principal
-        if (location.pathname === item.path) {
+      if (location.pathname === item.path) {
+        return i;
+      }
+
+      if (item.submenu && item.submenu.length > 0) {
+        const submenuMatch = item.submenu.some(
+          (sub: SubmenuItem) => sub.path === location.pathname
+        );
+        if (submenuMatch) {
           return i;
         }
-
-        // Verificar se a rota atual corresponde a algum submenu (para Admin)
-        if (item.submenu && item.submenu.length > 0) {
-          const submenuMatch = item.submenu.some(
-            (sub: SubmenuItem) => sub.path === location.pathname
-          );
-          if (submenuMatch) {
-            return i;
-          }
-        }
       }
-      return 0;
-    };
-
-    const newActiveIndex = findActiveIndex();
-    setActiveIndex(newActiveIndex);
-
-    // Se estiver em uma rota de submenu, abrir o menu automaticamente
-    const allSubmenuRoutes = allowedItems
-      .filter(item => item.submenu && item.submenu.length > 0)
-      .flatMap(item => item.submenu.map((sub: SubmenuItem) => sub.path));
-    if (allSubmenuRoutes.includes(location.pathname)) {
-      setAdminMenuOpen(true);
-    } else {
-      setAdminMenuOpen(false);
     }
-  }, [location.pathname, allowedItems]);
+    return 0;
+  }, [allowedItems, location.pathname]);
 
   // Classes adaptativas para light e dark mode
   const navClasses =
@@ -204,12 +186,10 @@ export const MobileBottomNav = memo(() => {
   };
 
   const handleNavigation = useCallback(
-    (path: string, index: number) => {
+    (path: string) => {
       if (location.pathname === path) {
         return;
       }
-
-      setActiveIndex(index);
 
       // Usar navegação direta (window.location.href) para máxima confiabilidade
       // React Router v7 navigate() tem bug com lazy routes + startTransition
@@ -256,8 +236,8 @@ export const MobileBottomNav = memo(() => {
   const finalItems: MenuItem[] = allowedItems.length > 0 ? allowedItems : fallbackItems;
 
   if (allowedItems.length === 0) {
-    console.warn(
-      '⚠️ MobileBottomNav: Nenhum item permitido para o role:',
+    uiLogger.warn(
+      'MobileBottomNav: Nenhum item permitido para o role:',
       user?.role,
       '- usando fallback'
     );
@@ -299,15 +279,16 @@ export const MobileBottomNav = memo(() => {
               const isSubmenuRoute = item.submenu.some(
                 (sub: SubmenuItem) => sub.path === location.pathname
               );
-              const isActive = adminMenuOpen || isSubmenuRoute;
+              const isMenuOpen = adminMenuOpen || isSubmenuRoute;
+              const isActive = isMenuOpen;
 
               return (
-                <DropdownMenu
-                  key={index}
-                  open={adminMenuOpen}
-                  onOpenChange={setAdminMenuOpen}
-                  modal={false}
-                >
+                  <DropdownMenu
+                    key={index}
+                    open={isMenuOpen}
+                    onOpenChange={setAdminMenuOpen}
+                    modal={false}
+                  >
                   <DropdownMenuTrigger asChild>
                     <button
                       id="tour-nav-admin"
@@ -401,7 +382,7 @@ export const MobileBottomNav = memo(() => {
                 onClick={e => {
                   e.stopPropagation();
                   if (item.path !== '#') {
-                    handleNavigation(item.path, index);
+                    handleNavigation(item.path);
                   }
                 }}
                 onTouchStart={() => item.path !== '#' && prefetchRoute(item.path)}

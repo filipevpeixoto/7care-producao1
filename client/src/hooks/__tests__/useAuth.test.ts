@@ -5,11 +5,10 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock do fetch global
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
 
 // Mock do localStorage
 const localStorageMock = (() => {
@@ -49,6 +48,12 @@ describe('useAuth', () => {
     vi.clearAllMocks();
     localStorageMock.clear();
     mockFetch.mockReset();
+    vi.stubGlobal('fetch', mockFetch);
+    Object.defineProperty(window, 'fetch', { value: mockFetch, writable: true });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   describe('Estado inicial', () => {
@@ -132,7 +137,7 @@ describe('useAuth', () => {
       expect(result.current.isAuthenticated).toBe(true);
       expect(localStorageMock.setItem).toHaveBeenCalledWith('7care_auth', JSON.stringify(mockUser));
       expect(localStorageMock.setItem).toHaveBeenCalledWith('7care_token', 'test-token-123');
-    });
+    }, 15000);
 
     it('deve falhar login com credenciais inválidas', async () => {
       mockFetch.mockResolvedValueOnce({

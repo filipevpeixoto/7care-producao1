@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -10,6 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, CheckCircle, XCircle, Users } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Users');
 
 interface MarkVisitModalProps {
   isOpen: boolean;
@@ -30,19 +33,14 @@ export const MarkVisitModal = ({
   visitCount = 0,
   lastVisitDate,
 }: MarkVisitModalProps) => {
-  const [visitDate, setVisitDate] = useState('');
-
-  // Definir data atual quando o modal abrir (Brasil timezone)
-  useEffect(() => {
-    if (isOpen) {
-      const now = new Date();
-      const brazilTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const year = brazilTime.getFullYear();
-      const month = String(brazilTime.getMonth() + 1).padStart(2, '0');
-      const day = String(brazilTime.getDate()).padStart(2, '0');
-      setVisitDate(`${year}-${month}-${day}`);
-    }
-  }, [isOpen]);
+  const [visitDate, setVisitDate] = useState(() => {
+    const now = new Date();
+    const brazilTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const year = brazilTime.getFullYear();
+    const month = String(brazilTime.getMonth() + 1).padStart(2, '0');
+    const day = String(brazilTime.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   const handleConfirm = () => {
     if (visitDate) {
@@ -71,13 +69,13 @@ export const MarkVisitModal = ({
 
       // Verifica se a data é válida
       if (isNaN(date.getTime())) {
-        console.warn('Data inválida:', dateString);
+        logger.warn('Data inválida:', dateString);
         return 'Data inválida';
       }
 
       return date.toLocaleDateString('pt-BR');
     } catch (error) {
-      console.error('Erro ao formatar data:', dateString, error);
+      logger.error('Erro ao formatar data:', dateString, error);
       return 'Data inválida';
     }
   };
@@ -87,6 +85,7 @@ export const MarkVisitModal = ({
 
   return (
     <DialogWithModalTracking
+      key={`${isOpen}-${userName}`}
       modalId="mark-visit-modal"
       open={isOpen}
       onOpenChange={open => !open && onClose()}

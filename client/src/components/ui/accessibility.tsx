@@ -7,44 +7,43 @@ import { cn } from '@/lib/utils';
 
 // ==================== SKIP LINKS ====================
 
-interface SkipLinksProps {
-  links?: Array<{ id: string; label: string }>;
+interface SkipLinkProps {
+  targetId?: string;
+  children?: React.ReactNode;
   className?: string;
 }
 
-/**
- * Skip Links - Permite usuários de teclado pular para o conteúdo principal
- */
-export function SkipLinks({ 
-  links = [
-    { id: 'main-content', label: 'Ir para o conteúdo principal' },
-    { id: 'main-navigation', label: 'Ir para a navegação' },
-  ],
-  className 
-}: SkipLinksProps) {
+export function SkipLink({
+  targetId = 'main-content',
+  children = 'Pular para o conteúdo principal',
+  className,
+}: SkipLinkProps) {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.tabIndex = -1;
+      target.focus();
+      target.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <nav 
-      aria-label="Links de atalho"
-      className={cn('sr-only focus-within:not-sr-only', className)}
+    <a
+      href={`#${targetId}`}
+      onClick={handleClick}
+      className={cn(
+        'fixed top-0 left-0 z-[9999]',
+        'bg-primary text-primary-foreground px-4 py-2 rounded-br-lg',
+        'font-medium text-sm',
+        'transform -translate-y-full transition-transform duration-200',
+        'focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+        className
+      )}
+      aria-label={`${children}`}
     >
-      <ul className="fixed top-0 left-0 z-[9999] flex flex-col gap-1 p-2 bg-background border shadow-lg">
-        {links.map((link) => (
-          <li key={link.id}>
-            <a
-              href={`#${link.id}`}
-              className={cn(
-                'block px-4 py-2 text-sm font-medium',
-                'bg-primary text-primary-foreground rounded-md',
-                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                'transition-colors hover:bg-primary/90'
-              )}
-            >
-              {link.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+      {children}
+    </a>
   );
 }
 
@@ -287,30 +286,6 @@ export function announce(message: string, politeness: 'polite' | 'assertive' = '
       announcer.textContent = message;
     }
   }, 100);
-}
-
-// ==================== REDUCEDMOTION ====================
-
-/**
- * Hook para detectar preferência de movimento reduzido
- */
-export function usePrefersReducedMotion() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
-
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      setPrefersReducedMotion(event.matches);
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  return prefersReducedMotion;
 }
 
 // ==================== HIGH CONTRAST ====================

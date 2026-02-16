@@ -9,6 +9,7 @@ import { asyncHandler } from '../utils';
 import { type User } from '../../shared/schema';
 import { sendSuccess } from '../utils/apiResponse';
 
+/** Registers debug routes (development environment only) */
 export const debugRoutes = (app: Express): void => {
   // Só registra rotas de debug em ambiente de desenvolvimento
   if (process.env.NODE_ENV === 'production') {

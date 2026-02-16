@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { PERFORMANCE_CONFIG } from '@/lib/performance';
 
 // Hook para debounce
-export const useDebounce = <T extends (...args: any[]) => any>(
+export const useDebounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   callback: T,
   delay: number = PERFORMANCE_CONFIG.debounce.search
 ) => {
@@ -30,7 +30,7 @@ export const useDebounce = <T extends (...args: any[]) => any>(
 };
 
 // Hook para throttle
-export const useThrottle = <T extends (...args: any[]) => any>(
+export const useThrottle = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   callback: T,
   limit: number = 100
 ) => {
@@ -79,16 +79,19 @@ export const useLazyImage = (src: string, placeholder?: string) => {
 };
 
 // Hook para otimizar re-renders
-export const useOptimizedCallback = <T extends (...args: any[]) => any>(
-  callback: T,
-  deps: React.DependencyList
-) => {
-  return useCallback(callback, deps);
+export const useOptimizedCallback = <T extends (...args: Parameters<T>) => ReturnType<T>>(callback: T) => {
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  return useCallback((...args: Parameters<T>) => callbackRef.current(...args), []);
 };
 
 // Hook para otimizar valores computados
-export const useOptimizedValue = <T>(value: T, deps: React.DependencyList): T => {
-  return useMemo(() => value, deps);
+export const useOptimizedValue = <T>(value: T): T => {
+  return useMemo(() => value, [value]);
 };
 
 // Hook para detectar mudanças de tamanho da tela com throttle
@@ -119,11 +122,13 @@ export const useScrollThrottle = (callback: (event: Event) => void, delay: numbe
 
 // Hook para otimizar mudanças de tema
 export const useThemeOptimization = () => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setTheme(mediaQuery.matches ? 'dark' : 'light');
     
     const handler = (e: MediaQueryListEvent) => {
       setTheme(e.matches ? 'dark' : 'light');
@@ -189,4 +194,3 @@ export const useListOptimization = <T>(
     visibleRange,
   };
 };
-

@@ -11,6 +11,9 @@ import { NeonAdapter } from '../neonAdapter';
 // Instância singleton compartilhada
 const adapter = new NeonAdapter();
 
+/**
+ * Service for sending push notifications to users.
+ */
 export class PushNotificationService {
   /**
    * Envia push notifications para usuários
@@ -26,4 +29,5 @@ export class PushNotificationService {
   }
 }
 
+/** Singleton instance of the push notification service. */
 export const pushNotificationService = new PushNotificationService();

@@ -10,6 +10,7 @@
 
 import { type Request, type Response, type NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { captureException, captureMessage as captureSentryMessage } from './sentryService';
 
 /**
  * Níveis de severidade para erros
@@ -138,16 +139,10 @@ class MonitoringService {
       errorsCache.pop();
     }
 
-    // Em produção, enviar para Sentry
-    if (this.sentryDsn && process.env.NODE_ENV === 'production') {
-      // Sentry.withScope((scope) => {
-      //   if (context?.userId) scope.setUser({ id: String(context.userId) });
-      //   if (context?.endpoint) scope.setTag('endpoint', context.endpoint);
-      //   if (context?.requestId) scope.setTag('requestId', context.requestId);
-      //   scope.setLevel(severity);
-      //   Sentry.captureException(errorObj);
-      // });
-    }
+    captureException(errorObj, {
+      severity,
+      ...context,
+    });
   }
 
   /**
@@ -158,10 +153,7 @@ class MonitoringService {
 
     logger.info(`[MESSAGE] ${message}`, { timestamp, severity, ...context });
 
-    // Em produção, enviar para Sentry
-    if (this.sentryDsn && process.env.NODE_ENV === 'production') {
-      // Sentry.captureMessage(message, severity);
-    }
+    captureSentryMessage(message, severity, context as Record<string, unknown> | undefined);
   }
 
   /**
@@ -275,10 +267,12 @@ class MonitoringService {
   }
 }
 
-// Singleton
+/** Singleton instance of the monitoring service for error tracking and performance metrics. */
 export const monitoringService = new MonitoringService();
 
 // Inicializa automaticamente
-monitoringService.init().catch(console.error);
+monitoringService.init().catch(error => {
+  logger.error('Erro ao inicializar monitoringService', error);
+});
 
 export default monitoringService;

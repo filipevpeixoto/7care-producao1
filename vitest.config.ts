@@ -12,7 +12,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    exclude: ['**/node_modules/**', 'e2e/**', 'server/__tests__/manual/**'],
+    exclude: ['**/node_modules/**', 'e2e/**', 'server/__tests__/**'],
+    setupFiles: ['client/src/test/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'json'],
@@ -25,10 +26,10 @@ export default defineConfig({
         'client/src/main.tsx',
       ],
       thresholds: {
-        statements: 40,
-        branches: 30,
-        functions: 30,
-        lines: 40,
+        statements: 70,
+        branches: 60,
+        functions: 65,
+        lines: 70,
       },
     },
   },

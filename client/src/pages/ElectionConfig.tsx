@@ -18,6 +18,7 @@ import { StepVoterSelection } from './election-config/StepVoterSelection';
 import { StepCriteria } from './election-config/StepCriteria';
 import { StepPositions } from './election-config/StepPositions';
 import { StepCandidates } from './election-config/StepCandidates';
+import { useTranslation } from 'react-i18next';
 
 export default function ElectionConfig() {
   const {
@@ -77,13 +78,15 @@ export default function ElectionConfig() {
     startElection,
   } = useElectionConfigState();
 
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <MobileLayout>
         <div className="p-4 text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold mb-2">Carregando...</h2>
-          <p className="text-muted-foreground">Preparando configuração de eleição</p>
+          <h2 className="text-xl font-semibold mb-2">{t('electionConfig.loading')}</h2>
+          <p className="text-muted-foreground">{t('electionConfig.preparingConfig')}</p>
         </div>
       </MobileLayout>
     );
@@ -94,13 +97,13 @@ export default function ElectionConfig() {
       <MobileLayout>
         <div className="p-4 text-center">
           <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
-          <p className="text-muted-foreground">Apenas administradores podem configurar eleições.</p>
+          <h2 className="text-xl font-semibold mb-2">{t('electionConfig.accessRestricted')}</h2>
+          <p className="text-muted-foreground">{t('electionConfig.adminOnly')}</p>
           <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-left">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              <strong>Usuário atual:</strong>
+              <strong>{t('electionConfig.currentUser')}</strong>
               <br />
-              Nome: {user?.name || 'N/A'}
+              {t('electionConfig.nameLabel')}: {user?.name || 'N/A'}
               <br />
               Email: {user?.email || 'N/A'}
               <br />
@@ -120,7 +123,7 @@ export default function ElectionConfig() {
             <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg sm:text-2xl font-bold">Configuração de Nomeações</h1>
+                <h1 className="text-lg sm:text-2xl font-bold">{t('electionConfig.title')}</h1>
                 {config.title && config.title.trim().length > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {config.title}
@@ -128,7 +131,7 @@ export default function ElectionConfig() {
                 )}
               </div>
               <p className="text-muted-foreground">
-                Configure os parâmetros da nomeação de liderança
+                {t('electionConfig.subtitle')}
               </p>
             </div>
           </div>
@@ -141,7 +144,7 @@ export default function ElectionConfig() {
             className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nova Nomeação
+            {t('electionConfig.newNomination')}
           </Button>
         </div>
 
@@ -163,11 +166,11 @@ export default function ElectionConfig() {
                   currentStep >= step ? 'text-blue-600' : 'text-gray-500'
                 }`}
               >
-                {step === 1 && 'Igreja'}
-                {step === 2 && 'Votantes'}
-                {step === 3 && 'Critérios'}
-                {step === 4 && 'Cargos'}
-                {step === 5 && 'Candidatos'}
+                {step === 1 && t('electionConfig.stepChurch')}
+                {step === 2 && t('electionConfig.stepVoters')}
+                {step === 3 && t('electionConfig.stepCriteria')}
+                {step === 4 && t('electionConfig.stepPositions')}
+                {step === 5 && t('electionConfig.stepCandidates')}
               </span>
               {step < 5 && (
                 <div
@@ -183,16 +186,14 @@ export default function ElectionConfig() {
           <Alert className="mb-4 border-blue-500 bg-blue-50 dark:bg-blue-950/50 dark:border-blue-400">
             <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertDescription>
-              <strong>Modo Edição</strong> - Você está editando a nomeação ID #{editingConfigId}.
-              Clique em "Nova Nomeação" para criar uma nova configuração do zero.
+              <strong>{t('electionConfig.editMode')}</strong> - {t('electionConfig.editModeDescription', { id: editingConfigId })}
             </AlertDescription>
           </Alert>
         ) : (
           <Alert className="mb-4 border-green-500 bg-green-50 dark:bg-green-950/50 dark:border-green-400">
             <Plus className="h-4 w-4 text-green-600 dark:text-green-400" />
             <AlertDescription>
-              <strong>Modo Criação</strong> - Você está criando uma nova nomeação. Todas as
-              alterações serão salvas como uma nova configuração.
+              <strong>{t('electionConfig.createMode')}</strong> - {t('electionConfig.createModeDescription')}
             </AlertDescription>
           </Alert>
         )}
@@ -202,8 +203,7 @@ export default function ElectionConfig() {
           <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Configuração já existe!</strong> Já existe uma configuração para esta igreja.
-              Você pode editar a configuração existente ou criar uma nova.
+              <strong>{t('electionConfig.configExists')}</strong> {t('electionConfig.configExistsDescription')}
             </AlertDescription>
           </Alert>
         )}
@@ -276,16 +276,16 @@ export default function ElectionConfig() {
           {currentStep === 5 && (
             <StepCandidates
               config={config}
-              eligibleCandidates={eligibleCandidates}
-              ineligibleCandidates={ineligibleCandidates}
+              eligibleCandidates={eligibleCandidates as import('./election-config/StepCandidates').CandidateMember[]}
+              ineligibleCandidates={ineligibleCandidates as import('./election-config/StepCandidates').CandidateMember[]}
               removedCandidates={removedCandidates}
               loadingCandidates={loadingCandidates}
               eligibleSearchTerm={eligibleSearchTerm}
               setEligibleSearchTerm={setEligibleSearchTerm}
-              filteredEligibleCandidates={filteredEligibleCandidates}
+              filteredEligibleCandidates={filteredEligibleCandidates as import('./election-config/StepCandidates').CandidateMember[]}
               loadEligibleCandidates={loadEligibleCandidates}
               handleRemoveCandidate={handleRemoveCandidate}
-              handleAddIneligibleCandidate={handleAddIneligibleCandidate}
+              handleAddIneligibleCandidate={handleAddIneligibleCandidate as (candidate: import('./election-config/StepCandidates').CandidateMember) => void}
               handleAddCandidate={handleAddCandidate}
             />
           )}
@@ -299,7 +299,7 @@ export default function ElectionConfig() {
             disabled={currentStep === 1}
             className="order-2 sm:order-1"
           >
-            Anterior
+            {t('electionConfig.previous')}
           </Button>
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 order-1 sm:order-2">
@@ -309,7 +309,7 @@ export default function ElectionConfig() {
                 disabled={!canProceedToNextStep()}
                 className="w-full sm:w-auto"
               >
-                Próximo
+                {t('electionConfig.next')}
               </Button>
             ) : (
               <>
@@ -322,10 +322,10 @@ export default function ElectionConfig() {
                   <Save className="h-4 w-4 mr-2" />
                   <span className="truncate">
                     {saving
-                      ? 'Salvando...'
+                      ? t('electionConfig.saving')
                       : isEditing
-                        ? 'Salvar Alterações'
-                        : 'Salvar Configuração'}
+                        ? t('electionConfig.saveChanges')
+                        : t('electionConfig.saveConfig')}
                   </span>
                 </Button>
 
@@ -336,7 +336,7 @@ export default function ElectionConfig() {
                   className="w-full sm:w-auto"
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  {loading ? 'Iniciando...' : 'Iniciar Nomeação'}
+                  {loading ? t('electionConfig.starting') : t('electionConfig.startNomination')}
                 </Button>
               </>
             )}
@@ -347,7 +347,7 @@ export default function ElectionConfig() {
           <Alert>
             <CheckCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Nomeação ativa!</strong> Os votantes já podem acessar a página de votação.
+              <strong>{t('electionConfig.nominationActive')}</strong> {t('electionConfig.votersCanAccess')}
             </AlertDescription>
           </Alert>
         )}

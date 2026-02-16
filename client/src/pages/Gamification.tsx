@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -27,6 +28,7 @@ import { MountIcon } from '@/components/ui/mount-icon';
 import { useUserPoints } from '@/hooks/useUserPoints';
 
 export default function Gamification() {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useUserPoints();
   const [activeTab, setActiveTab] = useState('my-progress');
   const [isIconModalOpen, setIsIconModalOpen] = useState(false);
@@ -38,7 +40,7 @@ export default function Gamification() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Carregando sua pontuação...</p>
+            <p className="text-muted-foreground">{t('gamification.loadingScore')}</p>
           </div>
         </div>
       </MobileLayout>
@@ -53,11 +55,11 @@ export default function Gamification() {
           <div className="text-center">
             <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
             <p className="text-muted-foreground mb-4">
-              {error || 'Erro ao carregar dados de pontuação'}
+              {error || t('gamification.errorLoadingScore')}
             </p>
-            <Button onClick={refetch} className="flex items-center gap-2">
+            <Button onClick={() => refetch()} className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4" />
-              Tentar novamente
+              {t('gamification.tryAgain')}
             </Button>
           </div>
         </div>
@@ -78,15 +80,15 @@ export default function Gamification() {
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Trophy className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Minha Pontuação</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('gamification.myScore')}</h1>
           </div>
-          <p className="text-muted-foreground">Acompanhe seu progresso na jornada espiritual</p>
+          <p className="text-muted-foreground">{t('gamification.trackProgress')}</p>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-1">
-            <TabsTrigger value="my-progress">Meu Progresso</TabsTrigger>
+            <TabsTrigger value="my-progress">{t('gamification.myProgress')}</TabsTrigger>
           </TabsList>
 
           {/* Meu Progresso */}
@@ -96,7 +98,7 @@ export default function Gamification() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Mountain className="h-5 w-5 text-purple-600" />
-                  Seu Monte Atual
+                  {t('gamification.yourCurrentMount')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -118,14 +120,14 @@ export default function Gamification() {
                 {nextLevel && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>Progresso para {nextLevel.mount}</span>
+                      <span>{t('gamification.progressTo', { mount: nextLevel.mount })}</span>
                       <span>{Math.round(progress)}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
                     <div className="text-center text-xs text-muted-foreground">
                       {pointsToNext > 0
-                        ? `${pointsToNext} pontos para ${nextLevel.mount}`
-                        : 'Monte máximo alcançado!'}
+                        ? t('gamification.pointsToMount', { points: pointsToNext, mount: nextLevel.mount })
+                        : t('gamification.maxMountReached')}
                     </div>
                   </div>
                 )}
@@ -134,7 +136,7 @@ export default function Gamification() {
                   <div className="flex items-center justify-center gap-2 mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
                     <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                     <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
-                      Status Máximo Alcançado!
+                      {t('gamification.maxStatusReached')}
                     </span>
                   </div>
                 )}
@@ -145,7 +147,7 @@ export default function Gamification() {
             <MountainJourney userPoints={total} showCurrent={true} />
 
             {/* Breakdown Detalhado */}
-            <PointsBreakdown userData={userData} breakdown={breakdown} showDetails={true} />
+            <PointsBreakdown userData={userData as import('@/types/domain').UserMember & { actualPoints?: number }} breakdown={breakdown} showDetails={true} />
           </TabsContent>
         </Tabs>
       </div>
@@ -159,7 +161,7 @@ export default function Gamification() {
         <DialogContent className="max-w-5xl max-h-[90vh] sm:max-h-[95vh] overflow-y-auto bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 dark:from-slate-800 dark:to-slate-900 dark:border-slate-600 p-4 sm:p-6">
           <DialogHeader className="pb-4 sm:pb-6">
             <DialogTitle className="text-center text-xl sm:text-2xl lg:text-3xl font-bold text-amber-800 dark:text-amber-300">
-              {getMountName(total)} - Detalhes da Conquista
+              {getMountName(total)} - {t('gamification.achievementDetails')}
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col lg:flex-row items-center lg:items-start space-y-6 lg:space-y-0 lg:space-x-12 p-2 sm:p-8">
@@ -184,7 +186,7 @@ export default function Gamification() {
               {/* Descrição bíblica */}
               <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-6 shadow-md">
                 <h3 className="text-xl font-bold text-amber-800 dark:text-amber-300 mb-3">
-                  Significado Bíblico
+                  {t('gamification.biblicalMeaning')}
                 </h3>
                 <p className="text-amber-900 dark:text-amber-200 leading-relaxed text-lg">
                   {currentLevel.description}
@@ -195,7 +197,7 @@ export default function Gamification() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
                   <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
-                    Pontos Atuais
+                    {t('gamification.currentPoints')}
                   </div>
                   <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
                     {total}
@@ -204,17 +206,17 @@ export default function Gamification() {
 
                 <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
                   <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
-                    Próximo Nível
+                    {t('gamification.nextLevel')}
                   </div>
                   <div className="text-lg font-semibold text-amber-800 dark:text-amber-200">
-                    {getNextLevel(total)?.name || 'Máximo Alcançado'}
+                    {getNextLevel(total)?.name || t('gamification.maxReached')}
                   </div>
                 </div>
 
                 {getNextLevel(total) && (
                   <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 shadow-md">
                     <div className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
-                      Pontos Restantes
+                      {t('gamification.pointsRemaining')}
                     </div>
                     <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
                       {getPointsToNextLevel(total)}
@@ -226,7 +228,7 @@ export default function Gamification() {
               {/* Benefícios */}
               <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-6 shadow-md">
                 <h3 className="text-xl font-bold text-amber-800 dark:text-amber-300 mb-4">
-                  Conquistas Desbloqueadas
+                  {t('gamification.unlockedAchievements')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {currentLevel.benefits.map((benefit, index) => (

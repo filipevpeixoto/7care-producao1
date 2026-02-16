@@ -4,9 +4,10 @@
  */
 
 import { type NeonQueryFunction } from '@neondatabase/serverless';
+import { logger } from '../utils/logger';
 
 export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('📋 Criando tabela pastor_invites...');
+  logger.info('📋 Criando tabela pastor_invites...');
 
   await sql`
     CREATE TABLE IF NOT EXISTS pastor_invites (
@@ -29,7 +30,7 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
     )
   `;
 
-  console.log('📋 Criando índices para pastor_invites...');
+  logger.info('📋 Criando índices para pastor_invites...');
 
   await sql`CREATE INDEX IF NOT EXISTS idx_pastor_invites_token ON pastor_invites(token)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_pastor_invites_status ON pastor_invites(status)`;
@@ -37,11 +38,11 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
   await sql`CREATE INDEX IF NOT EXISTS idx_pastor_invites_created_by ON pastor_invites(created_by)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_pastor_invites_expires_at ON pastor_invites(expires_at)`;
 
-  console.log('✅ Tabela pastor_invites criada com sucesso!');
+  logger.info('✅ Tabela pastor_invites criada com sucesso!');
 }
 
 export async function down(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('📋 Removendo tabela pastor_invites...');
+  logger.info('📋 Removendo tabela pastor_invites...');
 
   await sql`DROP INDEX IF EXISTS idx_pastor_invites_token`;
   await sql`DROP INDEX IF EXISTS idx_pastor_invites_status`;
@@ -50,5 +51,5 @@ export async function down(sql: NeonQueryFunction<boolean, boolean>): Promise<vo
   await sql`DROP INDEX IF EXISTS idx_pastor_invites_expires_at`;
   await sql`DROP TABLE IF EXISTS pastor_invites CASCADE`;
 
-  console.log('✅ Tabela pastor_invites removida com sucesso!');
+  logger.info('✅ Tabela pastor_invites removida com sucesso!');
 }

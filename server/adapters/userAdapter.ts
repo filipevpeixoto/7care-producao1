@@ -10,49 +10,54 @@ import * as bcrypt from 'bcryptjs';
 import { type CreateUserInput, type UpdateUserInput } from '../types/storage';
 import { type User } from '../../shared/schema';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
+const toStringOrEmpty = (value: unknown): string => (isNil(value) ? '' : String(value));
+const toStringOrNull = (value: unknown): string | null => (isNil(value) ? null : String(value));
+const toStringOrUndefined = (value: unknown): string | undefined =>
+  isNil(value) ? undefined : String(value);
+const toNumberOrNull = (value: unknown): number | null => (isNil(value) ? null : Number(value));
+const toNumberOrZero = (value: unknown): number => (isNil(value) ? 0 : Number(value));
+const toDateStringOrNull = (value: unknown): string | null =>
+  isNil(value) ? null : value instanceof Date ? value.toISOString() : String(value);
+const toLevelValue = (value: unknown): string | number => {
+  if (isNil(value)) return 1;
+  return typeof value === 'number' ? value : String(value);
+};
+
 /**
  * Converte row do banco para tipo User
  */
 export function toUser(row: Record<string, unknown>): User {
   return {
     id: Number(row.id),
-    name: row.name == null ? '' : String(row.name),
-    email: row.email == null ? '' : String(row.email),
-    password: row.password == null ? undefined : String(row.password),
-    role: (row.role == null ? 'member' : String(row.role)) as User['role'],
-    church: row.church == null ? null : String(row.church),
-    churchId: row.churchId == null ? null : Number(row.churchId),
-    districtId: row.districtId == null ? null : Number(row.districtId),
-    phone: row.phone == null ? null : String(row.phone),
-    address: row.address == null ? null : String(row.address),
-    birthDate: row.birthDate == null ? null : String(row.birthDate),
-    avatarUrl: row.avatarUrl == null ? null : String(row.avatarUrl),
-    points: row.points == null ? 0 : Number(row.points),
-    streak: row.streak == null ? 0 : Number(row.streak),
-    level: row.level == null ? 1 : typeof row.level === 'number' ? row.level : String(row.level),
-    status: (row.status == null ? 'active' : String(row.status)) as User['status'],
-    visitedBy: row.visitedBy == null ? null : Number(row.visitedBy),
-    howKnew: row.howKnew == null ? null : String(row.howKnew),
-    invitedBy: row.invitedBy == null ? null : String(row.invitedBy),
-    maritalStatus: row.maritalStatus == null ? null : String(row.maritalStatus),
-    gender: row.gender == null ? null : String(row.gender),
-    ministries: row.ministries == null ? null : String(row.ministries),
+    name: toStringOrEmpty(row.name),
+    email: toStringOrEmpty(row.email),
+    password: toStringOrUndefined(row.password),
+    role: (isNil(row.role) ? 'member' : String(row.role)) as User['role'],
+    church: toStringOrNull(row.church),
+    churchId: toNumberOrNull(row.churchId),
+    districtId: toNumberOrNull(row.districtId),
+    phone: toStringOrNull(row.phone),
+    address: toStringOrNull(row.address),
+    birthDate: toStringOrNull(row.birthDate),
+    avatarUrl: toStringOrNull(row.avatarUrl),
+    points: toNumberOrZero(row.points),
+    streak: toNumberOrZero(row.streak),
+    level: toLevelValue(row.level),
+    status: (isNil(row.status) ? 'active' : String(row.status)) as User['status'],
+    visitedBy: toNumberOrNull(row.visitedBy),
+    howKnew: toStringOrNull(row.howKnew),
+    invitedBy: toStringOrNull(row.invitedBy),
+    maritalStatus: toStringOrNull(row.maritalStatus),
+    gender: toStringOrNull(row.gender),
+    ministries: toStringOrNull(row.ministries),
     createdAt:
       row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
     updatedAt:
       row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt ?? ''),
-    lastLogin:
-      row.lastLogin == null
-        ? null
-        : row.lastLogin instanceof Date
-          ? row.lastLogin.toISOString()
-          : String(row.lastLogin),
-    lastStreak:
-      row.lastStreak == null
-        ? null
-        : row.lastStreak instanceof Date
-          ? row.lastStreak.toISOString()
-          : String(row.lastStreak),
+    lastLogin: toDateStringOrNull(row.lastLogin),
+    lastStreak: toDateStringOrNull(row.lastStreak),
     isApproved: Boolean(row.isApproved ?? true),
     firstAccess: Boolean(row.firstAccess ?? false),
   };
@@ -169,7 +174,7 @@ export async function createUser(userData: CreateUserInput): Promise<User> {
   const [inserted] = await db
     .insert(schema.users)
 
-    .values(finalInsertData as any)
+    .values(finalInsertData as typeof schema.users.$inferInsert)
     .returning();
 
   return toUser(inserted as Record<string, unknown>);

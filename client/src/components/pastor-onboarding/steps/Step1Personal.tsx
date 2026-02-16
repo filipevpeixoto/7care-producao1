@@ -92,6 +92,7 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
             type="button"
             className="absolute bottom-0 right-0 bg-gradient-to-r from-blue-500 to-purple-500 text-white p-2 sm:p-3 rounded-full hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
             onClick={() => alert('Upload de foto será implementado')}
+            aria-label="Enviar foto de perfil"
           >
             <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
           </button>

@@ -5,6 +5,7 @@
 
 import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../container';
+import type { InsertEvent } from '../../shared/schema';
 import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createEventSchema } from '../schemas';
@@ -12,6 +13,7 @@ import { logger } from '../utils/logger';
 import { isPastor } from '../utils/permissions';
 import { getAuthUserId } from '../utils/authHelpers';
 
+/** Registers event and calendar-related routes */
 export const eventRoutes = (app: Express): void => {
   const eventRepo = getRepository('eventRepository');
   const churchRepo = getRepository('churchRepository');
@@ -172,8 +174,7 @@ export const eventRoutes = (app: Express): void => {
         organizerId: eventData.organizerId ?? organizerId,
         churchId,
         districtId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      } as InsertEvent);
       sendSuccess(res, event, 201);
     })
   );
@@ -339,8 +340,7 @@ export const eventRoutes = (app: Express): void => {
         organizerId: eventData?.organizerId ?? organizerId,
         churchId,
         districtId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      } as InsertEvent);
       sendSuccess(res, event, 201);
     })
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { dashboardLogger } from '@/lib/logger';
 import { Cake, MessageCircle, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +95,7 @@ export const BirthdayCard = React.memo(({
       const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       return localDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     } catch (error) {
-      console.error('Erro ao formatar data:', error, 'Data:', dateString);
+      dashboardLogger.error('Erro ao formatar data:', error, 'Data:', dateString);
       return 'Data inválida';
     }
   };
@@ -135,7 +136,7 @@ export const BirthdayCard = React.memo(({
 
       return 'Dia inválido';
     } catch (error) {
-      console.error('Erro ao formatar nome do dia:', error, 'Data:', dateString);
+      dashboardLogger.error('Erro ao formatar nome do dia:', error, 'Data:', dateString);
       return 'Dia inválido';
     }
   };

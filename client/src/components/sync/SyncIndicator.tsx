@@ -2,6 +2,9 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CloudOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Sync');
 
 export function SyncIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -9,12 +12,12 @@ export function SyncIndicator() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      console.log('🌐 Conexão restabelecida!');
+      logger.debug('🌐 Conexão restabelecida!');
     };
     
     const handleOffline = () => {
       setIsOnline(false);
-      console.log('📡 Sem conexão!');
+      logger.debug('📡 Sem conexão!');
     };
 
     window.addEventListener('online', handleOnline);

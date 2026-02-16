@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useDeferredValue, useMemo, startTransition, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +33,60 @@ interface PrayerRequest {
   isUserPraying?: boolean;
 }
 
+interface Intercessor {
+  id: number;
+  intercessorName: string;
+  intercessorProfilePhoto: string | null;
+}
+
+interface RawPrayerApi {
+  id: number;
+  requesterName?: string;
+  requester_name?: string;
+  requesterChurch?: string;
+  church?: string;
+  requesterPhoto?: string;
+  requester_photo?: string;
+  profilePhoto?: string;
+  profile_photo?: string;
+  userId?: number;
+  user_id?: number;
+  requester_id?: number;
+  title?: string;
+  prayerRequest?: string;
+  description?: string;
+  emotionalScore?: number;
+  isAnswered?: boolean;
+  is_answered?: boolean;
+  isPrivate?: boolean;
+  is_private?: boolean;
+  allowChurchMembers?: boolean;
+  allow_church_members?: boolean;
+  createdAt?: string;
+  created_at?: string;
+  answeredAt?: string;
+  answered_at?: string;
+  answeredBy?: string;
+  isUserPraying?: boolean;
+}
+
+const mapPrayer = (prayer: RawPrayerApi): PrayerRequest => ({
+  id: prayer.id,
+  userName: prayer.requesterName || prayer.requester_name || 'Usuário',
+  userChurch: prayer.requesterChurch || prayer.church || 'Igreja',
+  userProfilePhoto: prayer.requesterPhoto || prayer.requester_photo || prayer.profilePhoto || prayer.profile_photo || undefined,
+  userId: prayer.userId || prayer.user_id || prayer.requester_id || 0,
+  prayerRequest: prayer.title || prayer.prayerRequest || prayer.description || '',
+  emotionalScore: prayer.emotionalScore || 0,
+  isAnswered: prayer.isAnswered ?? prayer.is_answered ?? false,
+  isPrivate: prayer.isPrivate ?? prayer.is_private ?? false,
+  allowChurchMembers: prayer.allowChurchMembers ?? prayer.allow_church_members ?? true,
+  createdAt: prayer.createdAt || prayer.created_at || '',
+  answeredAt: prayer.answeredAt || prayer.answered_at,
+  answeredBy: prayer.answeredBy,
+  isUserPraying: prayer.isUserPraying,
+});
+
 const spiritualEmojis = {
   1: {
     emoji: '🍃',
@@ -60,15 +116,15 @@ const spiritualEmojis = {
 };
 
 const Prayers = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
-  const [filteredPrayers, setFilteredPrayers] = useState<PrayerRequest[]>([]);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'answered'>('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [intercessors, setIntercessors] = useState<{ [key: number]: any[] }>({});
-  const [loadingIntercessors, setLoadingIntercessors] = useState<{ [key: number]: boolean }>({});
+  const [intercessors, setIntercessors] = useState<Record<number, Intercessor[]>>({});
+  const [loadingIntercessors, setLoadingIntercessors] = useState<Record<number, boolean>>({});
 
   // Helper function para gerar URL da foto
   const getPhotoUrl = (profilePhoto?: string) => {
@@ -76,252 +132,38 @@ const Prayers = () => {
     return String(profilePhoto).startsWith('http') ? profilePhoto : `/uploads/${profilePhoto}`;
   };
 
-  useEffect(() => {
-    if (user?.id) {
-      loadPrayers();
-    }
-  }, [user]);
+  // ========================================
+  // QUERIES
+  // ========================================
+  const {
+    data: prayers = [],
+    isLoading,
+    refetch: _refetch,
+  } = useQuery<PrayerRequest[]>({
+    queryKey: ['prayers', user?.id],
+    queryFn: async () => {
+      const response = await fetchWithAuth('/api/prayers');
+      if (!response.ok) throw new Error('Erro ao carregar orações');
+      const rawData = await response.json();
+      const data: RawPrayerApi[] = Array.isArray(rawData) ? rawData : rawData?.data || [];
+      return data.map(mapPrayer);
+    },
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  });
 
-  useEffect(() => {
-    filterPrayers();
-  }, [prayers, searchTerm, filterStatus]);
-
-  const loadPrayers = async () => {
-    try {
-      if (!user?.id) {
-        toast({
-          title: 'Usuário não identificado',
-          description: 'Por favor, faça login novamente.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const url = `/api/prayers`;
-      const response = await fetchWithAuth(url);
-
-      if (response.ok) {
-        const rawData = await response.json();
-        // A API pode retornar { data: [] } ou array diretamente
-        const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
-        // Mapear dados da API para o formato esperado pelo frontend
-        const mappedData = data.map((prayer: any) => ({
-          ...prayer,
-          userName: prayer.requesterName || prayer.requester_name || 'Usuário',
-          userChurch: prayer.requesterChurch || prayer.church || 'Igreja',
-          userProfilePhoto: prayer.requesterPhoto || prayer.requester_photo || prayer.profilePhoto || prayer.profile_photo || null,
-          userId: prayer.userId || prayer.user_id || prayer.requester_id,
-          prayerRequest: prayer.title || prayer.prayerRequest || prayer.description || '',
-          emotionalScore: prayer.emotionalScore || 0,
-          isAnswered: prayer.isAnswered ?? prayer.is_answered ?? false,
-          isPrivate: prayer.isPrivate ?? prayer.is_private ?? false,
-          allowChurchMembers: prayer.allowChurchMembers ?? prayer.allow_church_members ?? true,
-          createdAt: prayer.createdAt || prayer.created_at,
-          answeredAt: prayer.answeredAt || prayer.answered_at,
-        }));
-        setPrayers(mappedData);
-
-        // Carregar intercessores automaticamente para todas as orações
-        mappedData.forEach((prayer: PrayerRequest) => {
-          if (!prayer.isAnswered) {
-            loadIntercessors(prayer.id);
-          }
-        });
-      }
-    } catch (error) {
-      prayersLogger.error('Erro ao carregar orações:', error);
-      toast({
-        title: 'Erro ao carregar orações',
-        description: 'Não foi possível carregar os pedidos de oração.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filterPrayers = () => {
-    let filtered = prayers;
-
-    // Filter by status
-    if (filterStatus === 'pending') {
-      filtered = filtered.filter(prayer => !prayer.isAnswered);
-    } else if (filterStatus === 'answered') {
-      filtered = filtered.filter(prayer => prayer.isAnswered);
-    }
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(
-        prayer =>
-          prayer.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          prayer.prayerRequest?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredPrayers(filtered);
-  };
-
-  const markAsAnswered = async (prayerId: number) => {
-    try {
-      if (!user?.id) {
-        toast({
-          title: 'Usuário não identificado',
-          description: 'Por favor, faça login novamente.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const response = await fetchWithAuth(`/api/prayers/${prayerId}/answer`, {
-        method: 'POST',
-        body: JSON.stringify({ answeredBy: user.id }),
-      });
-
-      if (response.ok) {
-        setPrayers(prev =>
-          prev.map(prayer =>
-            prayer.id === prayerId
-              ? {
-                  ...prayer,
-                  isAnswered: true,
-                  answeredAt: new Date().toISOString(),
-                  answeredBy: user?.name,
-                }
-              : prayer
-          )
-        );
-
-        toast({
-          title: 'Oração marcada como respondida',
-          description: 'O pedido foi marcado como atendido.',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Erro ao marcar oração',
-        description: 'Não foi possível marcar a oração como respondida.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const deletePrayer = async (prayerId: number) => {
-    try {
-      if (!user?.id) {
-        toast({
-          title: 'Usuário não identificado',
-          description: 'Por favor, faça login novamente.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Verificar se a oração ainda existe no estado local
-      const prayerExists = prayers.find(prayer => prayer.id === prayerId);
-      if (!prayerExists) {
-        toast({
-          title: 'Oração não encontrada',
-          description: 'Esta oração já foi excluída ou não existe mais.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      prayersLogger.debug(`Tentando excluir oração ${prayerId}`);
-
-      const response = await fetchWithAuth(
-        `/api/prayers/${prayerId}`,
-        {
-          method: 'DELETE',
-        }
-      );
-
-      if (response.ok) {
-        setPrayers(prev => prev.filter(prayer => prayer.id !== prayerId));
-
-        toast({
-          title: 'Oração excluída',
-          description: 'O pedido de oração foi removido com sucesso.',
-        });
-      } else {
-        const errorData = await response.json();
-        prayersLogger.debug(`Erro na resposta do servidor:`, errorData);
-
-        toast({
-          title: 'Erro ao excluir oração',
-          description: errorData.error || 'Não foi possível excluir a oração.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      prayersLogger.error('Erro na requisição:', error);
-      toast({
-        title: 'Erro ao excluir oração',
-        description: 'Não foi possível excluir a oração.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Função para adicionar/remover intercessor
-  const toggleIntercessor = async (prayerId: number) => {
-    if (!user?.id) return;
-
-    try {
-      if (prayers.find(p => p.id === prayerId)?.isUserPraying) {
-        // Remover intercessor
-        const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessor/${user.id}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          setPrayers(prev =>
-            prev.map(p => (p.id === prayerId ? { ...p, isUserPraying: false } : p))
-          );
-          // Recarregar intercessores para atualizar a lista
-          loadIntercessors(prayerId);
-          toast({ title: 'Sucesso', description: 'Você não está mais orando por este pedido' });
-        }
-      } else {
-        // Adicionar intercessor
-        const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessor`, {
-          method: 'POST',
-          body: JSON.stringify({ intercessorId: user.id }),
-        });
-
-        if (response.ok) {
-          setPrayers(prev =>
-            prev.map(p => (p.id === prayerId ? { ...p, isUserPraying: true } : p))
-          );
-          // Recarregar intercessores para atualizar a lista
-          loadIntercessors(prayerId);
-          toast({ title: 'Sucesso', description: 'Você está orando por este pedido' });
-        }
-      }
-    } catch (error) {
-      prayersLogger.error('Erro ao gerenciar intercessor:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao gerenciar intercessor',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Função para carregar intercessores de uma oração
-  const loadIntercessors = async (prayerId: number) => {
-    // Sempre carregar, mesmo se já estiver carregado (para atualizações)
+  // Carregar intercessores quando os prayers mudam
+  const loadIntercessors = useCallback(async (prayerId: number) => {
     setLoadingIntercessors(prev => ({ ...prev, [prayerId]: true }));
     try {
       const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessors`);
       if (response.ok) {
         const data = await response.json();
-        // Mapear dados da API para o formato esperado pelo frontend
-        const mappedData = data.map((intercessor: any) => ({
-          ...intercessor,
-          intercessorName: intercessor.intercessor_name || 'Usuário',
-          intercessorProfilePhoto: intercessor.profile_photo || null,
+        const mappedData: Intercessor[] = data.map((i: { id: number; intercessor_name?: string; profile_photo?: string }) => ({
+          id: i.id,
+          intercessorName: i.intercessor_name || 'Usuário',
+          intercessorProfilePhoto: i.profile_photo || null,
         }));
         setIntercessors(prev => ({ ...prev, [prayerId]: mappedData }));
       }
@@ -330,6 +172,117 @@ const Prayers = () => {
     } finally {
       setLoadingIntercessors(prev => ({ ...prev, [prayerId]: false }));
     }
+  }, []);
+
+  // Auto-load intercessors when prayers data changes
+  React.useEffect(() => {
+    prayers.filter(p => !p.isAnswered).forEach(p => loadIntercessors(p.id));
+  }, [prayers, loadIntercessors]);
+
+  // ========================================
+  // DERIVED STATE (useMemo instead of useState+useEffect)
+  // ========================================
+  const filteredPrayers = useMemo(() => {
+    let filtered = prayers;
+
+    if (filterStatus === 'pending') {
+      filtered = filtered.filter(prayer => !prayer.isAnswered);
+    } else if (filterStatus === 'answered') {
+      filtered = filtered.filter(prayer => prayer.isAnswered);
+    }
+
+    if (deferredSearchTerm) {
+      const term = deferredSearchTerm.toLowerCase();
+      filtered = filtered.filter(
+        prayer =>
+          prayer.userName.toLowerCase().includes(term) ||
+          prayer.prayerRequest?.toLowerCase().includes(term)
+      );
+    }
+
+    return filtered;
+  }, [prayers, deferredSearchTerm, filterStatus]);
+
+  // ========================================
+  // MUTATIONS
+  // ========================================
+  const markAnsweredMutation = useMutation({
+    mutationFn: async (prayerId: number) => {
+      const response = await fetchWithAuth(`/api/prayers/${prayerId}/answer`, {
+        method: 'POST',
+        body: JSON.stringify({ answeredBy: user?.id }),
+      });
+      if (!response.ok) throw new Error('Erro ao marcar oração');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prayers'] });
+      toast({ title: 'Oração marcada como respondida', description: 'O pedido foi marcado como atendido.' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao marcar oração', description: 'Não foi possível marcar a oração como respondida.', variant: 'destructive' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (prayerId: number) => {
+      const response = await fetchWithAuth(`/api/prayers/${prayerId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Não foi possível excluir a oração.');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prayers'] });
+      toast({ title: 'Oração excluída', description: 'O pedido de oração foi removido com sucesso.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao excluir oração', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const toggleIntercessorMutation = useMutation({
+    mutationFn: async ({ prayerId, isPraying }: { prayerId: number; isPraying: boolean }) => {
+      if (isPraying) {
+        const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessor/${user?.id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Erro');
+      } else {
+        const response = await fetchWithAuth(`/api/prayers/${prayerId}/intercessor`, {
+          method: 'POST',
+          body: JSON.stringify({ intercessorId: user?.id }),
+        });
+        if (!response.ok) throw new Error('Erro');
+      }
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['prayers'] });
+      loadIntercessors(variables.prayerId);
+      toast({
+        title: 'Sucesso',
+        description: variables.isPraying ? 'Você não está mais orando por este pedido' : 'Você está orando por este pedido',
+      });
+    },
+    onError: () => {
+      toast({ title: 'Erro', description: 'Erro ao gerenciar intercessor', variant: 'destructive' });
+    },
+  });
+
+  // ========================================
+  // HANDLERS (simplified)
+  // ========================================
+  const markAsAnswered = (prayerId: number) => {
+    if (!user?.id) return;
+    markAnsweredMutation.mutate(prayerId);
+  };
+
+  const deletePrayer = (prayerId: number) => {
+    if (!user?.id) return;
+    deleteMutation.mutate(prayerId);
+  };
+
+  const toggleIntercessor = (prayerId: number) => {
+    if (!user?.id) return;
+    const isPraying = prayers.find(p => p.id === prayerId)?.isUserPraying ?? false;
+    toggleIntercessorMutation.mutate({ prayerId, isPraying });
   };
 
   const canViewPrayer = (prayer: PrayerRequest) => {
@@ -379,7 +332,7 @@ const Prayers = () => {
       <MobileLayout>
         <div className="p-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Carregando orações...</p>
+          <p>{t('prayers.loadingPrayers')}</p>
         </div>
       </MobileLayout>
     );
@@ -394,10 +347,10 @@ const Prayers = () => {
         <div className="text-center">
           <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
             <MessageCircle className="h-6 w-6 text-blue-600" />
-            Pedidos de Oração
+            {t('prayers.title')}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Compartilhe e acompanhe as necessidades da igreja
+            {t('prayers.subtitle')}
           </p>
         </div>
 
@@ -406,7 +359,7 @@ const Prayers = () => {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome ou pedido..."
+              placeholder={t('prayers.searchPlaceholder')}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -417,23 +370,23 @@ const Prayers = () => {
             <Button
               variant={filterStatus === 'all' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilterStatus('all')}
+              onClick={() => startTransition(() => setFilterStatus('all'))}
             >
-              Todas ({visiblePrayers.length})
+              {t('prayers.all')} ({visiblePrayers.length})
             </Button>
             <Button
               variant={filterStatus === 'pending' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilterStatus('pending')}
+              onClick={() => startTransition(() => setFilterStatus('pending'))}
             >
-              Pendentes ({visiblePrayers.filter(p => !p.isAnswered).length})
+              {t('prayers.pendingFilter')} ({visiblePrayers.filter(p => !p.isAnswered).length})
             </Button>
             <Button
               variant={filterStatus === 'answered' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilterStatus('answered')}
+              onClick={() => startTransition(() => setFilterStatus('answered'))}
             >
-              Respondidas ({visiblePrayers.filter(p => p.isAnswered).length})
+              {t('prayers.answered')} ({visiblePrayers.filter(p => p.isAnswered).length})
             </Button>
           </div>
         </div>
@@ -446,8 +399,8 @@ const Prayers = () => {
                 <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
                   {searchTerm || filterStatus !== 'all'
-                    ? 'Nenhuma oração encontrada com os filtros aplicados.'
-                    : 'Nenhum pedido de oração ainda.'}
+                    ? t('prayers.noFiltered')
+                    : t('prayers.noPrayers')}
                 </p>
               </CardContent>
             </Card>
@@ -584,7 +537,7 @@ const Prayers = () => {
                               className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-full"
                             >
                               <Avatar className="w-5 h-5">
-                                <AvatarImage src={intercessor.intercessorProfilePhoto} />
+                                <AvatarImage src={intercessor.intercessorProfilePhoto ?? undefined} />
                                 <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
                                   {intercessor.intercessorName?.charAt(0)?.toUpperCase() || 'U'}
                                 </AvatarFallback>

@@ -71,7 +71,7 @@ export const PrefetchLink = memo(
             e.preventDefault();
 
             // Usar View Transitions API
-            (document as any).startViewTransition(() => {
+            (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(() => {
               navigate(to);
             });
           }

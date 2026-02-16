@@ -9,6 +9,9 @@ import { eq, and, gte, lte, sql, count, desc } from 'drizzle-orm';
 import { logger } from '../utils/logger';
 // Tipos inferidos do schema do banco
 
+/**
+ * Service for generating reports, statistics, and data exports.
+ */
 export class ReportService {
   /**
    * Gera relatório de membros por distrito
@@ -233,6 +236,6 @@ export class ReportService {
   }
 }
 
-// Singleton
+/** Singleton instance of the report service. */
 export const reportService = new ReportService();
 export default reportService;

@@ -20,6 +20,7 @@ import { getAuthUserId } from '../../utils/authHelpers';
 import { BCRYPT_SALT_ROUNDS } from '../../config/security';
 import { asyncHandler } from '../../utils';
 import { readExcelFile, cleanupTempFile } from '../../utils/excelUtils';
+import { UPLOAD } from '../../constants';
 import {
   type SubmitOnboardingDTO,
   type OnboardingData,
@@ -32,6 +33,7 @@ import { getRepository } from '../../container';
 import { sendSuccess, sendError, sendNotFound } from '../../utils/apiResponse';
 import { upload } from './inviteHelpers';
 import { processOnboarding } from '../../services/onboardingService';
+import { uploadRateLimiter } from '../../middleware';
 
 export const onboardingRoutes = (app: Express): void => {
   /**
@@ -124,6 +126,7 @@ export const onboardingRoutes = (app: Express): void => {
    */
   app.post(
     '/api/invites/:token/upload-excel',
+    uploadRateLimiter,
     upload.single('file'),
     asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { token } = req.params;
@@ -134,70 +137,70 @@ export const onboardingRoutes = (app: Express): void => {
         return;
       }
 
-      // Validar token
-      const invites = await db
-        .select()
-        .from(pastorInvites)
-        .where(eq(pastorInvites.token, token))
-        .limit(1);
+      const filePath = req.file.path;
 
-      const invite = invites[0];
+      try {
+        const invites = await db
+          .select()
+          .from(pastorInvites)
+          .where(eq(pastorInvites.token, token))
+          .limit(1);
 
-      if (!invite || invite.status !== 'pending') {
-        cleanupTempFile(req.file.path);
-        sendError(res, 'Convite inválido', 400);
-        return;
+        const invite = invites[0];
+
+        if (!invite || invite.status !== 'pending') {
+          sendError(res, 'Convite inválido', 400);
+          return;
+        }
+
+        if (req.file.size > UPLOAD.EXCEL_MAX_FILE_SIZE) {
+          sendError(res, 'Arquivo excede o limite de 10MB', 400);
+          return;
+        }
+
+        if (
+          !req.file.originalname.endsWith('.xlsx') &&
+          !req.file.originalname.endsWith('.xls') &&
+          !req.file.originalname.endsWith('.csv')
+        ) {
+          sendError(res, 'Apenas arquivos Excel (.xlsx, .xls) ou CSV são aceitos', 400);
+          return;
+        }
+
+        const { rows: excelData } = await readExcelFile(filePath);
+
+        if (!excelData || excelData.length === 0) {
+          sendError(res, 'Nenhum dado encontrado no arquivo', 400);
+          return;
+        }
+
+        const formattedData: ExcelRow[] = excelData.map(row => ({
+          nome: String(row.nome || row.Nome || row.name || '').trim(),
+          igreja: String(row.igreja || row.Igreja || row.church || '').trim(),
+          telefone:
+            row.telefone || row.Telefone || row.phone
+              ? String(row.telefone || row.Telefone || row.phone).trim()
+              : undefined,
+          email: row.email || row.Email ? String(row.email || row.Email).trim() : undefined,
+          cargo:
+            row.cargo || row.Cargo || row.role
+              ? String(row.cargo || row.Cargo || row.role).trim()
+              : undefined,
+        }));
+
+        const { churches: uniqueChurches } = extractChurchesFromExcel(formattedData);
+
+        const response = {
+          fileName: req.file.originalname,
+          totalRows: formattedData.length,
+          data: formattedData,
+          churches: uniqueChurches,
+        };
+
+        sendSuccess(res, response);
+      } finally {
+        cleanupTempFile(filePath);
       }
-
-      // Validar extensão do arquivo
-      if (
-        !req.file.originalname.endsWith('.xlsx') &&
-        !req.file.originalname.endsWith('.xls') &&
-        !req.file.originalname.endsWith('.csv')
-      ) {
-        cleanupTempFile(req.file.path);
-        sendError(res, 'Apenas arquivos Excel (.xlsx, .xls) ou CSV são aceitos', 400);
-        return;
-      }
-
-      // Processar arquivo Excel
-      const { rows: excelData } = await readExcelFile(req.file.path);
-
-      if (!excelData || excelData.length === 0) {
-        cleanupTempFile(req.file.path);
-        sendError(res, 'Nenhum dado encontrado no arquivo', 400);
-        return;
-      }
-
-      // Converter dados do Excel para formato esperado
-      const formattedData: ExcelRow[] = excelData.map(row => ({
-        nome: String(row.nome || row.Nome || row.name || '').trim(),
-        igreja: String(row.igreja || row.Igreja || row.church || '').trim(),
-        telefone:
-          row.telefone || row.Telefone || row.phone
-            ? String(row.telefone || row.Telefone || row.phone).trim()
-            : undefined,
-        email: row.email || row.Email ? String(row.email || row.Email).trim() : undefined,
-        cargo:
-          row.cargo || row.Cargo || row.role
-            ? String(row.cargo || row.Cargo || row.role).trim()
-            : undefined,
-      }));
-
-      // Extrair igrejas e contar membros
-      const { churches: uniqueChurches } = extractChurchesFromExcel(formattedData);
-
-      const response = {
-        fileName: req.file.originalname,
-        totalRows: formattedData.length,
-        data: formattedData,
-        churches: uniqueChurches,
-      };
-
-      // Limpar arquivo temporário
-      cleanupTempFile(req.file.path);
-
-      sendSuccess(res, response);
     })
   );
 

@@ -12,9 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Users');
 
 interface ScheduleVisitModalProps {
-  user: any;
+  user: Pick<import('@/types/domain').UserMember, 'id' | 'name' | 'address' | 'phone'>;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -31,7 +34,7 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
   });
 
   const scheduleVisitMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: { scheduledAt: string; scheduledTime: string; notes?: string }) => {
       // Primeiro, criar o evento no calendário
       const eventResponse = await fetch('/api/calendar/events', {
         method: 'POST',
@@ -65,9 +68,9 @@ export const ScheduleVisitModal = ({ user, isOpen, onClose }: ScheduleVisitModal
         });
 
         const syncResult = await syncResponse.json();
-        console.log('📊 Sincronização com planilha:', syncResult);
+        logger.debug('📊 Sincronização com planilha:', syncResult);
       } catch (syncError) {
-        console.warn('⚠️ Erro na sincronização com planilha:', syncError);
+        logger.warn('⚠️ Erro na sincronização com planilha:', syncError);
         // Não falha o agendamento se a sincronização falhar
       }
 

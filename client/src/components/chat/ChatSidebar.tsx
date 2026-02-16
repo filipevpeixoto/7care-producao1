@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { chatLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,11 +79,11 @@ export const ChatSidebar = ({
           const data = await response.json();
           setConversations(data);
         } else {
-          console.error('Erro ao carregar conversas');
+          chatLogger.error('Erro ao carregar conversas');
           setConversations([]);
         }
       } catch (error) {
-        console.error('Erro ao carregar conversas:', error);
+        chatLogger.error('Erro ao carregar conversas:', error);
         setConversations([]);
       } finally {
         setIsLoading(false);
@@ -102,12 +103,12 @@ export const ChatSidebar = ({
     if (mode === 'users') {
       fetchWithAuth('/api/users/chat-list')
         .then(r => r.json())
-        .then((list: any[]) => setAllUsers(list))
+        .then((list: ChatUser[]) => setAllUsers(list))
         .catch(() => {
           // Fallback para API de usuários normal
           fetchWithAuth('/api/users')
             .then(r => r.json())
-            .then((list: any[]) => setAllUsers(list))
+            .then((list: ChatUser[]) => setAllUsers(list))
             .catch(() => setAllUsers([]));
         });
     }

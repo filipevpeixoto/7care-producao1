@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
@@ -10,7 +11,7 @@ interface StatCardProps {
   loading?: boolean;
 }
 
-export function StatCard({ title, value, change, icon: Icon, loading }: StatCardProps) {
+function StatCardComponent({ title, value, change, icon: Icon, loading }: StatCardProps) {
   return (
     <Card className="bg-card dark:bg-gray-800/50 border-border dark:border-gray-700">
       <CardContent className="p-4">
@@ -45,3 +46,5 @@ export function StatCard({ title, value, change, icon: Icon, loading }: StatCard
     </Card>
   );
 }
+
+export const StatCard = memo(StatCardComponent);

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mountain, Crown, Star } from 'lucide-react';
@@ -9,7 +10,7 @@ interface MountainsOverviewProps {
   showCurrent?: boolean;
 }
 
-export const MountainsOverview = ({ userPoints = 0, showCurrent = true }: MountainsOverviewProps) => {
+const MountainsOverviewComponent = ({ userPoints = 0, showCurrent = true }: MountainsOverviewProps) => {
   return (
     <Card>
       <CardHeader>
@@ -125,4 +126,6 @@ export const MountainsOverview = ({ userPoints = 0, showCurrent = true }: Mounta
       </CardContent>
     </Card>
   );
-}; 
+};
+
+export const MountainsOverview = memo(MountainsOverviewComponent);

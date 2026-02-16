@@ -1,22 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { PERFORMANCE_CONFIG } from './performance';
-import { resolveApiUrl } from './api';
-
-// Helper para adicionar JWT token e CSRF token nas requisições
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('7care_token');
-  // CSRF token do cookie (padrão double-submit cookie)
-  let csrfToken: string | null = null;
-  try {
-    const match = document.cookie.match(/csrf-token=([^;]+)/);
-    csrfToken = match ? decodeURIComponent(match[1]) : null;
-  } catch { /* ignore */ }
-
-  return {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-  };
-}
+import { resolveApiUrl, getAuthHeaders } from './api';
+import { apiLogger } from '@/lib/logger';
 
 // Configuração otimizada do React Query
 export const createQueryClient = () => {
@@ -172,7 +157,7 @@ export const cleanupOldCache = (queryClient: QueryClient) => {
 // Função para limpar TODO o cache do React Query (usar no login/logout)
 export const clearAllQueryCache = (queryClient: QueryClient) => {
   queryClient.clear();
-  console.log('[QueryClient] Cache limpo completamente');
+  apiLogger.debug('Cache limpo completamente');
 };
 
 // Função para configurar listeners de performance

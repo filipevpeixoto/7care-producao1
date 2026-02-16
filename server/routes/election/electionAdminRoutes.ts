@@ -9,11 +9,9 @@ import {
   getErrorMessage,
   parseHeaderUserId,
   parseCount,
-} from './electionHelpers';
-import type {
-  Express,
-  Request,
-  Response,
+  type Express,
+  type Request,
+  type Response,
 } from './electionHelpers';
 
 export const electionAdminRoutes = (app: Express): void => {
@@ -102,7 +100,7 @@ export const electionAdminRoutes = (app: Express): void => {
       await sql`
         UPDATE users 
         SET status = 'approved', is_approved = true, updated_at = NOW()
-        WHERE status != 'approved' OR is_approved = false
+        WHERE status <> 'approved' OR is_approved = false
       `;
 
       // Contar total de membros aprovados

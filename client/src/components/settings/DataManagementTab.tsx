@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { settingsLogger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +29,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ImportUsersModal } from '@/components/settings/ImportUsersModal';
 
 interface DataManagementTabProps {
-  user: any;
+  user: Pick<import('@/types/domain').UserMember, 'id' | 'name' | 'role' | 'church' | 'churchCode' | 'districtId'>;
   userDistrictId: number | null;
   userDistrictName: string;
 }

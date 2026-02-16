@@ -52,11 +52,15 @@ interface UserContext {
  * Em produção, usar Redis ou banco de dados
  */
 const featureFlags: Map<string, FeatureFlag> = new Map();
+let isInitialized = false;
 
 /**
  * Inicializa flags padrão
  */
 function initDefaultFlags(): void {
+  if (isInitialized) {
+    return;
+  }
   const defaultFlags: Omit<FeatureFlag, 'createdAt' | 'updatedAt'>[] = [
     {
       name: 'new_dashboard',
@@ -126,6 +130,7 @@ function initDefaultFlags(): void {
   });
 
   logger.info(`Feature flags inicializadas: ${defaultFlags.length}`);
+  isInitialized = true;
 }
 
 /**

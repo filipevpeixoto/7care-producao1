@@ -112,7 +112,7 @@ export function auditLog(
   auditService.log({
     action: action as 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED' | 'PASSWORD_CHANGE' | 'PERMISSION_CHANGE' | 'EXPORT' | 'IMPORT' | 'BULK_UPDATE' | 'BULK_DELETE',
     resource,
-    resourceId: resourceId != null ? Number(resourceId) : undefined,
+    resourceId: resourceId !== null && resourceId !== undefined ? Number(resourceId) : undefined,
     userId: userId ?? 0,
     userEmail: userEmail ?? 'anonymous',
     ipAddress: ip,
@@ -295,7 +295,7 @@ export function configureSecurityMiddleware(app: Express): void {
   }
 }
 
-// Ações para audit automático
+/** Map of audit action type constants used for automatic audit logging. */
 export const AuditActions = {
   LOGIN: 'LOGIN',
   LOGOUT: 'LOGOUT',

@@ -32,7 +32,14 @@ export class GoogleCalendarRepository {
       });
     } catch (error) {
       logger.error('Error saving Google Calendar tokens:', error);
-      throw new Error(`Failed to save Google Calendar tokens: ${(error as Error).message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to save Google Calendar tokens: ${error.message}`, {
+          cause: error,
+        });
+      }
+      throw new Error(`Failed to save Google Calendar tokens: ${String(error)}`, {
+        cause: error,
+      });
     }
   }
 
@@ -80,7 +87,14 @@ export class GoogleCalendarRepository {
         .where(eq(schema.googleCalendarTokens.userId, userId));
     } catch (error) {
       logger.error('Error updating Google Calendar tokens:', error);
-      throw new Error(`Failed to update Google Calendar tokens: ${(error as Error).message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to update Google Calendar tokens: ${error.message}`, {
+          cause: error,
+        });
+      }
+      throw new Error(`Failed to update Google Calendar tokens: ${String(error)}`, {
+        cause: error,
+      });
     }
   }
 
@@ -94,7 +108,14 @@ export class GoogleCalendarRepository {
         .where(eq(schema.googleCalendarTokens.userId, userId));
     } catch (error) {
       logger.error('Error deleting Google Calendar tokens:', error);
-      throw new Error(`Failed to delete Google Calendar tokens: ${(error as Error).message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete Google Calendar tokens: ${error.message}`, {
+          cause: error,
+        });
+      }
+      throw new Error(`Failed to delete Google Calendar tokens: ${String(error)}`, {
+        cause: error,
+      });
     }
   }
 

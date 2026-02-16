@@ -24,14 +24,21 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { createLogger } from '@/lib/logger';
+import { ariaLabels } from '@/lib/accessibility';
 
 const usersLogger = createLogger('Users');
+
+export interface Discipulador {
+  id: number;
+  name: string;
+  relationshipId?: number;
+}
 
 interface DiscipuladoresManagerProps {
   interestedId: number;
   interestedChurch: string;
-  currentDiscipuladores: any[];
-  onDiscipuladoresChange: (discipuladores: any[]) => void;
+  currentDiscipuladores: Discipulador[];
+  onDiscipuladoresChange: (discipuladores: Discipulador[]) => void;
 }
 
 export function DiscipuladoresManager({
@@ -47,7 +54,7 @@ export function DiscipuladoresManager({
   const { user } = useAuth();
 
   // Buscar todos os usuários com cache (React Query)
-  const { data: allUsersRaw, isLoading: loading } = useQuery<any>({
+  const { data: allUsersRaw, isLoading: loading } = useQuery<{ id: number; name: string; email: string; role: string; church?: string }[] | { data: { id: number; name: string; email: string; role: string; church?: string }[] }>({
     queryKey: ['users', user?.id],
     queryFn: async () => {
       const response = await fetchWithAuth('/api/users');
@@ -75,7 +82,7 @@ export function DiscipuladoresManager({
 
     const currentIds = currentDiscipuladores.map(d => d.id);
 
-    const filtered = allUsers.filter((user: any) => {
+    const filtered = allUsers.filter((user) => {
       const isMemberOrMissionary = user.role === 'member' || user.role === 'missionary';
       const isNotCurrent = !currentIds.includes(user.id);
       const isSameChurch = user.church === interestedChurch;
@@ -85,7 +92,7 @@ export function DiscipuladoresManager({
 
     usersLogger.debug('Membros filtrados da mesma igreja:', filtered.length);
     usersLogger.debug('Igrejas únicas nos resultados:', [
-      ...new Set(filtered.map((u: any) => u.church)),
+      ...new Set(filtered.map((u) => u.church)),
     ]);
 
     return filtered;
@@ -116,7 +123,7 @@ export function DiscipuladoresManager({
         const newRelationship = await response.json();
 
         // Atualizar lista local
-        const newDiscipulador = potentialMissionaries.find((m: any) => m.id === missionaryId);
+        const newDiscipulador = potentialMissionaries.find((m) => m.id === missionaryId);
         if (newDiscipulador) {
           const updatedDiscipuladores = [
             ...currentDiscipuladores,
@@ -204,8 +211,9 @@ export function DiscipuladoresManager({
                 size="sm"
                 variant="ghost"
                 className="h-4 w-4 p-0 ml-1 hover:bg-blue-100"
-                onClick={() => handleRemoveDiscipulador(discipulador.relationshipId)}
+                onClick={() => discipulador.relationshipId && handleRemoveDiscipulador(discipulador.relationshipId)}
                 disabled={isRemoving === discipulador.relationshipId}
+                aria-label={ariaLabels.removeDiscipulador(discipulador.name)}
               >
                 {isRemoving === discipulador.relationshipId ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -280,7 +288,7 @@ export function DiscipuladoresManager({
                 <CommandList className="max-h-[350px] overflow-auto">
                   <CommandEmpty>Nenhum membro disponível.</CommandEmpty>
                   <CommandGroup>
-                    {potentialMissionaries.map((member: any) => (
+                    {potentialMissionaries.map((member) => (
                       <CommandItem
                         key={member.id}
                         value={member.name}

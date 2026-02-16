@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy } from 'lucide-react';
@@ -17,7 +18,7 @@ interface QuickGamificationCardProps {
   showDetails?: boolean;
 }
 
-export const QuickGamificationCard = ({
+const QuickGamificationCardComponent = ({
   userData,
   showDetails: _showDetails = false,
 }: QuickGamificationCardProps) => {
@@ -118,3 +119,5 @@ export const QuickGamificationCard = ({
     </div>
   );
 };
+
+export const QuickGamificationCard = memo(QuickGamificationCardComponent);

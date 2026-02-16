@@ -22,6 +22,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
+import { ariaLabels } from '@/lib/accessibility';
 import type { ElectionMember, ElectionConfigData } from './types';
 
 export interface StepPositionsProps {
@@ -135,10 +136,16 @@ export function StepPositions({
                   size="sm"
                   onClick={handleAddCustomPosition}
                   disabled={!newPositionName.trim()}
+                  aria-label={ariaLabels.savePosition}
                 >
                   <Save className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="outline" onClick={handleCancelAdd}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelAdd}
+                  aria-label={ariaLabels.cancelAddPosition}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -202,6 +209,7 @@ export function StepPositions({
                                 onClick={handleSaveEditPosition}
                                 disabled={!editingPositionName.trim()}
                                 className="h-6 w-6 p-0"
+                                aria-label={ariaLabels.savePosition}
                               >
                                 <Save className="h-3 w-3" />
                               </Button>
@@ -210,6 +218,7 @@ export function StepPositions({
                                 variant="outline"
                                 onClick={handleCancelEdit}
                                 className="h-6 w-6 p-0"
+                                aria-label={ariaLabels.cancelPositionEdit}
                               >
                                 <X className="h-3 w-3" />
                               </Button>
@@ -237,6 +246,7 @@ export function StepPositions({
                                   size="sm"
                                   onClick={handleSaveDescription}
                                   className="h-6 w-6 p-0"
+                                  aria-label={ariaLabels.saveDescription}
                                 >
                                   <Save className="h-3 w-3" />
                                 </Button>
@@ -245,6 +255,7 @@ export function StepPositions({
                                   variant="outline"
                                   onClick={handleCancelDescriptionEdit}
                                   className="h-6 w-6 p-0"
+                                  aria-label={ariaLabels.cancelDescriptionEdit}
                                 >
                                   <X className="h-3 w-3" />
                                 </Button>
@@ -307,6 +318,7 @@ export function StepPositions({
                                 disabled={index === 0}
                                 className="h-5 w-5 p-0"
                                 title="Mover para cima"
+                                aria-label={ariaLabels.movePositionUp(position)}
                               >
                                 <ChevronUp className="h-3 w-3" />
                               </Button>
@@ -317,6 +329,7 @@ export function StepPositions({
                                 disabled={index === customPositions.length - 1}
                                 className="h-5 w-5 p-0"
                                 title="Mover para baixo"
+                                aria-label={ariaLabels.movePositionDown(position)}
                               >
                                 <ChevronDown className="h-3 w-3" />
                               </Button>
@@ -327,6 +340,7 @@ export function StepPositions({
                               onClick={() => handleEditCustomPosition(position)}
                               className="h-6 w-6 p-0"
                               title="Editar nome do cargo"
+                              aria-label={ariaLabels.editPosition(position)}
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
@@ -336,6 +350,7 @@ export function StepPositions({
                               onClick={() => handleEditDescription(position)}
                               className="h-6 w-6 p-0"
                               title="Editar descrição"
+                              aria-label={ariaLabels.editDescription(position)}
                             >
                               <FileText className="h-3 w-3" />
                             </Button>
@@ -345,6 +360,7 @@ export function StepPositions({
                               onClick={() => handleDeleteCustomPosition(position)}
                               className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                               title="Excluir cargo"
+                              aria-label={ariaLabels.deletePosition(position)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>

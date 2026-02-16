@@ -11,6 +11,7 @@ import { districtCrudRoutes } from './districts/districtCrudRoutes';
 import { districtPastorRoutes } from './districts/districtPastorRoutes';
 import { districtChurchRoutes } from './districts/districtChurchRoutes';
 
+/** Registers district routes (CRUD, pastors, church associations) */
 export const districtRoutes = (app: Express): void => {
   // districtChurchRoutes registered first to ensure /api/churches/unassigned
   // and /api/districts/:id/churches are defined before param-based routes

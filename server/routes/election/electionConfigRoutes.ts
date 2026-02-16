@@ -12,11 +12,14 @@ import {
   sendInternalError,
   parseHeaderUserId,
   parseIdValue,
-
   getDistrictFilterForUser,
   createCheckReadOnlyAccess,
+  type UserRepository,
+  type Express,
+  type Request,
+  type Response,
+  type ElectionConfigRow,
 } from './electionHelpers';
-import type { UserRepository, Express, Request, Response, ElectionConfigRow } from './electionHelpers';
 
 export const electionConfigRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository') as UserRepository;

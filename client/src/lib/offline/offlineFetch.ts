@@ -614,6 +614,10 @@ function isOfflineError(error: unknown): boolean {
  * Substitui o fetch global para interceptar todas as requisições
  */
 export function enableGlobalOfflineFetch(): void {
+  const mode = import.meta.env?.MODE;
+  if (mode === 'test') {
+    return;
+  }
   if (isIntercepting) {
     offlineLogger.debug('Interceptação já está ativa');
     return;
@@ -642,7 +646,7 @@ export function enableGlobalOfflineFetch(): void {
     // Só interceptar requisições para a API
     if (url.startsWith('/api/') || url.includes('/api/')) {
       // Resolver URL para Tauri (prefixa com VITE_API_URL se definido)
-      const apiBaseUrl = (import.meta as any).env?.VITE_API_URL || '';
+      const apiBaseUrl = import.meta.env?.VITE_API_URL || '';
       if (apiBaseUrl && typeof input === 'string' && !input.startsWith('http')) {
         const resolvedInput = `${apiBaseUrl}${input}`;
         return offlineFetch(resolvedInput, init as FetchOptions);

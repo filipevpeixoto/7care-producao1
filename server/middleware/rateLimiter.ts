@@ -61,6 +61,7 @@ export const authLimiter = rateLimit({
   standardHeaders: true, // Retorna rate limit info nos headers `RateLimit-*`
   legacyHeaders: false, // Desabilita headers `X-RateLimit-*` antigos
   skipSuccessfulRequests: true, // Não conta requisições bem-sucedidas
+  skip: () => process.env.NODE_ENV === 'test',
   // Validação de IP desabilitada para permitir keyGenerator customizado
   validate: { ip: false },
   ...(sharedStore ? { store: sharedStore } : {}),

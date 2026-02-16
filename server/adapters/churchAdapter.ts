@@ -9,19 +9,21 @@ import { eq, and, asc, sql as drizzleSql } from 'drizzle-orm';
 import { type CreateChurchInput, type UpdateChurchInput } from '../types/storage';
 import { type Church } from '../../shared/schema';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 /**
  * Converte row do banco para tipo Church
  */
 export function toChurch(row: Record<string, unknown>): Church {
   return {
     id: Number(row.id),
-    name: row.name == null ? '' : String(row.name),
-    code: row.code == null ? '' : String(row.code),
-    address: row.address == null ? null : String(row.address),
-    phone: row.phone == null ? null : String(row.phone),
-    email: row.email == null ? null : String(row.email),
-    pastor: row.pastor == null ? null : String(row.pastor),
-    districtId: row.districtId == null ? null : Number(row.districtId),
+    name: isNil(row.name) ? '' : String(row.name),
+    code: isNil(row.code) ? '' : String(row.code),
+    address: isNil(row.address) ? null : String(row.address),
+    phone: isNil(row.phone) ? null : String(row.phone),
+    email: isNil(row.email) ? null : String(row.email),
+    pastor: isNil(row.pastor) ? null : String(row.pastor),
+    districtId: isNil(row.districtId) ? null : Number(row.districtId),
     createdAt:
       row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
     updatedAt:

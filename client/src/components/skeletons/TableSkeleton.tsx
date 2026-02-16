@@ -24,6 +24,7 @@ export function TableSkeleton({
   showHeader = true,
   showCheckbox = false,
 }: TableSkeletonProps) {
+  const columnWidths = [60, 70, 80, 65, 75, 85, 90];
   return (
     <div className="rounded-md border animate-pulse">
       <Table>
@@ -53,7 +54,12 @@ export function TableSkeleton({
               )}
               {Array.from({ length: columns }).map((_, colIndex) => (
                 <TableCell key={colIndex}>
-                  <Skeleton className="h-4" style={{ width: `${Math.random() * 40 + 60}%` }} />
+                  <Skeleton
+                    className="h-4"
+                    style={{
+                      width: `${columnWidths[(rowIndex + colIndex) % columnWidths.length]}%`,
+                    }}
+                  />
                 </TableCell>
               ))}
             </TableRow>

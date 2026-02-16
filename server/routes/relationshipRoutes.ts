@@ -12,6 +12,7 @@ import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 import { getAuthUserId, getAuthUserRole } from '../utils/authHelpers';
 
+/** Registers missionary-interested relationship routes */
 export const relationshipRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const relationshipRepo = getRepository('relationshipRepository');

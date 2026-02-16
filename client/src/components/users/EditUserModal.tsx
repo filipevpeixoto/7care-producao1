@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -19,11 +19,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { UserMember } from '@/types/domain';
+
 interface EditUserModalProps {
-  user: any;
+  user: UserMember;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate?: (userId: number, data: any) => void;
+  onUpdate?: (userId: number, data: Record<string, unknown>) => void;
 }
 
 export const EditUserModal = ({
@@ -50,29 +52,8 @@ export const EditUserModal = ({
     interestedSituation: user?.interestedSituation || '',
   });
 
-  // Atualizar formData quando o usuário mudar
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        role: user.role || 'interested',
-        status: user.status || 'pending',
-        church: user.church || '',
-        birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : '',
-        civilStatus: user.civilStatus || '',
-        occupation: user.occupation || '',
-        education: user.education || '',
-        address: user.address || '',
-        observations: user.observations || '',
-        interestedSituation: user.interestedSituation || '',
-      });
-    }
-  }, [user]);
-
   const updateUserMutation = useMutation({
-    mutationFn: ({ userId, data }: { userId: number; data: any }) =>
+    mutationFn: ({ userId, data }: { userId: number; data: Record<string, unknown> }) =>
       fetch(`/api/users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -99,7 +80,7 @@ export const EditUserModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (user?.id) {
-      updateUserMutation.mutate({ userId: user.id, data: formData });
+      updateUserMutation.mutate({ userId: Number(user.id), data: formData });
     }
   };
 
@@ -111,6 +92,7 @@ export const EditUserModal = ({
 
   return (
     <DialogWithModalTracking
+      key={user?.id ?? 'new'}
       modalId="edit-user-modal"
       open={isOpen}
       onOpenChange={open => !open && onClose()}

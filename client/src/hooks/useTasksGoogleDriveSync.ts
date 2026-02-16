@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGoogleDriveSync } from './useGoogleDriveSync';
 import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+import type { Task } from '@/types/domain';
+
+const logger = createLogger('TasksSync');
 
 interface TasksSyncStatus {
   isEnabled: boolean;
@@ -62,11 +66,11 @@ export function useTasksGoogleDriveSync() {
     setTasksSyncStatus(prev => ({ ...prev, isRunning: true, error: undefined }));
 
     try {
-      console.log('🔄 Hook syncTasksNow - URL configurada:', config.spreadsheetUrl);
+      logger.debug('🔄 Hook syncTasksNow - URL configurada:', config.spreadsheetUrl);
 
       // Converter URL para CSV da aba "tarefas"
       const csvUrl = convertToTasksCsvUrl(config.spreadsheetUrl);
-      console.log('📊 Hook syncTasksNow - CSV URL gerada:', csvUrl);
+      logger.debug('📊 Hook syncTasksNow - CSV URL gerada:', csvUrl);
 
       const response = await fetchWithAuth('/api/tasks/sync-google-drive', {
         method: 'POST',
@@ -77,7 +81,7 @@ export function useTasksGoogleDriveSync() {
       });
 
       const result = await response.json();
-      console.log('📊 Hook syncTasksNow - Resposta da API:', result);
+      logger.debug('📊 Hook syncTasksNow - Resposta da API:', result);
 
       if (result.success) {
         const now = new Date().toISOString();
@@ -121,7 +125,7 @@ export function useTasksGoogleDriveSync() {
 
   // Adicionar tarefas à planilha usando a mesma configuração
   const addTasksToSheet = useCallback(
-    async (tasks: any[]) => {
+    async (tasks: Task[]) => {
       if (!config?.spreadsheetUrl) {
         setTasksSyncStatus(prev => ({
           ...prev,

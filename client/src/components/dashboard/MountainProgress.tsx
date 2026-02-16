@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Mountain, Crown } from 'lucide-react';
@@ -16,7 +17,7 @@ interface MountainProgressProps {
   showDetails?: boolean;
 }
 
-export const MountainProgress = ({ userPoints, showDetails = true }: MountainProgressProps) => {
+const MountainProgressComponent = ({ userPoints, showDetails = true }: MountainProgressProps) => {
   const currentLevel = getLevelByPoints(userPoints);
   const nextLevel = getNextLevel(userPoints);
   const progress = getProgressToNextLevel(userPoints);
@@ -93,3 +94,5 @@ export const MountainProgress = ({ userPoints, showDetails = true }: MountainPro
     </Card>
   );
 };
+
+export const MountainProgress = memo(MountainProgressComponent);

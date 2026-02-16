@@ -103,7 +103,20 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
 /**
  * Middleware para rotas não encontradas
  */
-export function notFoundHandler(req: Request, res: Response): void {
+export function notFoundHandler(req: Request, res: Response, next: NextFunction): void {
+  const headers = req.headers ?? {};
+  const originalUrl = req.originalUrl ?? req.url ?? '';
+  const wantsHtml =
+    (typeof req.accepts === 'function' && req.accepts('html')) ||
+    (headers.accept?.includes('text/html') ?? false) ||
+    headers['sec-fetch-dest'] === 'document';
+  const isApiRoute = originalUrl.startsWith('/api/');
+
+  if (!isApiRoute && wantsHtml) {
+    next();
+    return;
+  }
+
   const response: ErrorResponse = {
     success: false,
     error: {

@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useDeferredValue, startTransition } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search,
-  User,
-  Tag,
-  CheckCircle,
   Circle,
-  AlertCircle,
   Clock,
   Trash2,
-  Edit3,
   PlusCircle,
   CheckSquare2,
   RefreshCw,
@@ -17,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -42,83 +37,19 @@ import { toast } from 'sonner';
 import { notificationService } from '@/lib/notificationService';
 import { fetchWithAuth } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
+import { TaskCard } from './tasks/TaskCard';
+import { TasksEmptyState } from './tasks/TasksEmptyState';
+import type { Task, TaskUser } from './tasks/tasksTypes';
 
 const tasksLogger = createLogger('Tasks');
 
-interface Task {
-  id: number;
-  title: string;
-  description?: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  due_date?: string | null;
-  created_by: number;
-  assigned_to?: number | null;
-  created_by_name?: string;
-  assigned_to_name?: string;
-  church?: string;
-  district_id?: number | null;
-  created_at: string;
-  updated_at: string;
-  completed_at?: string | null;
-  tags?: string[];
-}
-
-interface TaskUser {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  church: string;
-}
-
-const priorityConfig = {
-  high: {
-    color:
-      'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-600/50',
-    icon: <AlertCircle className="h-3 w-3" />,
-    label: 'Alta',
-  },
-  medium: {
-    color:
-      'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600/50',
-    icon: <Clock className="h-3 w-3" />,
-    label: 'Média',
-  },
-  low: {
-    color:
-      'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600/50',
-    icon: <Circle className="h-3 w-3" />,
-    label: 'Baixa',
-  },
-};
-
-const statusConfig = {
-  pending: {
-    color:
-      'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-600/50',
-    icon: <Circle className="h-3 w-3" />,
-    label: 'Pendente',
-  },
-  in_progress: {
-    color:
-      'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600/50',
-    icon: <Clock className="h-3 w-3" />,
-    label: 'Em Progresso',
-  },
-  completed: {
-    color:
-      'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600/50',
-    icon: <CheckCircle className="h-3 w-3" />,
-    label: 'Concluída',
-  },
-};
-
 // 🎯 Buscar tarefas do banco de dados (isoladas por distrito no backend)
 export default function Tasks() {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
@@ -126,10 +57,17 @@ export default function Tasks() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<{
+    title: string;
+    description: string;
+    priority: Task['priority'];
+    due_date: string;
+    assigned_to: string;
+    church: string;
+  }>({
     title: '',
     description: '',
-    priority: 'medium' as const,
+    priority: 'medium',
     due_date: '',
     assigned_to: 'none',
     church: '',
@@ -269,9 +207,9 @@ export default function Tasks() {
 
       await refetch();
       toast.success('Tarefa deletada!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       tasksLogger.error('Erro ao deletar:', error);
-      toast.error(`Erro ao deletar: ${error.message}`);
+      toast.error(`Erro ao deletar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   };
 
@@ -308,9 +246,9 @@ export default function Tasks() {
       await refetch();
       setSelectedTasks([]);
       toast.success(`${count} tarefa${count > 1 ? 's deletadas' : ' deletada'}!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       tasksLogger.error('Erro ao deletar múltiplas:', error);
-      toast.error(`Erro: ${error.message}`);
+      toast.error(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   };
 
@@ -354,10 +292,10 @@ export default function Tasks() {
     if (!task || !task.id) return false; // Ignorar tarefas inválidas
 
     const matchesSearch =
-      (task.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (task.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (task.assigned_to_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (task.church || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (task.title || '').toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
+      (task.description || '').toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
+      (task.assigned_to_name || '').toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
+      (task.church || '').toLowerCase().includes(deferredSearchTerm.toLowerCase());
 
     const matchesStatus = selectedStatus === 'all' || task.status === selectedStatus;
     const matchesPriority = selectedPriority === 'all' || task.priority === selectedPriority;
@@ -383,138 +321,6 @@ export default function Tasks() {
   const inProgressTasks = filteredTasks.filter((task: Task) => task.status === 'in_progress');
   const completedTasks = filteredTasks.filter((task: Task) => task.status === 'completed');
 
-  const TaskCard = ({ task }: { task: Task }) => {
-    const isSelected = selectedTasks.includes(task.id);
-
-    return (
-      <Card
-        className={`group relative overflow-hidden bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow duration-200 mb-4 ${isSelected ? 'ring-2 ring-blue-500 shadow-xl' : ''}`}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-50/50 to-white dark:from-gray-700/50 dark:to-gray-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-        <CardContent className="p-6 relative z-10">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-3">
-                <button
-                  onClick={() => handleToggleStatus(task)}
-                  className="flex-shrink-0 transition-all duration-200 hover:scale-110"
-                >
-                  {task.status === 'completed' ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-gray-300 hover:text-gray-500" />
-                  )}
-                </button>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
-                  {task.title}
-                </h3>
-              </div>
-
-              {task.description && (
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-2">
-                  {task.description}
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-2 mb-3">
-                <Badge className={`${statusConfig[task.status].color} border`}>
-                  {statusConfig[task.status].icon}
-                  <span className="ml-1">{statusConfig[task.status].label}</span>
-                </Badge>
-
-                <Badge className={`${priorityConfig[task.priority].color} border`}>
-                  {priorityConfig[task.priority].icon}
-                  <span className="ml-1">{priorityConfig[task.priority].label}</span>
-                </Badge>
-
-                {task.assigned_to_name && (
-                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600/50">
-                    <User className="h-3 w-3 mr-1" />
-                    {task.assigned_to_name}
-                  </Badge>
-                )}
-
-                {task.church && (
-                  <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-600/50">
-                    🏛️ {task.church}
-                  </Badge>
-                )}
-              </div>
-
-              {task.tags && task.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {task.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      <Tag className="h-2 w-2 mr-1" />
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => handleEditTask(task)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 px-3 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all duration-200"
-                >
-                  <Edit3 className="h-4 w-4 mr-1.5" />
-                  <span className="hidden sm:inline">Editar</span>
-                </Button>
-
-                <Button
-                  onClick={() => handleDeleteTask(task.id)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 px-3 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-200"
-                >
-                  <Trash2 className="h-4 w-4 mr-1.5" />
-                  <span className="hidden sm:inline">Deletar</span>
-                </Button>
-              </div>
-
-              <div
-                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                onClick={() => handleToggleTaskSelection(task.id)}
-              >
-                <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">Selecionar</span>
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={() => handleToggleTaskSelection(task.id)}
-                  className="flex-shrink-0"
-                  aria-label={`Selecionar tarefa ${task.title}`}
-                  onClick={e => e.stopPropagation()}
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const EmptyState = ({
-    icon: Icon,
-    title,
-    description,
-  }: {
-    icon: any;
-    title: string;
-    description: string;
-  }) => (
-    <div className="text-center py-12">
-      <div className="inline-flex p-4 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
-        <Icon className="h-8 w-8 text-gray-400" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
-      <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">{description}</p>
-    </div>
-  );
-
   if (tasksLoading) {
     return (
       <MobileLayout>
@@ -538,11 +344,11 @@ export default function Tasks() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
-                  Tarefas
+                  {t('tasks.title')}
                 </h1>
               </div>
 
-              <p className="text-gray-600 dark:text-gray-400 text-lg">Organize e acompanhe suas tarefas</p>
+              <p className="text-gray-600 dark:text-gray-400 text-lg">{t('tasks.subtitle')}</p>
             </div>
 
             <div className="flex gap-3 flex-wrap">
@@ -552,10 +358,10 @@ export default function Tasks() {
                 size="sm"
                 onClick={() => refetch()}
                 className="flex items-center gap-2"
-                title="Atualizar tarefas"
+                title={t('tasks.refreshTitle')}
               >
                 <RefreshCw className="h-4 w-4" />
-                Atualizar
+                {t('common.refresh')}
               </Button>
 
               <DialogWithModalTracking
@@ -566,33 +372,33 @@ export default function Tasks() {
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-3">
                     <PlusCircle className="h-5 w-5 mr-2" />
-                    Nova Tarefa
+                    {t('tasks.newTask')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold">Nova Tarefa</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold">{t('tasks.newTask')}</DialogTitle>
                   </DialogHeader>
 
                   <div className="space-y-6">
                     <div>
-                      <Label htmlFor="title">Título *</Label>
+                      <Label htmlFor="title">{t('tasks.titleLabel')}</Label>
                       <Input
                         id="title"
                         value={newTask.title}
                         onChange={e => setNewTask({ ...newTask, title: e.target.value })}
-                        placeholder="Digite o título da tarefa"
+                        placeholder={t('tasks.titlePlaceholder')}
                         className="mt-1"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="description">Descrição</Label>
+                      <Label htmlFor="description">{t('common.description')}</Label>
                       <Textarea
                         id="description"
                         value={newTask.description}
                         onChange={e => setNewTask({ ...newTask, description: e.target.value })}
-                        placeholder="Descreva a tarefa em detalhes"
+                        placeholder={t('tasks.descriptionPlaceholder')}
                         className="mt-1"
                         rows={3}
                       />
@@ -600,26 +406,26 @@ export default function Tasks() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="priority">Prioridade</Label>
+                        <Label htmlFor="priority">{t('tasks.priority')}</Label>
                         <Select
                           value={newTask.priority}
                           onValueChange={value =>
-                            setNewTask({ ...newTask, priority: value as any })
+                            setNewTask({ ...newTask, priority: value as Task['priority'] })
                           }
                         >
                           <SelectTrigger className="mt-1">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="low">Baixa</SelectItem>
-                            <SelectItem value="medium">Média</SelectItem>
-                            <SelectItem value="high">Alta</SelectItem>
+                            <SelectItem value="low">{t('tasks.low')}</SelectItem>
+                            <SelectItem value="medium">{t('tasks.medium')}</SelectItem>
+                            <SelectItem value="high">{t('tasks.high')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div>
-                        <Label htmlFor="due_date">Vencimento</Label>
+                        <Label htmlFor="due_date">{t('tasks.dueDate')}</Label>
                         <Input
                           id="due_date"
                           type="date"
@@ -631,16 +437,16 @@ export default function Tasks() {
                     </div>
 
                     <div>
-                      <Label htmlFor="assigned_to">Responsável</Label>
+                      <Label htmlFor="assigned_to">{t('tasks.assignedTo')}</Label>
                       <Select
                         value={newTask.assigned_to}
                         onValueChange={value => setNewTask({ ...newTask, assigned_to: value })}
                       >
                         <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder={t('tasks.selectAssignee')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Sem responsável</SelectItem>
+                          <SelectItem value="none">{t('tasks.noAssignee')}</SelectItem>
                           {users.map((u: TaskUser) => (
                             <SelectItem key={u.id} value={u.id.toString()}>
                               {u.name}
@@ -651,25 +457,25 @@ export default function Tasks() {
                     </div>
 
                     <div>
-                      <Label htmlFor="church">Igreja</Label>
+                      <Label htmlFor="church">{t('tasks.churchLabel')}</Label>
                       <Input
                         id="church"
                         value={newTask.church}
                         onChange={e => setNewTask({ ...newTask, church: e.target.value })}
-                        placeholder="Digite o nome da igreja"
+                        placeholder={t('tasks.churchPlaceholder')}
                         className="mt-1"
                       />
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">
                       <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                        Cancelar
+                        {t('common.cancel')}
                       </Button>
                       <Button
                         onClick={handleCreateTask}
                         className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                       >
-                        Criar Tarefa
+                        {t('tasks.createTask')}
                       </Button>
                     </div>
                   </div>
@@ -686,7 +492,7 @@ export default function Tasks() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <Input
-                      placeholder="Buscar tarefas..."
+                      placeholder={t('tasks.searchPlaceholder')}
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
                       className="pl-12 h-12 text-base"
@@ -695,37 +501,37 @@ export default function Tasks() {
                 </div>
 
                 <div className="flex gap-3 flex-wrap">
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <Select value={selectedStatus} onValueChange={(val) => startTransition(() => setSelectedStatus(val))}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="pending">Pendentes</SelectItem>
-                      <SelectItem value="in_progress">Em Progresso</SelectItem>
-                      <SelectItem value="completed">Concluídas</SelectItem>
+                      <SelectItem value="all">{t('tasks.allStatuses')}</SelectItem>
+                      <SelectItem value="pending">{t('tasks.pendingTasks')}</SelectItem>
+                      <SelectItem value="in_progress">{t('tasks.inProgressTasks')}</SelectItem>
+                      <SelectItem value="completed">{t('tasks.completedTasks')}</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                  <Select value={selectedPriority} onValueChange={(val) => startTransition(() => setSelectedPriority(val))}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Prioridade" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      <SelectItem value="high">Alta</SelectItem>
-                      <SelectItem value="medium">Média</SelectItem>
-                      <SelectItem value="low">Baixa</SelectItem>
+                      <SelectItem value="all">{t('tasks.allPriorities')}</SelectItem>
+                      <SelectItem value="high">{t('tasks.high')}</SelectItem>
+                      <SelectItem value="medium">{t('tasks.medium')}</SelectItem>
+                      <SelectItem value="low">{t('tasks.low')}</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  <Select value={sortBy} onValueChange={setSortBy}>
+                  <Select value={sortBy} onValueChange={(val) => startTransition(() => setSortBy(val))}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Ordenar por" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="date">Data de Lançamento</SelectItem>
-                      <SelectItem value="priority">Prioridade</SelectItem>
+                      <SelectItem value="date">{t('tasks.sortByDate')}</SelectItem>
+                      <SelectItem value="priority">{t('tasks.sortByPriority')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -793,57 +599,87 @@ export default function Tasks() {
                 className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300"
               >
                 <Circle className="h-4 w-4 mr-2" />
-                Pendentes ({pendingTasks.length})
+                {t('tasks.pendingTasks')} ({pendingTasks.length})
               </TabsTrigger>
               <TabsTrigger
                 value="in_progress"
                 className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300"
               >
                 <Clock className="h-4 w-4 mr-2" />
-                Em Progresso ({inProgressTasks.length})
+                {t('tasks.inProgressTasks')} ({inProgressTasks.length})
               </TabsTrigger>
               <TabsTrigger
                 value="completed"
                 className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300"
               >
                 <CheckSquare2 className="h-4 w-4 mr-2" />
-                Concluídas ({completedTasks.length})
+                {t('tasks.completedTasks')} ({completedTasks.length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="pending" className="space-y-4">
               {pendingTasks.length === 0 ? (
-                <EmptyState
+                <TasksEmptyState
                   icon={Circle}
-                  title="Nenhuma tarefa pendente"
-                  description="Crie uma nova tarefa para começar"
+                  title={t('tasks.noPending')}
+                  description={t('tasks.noPending')}
                 />
               ) : (
-                pendingTasks.map(task => <TaskCard key={task.id} task={task} />)
+                pendingTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    isSelected={selectedTasks.includes(task.id)}
+                    onToggleStatus={handleToggleStatus}
+                    onEdit={handleEditTask}
+                    onDelete={handleDeleteTask}
+                    onToggleSelection={handleToggleTaskSelection}
+                  />
+                ))
               )}
             </TabsContent>
 
             <TabsContent value="in_progress" className="space-y-4">
               {inProgressTasks.length === 0 ? (
-                <EmptyState
+                <TasksEmptyState
                   icon={Clock}
-                  title="Nenhuma tarefa em progresso"
-                  description="Mova tarefas pendentes para começar"
+                  title={t('tasks.noInProgress')}
+                  description={t('tasks.noInProgress')}
                 />
               ) : (
-                inProgressTasks.map(task => <TaskCard key={task.id} task={task} />)
+                inProgressTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    isSelected={selectedTasks.includes(task.id)}
+                    onToggleStatus={handleToggleStatus}
+                    onEdit={handleEditTask}
+                    onDelete={handleDeleteTask}
+                    onToggleSelection={handleToggleTaskSelection}
+                  />
+                ))
               )}
             </TabsContent>
 
             <TabsContent value="completed" className="space-y-4">
               {completedTasks.length === 0 ? (
-                <EmptyState
+                <TasksEmptyState
                   icon={CheckSquare2}
-                  title="Nenhuma tarefa concluída"
-                  description="Complete tarefas para vê-las aqui"
+                  title={t('tasks.noCompleted')}
+                  description={t('tasks.noCompleted')}
                 />
               ) : (
-                completedTasks.map(task => <TaskCard key={task.id} task={task} />)
+                completedTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    isSelected={selectedTasks.includes(task.id)}
+                    onToggleStatus={handleToggleStatus}
+                    onEdit={handleEditTask}
+                    onDelete={handleDeleteTask}
+                    onToggleSelection={handleToggleTaskSelection}
+                  />
+                ))
               )}
             </TabsContent>
           </Tabs>
@@ -856,13 +692,13 @@ export default function Tasks() {
           >
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-xl font-semibold">Editar Tarefa</DialogTitle>
+                <DialogTitle className="text-xl font-semibold">{t('tasks.edit')}</DialogTitle>
               </DialogHeader>
 
               {editingTask && (
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="edit-title">Título *</Label>
+                    <Label htmlFor="edit-title">{t('tasks.titleLabel')}</Label>
                     <Input
                       id="edit-title"
                       value={editingTask.title}
@@ -873,7 +709,7 @@ export default function Tasks() {
                   </div>
 
                   <div>
-                    <Label htmlFor="edit-description">Descrição</Label>
+                    <Label htmlFor="edit-description">{t('common.description')}</Label>
                     <Textarea
                       id="edit-description"
                       value={editingTask.description || ''}
@@ -888,26 +724,26 @@ export default function Tasks() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="edit-priority">Prioridade</Label>
+                        <Label htmlFor="edit-priority">{t('tasks.priority')}</Label>
                       <Select
                         value={editingTask.priority}
                         onValueChange={value =>
-                          setEditingTask({ ...editingTask, priority: value as any })
+                          setEditingTask({ ...editingTask, priority: value as Task['priority'] })
                         }
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="low">Baixa</SelectItem>
-                          <SelectItem value="medium">Média</SelectItem>
-                          <SelectItem value="high">Alta</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                            <SelectItem value="low">{t('tasks.low')}</SelectItem>
+                            <SelectItem value="medium">{t('tasks.medium')}</SelectItem>
+                            <SelectItem value="high">{t('tasks.high')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    <div>
-                      <Label htmlFor="edit-due_date">Vencimento</Label>
+                      <div>
+                        <Label htmlFor="edit-due_date">{t('tasks.dueDate')}</Label>
                       <Input
                         id="edit-due_date"
                         type="date"
@@ -919,26 +755,26 @@ export default function Tasks() {
                   </div>
 
                   <div>
-                    <Label htmlFor="edit-status">Status</Label>
+                    <Label htmlFor="edit-status">{t('common.status')}</Label>
                     <Select
                       value={editingTask.status}
                       onValueChange={value =>
-                        setEditingTask({ ...editingTask, status: value as any })
+                        setEditingTask({ ...editingTask, status: value as Task['status'] })
                       }
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="in_progress">Em Progresso</SelectItem>
-                        <SelectItem value="completed">Concluída</SelectItem>
+                        <SelectItem value="pending">{t('tasks.pending')}</SelectItem>
+                        <SelectItem value="in_progress">{t('tasks.inProgress')}</SelectItem>
+                        <SelectItem value="completed">{t('tasks.completed')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="edit-assigned_to">Responsável</Label>
+                    <Label htmlFor="edit-assigned_to">{t('tasks.assignedTo')}</Label>
                     <Select
                       value={editingTask.assigned_to?.toString() || 'none'}
                       onValueChange={value =>
@@ -949,10 +785,10 @@ export default function Tasks() {
                       }
                     >
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Selecione" />
+                        <SelectValue placeholder={t('tasks.selectAssignee')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Sem responsável</SelectItem>
+                        <SelectItem value="none">{t('tasks.noAssignee')}</SelectItem>
                         {users.map((u: TaskUser) => (
                           <SelectItem key={u.id} value={u.id.toString()}>
                             {u.name}
@@ -963,25 +799,25 @@ export default function Tasks() {
                   </div>
 
                   <div>
-                    <Label htmlFor="edit-church">Igreja</Label>
+                    <Label htmlFor="edit-church">{t('tasks.churchLabel')}</Label>
                     <Input
                       id="edit-church"
                       value={editingTask.church || ''}
                       onChange={e => setEditingTask({ ...editingTask, church: e.target.value })}
-                      placeholder="Digite o nome da igreja"
+                      placeholder={t('tasks.churchPlaceholder')}
                       className="mt-1"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
                     <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                      Cancelar
+                      {t('common.cancel')}
                     </Button>
                     <Button
                       onClick={handleUpdateTask}
                       className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                     >
-                      Salvar
+                      {t('common.save')}
                     </Button>
                   </div>
                 </div>

@@ -11,7 +11,9 @@ import { createPrayerSchema } from '../schemas';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 import { isPastor } from '../utils/permissions';
 import { getAuthUserId } from '../utils/authHelpers';
+import type { Prayer } from '../types/storage';
 
+/** Registers prayer request routes */
 export const prayerRoutes = (app: Express): void => {
   const prayerRepo = getRepository('prayerRepository');
   const userRepo = getRepository('userRepository');
@@ -82,7 +84,7 @@ export const prayerRoutes = (app: Express): void => {
 
       // Enriquecer com dados do usuário (nome, igreja, foto)
       const enrichedPrayers = await Promise.all(
-        prayers.map(async (prayer: any) => {
+        prayers.map(async (prayer: Prayer) => {
           const prayerUserId = Number(prayer.userId);
           let requesterName = 'Usuário';
           let requesterChurch = '';
@@ -157,8 +159,7 @@ export const prayerRoutes = (app: Express): void => {
         ...prayerData,
         description: prayerData.description ?? null,
         districtId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      } as Parameters<typeof prayerRepo.create>[0]);
       sendSuccess(res, prayer, 201, 'Pedido de oração criado');
     })
   );

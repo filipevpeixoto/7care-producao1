@@ -82,8 +82,7 @@ export class EventRepository {
 
       const [event] = await db
         .insert(schema.events)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .values(insertData as any)
+        .values(insertData as typeof schema.events.$inferInsert)
         .returning();
       return this.mapEventRecord(event);
     } catch (error) {

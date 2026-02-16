@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, startTransition } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useReportsData } from '@/hooks/useReportsData';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,14 +50,16 @@ export default function Reports() {
     loadingInsights,
   } = useReportsData();
 
+  const { t } = useTranslation();
+
   if (!hasAccess) {
     return (
-      <MobileLayout title="Relatórios">
+      <MobileLayout title={t('reports.title')}>
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
           <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-2">{t('reports.accessRestricted')}</h2>
           <p className="text-muted-foreground text-center">
-            Você não tem permissão para acessar os relatórios.
+            {t('reports.noPermission')}
           </p>
         </div>
       </MobileLayout>
@@ -64,14 +67,14 @@ export default function Reports() {
   }
 
   return (
-    <MobileLayout title="Relatórios">
+    <MobileLayout title={t('reports.title')}>
       <div className="p-4 space-y-4">
         {/* Header with Actions */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground dark:text-white">Relatórios</h1>
+            <h1 className="text-2xl font-bold text-foreground dark:text-white">{t('reports.title')}</h1>
             <p className="text-sm text-muted-foreground dark:text-gray-400">
-              Análise de dados e métricas
+              {t('reports.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -80,7 +83,7 @@ export default function Reports() {
               size="icon"
               onClick={() => refetchOverview()}
               className="dark:border-gray-600 dark:text-gray-300"
-              aria-label="Atualizar relatórios"
+              aria-label={t('reports.refreshReports')}
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -88,7 +91,7 @@ export default function Reports() {
               variant="outline"
               size="icon"
               className="dark:border-gray-600 dark:text-gray-300"
-              aria-label="Baixar relatório"
+              aria-label={t('reports.downloadReport')}
             >
               <Download className="h-4 w-4" />
             </Button>
@@ -98,10 +101,10 @@ export default function Reports() {
         {/* Period Selector */}
         <div className="flex gap-2 overflow-x-auto pb-2">
           {[
-            { value: 'week', label: 'Semana' },
-            { value: 'month', label: 'Mês' },
-            { value: 'quarter', label: 'Trimestre' },
-            { value: 'year', label: 'Ano' },
+            { value: 'week', label: t('reports.week') },
+            { value: 'month', label: t('reports.month') },
+            { value: 'quarter', label: t('reports.quarter') },
+            { value: 'year', label: t('reports.year') },
           ].map(period => (
             <Button
               key={period.value}
@@ -120,38 +123,38 @@ export default function Reports() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={(val) => startTransition(() => setActiveTab(val))} className="w-full">
           <TabsList className="w-full flex overflow-x-auto bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
             <TabsTrigger value="overview" className="flex-1 min-w-fit text-xs">
-              Visão Geral
+              {t('reports.overview')}
             </TabsTrigger>
             <TabsTrigger value="funnel" className="flex-1 min-w-fit text-xs">
-              Funil
+              {t('reports.funnel')}
             </TabsTrigger>
             <TabsTrigger value="engagement" className="flex-1 min-w-fit text-xs">
-              Engajamento
+              {t('reports.engagement')}
             </TabsTrigger>
             <TabsTrigger value="growth" className="flex-1 min-w-fit text-xs">
-              Crescimento
+              {t('reports.growth')}
             </TabsTrigger>
             <TabsTrigger value="churches" className="flex-1 min-w-fit text-xs">
-              Igrejas
+              {t('reports.churches')}
             </TabsTrigger>
             {isPastorUser && (
               <TabsTrigger value="missionaries" className="flex-1 min-w-fit text-xs">
-                Missionários
+                {t('reports.missionaries')}
               </TabsTrigger>
             )}
             {isAdmin && (
               <TabsTrigger value="districts" className="flex-1 min-w-fit text-xs">
-                Distritos
+                {t('reports.districts')}
               </TabsTrigger>
             )}
             <TabsTrigger value="goals" className="flex-1 min-w-fit text-xs">
-              Metas
+              {t('reports.goals')}
             </TabsTrigger>
             <TabsTrigger value="insights" className="flex-1 min-w-fit text-xs">
-              Insights
+              {t('reports.insights')}
             </TabsTrigger>
           </TabsList>
 

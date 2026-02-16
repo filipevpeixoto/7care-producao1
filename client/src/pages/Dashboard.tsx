@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Calendar,
   Users,
@@ -17,10 +18,13 @@ import { Visitometer } from '@/components/dashboard/Visitometer';
 import { QuickGamificationCard } from '@/components/dashboard/QuickGamificationCard';
 import { SpiritualCheckInModal } from '@/components/dashboard/SpiritualCheckInModal';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import type { Event, BirthdayUser, Relationship } from '@/types/domain';
+import type { Relationship } from '@/types/domain';
 import { useDashboardData } from './dashboard/useDashboardData';
+import { NextEventDisplay } from './dashboard/NextEventDisplay';
+import { BirthdayDisplay } from './dashboard/BirthdayDisplay';
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const navigate = useTransitionNavigate();
   const {
     user,
@@ -37,248 +41,7 @@ const Dashboard = () => {
     getNextBirthday, formatBirthdayDate,
   } = useDashboardData();
 
-  // ── Inline sub-components ─────────────────────────────────
-
-
-  // Componente auxiliar para exibir próximo evento (prioriza eventos de hoje)
-  const NextEventDisplay: React.FC<{ events: Event[] }> = ({ events }) => {
-    if (!events || !Array.isArray(events)) {
-      return <p className="text-xs text-gray-500">Sem próximos eventos</p>;
-    }
-
-    const parse = (v: unknown) => {
-      if (!v) return null;
-
-      // CRÍTICO: Se for string ISO (YYYY-MM-DD), parsear manualmente para evitar timezone
-      if (typeof v === 'string') {
-        const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (isoMatch) {
-          const [, year, month, day] = isoMatch;
-          // Criar data LOCAL para evitar conversão de timezone
-          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        }
-      }
-
-      const d = new Date(v as string | number | Date);
-      return isNaN(d.getTime()) ? null : d;
-    };
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Mapeia e filtra eventos válidos
-    const validEvents = [...events]
-      .filter(e => e && typeof e === 'object')
-      .map(e => {
-        // Eventos usam 'date' e 'end_date' no banco (snake_case)
-        const startDate = e.startDate || e.date;
-        const endDate = e.endDate || e.end_date;
-        return {
-          ...e,
-          _start: parse(startDate),
-          _end: endDate ? parse(endDate) : null,
-        };
-      })
-      .filter(e => e._start);
-
-    // 1. PRIORIDADE: Buscar eventos de HOJE (incluindo eventos de múltiplos dias)
-    const todayEvents = validEvents
-      .filter(e => {
-        const eventStartDate = new Date(e._start as Date);
-        const eventEndDate = e._end ? new Date(e._end as Date) : eventStartDate;
-
-        // Criar timestamps apenas com ano/mês/dia (ignorando horas e timezone)
-        const startTimestamp = new Date(
-          eventStartDate.getFullYear(),
-          eventStartDate.getMonth(),
-          eventStartDate.getDate()
-        ).getTime();
-
-        const endTimestamp = new Date(
-          eventEndDate.getFullYear(),
-          eventEndDate.getMonth(),
-          eventEndDate.getDate()
-        ).getTime();
-
-        const todayTimestamp = today.getTime();
-
-        // CRÍTICO: Verificar se hoje está ENTRE a data de início e fim (inclusive)
-        const isHappeningToday = todayTimestamp >= startTimestamp && todayTimestamp <= endTimestamp;
-
-        return isHappeningToday;
-      })
-      .sort((a, b) => (a._start as Date).getTime() - (b._start as Date).getTime());
-
-    // 2. Se não tem evento hoje, buscar próximos eventos futuros
-    const upcomingEvents = validEvents
-      .filter(e => {
-        const eventDate = new Date(e._start as Date);
-        // Comparar ano/mês/dia para eventos futuros ou de hoje
-        const eventTimestamp = new Date(
-          eventDate.getFullYear(),
-          eventDate.getMonth(),
-          eventDate.getDate()
-        ).getTime();
-        const todayTimestamp = today.getTime();
-        return eventTimestamp >= todayTimestamp;
-      })
-      .sort((a, b) => (a._start as Date).getTime() - (b._start as Date).getTime());
-
-    const eventToShow = todayEvents.length > 0 ? todayEvents[0] : upcomingEvents[0];
-
-    if (!eventToShow) {
-      return <p className="text-xs text-gray-500">Sem próximos eventos</p>;
-    }
-
-    const ev = eventToShow;
-    const dt = ev._start as Date;
-    const isToday = todayEvents.length > 0;
-    const eventTitle = ev.title || 'Sem título';
-
-    // Verificar se é evento de múltiplos dias
-    const isMultiDay = ev._end && ev._end !== ev._start;
-    let dateText = '';
-
-    if (isMultiDay) {
-      const startDate = new Date(ev._start as Date);
-      const endDate = new Date(ev._end as Date);
-      const startTimestamp = new Date(
-        startDate.getFullYear(),
-        startDate.getMonth(),
-        startDate.getDate()
-      ).getTime();
-      const endTimestamp = new Date(
-        endDate.getFullYear(),
-        endDate.getMonth(),
-        endDate.getDate()
-      ).getTime();
-
-      if (startTimestamp !== endTimestamp) {
-        // Evento de múltiplos dias - mostrar intervalo
-        const startFormatted = startDate.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-        });
-        const endFormatted = endDate.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-        });
-        dateText = `${startFormatted} a ${endFormatted}`;
-      } else {
-        // Mesmo dia, mostrar como normal
-        dateText = dt.toLocaleDateString('pt-BR', {
-          weekday: 'long',
-          day: '2-digit',
-          month: '2-digit',
-        });
-      }
-    } else {
-      // Evento de um dia
-      dateText = dt.toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        day: '2-digit',
-        month: '2-digit',
-      });
-    }
-
-    return (
-      <div className="flex items-center gap-3 rounded-xl border border-blue-100/60 bg-gradient-to-br from-white to-blue-50/40 p-3 shadow-sm">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-700">
-          <Calendar className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] uppercase tracking-wide text-blue-700/70">
-            {isToday ? 'Evento HOJE' : 'Próximo evento'}
-          </div>
-          {/* Título com tooltip elegante em CSS puro */}
-          <div className="relative group">
-            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate cursor-help">
-              {eventTitle}
-            </div>
-            {/* Tooltip elegante - aparece ao hover se o texto estiver truncado */}
-            {eventTitle.length > 30 && (
-              <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 animate-in fade-in-0 zoom-in-95 duration-200">
-                <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white text-xs px-3 py-2 rounded-lg shadow-2xl max-w-xs border border-gray-700/50 backdrop-blur-sm">
-                  <div className="font-medium leading-relaxed">{eventTitle}</div>
-                  {/* Seta do tooltip */}
-                  <div className="absolute top-full left-6 -mt-1">
-                    <div className="border-4 border-transparent border-t-gray-900"></div>
-                  </div>
-                  {/* Brilho sutil */}
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-[11px] text-gray-500">Data</div>
-          <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{dateText}</div>
-        </div>
-      </div>
-    );
-  };
-
-  // Componente auxiliar para exibir aniversariante do dia ou próximo aniversário
-  const BirthdayDisplay: React.FC<{
-    birthdays: { today?: BirthdayUser[]; all?: BirthdayUser[] };
-  }> = ({ birthdays }) => {
-    if (birthdayLoading) {
-      return <p className="text-xs text-gray-500">Carregando...</p>;
-    }
-
-    if (birthdays.today && birthdays.today.length > 0) {
-      // Aniversariante do dia
-      return (
-        <div className="flex items-center gap-3 rounded-xl border border-pink-100/60 bg-gradient-to-br from-white to-pink-50/40 p-3 shadow-sm">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-pink-500/10 text-pink-700">
-            <span className="text-lg">🎂</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] uppercase tracking-wide text-pink-700/70">
-              Aniversariante do dia
-            </div>
-            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-              {birthdays.today[0].name}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[11px] text-gray-500">Hoje</div>
-            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">🎉</div>
-          </div>
-        </div>
-      );
-    } else {
-      // Próximo aniversário
-      const nextBirthday = getNextBirthday(birthdays);
-      if (nextBirthday) {
-        return (
-          <div className="flex items-center gap-3 rounded-xl border border-pink-100/60 bg-gradient-to-br from-white to-pink-50/40 p-3 shadow-sm">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-pink-500/10 text-pink-700">
-              <span className="text-lg">🎂</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] uppercase tracking-wide text-pink-700/70">
-                Próximo aniversário
-              </div>
-              <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                {nextBirthday.name}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-[11px] text-gray-500">Data</div>
-              <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                {formatBirthdayDate(nextBirthday.nextBirthday)}
-              </div>
-            </div>
-          </div>
-        );
-      }
-      return <p className="text-xs text-gray-500">Sem aniversários próximos</p>;
-    }
-  };
+  // ── Sub-components extraídos para ./dashboard/ ─────
 
 
   const renderAdminDashboard = () => (
@@ -290,7 +53,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/30 to-blue-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Total de Usuários
+                  {t('dashboard.totalUsers')}
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <Users className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -301,15 +64,15 @@ const Dashboard = () => {
                   {isLoading ? '...' : stats.totalUsers}
                 </div>
                 <p className="text-xs lg:text-sm text-white/80 mt-1">
-                  {stats.approvedUsers} usuários aprovados
+                  {t('dashboard.approvedUsers', { count: stats.approvedUsers })}
                 </p>
                 <Button
                   onClick={() => navigate('/users')}
                   className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
                 >
                   <Users className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-                  <span className="hidden sm:inline">Gerenciar Usuários</span>
-                  <span className="sm:hidden">Usuários</span>
+                  <span className="hidden sm:inline">{t('dashboard.manageUsers')}</span>
+                  <span className="sm:hidden">{t('dashboard.usersShort')}</span>
                 </Button>
               </CardContent>
             </Card>
@@ -319,7 +82,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400/30 to-red-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Amigos da igreja
+                  {t('dashboard.churchFriends')}
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <Heart className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -330,14 +93,14 @@ const Dashboard = () => {
                   <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
                     {isLoading ? '...' : stats.totalInterested}
                   </div>
-                  <span className="text-xs lg:text-sm text-white/80">Amigos</span>
+                  <span className="text-xs lg:text-sm text-white/80">{t('dashboard.friends')}</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-white/20">
                   <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
                     {isLoading ? '...' : stats.interestedBeingDiscipled || 0}
                   </div>
                   <span className="text-xs lg:text-sm text-white/80 leading-tight">
-                    Estão Sendo Discipulados
+                    {t('dashboard.beingDiscipled')}
                   </span>
                 </div>
               </CardContent>
@@ -348,7 +111,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-400/30 to-orange-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Tarefas
+                  {t('dashboard.tasks')}
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <CheckSquare className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -359,27 +122,27 @@ const Dashboard = () => {
                   <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
                     {isLoading || tasksLoading ? '...' : stats?.pendingTasks || 0}
                   </div>
-                  <span className="text-xs lg:text-sm text-white/80">Pendentes</span>
+                  <span className="text-xs lg:text-sm text-white/80">{t('dashboard.pending')}</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-white/20">
                   <div className="text-lg lg:text-2xl font-bold text-white/90 drop-shadow">
                     {isLoading || tasksLoading ? '...' : stats?.completedTasks || 0}
                   </div>
-                  <span className="text-xs lg:text-sm text-white/80 leading-tight">Concluídas</span>
+                  <span className="text-xs lg:text-sm text-white/80 leading-tight">{t('dashboard.completed')}</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-white/20">
                   <div className="text-sm lg:text-lg font-semibold text-white/90 drop-shadow">
                     {isLoading || tasksLoading ? '...' : stats?.totalTasks || 0}
                   </div>
-                  <span className="text-xs lg:text-sm text-white/80 leading-tight">Total</span>
+                  <span className="text-xs lg:text-sm text-white/80 leading-tight">{t('dashboard.total')}</span>
                 </div>
                 <Button
                   onClick={() => navigate('/tasks')}
                   className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 w-full"
                 >
                   <CheckSquare className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-                  <span className="hidden sm:inline">Gerenciar Tarefas</span>
-                  <span className="sm:hidden">Tarefas</span>
+                  <span className="hidden sm:inline">{t('dashboard.manageTasks')}</span>
+                  <span className="sm:hidden">{t('dashboard.tasks')}</span>
                 </Button>
               </CardContent>
             </Card>
@@ -390,7 +153,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/30 to-green-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Membros
+                  {t('dashboard.members')}
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <Users className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -400,7 +163,7 @@ const Dashboard = () => {
                 <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
                   {isLoading ? '...' : stats.totalMembers}
                 </div>
-                <p className="text-xs lg:text-sm text-white/80 mt-1">Membros ativos da igreja</p>
+                <p className="text-xs lg:text-sm text-white/80 mt-1">{t('dashboard.activeMembers')}</p>
               </CardContent>
             </Card>
 
@@ -410,7 +173,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/30 to-purple-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Missionários
+                  {t('dashboard.missionaries')}
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <Heart className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -420,7 +183,7 @@ const Dashboard = () => {
                 <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
                   {isLoading ? '...' : stats.totalMissionaries}
                 </div>
-                <p className="text-xs lg:text-sm text-white/80 mt-1">Discipuladores ativos</p>
+                <p className="text-xs lg:text-sm text-white/80 mt-1">{t('dashboard.activeDisciplers')}</p>
               </CardContent>
             </Card>
 
@@ -430,7 +193,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/30 to-pink-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Check-ins Espirituais
+                  {t('dashboard.spiritualCheckins')}
                 </CardTitle>
                 <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <span className="text-sm lg:text-base filter brightness-0 invert">🙏</span>
@@ -441,15 +204,15 @@ const Dashboard = () => {
                   {spiritualCheckInsLoading ? '...' : spiritualCheckIns?.length || 0}
                 </div>
                 <p className="text-xs lg:text-sm text-white/80 mt-1">
-                  Últimos check-ins espirituais dos membros
+                  {t('dashboard.latestSpiritualCheckins')}
                 </p>
                 <Button
                   onClick={() => setShowCheckIn(true)}
                   className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
                 >
                   <span className="mr-1 filter brightness-0 invert">🙏</span>
-                  <span className="hidden sm:inline">Fazer meu check-in</span>
-                  <span className="sm:hidden">Check-in</span>
+                  <span className="hidden sm:inline">{t('dashboard.doMyCheckin')}</span>
+                  <span className="sm:hidden">{t('dashboard.checkinShort')}</span>
                 </Button>
               </CardContent>
             </Card>
@@ -463,7 +226,7 @@ const Dashboard = () => {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/30 to-emerald-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                     <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                      Distritos
+                      {t('dashboard.districts')}
                     </CardTitle>
                     <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                       <Building2 className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -473,14 +236,14 @@ const Dashboard = () => {
                     <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
                       {districtsCount ?? '...'}
                     </div>
-                    <p className="text-xs lg:text-sm text-white/80 mt-1">Distritos cadastrados</p>
+                    <p className="text-xs lg:text-sm text-white/80 mt-1">{t('dashboard.registeredDistricts')}</p>
                     <Button
                       onClick={() => navigate('/districts')}
                       className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
                     >
                       <Building2 className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-                      <span className="hidden sm:inline">Gerenciar Distritos</span>
-                      <span className="sm:hidden">Distritos</span>
+                      <span className="hidden sm:inline">{t('dashboard.manageDistricts')}</span>
+                      <span className="sm:hidden">{t('dashboard.districts')}</span>
                     </Button>
                   </CardContent>
                 </Card>
@@ -491,7 +254,7 @@ const Dashboard = () => {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/30 to-amber-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 lg:pb-2 relative z-10">
                     <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                      Pastores
+                      {t('dashboard.pastors')}
                     </CardTitle>
                     <div className="p-1 lg:p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                       <UserCog className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -501,14 +264,14 @@ const Dashboard = () => {
                     <div className="text-xl lg:text-4xl font-bold text-white drop-shadow-lg">
                       {pastorsCount ?? '...'}
                     </div>
-                    <p className="text-xs lg:text-sm text-white/80 mt-1">Pastores cadastrados</p>
+                    <p className="text-xs lg:text-sm text-white/80 mt-1">{t('dashboard.registeredPastors')}</p>
                     <Button
                       onClick={() => navigate('/pastors')}
                       className="mt-2 lg:mt-3 h-7 lg:h-9 px-3 lg:px-4 text-xs lg:text-sm bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0"
                     >
                       <UserCog className="h-2 w-2 lg:h-3 lg:w-3 mr-1" />
-                      <span className="hidden sm:inline">Gerenciar Pastores</span>
-                      <span className="sm:hidden">Pastores</span>
+                      <span className="hidden sm:inline">{t('dashboard.managePastors')}</span>
+                      <span className="sm:hidden">{t('dashboard.pastors')}</span>
                     </Button>
                   </CardContent>
                 </Card>
@@ -588,7 +351,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/30 to-purple-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Amigos
+                  {t('dashboard.friends')}
                 </CardTitle>
                 <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <Heart className="h-4 w-4" />
@@ -598,19 +361,19 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   {/* Interessados Vinculados */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm lg:text-base text-white/80">Vinculados a você:</span>
+                    <span className="text-sm lg:text-base text-white/80">{t('dashboard.linkedToYou')}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
                         {userRelationshipsLoading ? '...' : totalUserInterested}
                       </span>
                       <div className="flex items-center gap-1">
                         {userActiveRelationships.length > 0 && (
-                          <div className="w-2 h-2 bg-green-400 rounded-full" title="Ativos"></div>
+                          <div className="w-2 h-2 bg-green-400 rounded-full" title={t('dashboard.active')}></div>
                         )}
                         {userPendingRelationships.length > 0 && (
                           <div
                             className="w-2 h-2 bg-yellow-400 rounded-full"
-                            title="Pendentes"
+                            title={t('dashboard.pending')}
                           ></div>
                         )}
                       </div>
@@ -619,7 +382,7 @@ const Dashboard = () => {
 
                   {/* Total da Igreja */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm lg:text-base text-white/80">Total da igreja:</span>
+                    <span className="text-sm lg:text-base text-white/80">{t('dashboard.churchTotal')}</span>
                     <span className="text-lg lg:text-xl font-bold text-white drop-shadow-lg">
                       {churchInterestedLoading ? '...' : totalChurchInterested}
                     </span>
@@ -629,7 +392,7 @@ const Dashboard = () => {
                   {totalChurchInterested > 0 && (
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-white/70">
-                        <span>Seu alcance</span>
+                        <span>{t('dashboard.yourReach')}</span>
                         <span>
                           {totalChurchInterested > 0
                             ? Math.round((totalUserInterested / totalChurchInterested) * 100)
@@ -651,7 +414,7 @@ const Dashboard = () => {
               </CardContent>
               <div className="px-6 pb-4 relative">
                 <p className="text-xs text-white/70 hover:text-white/90 transition-colors">
-                  Toque para ver mais
+                  {t('dashboard.tapToSeeMore')}
                 </p>
               </div>
             </Card>
@@ -666,7 +429,7 @@ const Dashboard = () => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/30 to-blue-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
                 <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-                  Eventos do Mês
+                  {t('dashboard.monthEvents')}
                 </CardTitle>
                 <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
                   <Calendar className="h-4 w-4" />
@@ -676,7 +439,7 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   {/* Eventos deste mês */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm lg:text-base text-white/80">Eventos deste mês:</span>
+                    <span className="text-sm lg:text-base text-white/80">{t('dashboard.eventsThisMonth')}</span>
                     <span className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
                       {userEventsLoading ? '...' : eventsThisMonthCount}
                     </span>
@@ -688,7 +451,12 @@ const Dashboard = () => {
 
                   {/* Aniversariante do dia ou próximo aniversário */}
                   <div className="mt-2">
-                    <BirthdayDisplay birthdays={birthdayData} />
+                    <BirthdayDisplay
+                      birthdays={birthdayData}
+                      isLoading={birthdayLoading}
+                      getNextBirthday={getNextBirthday}
+                      formatBirthdayDate={formatBirthdayDate}
+                    />
                   </div>
 
                   {/* Removido detalhe de acesso discriminado para membros */}
@@ -696,7 +464,7 @@ const Dashboard = () => {
               </CardContent>
               <div className="px-6 pb-4 relative">
                 <p className="text-xs text-white/70 hover:text-white/90 transition-colors">
-                  Toque para ver mais
+                  {t('dashboard.tapToSeeMore')}
                 </p>
               </div>
             </Card>
@@ -724,7 +492,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-400/30 to-cyan-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
             <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Eventos Disponíveis
+              {t('dashboard.availableEvents')}
             </CardTitle>
             <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
               <Calendar className="h-4 w-4" />
@@ -734,18 +502,18 @@ const Dashboard = () => {
             <div className="space-y-3">
               {/* Total de eventos visíveis para o perfil */}
               <div className="flex items-center justify-between">
-                <span className="text-sm lg:text-base text-white/80">Disponíveis para você:</span>
+                <span className="text-sm lg:text-base text-white/80">{t('dashboard.availableForYou')}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
                     {userEventsLoading ? '...' : userEvents?.length || 0}
                   </span>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full" title="Eventos visíveis"></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full" title={t('dashboard.visibleEvents')}></div>
                 </div>
               </div>
 
               {/* Eventos desta semana */}
               <div className="flex items-center justify-between">
-                <span className="text-sm lg:text-base text-gray-600">Eventos desta semana:</span>
+                <span className="text-sm lg:text-base text-gray-600">{t('dashboard.eventsThisWeek')}</span>
                 <span className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">
                   {isLoading ? '...' : userEvents?.length || 0}
                 </span>
@@ -755,7 +523,7 @@ const Dashboard = () => {
               {stats.totalEvents > 0 && (
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-gray-500">
-                    <span>Seu acesso</span>
+                    <span>{t('dashboard.yourAccess')}</span>
                     <span>
                       {stats.totalEvents > 0
                         ? Math.round(((userEvents?.length || 0) / stats.totalEvents) * 100)
@@ -782,7 +550,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-400/30 to-indigo-600/40 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
             <CardTitle className="text-sm lg:text-base font-semibold text-white drop-shadow-md">
-              Total Usuários
+              {t('dashboard.totalUsersShort')}
             </CardTitle>
             <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg group-hover:bg-white/30 transition-all duration-300">
               <Users className="h-4 w-4" />
@@ -792,7 +560,7 @@ const Dashboard = () => {
             <div className="text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">
               {isLoading ? '...' : stats.totalUsers}
             </div>
-            <p className="text-xs lg:text-sm text-white/80 mt-1">Na comunidade</p>
+            <p className="text-xs lg:text-sm text-white/80 mt-1">{t('dashboard.inCommunity')}</p>
           </CardContent>
         </Card>
       </div>
@@ -805,9 +573,9 @@ const Dashboard = () => {
         <div className="text-center p-8 rounded-2xl bg-white/90 backdrop-blur-sm shadow-xl border border-white/30">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-amber-600 bg-clip-text text-transparent">
-            Carregando...
+            {t('dashboard.loadingTitle')}
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">Verificando autenticação</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('dashboard.verifyingAuth')}</p>
         </div>
       </div>
     );

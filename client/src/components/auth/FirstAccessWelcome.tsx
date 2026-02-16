@@ -84,17 +84,446 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   },
 ];
 
+type WelcomeScreenProps = {
+  userName?: string;
+  steps: TutorialStep[];
+  progressPercentage: number;
+  onStart: () => void;
+  onSkip: () => void;
+};
+
+type StepHeaderProps = {
+  currentStep: number;
+  stepsCount: number;
+};
+
+type PasswordChangeFormProps = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  showCurrentPassword: boolean;
+  showNewPassword: boolean;
+  showConfirmPassword: boolean;
+  isChangingPassword: boolean;
+  onChangeCurrentPassword: (value: string) => void;
+  onChangeNewPassword: (value: string) => void;
+  onChangeConfirmPassword: (value: string) => void;
+  onToggleCurrentPassword: () => void;
+  onToggleNewPassword: () => void;
+  onToggleConfirmPassword: () => void;
+  onSubmit: () => void;
+};
+
+type StepContentProps = {
+  currentStep: number;
+  currentStepData: TutorialStep;
+  passwordForm: PasswordChangeFormProps;
+  onCompleteStep: () => void;
+};
+
+type StepNavigationProps = {
+  currentStep: number;
+  stepsCount: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onFinish: () => void;
+  onGoToStep: (index: number) => void;
+};
+
+type StepListProps = {
+  steps: TutorialStep[];
+  currentStep: number;
+  onGoToStep: (index: number) => void;
+};
+
+const STEP_DETAILS: Record<
+  number,
+  { text: string; tipText: string; tipClassName: string; tipTextClassName: string }
+> = {
+  0: {
+    text: 'Complete seu perfil com informações básicas como telefone, endereço e dados pessoais. Isso nos ajuda a personalizar sua experiência.',
+    tipText: '💡 Dica: Você pode editar essas informações a qualquer momento no menu "Meu Cadastro"',
+    tipClassName: 'bg-blue-50',
+    tipTextClassName: 'text-blue-800',
+  },
+  2: {
+    text: 'Na agenda você pode visualizar todos os seus eventos, estudos bíblicos, reuniões de oração e atividades da igreja.',
+    tipText: '📅 Funcionalidade: Você também pode solicitar reuniões diretamente pela agenda',
+    tipClassName: 'bg-purple-50',
+    tipTextClassName: 'text-purple-800',
+  },
+  3: {
+    text: 'Use o chat para se comunicar com pastores, missionários e outros membros. Você pode enviar mensagens individuais ou participar de grupos.',
+    tipText: '💬 Comunicação: As mensagens são privadas e seguras',
+    tipClassName: 'bg-orange-50',
+    tipTextClassName: 'text-orange-800',
+  },
+  4: {
+    text: 'Participe de estudos bíblicos, reuniões e aconselhamentos através de videochamadas. É simples e funciona direto no seu navegador.',
+    tipText: '🎥 Tecnologia: Não precisa baixar nenhum aplicativo adicional',
+    tipClassName: 'bg-red-50',
+    tipTextClassName: 'text-red-800',
+  },
+  5: {
+    text: 'Acompanhe seu crescimento espiritual através de relatórios personalizados. Veja sua participação, pontuação e conquistas.',
+    tipText: '📊 Gamificação: Ganhe pontos participando de atividades',
+    tipClassName: 'bg-indigo-50',
+    tipTextClassName: 'text-indigo-800',
+  },
+};
+
+const StepProgressList = ({ steps }: { steps: TutorialStep[] }) => (
+  <div className="grid grid-cols-2 gap-2">
+    {steps.map(step => (
+      <div key={step.id} className="flex items-center space-x-2 text-sm">
+        {step.completed ? (
+          <CheckCircle className="w-4 h-4 text-green-500" />
+        ) : (
+          <div className="w-4 h-4 rounded-full border-2 border-muted-foreground" />
+        )}
+        <span className={step.completed ? 'text-green-700' : 'text-muted-foreground'}>
+          {step.title}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+const WelcomeScreen = ({
+  userName,
+  steps,
+  progressPercentage,
+  onStart,
+  onSkip,
+}: WelcomeScreenProps) => (
+  <MobileLayout>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-divine">
+        <CardHeader className="text-center space-y-4">
+          <div className="w-20 h-20 mx-auto bg-gradient-primary rounded-full flex items-center justify-center">
+            <Star className="w-10 h-10 text-white" />
+          </div>
+          <CardTitle className="text-2xl text-primary">Bem-vindo!</CardTitle>
+          <CardDescription className="text-base">
+            Olá <span className="font-semibold text-primary">{userName}</span>! Vamos fazer um tour
+            rápido para você conhecer todas as funcionalidades.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Progresso do Tutorial</span>
+              <span>{Math.round(progressPercentage)}%</span>
+            </div>
+            <Progress value={progressPercentage} className="h-2" />
+          </div>
+
+          <StepProgressList steps={steps} />
+
+          <div className="space-y-3">
+            <Button
+              onClick={onStart}
+              className="w-full bg-gradient-primary hover:opacity-90"
+              data-testid="button-start-tutorial"
+            >
+              Começar Tutorial
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onSkip}
+              className="w-full"
+              data-testid="button-skip-tutorial"
+            >
+              Pular Tutorial
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </MobileLayout>
+);
+
+const StepHeader = ({ currentStep, stepsCount }: StepHeaderProps) => (
+  <div className="text-center text-white space-y-2">
+    <h1 className="text-2xl font-bold">Tutorial - Etapa {currentStep + 1}</h1>
+    <div className="space-y-2">
+      <Progress value={((currentStep + 1) / stepsCount) * 100} className="h-2" />
+      <p className="text-sm opacity-90">
+        {currentStep + 1} de {stepsCount} etapas
+      </p>
+    </div>
+  </div>
+);
+
+const PasswordChangeForm = ({
+  currentPassword,
+  newPassword,
+  confirmPassword,
+  showCurrentPassword,
+  showNewPassword,
+  showConfirmPassword,
+  isChangingPassword,
+  onChangeCurrentPassword,
+  onChangeNewPassword,
+  onChangeConfirmPassword,
+  onToggleCurrentPassword,
+  onToggleNewPassword,
+  onToggleConfirmPassword,
+  onSubmit,
+}: PasswordChangeFormProps) => (
+  <div className="space-y-4">
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Por segurança, você deve alterar sua senha padrão. Escolha uma senha forte com pelo menos 8
+        caracteres.
+      </p>
+      <div className="bg-green-50 p-3 rounded-lg">
+        <p className="text-sm font-medium text-green-800">
+          🔒 Segurança: Use uma combinação de letras, números e símbolos
+        </p>
+      </div>
+    </div>
+
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="currentPassword">Senha Atual</Label>
+        <div className="relative">
+          <Input
+            id="currentPassword"
+            type={showCurrentPassword ? 'text' : 'password'}
+            placeholder="Digite sua senha atual"
+            value={currentPassword}
+            onChange={e => onChangeCurrentPassword(e.target.value)}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={onToggleCurrentPassword}
+            aria-label={showCurrentPassword ? 'Ocultar senha atual' : 'Mostrar senha atual'}
+          >
+            {showCurrentPassword ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="newPassword">Nova Senha</Label>
+        <div className="relative">
+          <Input
+            id="newPassword"
+            type={showNewPassword ? 'text' : 'password'}
+            placeholder="Digite sua nova senha"
+            value={newPassword}
+            onChange={e => onChangeNewPassword(e.target.value)}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={onToggleNewPassword}
+            aria-label={showNewPassword ? 'Ocultar nova senha' : 'Mostrar nova senha'}
+          >
+            {showNewPassword ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? 'text' : 'password'}
+            placeholder="Confirme sua nova senha"
+            value={confirmPassword}
+            onChange={e => onChangeConfirmPassword(e.target.value)}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={onToggleConfirmPassword}
+            aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+          >
+            {showConfirmPassword ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <Button
+        onClick={onSubmit}
+        disabled={!currentPassword || !newPassword || !confirmPassword || isChangingPassword}
+        className="w-full"
+      >
+        {isChangingPassword ? 'Alterando...' : 'Alterar Senha'}
+      </Button>
+    </div>
+  </div>
+);
+
+const StepContent = ({
+  currentStep,
+  currentStepData,
+  passwordForm,
+  onCompleteStep,
+}: StepContentProps) => {
+  if (currentStep === 1) {
+    return <PasswordChangeForm {...passwordForm} />;
+  }
+
+  const detail = STEP_DETAILS[currentStep];
+
+  return (
+    <div className="space-y-4">
+      {detail && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">{detail.text}</p>
+          <div className={`${detail.tipClassName} p-3 rounded-lg`}>
+            <p className={`text-sm font-medium ${detail.tipTextClassName}`}>{detail.tipText}</p>
+          </div>
+        </div>
+      )}
+
+      <Button
+        onClick={onCompleteStep}
+        variant={currentStepData.completed ? 'secondary' : 'default'}
+        className="w-full"
+        data-testid={`button-complete-step-${currentStep + 1}`}
+      >
+        {currentStepData.completed ? (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Etapa Concluída
+          </>
+        ) : (
+          'Marcar como Concluída'
+        )}
+      </Button>
+    </div>
+  );
+};
+
+const StepNavigation = ({
+  currentStep,
+  stepsCount,
+  onPrev,
+  onNext,
+  onFinish,
+  onGoToStep,
+}: StepNavigationProps) => (
+  <div className="flex justify-between items-center">
+    <Button
+      variant="outline"
+      onClick={onPrev}
+      disabled={currentStep === 0}
+      className="bg-white/90"
+      data-testid="button-prev-step"
+    >
+      <ChevronLeft className="w-4 h-4 mr-1" />
+      Anterior
+    </Button>
+
+    <div className="flex space-x-1">
+      {Array.from({ length: stepsCount }).map((_, idx) => (
+        <button
+          key={idx}
+          onClick={() => onGoToStep(idx)}
+          className={`w-2 h-2 rounded-full transition-colors ${
+            idx === currentStep ? 'bg-white' : idx < currentStep ? 'bg-white/70' : 'bg-white/30'
+          }`}
+          data-testid={`button-step-${idx + 1}`}
+        />
+      ))}
+    </div>
+
+    {currentStep < stepsCount - 1 ? (
+      <Button
+        variant="outline"
+        onClick={onNext}
+        className="bg-white/90"
+        data-testid="button-next-step"
+      >
+        Próxima
+        <ChevronRight className="w-4 h-4 ml-1" />
+      </Button>
+    ) : (
+      <Button
+        onClick={onFinish}
+        className="bg-white text-primary hover:bg-white/90"
+        data-testid="button-finish-tutorial"
+      >
+        Finalizar
+      </Button>
+    )}
+  </div>
+);
+
+const StepList = ({ steps, currentStep, onGoToStep }: StepListProps) => (
+  <Card className="bg-white/95">
+    <CardHeader>
+      <CardTitle className="text-lg">Todas as Etapas</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-3">
+        {steps.map((step, index) => {
+          const StepIcon = step.icon;
+          return (
+            <div
+              key={step.id}
+              className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                index === currentStep
+                  ? 'bg-primary/10 border border-primary/20'
+                  : 'hover:bg-gray-50'
+              }`}
+              onClick={() => onGoToStep(index)}
+            >
+              <div
+                className={`w-8 h-8 ${step.color} rounded-full flex items-center justify-center flex-shrink-0`}
+              >
+                <StepIcon className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{step.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{step.description}</p>
+              </div>
+              {step.completed && (
+                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+              )}
+              {index === currentStep && (
+                <Badge variant="secondary" className="flex-shrink-0">
+                  Atual
+                </Badge>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </CardContent>
+  </Card>
+);
+
 export const FirstAccessWelcome = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-
-  // Verificar se o tutorial já foi pulado ou completado - redirecionar para dashboard
-  const tutorialCompleted = user?.id ? localStorage.getItem(`tutorial_completed_${user.id}`) : null;
-  const tutorialSkipped = user?.id ? localStorage.getItem(`tutorial_skipped_${user.id}`) : null;
-  
-  if (tutorialCompleted || tutorialSkipped) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState(TUTORIAL_STEPS);
@@ -108,6 +537,10 @@ export const FirstAccessWelcome = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Verificar se o tutorial já foi pulado ou completado - redirecionar para dashboard
+  const tutorialCompleted = user?.id ? localStorage.getItem(`tutorial_completed_${user.id}`) : null;
+  const tutorialSkipped = user?.id ? localStorage.getItem(`tutorial_skipped_${user.id}`) : null;
 
   // Load progress from localStorage - usando chave específica do usuário
   useEffect(() => {
@@ -124,6 +557,10 @@ export const FirstAccessWelcome = () => {
       setCurrentStep(progress.length);
     }
   }, [user?.id]);
+
+  if (tutorialCompleted || tutorialSkipped) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   // Save progress to localStorage - usando chave específica do usuário
   const saveProgress = (stepId: number) => {
@@ -264,66 +701,13 @@ export const FirstAccessWelcome = () => {
 
   if (showWelcome) {
     return (
-      <MobileLayout>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md shadow-divine">
-            <CardHeader className="text-center space-y-4">
-              <div className="w-20 h-20 mx-auto bg-gradient-primary rounded-full flex items-center justify-center">
-                <Star className="w-10 h-10 text-white" />
-              </div>
-              <CardTitle className="text-2xl text-primary">Bem-vindo!</CardTitle>
-              <CardDescription className="text-base">
-                Olá <span className="font-semibold text-primary">{user?.name}</span>!
-                Vamos fazer um tour rápido para você conhecer todas as funcionalidades.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progresso do Tutorial</span>
-                  <span>{Math.round(getProgressPercentage())}%</span>
-                </div>
-                <Progress value={getProgressPercentage()} className="h-2" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {steps.map((step, _index) => (
-                  <div key={step.id} className="flex items-center space-x-2 text-sm">
-                    {step.completed ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground" />
-                    )}
-                    <span className={step.completed ? 'text-green-700' : 'text-muted-foreground'}>
-                      {step.title}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-3">
-                <Button
-                  onClick={() => {
-                    setShowWelcome(false);
-                  }}
-                  className="w-full bg-gradient-primary hover:opacity-90"
-                  data-testid="button-start-tutorial"
-                >
-                  Começar Tutorial
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={skipTutorial}
-                  className="w-full"
-                  data-testid="button-skip-tutorial"
-                >
-                  Pular Tutorial
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </MobileLayout>
+      <WelcomeScreen
+        userName={user?.name}
+        steps={steps}
+        progressPercentage={getProgressPercentage()}
+        onStart={() => setShowWelcome(false)}
+        onSkip={skipTutorial}
+      />
     );
   }
 
@@ -334,16 +718,7 @@ export const FirstAccessWelcome = () => {
     <MobileLayout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-4">
         <div className="max-w-md mx-auto space-y-6">
-          {/* Header */}
-          <div className="text-center text-white space-y-2">
-            <h1 className="text-2xl font-bold">Tutorial - Etapa {currentStep + 1}</h1>
-            <div className="space-y-2">
-              <Progress value={((currentStep + 1) / steps.length) * 100} className="h-2" />
-              <p className="text-sm opacity-90">
-                {currentStep + 1} de {steps.length} etapas
-              </p>
-            </div>
-          </div>
+          <StepHeader currentStep={currentStep} stepsCount={steps.length} />
 
           {/* Current Step Card */}
           <Card className="shadow-divine">
@@ -357,303 +732,40 @@ export const FirstAccessWelcome = () => {
               <CardDescription className="text-base">{currentStepData.description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Step Content */}
-              <div className="space-y-4">
-                {currentStep === 0 && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Complete seu perfil com informações básicas como telefone, endereço e dados
-                      pessoais. Isso nos ajuda a personalizar sua experiência.
-                    </p>
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-blue-800">
-                        💡 Dica: Você pode editar essas informações a qualquer momento no menu "Meu
-                        Cadastro"
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 1 && (
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground">
-                        Por segurança, você deve alterar sua senha padrão. Escolha uma senha forte
-                        com pelo menos 8 caracteres.
-                      </p>
-                      <div className="bg-green-50 p-3 rounded-lg">
-                        <p className="text-sm font-medium text-green-800">
-                          🔒 Segurança: Use uma combinação de letras, números e símbolos
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Senha Atual</Label>
-                        <div className="relative">
-                          <Input
-                            id="currentPassword"
-                            type={showCurrentPassword ? 'text' : 'password'}
-                            placeholder="Digite sua senha atual"
-                            value={currentPassword}
-                            onChange={e => setCurrentPassword(e.target.value)}
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          >
-                            {showCurrentPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">Nova Senha</Label>
-                        <div className="relative">
-                          <Input
-                            id="newPassword"
-                            type={showNewPassword ? 'text' : 'password'}
-                            placeholder="Digite sua nova senha"
-                            value={newPassword}
-                            onChange={e => setNewPassword(e.target.value)}
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                          >
-                            {showNewPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                        <div className="relative">
-                          <Input
-                            id="confirmPassword"
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            placeholder="Confirme sua nova senha"
-                            value={confirmPassword}
-                            onChange={e => setConfirmPassword(e.target.value)}
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={handleChangePassword}
-                        disabled={
-                          !currentPassword || !newPassword || !confirmPassword || isChangingPassword
-                        }
-                        className="w-full"
-                      >
-                        {isChangingPassword ? 'Alterando...' : 'Alterar Senha'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 2 && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Na agenda você pode visualizar todos os seus eventos, estudos bíblicos,
-                      reuniões de oração e atividades da igreja.
-                    </p>
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-purple-800">
-                        📅 Funcionalidade: Você também pode solicitar reuniões diretamente pela
-                        agenda
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 3 && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Use o chat para se comunicar com pastores, missionários e outros membros. Você
-                      pode enviar mensagens individuais ou participar de grupos.
-                    </p>
-                    <div className="bg-orange-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-orange-800">
-                        💬 Comunicação: As mensagens são privadas e seguras
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 4 && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Participe de estudos bíblicos, reuniões e aconselhamentos através de
-                      videochamadas. É simples e funciona direto no seu navegador.
-                    </p>
-                    <div className="bg-red-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-red-800">
-                        🎥 Tecnologia: Não precisa baixar nenhum aplicativo adicional
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 5 && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Acompanhe seu crescimento espiritual através de relatórios personalizados.
-                      Veja sua participação, pontuação e conquistas.
-                    </p>
-                    <div className="bg-indigo-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-indigo-800">
-                        📊 Gamificação: Ganhe pontos participando de atividades
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep !== 1 && (
-                  <Button
-                    onClick={() => completeStep(currentStep + 1)}
-                    variant={currentStepData.completed ? 'secondary' : 'default'}
-                    className="w-full"
-                    data-testid={`button-complete-step-${currentStep + 1}`}
-                  >
-                    {currentStepData.completed ? (
-                      <>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Etapa Concluída
-                      </>
-                    ) : (
-                      'Marcar como Concluída'
-                    )}
-                  </Button>
-                )}
-              </div>
+              <StepContent
+                currentStep={currentStep}
+                currentStepData={currentStepData}
+                passwordForm={{
+                  currentPassword,
+                  newPassword,
+                  confirmPassword,
+                  showCurrentPassword,
+                  showNewPassword,
+                  showConfirmPassword,
+                  isChangingPassword,
+                  onChangeCurrentPassword: setCurrentPassword,
+                  onChangeNewPassword: setNewPassword,
+                  onChangeConfirmPassword: setConfirmPassword,
+                  onToggleCurrentPassword: () => setShowCurrentPassword(!showCurrentPassword),
+                  onToggleNewPassword: () => setShowNewPassword(!showNewPassword),
+                  onToggleConfirmPassword: () => setShowConfirmPassword(!showConfirmPassword),
+                  onSubmit: handleChangePassword,
+                }}
+                onCompleteStep={() => completeStep(currentStep + 1)}
+              />
             </CardContent>
           </Card>
 
-          {/* Navigation */}
-          <div className="flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 0}
-              className="bg-white/90"
-              data-testid="button-prev-step"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Anterior
-            </Button>
+          <StepNavigation
+            currentStep={currentStep}
+            stepsCount={steps.length}
+            onPrev={prevStep}
+            onNext={nextStep}
+            onFinish={completeTutorial}
+            onGoToStep={goToStep}
+          />
 
-            <div className="flex space-x-1">
-              {steps.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => goToStep(idx)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    idx === currentStep
-                      ? 'bg-white'
-                      : idx < currentStep
-                        ? 'bg-white/70'
-                        : 'bg-white/30'
-                  }`}
-                  data-testid={`button-step-${idx + 1}`}
-                />
-              ))}
-            </div>
-
-            {currentStep < steps.length - 1 ? (
-              <Button
-                variant="outline"
-                onClick={nextStep}
-                className="bg-white/90"
-                data-testid="button-next-step"
-              >
-                Próxima
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            ) : (
-              <Button
-                onClick={completeTutorial}
-                className="bg-white text-primary hover:bg-white/90"
-                data-testid="button-finish-tutorial"
-              >
-                Finalizar
-              </Button>
-            )}
-          </div>
-
-          {/* Step List */}
-          <Card className="bg-white/95">
-            <CardHeader>
-              <CardTitle className="text-lg">Todas as Etapas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {steps.map((step, index) => {
-                  const StepIcon = step.icon;
-                  return (
-                    <div
-                      key={step.id}
-                      className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                        index === currentStep
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'hover:bg-gray-50'
-                      }`}
-                      onClick={() => goToStep(index)}
-                    >
-                      <div
-                        className={`w-8 h-8 ${step.color} rounded-full flex items-center justify-center flex-shrink-0`}
-                      >
-                        <StepIcon className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">{step.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{step.description}</p>
-                      </div>
-                      {step.completed && (
-                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      )}
-                      {index === currentStep && (
-                        <Badge variant="secondary" className="flex-shrink-0">
-                          Atual
-                        </Badge>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          <StepList steps={steps} currentStep={currentStep} onGoToStep={goToStep} />
 
           {/* Skip Tutorial Option */}
           <div className="text-center">

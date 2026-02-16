@@ -10,7 +10,6 @@
  * The `sql` tag is mocked in ./setup.ts to return empty arrays.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import './setup';
 import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';

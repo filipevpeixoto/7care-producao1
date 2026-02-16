@@ -11,11 +11,9 @@ import { randomUUID } from 'crypto';
 import { logger } from '../utils/logger';
 
 // Estende o tipo Request para incluir correlationId
-declare global {
-  namespace Express {
-    interface Request {
-      correlationId: string;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    correlationId: string;
   }
 }
 

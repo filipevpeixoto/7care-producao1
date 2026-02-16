@@ -16,6 +16,7 @@ import { asyncHandler } from '../utils';
 import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
 import { getAuthUserId } from '../utils/authHelpers';
 
+/** Registers church management routes (CRUD operations) */
 export const churchRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const churchRepo = getRepository('churchRepository');

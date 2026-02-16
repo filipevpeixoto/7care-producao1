@@ -10,8 +10,10 @@ import { log } from './static';
 import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger/config';
+import { initSentry, sentryErrorHandler } from './services/sentryService';
 
 const app = createApp();
+initSentry(app);
 
 // Swagger UI — apenas em desenvolvimento
 if (process.env.NODE_ENV !== 'production') {
@@ -62,12 +64,6 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // 404 handler para rotas não encontradas (antes do error handler)
-  app.use(createNotFoundHandler());
-
-  // Error handler (DEVE ser registrado após todas as rotas e o 404 handler)
-  app.use(createErrorHandler());
-
   // Vite dev server em desenvolvimento
   if (app.get('env') === 'development') {
     const { setupVite } = await import('./vite');
@@ -76,6 +72,13 @@ app.use((req, res, next) => {
     const { serveStatic } = await import('./static');
     serveStatic(app);
   }
+
+  // 404 handler para rotas não encontradas (após Vite/static)
+  app.use(createNotFoundHandler());
+
+  // Error handler (DEVE ser registrado após todas as rotas e o 404 handler)
+  app.use(sentryErrorHandler());
+  app.use(createErrorHandler());
 
   const port = process.env.PORT || 3065;
   server.listen(

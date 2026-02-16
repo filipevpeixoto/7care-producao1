@@ -4,7 +4,7 @@
  * @module components/ui/OptimizedImage
  */
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps {
@@ -61,37 +61,24 @@ export function OptimizedImage({
   fallback = '/placeholder.svg',
   sizes = '(max-width: 640px) 640px, (max-width: 1024px) 1024px, 1920px',
 }: OptimizedImageProps) {
-  const [error, setError] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const handleLoad = useCallback(
+    (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      event.currentTarget.style.opacity = '1';
+      onLoad?.();
+    },
+    [onLoad]
+  );
 
-  // Reset error state when src changes
-  useEffect(() => {
-    setError(false);
-    setLoaded(false);
-  }, [src]);
-
-  const handleLoad = () => {
-    setLoaded(true);
-    onLoad?.();
-  };
-
-  const handleError = () => {
-    setError(true);
-    onError?.();
-  };
-
-  // Se houve erro, mostrar fallback
-  if (error) {
-    return (
-      <img
-        src={fallback}
-        alt={alt}
-        className={cn('bg-gray-100', className)}
-        width={width}
-        height={height}
-      />
-    );
-  }
+  const handleError = useCallback(
+    (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      if (event.currentTarget.src !== fallback) {
+        event.currentTarget.src = fallback;
+      }
+      event.currentTarget.style.opacity = '1';
+      onError?.();
+    },
+    [fallback, onError]
+  );
 
   // Gerar srcset para imagens responsivas
   const generateSrcSet = (format: string) => {
@@ -113,11 +100,10 @@ export function OptimizedImage({
         src={`${src}-lg.png`}
         alt={alt}
         className={cn(
-          'transition-opacity duration-300',
-          !loaded && 'opacity-0',
-          loaded && 'opacity-100',
+          'transition-opacity duration-300 opacity-0',
           className
         )}
+        style={{ opacity: 0 }}
         width={width}
         height={height}
         loading={priority ? 'eager' : loading}

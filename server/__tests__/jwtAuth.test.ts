@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Response, NextFunction } from 'express';
-import type { AuthenticatedRequest } from '../middleware/jwtAuth';
 
 /*
  * jwtAuth.ts creates `new NeonAdapter()` at module scope.
@@ -61,6 +60,7 @@ import {
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
   getRefreshTokenFromCookie,
+  type AuthenticatedRequest,
 } from '../middleware/jwtAuth';
 
 // ── Helpers ─────────────────────────────────────────────────────

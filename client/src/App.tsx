@@ -23,7 +23,7 @@ import {
   cacheCurrentUser,
   testOfflineData,
 } from './lib/offline';
-import { SkipLink } from './components/accessibility/SkipLink';
+import { SkipLink } from './components/ui/accessibility';
 import { RouteAnnouncer } from './components/accessibility/RouteAnnouncer';
 import { getSkeletonForRoute } from './components/ui/page-skeleton';
 import { usePrefetchOnMount } from './hooks/usePrefetch';
@@ -34,8 +34,7 @@ import './styles/view-transitions.css';
 
 // Retry wrapper for lazy imports — if a chunk fails to load (e.g. after deploy),
 // retry once and then force-reload the page so the browser fetches the new assets.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
+function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>) {
   return lazy(() =>
     importFn().catch((err) => {
       uiLogger.error('[LazyLoad] Chunk load failed, retrying…', err);
@@ -164,6 +163,52 @@ const PrefetchManager = () => {
   return null;
 };
 
+type RouteConfig = {
+  path: string;
+  element: JSX.Element;
+};
+
+const publicRoutes: RouteConfig[] = [
+  { path: '/', element: <Login /> },
+  { path: '/login', element: <Login /> },
+  { path: '/first-access', element: <FirstAccessWelcome /> },
+  { path: '/pastor-onboarding/:token', element: <PastorOnboarding /> },
+  { path: '/termos', element: <Terms /> },
+  { path: '/privacidade', element: <Privacy /> },
+  { path: '*', element: <NotFound /> },
+];
+
+const protectedRoutes: RouteConfig[] = [
+  { path: '/dashboard', element: <Dashboard /> },
+  { path: '/calendar', element: <Calendar /> },
+  { path: '/menu', element: <Menu /> },
+  { path: '/meu-cadastro', element: <MeuCadastro /> },
+  { path: '/users', element: <Users /> },
+  { path: '/interested', element: <Interested /> },
+  { path: '/my-interested', element: <MyInterested /> },
+  { path: '/chat', element: <Chat /> },
+  { path: '/gamification', element: <Gamification /> },
+  { path: '/prayers', element: <Prayers /> },
+  { path: '/push-notifications', element: <PushNotifications /> },
+  { path: '/notifications', element: <NotificationsHistory /> },
+  { path: '/settings', element: <Settings /> },
+  { path: '/tasks', element: <Tasks /> },
+  { path: '/reports', element: <Reports /> },
+  { path: '/my-reports', element: <Tasks /> },
+  { path: '/contact', element: <Contact /> },
+  { path: '/election-config', element: <ElectionConfig /> },
+  { path: '/election-voting', element: <ElectionVoting /> },
+  { path: '/election-dashboard', element: <ElectionDashboard /> },
+  { path: '/elections', element: <UnifiedElection /> },
+  { path: '/election-dashboard/:configId', element: <ElectionResults /> },
+  { path: '/election-manage', element: <ElectionDashboard /> },
+  { path: '/election-manage/:configId', element: <ElectionManage /> },
+  { path: '/election-vote/:configId', element: <ElectionVotingMobile /> },
+  { path: '/districts', element: <Districts /> },
+  { path: '/pastors', element: <Pastors /> },
+  { path: '/pastor-invites', element: <PastorInvites /> },
+];
+
 /**
  * RoutesWrapper — Componente que envolve Routes com ErrorBoundary e transição.
  *
@@ -177,238 +222,16 @@ const RoutesWrapper = () => {
       <Suspense fallback={<PageLoader />}>
         <div className="route-transition-wrapper">
           <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/first-access" element={<FirstAccessWelcome />} />
-            <Route path="/pastor-onboarding/:token" element={<PastorOnboarding />} />
-            {/* Rotas protegidas — requerem autenticação */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <Calendar />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/menu"
-              element={
-                <ProtectedRoute>
-                  <Menu />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/meu-cadastro"
-              element={
-                <ProtectedRoute>
-                  <MeuCadastro />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <Users />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/interested"
-              element={
-                <ProtectedRoute>
-                  <Interested />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-interested"
-              element={
-                <ProtectedRoute>
-                  <MyInterested />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/chat"
-              element={
-                <ProtectedRoute>
-                  <Chat />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/gamification"
-              element={
-                <ProtectedRoute>
-                  <Gamification />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/prayers"
-              element={
-                <ProtectedRoute>
-                  <Prayers />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/push-notifications"
-              element={
-                <ProtectedRoute>
-                  <PushNotifications />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute>
-                  <NotificationsHistory />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks"
-              element={
-                <ProtectedRoute>
-                  <Tasks />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-reports"
-              element={
-                <ProtectedRoute>
-                  <Tasks />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contact"
-              element={
-                <ProtectedRoute>
-                  <Contact />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/election-config"
-              element={
-                <ProtectedRoute>
-                  <ElectionConfig />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/election-voting"
-              element={
-                <ProtectedRoute>
-                  <ElectionVoting />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/election-dashboard"
-              element={
-                <ProtectedRoute>
-                  <ElectionDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/elections"
-              element={
-                <ProtectedRoute>
-                  <UnifiedElection />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/election-dashboard/:configId"
-              element={
-                <ProtectedRoute>
-                  <ElectionResults />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/election-manage"
-              element={
-                <ProtectedRoute>
-                  <ElectionDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/election-manage/:configId"
-              element={
-                <ProtectedRoute>
-                  <ElectionManage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/election-vote/:configId"
-              element={
-                <ProtectedRoute>
-                  <ElectionVotingMobile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/districts"
-              element={
-                <ProtectedRoute>
-                  <Districts />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pastors"
-              element={
-                <ProtectedRoute>
-                  <Pastors />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pastor-invites"
-              element={
-                <ProtectedRoute>
-                  <PastorInvites />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/termos" element={<Terms />} />
-            <Route path="/privacidade" element={<Privacy />} />
-            <Route path="*" element={<NotFound />} />
+            {publicRoutes.map((route) => (
+              <Route key={route.path} path={route.path} element={route.element} />
+            ))}
+            {protectedRoutes.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+              />
+            ))}
           </Routes>
         </div>
       </Suspense>
@@ -417,7 +240,6 @@ const RoutesWrapper = () => {
 };
 
 // Create optimized query client - exportado para uso global (ex: limpar cache no login/logout)
-// eslint-disable-next-line react-refresh/only-export-components
 export const queryClient = createQueryClient();
 
 // Wrapper para sincronização do role do usuário com o sistema offline
@@ -523,7 +345,7 @@ const App = () => {
           <TooltipProvider>
             <ModalProvider>
               {/* Skip Link para acessibilidade - permite pular navegação */}
-              <SkipLink targetId="main-content">Pular para o conteúdo principal</SkipLink>
+              <SkipLink targetId="main-content" />
               <Sonner />
               <OfflineUserSync />
               <BrowserRouter>

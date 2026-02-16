@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Plus, Edit, Trash2, Users, MapPin, Search, Link2, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,28 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { isSuperAdmin } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { createLogger } from '@/lib/logger';
+import type { Church } from '@/types/domain';
+import {
+  CreateDistrictDialog,
+  DeleteDistrictDialog,
+  EditDistrictDialog,
+  LinkChurchesDialog,
+} from './districts/DistrictDialogs';
 
 const districtsLogger = createLogger('Districts');
 
@@ -38,18 +28,33 @@ interface District {
   name: string;
   code: string;
   pastor_id: number | null;
+  pastorId?: number | null;
   pastor_name?: string;
   pastor_email?: string;
   description: string | null;
   created_at: string;
   updated_at: string;
   churchesCount?: number;
-  churches?: any[];
+  churches?: Church[];
 }
+
+type PastorOption = {
+  id: number;
+  name: string;
+  email?: string | null;
+};
+
+type DistrictPayload = {
+  name: string;
+  code: string;
+  pastorId: number | null;
+  description: string | null;
+};
 
 export default function Districts() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,7 +100,7 @@ export default function Districts() {
         throw new Error(`Erro ao buscar distritos: ${response.status} - ${errorText}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as District[];
       districtsLogger.debug('Distritos recebidos:', data);
 
       if (!Array.isArray(data)) {
@@ -104,7 +109,7 @@ export default function Districts() {
       }
 
       // Log detalhado de cada distrito para debug
-      data.forEach((district: any) => {
+      data.forEach((district: District) => {
         districtsLogger.debug(`Distrito "${district.name}":`, {
           id: district.id,
           pastor_id: district.pastor_id,
@@ -143,7 +148,7 @@ export default function Districts() {
   const districts: District[] = districtsData ?? [];
 
   // Buscar pastores (para seleção)
-  const { data: pastors = [] } = useQuery({
+  const { data: pastors = [] as PastorOption[] } = useQuery<PastorOption[]>({
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['/api/pastors', user?.id],
     queryFn: async () => {
@@ -157,7 +162,8 @@ export default function Districts() {
   });
 
   // Buscar igrejas sem distrito
-  const { data: unassignedChurches = [], refetch: refetchUnassignedChurches } = useQuery({
+  const { data: unassignedChurches = [] as Church[], refetch: refetchUnassignedChurches } =
+    useQuery<Church[]>({
     // IMPORTANTE: user?.id na queryKey para cache separado por usuário
     queryKey: ['/api/churches/unassigned', user?.id],
     queryFn: async () => {
@@ -172,30 +178,31 @@ export default function Districts() {
 
   // Criar distrito
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: DistrictPayload) => {
       const response = await fetchWithAuth('/api/districts', {
         method: 'POST',
         body: JSON.stringify(data),
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao criar distrito');
+        throw new Error(error.error || t('districts.createError'));
       }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: 'Distrito criado',
-        description: 'O distrito foi criado com sucesso.',
+        title: t('districts.districtCreated'),
+        description: t('districts.districtCreatedDesc'),
       });
       setIsCreateDialogOpen(false);
       setFormData({ name: '', code: '', pastorId: '', description: '' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : undefined;
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível criar o distrito.',
+        title: t('common.error'),
+        description: message || t('districts.createFailed'),
         variant: 'destructive',
       });
     },
@@ -203,31 +210,32 @@ export default function Districts() {
 
   // Atualizar distrito
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: DistrictPayload }) => {
       const response = await fetchWithAuth(`/api/districts/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao atualizar distrito');
+        throw new Error(error.error || t('districts.updateError'));
       }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: 'Distrito atualizado',
-        description: 'O distrito foi atualizado com sucesso.',
+        title: t('districts.districtUpdated'),
+        description: t('districts.districtUpdatedDesc'),
       });
       setIsEditDialogOpen(false);
       setEditingDistrict(null);
       setFormData({ name: '', code: '', pastorId: '', description: '' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : undefined;
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível atualizar o distrito.',
+        title: t('common.error'),
+        description: message || t('districts.updateFailed'),
         variant: 'destructive',
       });
     },
@@ -241,23 +249,24 @@ export default function Districts() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao deletar distrito');
+        throw new Error(error.error || t('districts.deleteError'));
       }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       toast({
-        title: 'Distrito deletado',
-        description: 'O distrito foi deletado com sucesso.',
+        title: t('districts.districtDeleted'),
+        description: t('districts.districtDeletedDesc'),
       });
       setDeleteDialogOpen(false);
       setDistrictToDelete(null);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : undefined;
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível deletar o distrito.',
+        title: t('common.error'),
+        description: message || t('districts.deleteFailed'),
         variant: 'destructive',
       });
     },
@@ -272,25 +281,26 @@ export default function Districts() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao vincular igrejas');
+        throw new Error(error.error || t('districts.linkError'));
       }
       return response.json();
     },
-    onSuccess: data => {
+    onSuccess: (data: { message?: string }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/churches/unassigned'] });
       toast({
-        title: 'Igrejas vinculadas',
-        description: data.message || 'As igrejas foram vinculadas ao distrito com sucesso.',
+        title: t('districts.churchesLinked'),
+        description: data.message || t('districts.churchesLinkedDesc'),
       });
       setLinkChurchesDialogOpen(false);
       setSelectedDistrictForLink(null);
       setSelectedChurchIds([]);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : undefined;
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível vincular as igrejas.',
+        title: t('common.error'),
+        description: message || t('districts.linkFailed'),
         variant: 'destructive',
       });
     },
@@ -364,12 +374,12 @@ export default function Districts() {
 
   const handleViewAsPastor = async (district: District) => {
     // Tentar encontrar o pastor_id de diferentes formas
-    const pastorId = district.pastor_id || (district as any).pastorId;
+    const pastorId = district.pastor_id ?? district.pastorId ?? null;
 
     if (!pastorId && !district.pastor_name) {
       toast({
-        title: 'Aviso',
-        description: 'Este distrito não tem um pastor associado.',
+        title: t('districts.warning'),
+        description: t('districts.noPastorAssociated'),
         variant: 'destructive',
       });
       return;
@@ -383,7 +393,7 @@ export default function Districts() {
         const response = await fetchWithAuth(`/api/users/${pastorId}`);
 
         if (!response.ok) {
-          throw new Error('Erro ao buscar dados do responsável pelo distrito');
+          throw new Error(t('districts.fetchPastorError'));
         }
 
         pastor = await response.json();
@@ -391,9 +401,8 @@ export default function Districts() {
         // Se não temos pastor_id mas temos pastor_name, tentar buscar por email ou nome
         // Por enquanto, vamos apenas mostrar erro
         toast({
-          title: 'Aviso',
-          description:
-            'Não foi possível identificar o pastor. Edite o distrito para associar um pastor.',
+          title: t('districts.warning'),
+          description: t('districts.cannotIdentifyPastor'),
           variant: 'destructive',
         });
         return;
@@ -417,21 +426,24 @@ export default function Districts() {
       localStorage.setItem('7care_impersonation', JSON.stringify(impersonationContext));
 
       toast({
-        title: 'Visualizando como Pastor',
-        description: `Você está visualizando como ${pastor.name}. Use o botão "Voltar ao Superadmin" para retornar.`,
+        title: t('districts.viewingAsPastor'),
+        description: t('districts.viewingAsPastorDesc', { name: pastor.name }),
       });
 
       // Redirecionar para o dashboard
       navigate('/dashboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : undefined;
       districtsLogger.error('Erro ao visualizar como pastor:', error);
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível visualizar como pastor.',
+        title: t('common.error'),
+        description: message || t('districts.viewAsPastorFailed'),
         variant: 'destructive',
       });
     }
   };
+
+  const toChurchId = (id: Church['id']) => (typeof id === 'string' ? Number(id) : id);
 
   const filteredDistricts = districts.filter(
     d =>
@@ -439,12 +451,114 @@ export default function Districts() {
       d.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  let districtsContent: React.ReactNode;
+  if (isLoading) {
+    districtsContent = <div className="text-center py-8">{t('common.loading')}</div>;
+  } else if (districtsError) {
+    districtsContent = (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-destructive font-medium">{t('districts.errorLoading')}</p>
+          <p className="text-muted-foreground text-sm mt-2">
+            {districtsError instanceof Error ? districtsError.message : t('districts.unknownError')}
+          </p>
+          <p className="text-muted-foreground text-xs mt-2">{t('districts.checkConsole')}</p>
+        </CardContent>
+      </Card>
+    );
+  } else if (filteredDistricts.length === 0) {
+    districtsContent = (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-muted-foreground">{t('districts.noDistrictsFound')}</p>
+          {districts.length === 0 && (
+            <p className="text-muted-foreground text-sm mt-2">
+              {t('districts.checkSuperadminPermission')}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  } else {
+    districtsContent = (
+      <div className="grid gap-4">
+        {filteredDistricts.map(district => (
+          <Card key={district.id}>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    {district.name}
+                  </CardTitle>
+                  <CardDescription className="mt-1">{t('districts.codeLabel', { code: district.code })}</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  {(district.pastor_id || district.pastor_name) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewAsPastor(district)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/30"
+                      title={t('districts.viewAsPastorTooltip')}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">{t('districts.viewAsPastor')}</span>
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenLinkChurches(district)}
+                    className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/30"
+                    title={t('districts.linkChurchesTooltip')}
+                  >
+                    <Link2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(district)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDelete(district)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {district.description && (
+                <p className="text-sm text-muted-foreground mb-3">{district.description}</p>
+              )}
+              <div className="space-y-2">
+                {district.pastor_name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{t('districts.pastorLabel')}</span>
+                    <span>{district.pastor_name}</span>
+                    {district.pastor_email && (
+                      <span className="text-muted-foreground">({district.pastor_email})</span>
+                    )}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{t('districts.churchesLabel')}</span>
+                  <Badge variant="secondary">
+                    {district.churchesCount || 0} {district.churchesCount === 1 ? t('districts.churchSingular') : t('districts.churchPlural')}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
   if (!isSuperAdmin(user)) {
     return (
       <MobileLayout>
         <div className="p-4 text-center">
-          <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
-          <p className="text-muted-foreground">Apenas superadmin pode gerenciar distritos.</p>
+          <h2 className="text-xl font-semibold mb-2">{t('districts.restrictedAccess')}</h2>
+          <p className="text-muted-foreground">{t('districts.restrictedMessage')}</p>
         </div>
       </MobileLayout>
     );
@@ -455,8 +569,8 @@ export default function Districts() {
       <div className="p-3 sm:p-4 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Distritos</h1>
-            <p className="text-sm text-muted-foreground">Gerencie os distritos e suas igrejas</p>
+            <h1 className="text-xl sm:text-2xl font-bold">{t('districts.title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('districts.subtitle')}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {unassignedChurches.length > 0 && (
@@ -467,15 +581,15 @@ export default function Districts() {
                 className="text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600/50 dark:hover:bg-orange-900/30"
               >
                 <Link2 className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Igrejas sem Distrito</span>
-                <span className="sm:hidden">Sem Distrito</span>
+                <span className="hidden sm:inline">{t('districts.unassignedChurches')}</span>
+                <span className="sm:hidden">{t('districts.unassignedChurchesMobile')}</span>
                 <span className="ml-1">({unassignedChurches.length})</span>
               </Button>
             )}
             <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Novo Distrito</span>
-              <span className="sm:hidden">Novo</span>
+              <span className="hidden sm:inline">{t('districts.newDistrict')}</span>
+              <span className="sm:hidden">{t('districts.newMobile')}</span>
             </Button>
           </div>
         </div>
@@ -483,393 +597,51 @@ export default function Districts() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar distritos..."
+            placeholder={t('districts.searchPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-8">Carregando...</div>
-        ) : districtsError ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <p className="text-destructive font-medium">Erro ao carregar distritos</p>
-              <p className="text-muted-foreground text-sm mt-2">
-                {districtsError instanceof Error ? districtsError.message : 'Erro desconhecido'}
-              </p>
-              <p className="text-muted-foreground text-xs mt-2">
-                Verifique o console para mais detalhes
-              </p>
-            </CardContent>
-          </Card>
-        ) : filteredDistricts.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground">Nenhum distrito encontrado</p>
-              {districts.length === 0 && (
-                <p className="text-muted-foreground text-sm mt-2">
-                  Verifique se você tem permissão de superadmin
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {filteredDistricts.map(district => (
-              <Card key={district.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="flex items-center gap-2">
-                        <Building2 className="h-5 w-5" />
-                        {district.name}
-                      </CardTitle>
-                      <CardDescription className="mt-1">Código: {district.code}</CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      {(district.pastor_id || district.pastor_name) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewAsPastor(district)}
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/30"
-                          title="Visualizar como pastor deste distrito"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          <span className="hidden sm:inline">Ver como Pastor</span>
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenLinkChurches(district)}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/30"
-                        title="Vincular igrejas a este distrito"
-                      >
-                        <Link2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(district)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(district)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {district.description && (
-                    <p className="text-sm text-muted-foreground mb-3">{district.description}</p>
-                  )}
-                  <div className="space-y-2">
-                    {district.pastor_name && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Pastor:</span>
-                        <span>{district.pastor_name}</span>
-                        {district.pastor_email && (
-                          <span className="text-muted-foreground">({district.pastor_email})</span>
-                        )}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Igrejas:</span>
-                      <Badge variant="secondary">
-                        {district.churchesCount || 0}{' '}
-                        {district.churchesCount === 1 ? 'igreja' : 'igrejas'}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        {districtsContent}
 
-        {/* Dialog de Criação */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Distrito</DialogTitle>
-              <DialogDescription>Crie um novo distrito para organizar igrejas</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Nome do Distrito</Label>
-                <Input
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: Santana do Livramento"
-                />
-              </div>
-              <div>
-                <Label>Código</Label>
-                <Input
-                  value={formData.code}
-                  onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  placeholder="Ex: SLIV001"
-                />
-              </div>
-              <div>
-                <Label>Pastor (Opcional)</Label>
-                <Select
-                  value={formData.pastorId || 'none'}
-                  onValueChange={value =>
-                    setFormData({ ...formData, pastorId: value === 'none' ? '' : value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um pastor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {pastors.map((pastor: any) => (
-                      <SelectItem key={pastor.id} value={pastor.id.toString()}>
-                        {pastor.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Descrição (Opcional)</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Descrição do distrito"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreate} disabled={!formData.name || !formData.code}>
-                Criar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog de Edição */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Editar Distrito</DialogTitle>
-              <DialogDescription>Atualize as informações do distrito</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Nome do Distrito</Label>
-                <Input
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Código</Label>
-                <Input
-                  value={formData.code}
-                  onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                />
-              </div>
-              <div>
-                <Label>Pastor (Opcional)</Label>
-                <Select
-                  value={formData.pastorId || 'none'}
-                  onValueChange={value =>
-                    setFormData({ ...formData, pastorId: value === 'none' ? '' : value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um pastor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {pastors.map((pastor: any) => (
-                      <SelectItem key={pastor.id} value={pastor.id.toString()}>
-                        {pastor.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Descrição (Opcional)</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleUpdate} disabled={!formData.name || !formData.code}>
-                Salvar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog de Confirmação de Exclusão */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirmar Exclusão</DialogTitle>
-              <DialogDescription>
-                Tem certeza que deseja deletar o distrito "{districtToDelete?.name}"? Esta ação não
-                pode ser desfeita.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button variant="destructive" onClick={confirmDelete}>
-                Deletar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog de Vincular Igrejas */}
-        <Dialog
-          open={linkChurchesDialogOpen}
-          onOpenChange={open => {
-            setLinkChurchesDialogOpen(open);
-            if (!open) {
-              setSelectedDistrictForLink(null);
-              setSelectedChurchIds([]);
-            }
-          }}
-        >
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Link2 className="h-5 w-5" />
-                Vincular Igrejas{' '}
-                {selectedDistrictForLink
-                  ? `ao Distrito ${selectedDistrictForLink.name}`
-                  : 'sem Distrito'}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedDistrictForLink
-                  ? `Selecione as igrejas que deseja vincular ao distrito "${selectedDistrictForLink.name}".`
-                  : 'Selecione um distrito e as igrejas que deseja vincular.'}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex-1 overflow-y-auto space-y-4 py-4">
-              {!selectedDistrictForLink && districts.length > 0 && (
-                <div>
-                  <Label>Selecione o Distrito</Label>
-                  <Select
-                    value=""
-                    onValueChange={value => {
-                      // Type assertion para evitar inferência never
-                      const districtList = districts as unknown as District[];
-                      const found = districtList.find(d => d.id === parseInt(value));
-                      setSelectedDistrictForLink(found || null);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um distrito" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(districts as unknown as District[]).map(district => (
-                        <SelectItem key={district.id} value={district.id.toString()}>
-                          {district.name} ({district.churchesCount || 0} igrejas)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {unassignedChurches.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Não há igrejas sem distrito para vincular.</p>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <Label>Igrejas sem Distrito ({unassignedChurches.length})</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (selectedChurchIds.length === unassignedChurches.length) {
-                          setSelectedChurchIds([]);
-                        } else {
-                          setSelectedChurchIds(unassignedChurches.map((c: any) => c.id));
-                        }
-                      }}
-                    >
-                      {selectedChurchIds.length === unassignedChurches.length
-                        ? 'Desmarcar Todas'
-                        : 'Selecionar Todas'}
-                    </Button>
-                  </div>
-                  <div className="border rounded-lg max-h-[300px] overflow-y-auto">
-                    {unassignedChurches.map((church: any) => (
-                      <div
-                        key={church.id}
-                        className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
-                        onClick={() => handleToggleChurch(church.id)}
-                      >
-                        <Checkbox
-                          id={`church-${church.id}`}
-                          checked={selectedChurchIds.includes(church.id)}
-                          onCheckedChange={() => handleToggleChurch(church.id)}
-                        />
-                        <div className="flex-1">
-                          <p className="font-medium">{church.name}</p>
-                          {church.address && (
-                            <p className="text-sm text-muted-foreground">{church.address}</p>
-                          )}
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {church.code || 'Sem código'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter className="flex-shrink-0">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setLinkChurchesDialogOpen(false);
-                  setSelectedDistrictForLink(null);
-                  setSelectedChurchIds([]);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleLinkChurches}
-                disabled={
-                  !selectedDistrictForLink ||
-                  selectedChurchIds.length === 0 ||
-                  linkChurchesMutation.isPending
-                }
-              >
-                {linkChurchesMutation.isPending
-                  ? 'Vinculando...'
-                  : `Vincular ${selectedChurchIds.length} Igreja(s)`}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <CreateDistrictDialog
+          isOpen={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          formData={formData}
+          setFormData={setFormData}
+          pastors={pastors}
+          onCreate={handleCreate}
+        />
+        <EditDistrictDialog
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          formData={formData}
+          setFormData={setFormData}
+          pastors={pastors}
+          onUpdate={handleUpdate}
+        />
+        <DeleteDistrictDialog
+          isOpen={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          districtToDelete={districtToDelete}
+          onConfirm={confirmDelete}
+        />
+        <LinkChurchesDialog
+          isOpen={linkChurchesDialogOpen}
+          onOpenChange={setLinkChurchesDialogOpen}
+          selectedDistrictForLink={selectedDistrictForLink}
+          setSelectedDistrictForLink={setSelectedDistrictForLink}
+          selectedChurchIds={selectedChurchIds}
+          setSelectedChurchIds={setSelectedChurchIds}
+          districts={districts}
+          unassignedChurches={unassignedChurches}
+          toChurchId={toChurchId}
+          handleToggleChurch={handleToggleChurch}
+          onLinkChurches={handleLinkChurches}
+          isLinking={linkChurchesMutation.isPending}
+        />
       </div>
     </MobileLayout>
   );

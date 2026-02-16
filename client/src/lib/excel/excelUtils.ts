@@ -5,6 +5,9 @@
  */
 
 import ExcelJS from 'exceljs';
+import { createLogger } from '@/lib/logger';
+
+const excelLogger = createLogger('Excel');
 
 // xlsx é importado dinamicamente para evitar vulnerabilidades e reduzir bundle
 // Usa import('xlsx') apenas quando necessário para .xls files
@@ -123,16 +126,15 @@ export async function readExcelFile(
 
     // Se SheetJS falhar com .xlsx, tentar ExcelJS como fallback
     if (file instanceof File && !isXlsFile(file)) {
-      console.log('[Excel] SheetJS falhou, tentando ExcelJS como fallback...');
+      excelLogger.warn('SheetJS falhou, tentando ExcelJS como fallback');
       try {
         return await readWithExcelJS(file, sheetIndex);
-      } catch (_excelJSErr) {
-        // Se ambos falharem, mostrar erro original
-        throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+      } catch (excelJSErr) {
+        throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`, { cause: excelJSErr });
       }
     }
 
-    throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+    throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`, { cause: err });
   }
 }
 
@@ -218,15 +220,15 @@ export async function readExcelAsRawData(
 
     // Se SheetJS falhar com .xlsx, tentar ExcelJS como fallback
     if (file instanceof File && !isXlsFile(file)) {
-      console.log('[Excel] SheetJS falhou para raw data, tentando ExcelJS como fallback...');
+      excelLogger.warn('SheetJS falhou para raw data, tentando ExcelJS como fallback');
       try {
         return await readRawWithExcelJS(file, sheetIndex);
-      } catch {
-        throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+      } catch (excelJSErr) {
+        throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`, { cause: excelJSErr });
       }
     }
 
-    throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`);
+    throw new Error(`Erro ao ler arquivo Excel: ${errorMessage}`, { cause: err });
   }
 }
 

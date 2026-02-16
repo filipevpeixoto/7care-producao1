@@ -36,31 +36,27 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number = 300
 ): T {
-  const lastRan = useRef(Date.now());
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastArgsRef = useRef<Parameters<T> | null>(null);
 
-  return useCallback(
-    ((...args: Parameters<T>) => {
-      const now = Date.now();
+  const throttled = useCallback(
+    (...args: Parameters<T>) => {
+      lastArgsRef.current = args;
 
-      if (now - lastRan.current >= delay) {
-        fn(...args);
-        lastRan.current = now;
-      } else {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
+      if (timeoutRef.current) return;
+
+      timeoutRef.current = setTimeout(() => {
+        const lastArgs = lastArgsRef.current;
+        if (lastArgs) {
+          fn(...lastArgs);
         }
-        timeoutRef.current = setTimeout(
-          () => {
-            fn(...args);
-            lastRan.current = Date.now();
-          },
-          delay - (now - lastRan.current)
-        );
-      }
-    }) as T,
+        timeoutRef.current = null;
+      }, delay);
+    },
     [fn, delay]
   );
+
+  return throttled as T;
 }
 
 /**
@@ -120,18 +116,9 @@ export function useIsMounted(): () => boolean {
  * Hook para memoização profunda
  * Compara objetos por valor, não referência
  */
-export function useDeepMemo<T>(value: T, dependencies: React.DependencyList): T {
-  const ref = useRef<T>(value);
-
-  const isEqual = useMemo(() => {
-    return JSON.stringify(ref.current) === JSON.stringify(value);
-  }, dependencies);
-
-  if (!isEqual) {
-    ref.current = value;
-  }
-
-  return ref.current;
+export function useDeepMemo<T>(value: T): T {
+  const serializedValue = useMemo(() => JSON.stringify(value), [value]);
+  return useMemo(() => value, [serializedValue]);
 }
 
 /**
@@ -139,13 +126,15 @@ export function useDeepMemo<T>(value: T, dependencies: React.DependencyList): T 
  * Mantém o valor anterior de um state
  */
 export function usePrevious<T>(value: T): T | undefined {
-  const ref = useRef<T>(undefined);
+  const previousValueRef = useRef<T | undefined>(undefined);
+  const [previousValue, setPreviousValue] = useState<T | undefined>(undefined);
 
   useEffect(() => {
-    ref.current = value;
+    setPreviousValue(previousValueRef.current);
+    previousValueRef.current = value;
   }, [value]);
 
-  return ref.current;
+  return previousValue;
 }
 
 /**
@@ -238,7 +227,6 @@ export function useMediaQuery(query: string): boolean {
     const handler = (event: MediaQueryListEvent) => setMatches(event.matches);
 
     mediaQuery.addEventListener('change', handler);
-    setMatches(mediaQuery.matches);
 
     return () => mediaQuery.removeEventListener('change', handler);
   }, [query]);

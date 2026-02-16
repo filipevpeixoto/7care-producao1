@@ -1,11 +1,21 @@
+/**
+ * Import Routes Module
+ * Endpoints for calendar and data import from Excel files
+ */
+
 import { type Express, type Request, type Response } from 'express';
 import { sql } from '../neonConfig';
 import multer from 'multer';
 import { readExcelFile, cleanupTempFile, type ExcelRow as BaseExcelRow } from '../utils/excelUtils';
 import { logger } from '../utils/logger';
 import { asyncHandler, sendSuccess, sendError } from '../utils';
+import { UPLOAD } from '../constants';
+import { uploadRateLimiter } from '../middleware';
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: UPLOAD.EXCEL_MAX_FILE_SIZE },
+});
 
 interface ExcelRow extends BaseExcelRow {
   Evento?: string;
@@ -13,10 +23,12 @@ interface ExcelRow extends BaseExcelRow {
   Categoria?: string;
 }
 
+/** Registers data import routes (Excel calendar import) */
 export const importRoutes = (app: Express): void => {
   // Novo endpoint de importação simplificado
   app.post(
     '/api/calendar/import-simple',
+    uploadRateLimiter,
     upload.single('file'),
     asyncHandler(async (req: Request, res: Response) => {
       logger.info('Importação simplificada iniciada');
@@ -27,25 +39,27 @@ export const importRoutes = (app: Express): void => {
 
       logger.info(`Arquivo recebido: ${req.file.originalname}`);
 
-      // Verificar se é arquivo XLSX
-      if (!req.file.originalname.endsWith('.xlsx')) {
-        return sendError(
-          res,
-          'Apenas arquivos .xlsx são aceitos. Por favor, converta seu arquivo para formato Excel (.xlsx).',
-          400
-        );
-      }
-
-      // Processar arquivo Excel usando excelUtils
       const filePath = req.file.path;
 
-      const { rows: data, sheetName } = await readExcelFile(filePath);
-      logger.info(`Planilha lida: ${sheetName}, ${data.length} linhas`);
+      try {
+        if (!req.file.originalname.endsWith('.xlsx')) {
+          return sendError(
+            res,
+            'Apenas arquivos .xlsx são aceitos. Por favor, converta seu arquivo para formato Excel (.xlsx).',
+            400
+          );
+        }
 
-      if (!data || data.length === 0) {
-        cleanupTempFile(filePath);
-        return sendError(res, 'Nenhum dado encontrado no arquivo', 400);
-      }
+        if (req.file.size > UPLOAD.EXCEL_MAX_FILE_SIZE) {
+          return sendError(res, 'Arquivo excede o limite de 10MB', 400);
+        }
+
+        const { rows: data, sheetName } = await readExcelFile(filePath);
+        logger.info(`Planilha lida: ${sheetName}, ${data.length} linhas`);
+
+        if (!data || data.length === 0) {
+          return sendError(res, 'Nenhum dado encontrado no arquivo', 400);
+        }
 
       let importedCount = 0;
       const errors: string[] = [];
@@ -168,13 +182,13 @@ export const importRoutes = (app: Express): void => {
         }
       }
 
-      // Limpar arquivo temporário
-      cleanupTempFile(filePath);
-
-      sendSuccess(res, {
-        imported: importedCount,
-        errors,
-      });
+        sendSuccess(res, {
+          imported: importedCount,
+          errors,
+        });
+      } finally {
+        cleanupTempFile(filePath);
+      }
     })
   );
 };

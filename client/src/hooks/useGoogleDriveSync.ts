@@ -173,7 +173,7 @@ export function useGoogleDriveSync() {
       const nextSync = new Date(syncStatus.nextSync!);
       
       if (nextSync <= now && !syncStatus.isRunning) {
-        console.log('🔄 Executando sincronização automática com Google Drive...');
+        syncLogger.debug('Executando sincronização automática com Google Drive...');
         syncNow();
       }
     };

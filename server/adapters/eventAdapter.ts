@@ -9,30 +9,32 @@ import { eq, and, desc, asc, gte, lte, exists, sql as drizzleSql, type SQL } fro
 import { type CreateEventInput, type UpdateEventInput } from '../types/storage';
 import { type Event } from '../../shared/schema';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 /**
  * Converte row do banco para tipo Event
  */
 export function toEvent(row: Record<string, unknown>): Event {
   return {
     id: Number(row.id),
-    title: row.title == null ? undefined : String(row.title),
-    name: row.name == null ? undefined : String(row.name),
-    description: row.description == null ? null : String(row.description),
+    title: isNil(row.title) ? undefined : String(row.title),
+    name: isNil(row.name) ? undefined : String(row.name),
+    description: isNil(row.description) ? null : String(row.description),
     date: row.date instanceof Date ? row.date.toISOString() : String(row.date ?? ''),
     endDate:
-      row.endDate == null
+      isNil(row.endDate)
         ? null
         : row.endDate instanceof Date
           ? row.endDate.toISOString()
           : String(row.endDate),
-    location: row.location == null ? null : String(row.location),
-    type: row.type == null ? 'general' : String(row.type),
-    color: row.color == null ? null : String(row.color),
-    churchId: row.churchId == null ? null : Number(row.churchId),
-    createdBy: row.createdBy == null ? null : Number(row.createdBy),
-    capacity: row.capacity == null ? null : Number(row.capacity),
+    location: isNil(row.location) ? null : String(row.location),
+    type: isNil(row.type) ? 'general' : String(row.type),
+    color: isNil(row.color) ? null : String(row.color),
+    churchId: isNil(row.churchId) ? null : Number(row.churchId),
+    createdBy: isNil(row.createdBy) ? null : Number(row.createdBy),
+    capacity: isNil(row.capacity) ? null : Number(row.capacity),
     isRecurring: Boolean(row.isRecurring),
-    recurrencePattern: row.recurrencePattern == null ? null : String(row.recurrencePattern),
+    recurrencePattern: isNil(row.recurrencePattern) ? null : String(row.recurrencePattern),
     createdAt:
       row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? ''),
     updatedAt:

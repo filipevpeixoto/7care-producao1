@@ -22,18 +22,21 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** Parameters for creating a new pastor user account. */
 export interface CreatePastorUserParams {
   name: string;
   email: string;
   passwordHash: string;
 }
 
+/** Parameters for creating a new district linked to a pastor. */
 export interface CreateDistrictParams {
   name: string;
   description?: string;
   pastorId: number;
 }
 
+/** Result returned after completing the onboarding approval flow. */
 export interface OnboardingResult {
   userId: number;
   districtId: number;

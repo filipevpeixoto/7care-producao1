@@ -64,8 +64,8 @@ export function NotificationsSettings({
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState('general');
   const [selectedUserId, setSelectedUserId] = useState<number | string | null>(null);
-  const [usersList, setUsersList] = useState<any[]>([]);
-  const [subscriptionsList, setSubscriptionsList] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<{ id: number; name: string; email?: string }[]>([]);
+  const [subscriptionsList, setSubscriptionsList] = useState<{ id: number; userName?: string; userEmail?: string; createdAt?: string }[]>([]);
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
@@ -374,7 +374,7 @@ export function NotificationsSettings({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {subscriptionsList.map((sub: any) => (
+                  {subscriptionsList.map((sub) => (
                     <TableRow key={sub.id}>
                       <TableCell>{sub.userName || 'Usuário'}</TableCell>
                       <TableCell>{sub.userEmail || '-'}</TableCell>

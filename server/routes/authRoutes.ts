@@ -28,6 +28,7 @@ type JwtUserPayload = {
   name: string;
 };
 
+/** Registers authentication routes (login, register, logout, password reset/change) */
 export const authRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const churchRepo = getRepository('churchRepository');
@@ -78,7 +79,13 @@ export const authRoutes = (app: Express): void => {
     authLimiter,
     validateBody(loginSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const { email, password } = (req as ValidatedRequest<typeof loginSchema._type>).validatedBody;
+      const body =
+        (req as ValidatedRequest<typeof loginSchema._type>).validatedBody ?? req.body ?? {};
+      const { email, password } = body as { email?: string; password?: string };
+
+      if (!email || !password) {
+        return sendError(res, 'Erro de validação', 400);
+      }
 
       // Delegar toda a lógica de autenticação ao AuthService
       const result = await authService.login(email, password);

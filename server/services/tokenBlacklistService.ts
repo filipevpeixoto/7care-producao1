@@ -156,5 +156,5 @@ class TokenBlacklistService {
   }
 }
 
-// Singleton
+/** Singleton instance of the JWT token blacklist service used during logout. */
 export const tokenBlacklist = new TokenBlacklistService();

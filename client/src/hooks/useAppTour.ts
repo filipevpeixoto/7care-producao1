@@ -4,6 +4,9 @@ import 'driver.js/dist/driver.css';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './useAuth';
 import { isSuperAdmin } from '@/lib/permissions';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AppTour');
 
 export const useAppTour = () => {
   const location = useLocation();
@@ -340,15 +343,15 @@ export const useAppTour = () => {
     });
 
     if (validSteps.length === 0) {
-      console.warn('Nenhum elemento do tour encontrado');
+      logger.warn('Nenhum elemento do tour encontrado');
       setIsRunning(false);
       return;
     }
 
     const driverObj = driver({
       showProgress: true,
-      showButtons: ['next', 'previous', 'close'] as any,
-      steps: validSteps as any,
+      showButtons: ['next', 'previous', 'close'] as ("next" | "previous" | "close")[],
+      steps: validSteps as DriveStep[],
       nextBtnText: 'Próximo →',
       prevBtnText: '← Anterior',
       doneBtnText: 'Finalizar ✓',
@@ -361,7 +364,7 @@ export const useAppTour = () => {
       onDestroyed: () => {
         setIsRunning(false);
       },
-    } as any);
+    } as Parameters<typeof driver>[0]);
 
     driverObj.drive();
   }, [getHeaderSteps, getPageSpecificSteps, getNavSteps]);

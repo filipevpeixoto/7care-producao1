@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
+import { useTranslation } from 'react-i18next';
 
 import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +31,7 @@ import { useAppTour } from '@/hooks/useAppTour';
 import { PageHelpModal } from '@/components/help/PageHelpModal';
 
 export const MobileHeader = () => {
+  const { t } = useTranslation();
   const { user, logout, stopImpersonating } = useAuth();
   const navigate = useTransitionNavigate();
   const { toast } = useToast();
@@ -37,14 +39,31 @@ export const MobileHeader = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const { systemLogo } = useSystemLogo();
-  const [mobileHeaderLayout, setMobileHeaderLayout] = useState({
-    logo: { offsetX: 0, offsetY: 0 },
-    welcome: { offsetX: 0, offsetY: 0 },
-    actions: { offsetX: 0, offsetY: 0 },
+  const [mobileHeaderLayout, setMobileHeaderLayout] = useState(() => {
+    const defaultLayout = {
+      logo: { offsetX: 0, offsetY: 0 },
+      welcome: { offsetX: 0, offsetY: 0 },
+      actions: { offsetX: 0, offsetY: 0 },
+    };
+
+    if (typeof window === 'undefined') {
+      return defaultLayout;
+    }
+
+    const savedLayout = localStorage.getItem('mobileHeaderLayout');
+    if (!savedLayout) {
+      return defaultLayout;
+    }
+
+    try {
+      return JSON.parse(savedLayout);
+    } catch {
+      return defaultLayout;
+    }
   });
 
   const [isImpersonating, setIsImpersonating] = useState(false);
-  const [impersonationContext, setImpersonationContext] = useState<any>(null);
+  const [impersonationContext, setImpersonationContext] = useState<{ userId: number; userName: string; impersonatingAs?: { name: string; districtName?: string } } | null>(null);
 
   // State para o modal de ajuda
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -52,14 +71,13 @@ export const MobileHeader = () => {
   // Hook do tour interativo
   const { startTour: _startTour } = useAppTour();
 
-  // Verificar se está impersonando
   useEffect(() => {
     const checkImpersonation = () => {
       const context = localStorage.getItem('7care_impersonation');
       if (context) {
         try {
           const parsed = JSON.parse(context);
-          const maxAge = 24 * 60 * 60 * 1000; // 24 horas
+          const maxAge = 24 * 60 * 60 * 1000;
           if (Date.now() - parsed.timestamp < maxAge && parsed.isImpersonating) {
             setIsImpersonating(true);
             setImpersonationContext(parsed);
@@ -68,7 +86,7 @@ export const MobileHeader = () => {
             setIsImpersonating(false);
             setImpersonationContext(null);
           }
-        } catch (error) {
+        } catch {
           setIsImpersonating(false);
           setImpersonationContext(null);
         }
@@ -79,7 +97,6 @@ export const MobileHeader = () => {
     };
 
     checkImpersonation();
-    // Verificar periodicamente
     const interval = setInterval(checkImpersonation, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -96,24 +113,11 @@ export const MobileHeader = () => {
     };
   }, []);
 
-  // Load mobile header layout from localStorage
-  useEffect(() => {
-    const savedLayout = localStorage.getItem('mobileHeaderLayout');
-    if (savedLayout) {
-      try {
-        const parsedLayout = JSON.parse(savedLayout);
-        setMobileHeaderLayout(parsedLayout);
-      } catch (error) {
-        console.error('❌ MobileHeader - Erro ao carregar layout:', error);
-      }
-    }
-  }, []);
-
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
+    if (hour < 12) return t('greetings.morning', 'Bom dia');
+    if (hour < 18) return t('greetings.afternoon', 'Boa tarde');
+    return t('greetings.evening', 'Boa noite');
   }, []);
 
   // Lógica de auto-hide baseada no scroll
@@ -152,7 +156,7 @@ export const MobileHeader = () => {
   const handleLogout = async () => {
     // Fazer logout primeiro para limpar estado de autenticação
     await logout();
-    toast({ title: 'Logout realizado', description: 'Você foi desconectado com sucesso' });
+    toast({ title: t('auth.logout'), description: t('messages.logoutSuccess', 'Você foi desconectado com sucesso') });
     // Navegar para login depois do logout completo
     navigate('/login');
   };
@@ -176,10 +180,10 @@ export const MobileHeader = () => {
           <div className="flex items-center gap-2 flex-1">
             <Eye className="w-4 h-4" />
             <span className="text-sm font-medium">
-              Visualizando como: <strong>{impersonationContext.impersonatingAs.name}</strong>
-              {impersonationContext.impersonatingAs.districtName && (
+              Visualizando como:<strong>{impersonationContext.impersonatingAs?.name}</strong>
+              {impersonationContext.impersonatingAs?.districtName && (
                 <span className="ml-1 opacity-90">
-                  ({impersonationContext.impersonatingAs.districtName})
+                  ({impersonationContext.impersonatingAs?.districtName})
                 </span>
               )}
             </span>
@@ -189,10 +193,10 @@ export const MobileHeader = () => {
             size="sm"
             onClick={handleStopImpersonating}
             className="text-white hover:bg-blue-800 h-7 px-2"
-            title="Voltar ao Superadmin"
+            title={t('common.back')}
           >
             <X className="w-4 h-4 mr-1" />
-            <span className="text-xs">Voltar</span>
+            <span className="text-xs">{t('common.back')}</span>
           </Button>
         </div>
       )}
@@ -211,8 +215,8 @@ export const MobileHeader = () => {
               style={{
                 transform: `translateX(-1%) translateX(${mobileHeaderLayout.logo.offsetX}px) translateY(${mobileHeaderLayout.logo.offsetY}px)`,
               }}
-              title="Voltar ao início"
-              aria-label="Voltar ao início"
+              title={t('nav.dashboard')}
+              aria-label={t('nav.dashboard')}
             >
               {systemLogo && (
                 <img
@@ -239,7 +243,7 @@ export const MobileHeader = () => {
                 <div className="flex items-center gap-1">
                   <Sparkles className="w-5 h-5 text-blue-500 dark:text-blue-400 animate-pulse" />
                   <span className="text-base font-medium text-gray-700 dark:text-gray-200">
-                    {greeting}, {(user.name || 'Usuário').split(' ')[0]}!
+                    {greeting}, {(user.name || t('common.name')).split(' ')[0]}!
                   </span>
                 </div>
               </div>
@@ -261,8 +265,8 @@ export const MobileHeader = () => {
               variant="ghost"
               size="sm"
               onClick={() => setShowHelpModal(true)}
-              title="Ajuda e funcionalidades desta página"
-              aria-label="Ajuda"
+              title={t('nav.help')}
+              aria-label={t('nav.help')}
               className="bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200/50 hover:border-blue-300/50 transition-all duration-200 dark:from-blue-900/30 dark:to-cyan-900/30 dark:hover:from-blue-800/40 dark:hover:to-cyan-800/40 dark:border-blue-700/50"
             >
               <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -284,8 +288,8 @@ export const MobileHeader = () => {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/notifications')}
-              title="Notificações"
-              aria-label="Notificações"
+              title={t('nav.notifications')}
+              aria-label={t('nav.notifications')}
               className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200/50 hover:border-amber-300/50 transition-all duration-200 dark:from-amber-900/30 dark:to-orange-900/30 dark:hover:from-amber-800/40 dark:hover:to-orange-800/40 dark:border-amber-700/50"
             >
               <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -296,8 +300,8 @@ export const MobileHeader = () => {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              title={resolvedTheme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-              aria-label={resolvedTheme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+              title={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
+              aria-label={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
               className="bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200/50 hover:border-purple-300/50 transition-all duration-200 dark:from-purple-900/30 dark:to-indigo-900/30 dark:hover:from-purple-800/40 dark:hover:to-indigo-800/40 dark:border-purple-700/50"
             >
               {resolvedTheme === 'dark' ? (
@@ -310,7 +314,7 @@ export const MobileHeader = () => {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button id="tour-profile-menu" variant="ghost" size="sm" className="p-0" aria-label="Menu do perfil">
+                  <Button id="tour-profile-menu" variant="ghost" size="sm" className="p-0" aria-label={t('nav.profile')}>
                     <div className="relative w-8 h-8">
                       {getPhotoUrl() ? (
                         <>
@@ -346,18 +350,18 @@ export const MobileHeader = () => {
                     className="cursor-pointer"
                   >
                     <SettingsIcon className="mr-2 h-4 w-4" />
-                    Configurações
+                    {t('nav.settings')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleProfile} className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
-                    Meu Cadastro
+                    {t('nav.profile')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className="cursor-pointer text-destructive"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sair
+                    {t('auth.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

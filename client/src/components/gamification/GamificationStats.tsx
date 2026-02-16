@@ -16,7 +16,7 @@ import { GAMIFICATION_LEVELS } from '@/lib/gamification';
 
 export const GamificationStats = () => {
   const { getStatistics, getTopUsers, isLoading } = usePointsCalculation();
-  const stats = getStatistics() as any;
+  const stats = getStatistics();
   const topUsers = getTopUsers(10);
 
   if (isLoading) {
@@ -135,7 +135,7 @@ export const GamificationStats = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {topUsers.map((user: any, index: number) => (
+            {topUsers.map((user, index) => (
               <div key={user.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="text-lg font-bold text-muted-foreground w-6">
@@ -178,19 +178,19 @@ export const GamificationStats = () => {
                     <div className="flex justify-between text-sm">
                       <span>Engajamento</span>
                       <span className="font-medium">
-                        {Math.round(topUsers.reduce((sum: number, user: any) => sum + (user.pointsBreakdown?.breakdown.engajamento || 0), 0) / topUsers.length)} pts
+                        {Math.round(topUsers.reduce((sum: number, user) => sum + (user.pointsBreakdown?.breakdown.engajamento || 0), 0) / topUsers.length)} pts
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Fidelidade regular com dízimo</span>
                       <span className="font-semibold">
-                        {Math.round(topUsers.reduce((sum: number, user: any) => sum + (user.pointsBreakdown?.breakdown.dizimista || 0), 0) / topUsers.length)} pts
+                        {Math.round(topUsers.reduce((sum: number, user) => sum + (user.pointsBreakdown?.breakdown.dizimista || 0), 0) / topUsers.length)} pts
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Cargos</span>
                       <span className="font-medium">
-                        {Math.round(topUsers.reduce((sum: number, user: any) => sum + (user.pointsBreakdown?.breakdown.cargos || 0), 0) / topUsers.length)} pts
+                        {Math.round(topUsers.reduce((sum: number, user) => sum + (user.pointsBreakdown?.breakdown.cargos || 0), 0) / topUsers.length)} pts
                       </span>
                     </div>
                   </>

@@ -3,8 +3,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Activity } from 'lucide-react';
-import type { EngagementData } from '@/types/reports';
-import { REPORT_COLORS } from '@/types/reports';
+import { REPORT_COLORS, type EngagementData } from '@/types/reports';
 
 interface EngagementTabProps {
   data?: EngagementData;

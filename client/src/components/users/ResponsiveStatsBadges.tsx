@@ -2,10 +2,12 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Shield, User, Heart, UserCheck } from 'lucide-react';
 
+import type { UserMember } from '@/types/domain';
+
 interface ResponsiveStatsBadgesProps {
   roleFilter: string;
   setRoleFilter: (filter: string) => void;
-  users: any[];
+  users: UserMember[];
   userRole?: string;
 }
 
@@ -49,7 +51,7 @@ export const ResponsiveStatsBadges: React.FC<ResponsiveStatsBadgesProps> = ({
         <span className="font-semibold tracking-wide hidden sm:inline">Administradores</span>
         <span className="font-semibold tracking-wide sm:hidden">Admins</span>
         <span className="ml-0.5 sm:ml-2 px-1 sm:px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded-full text-[10px] sm:text-sm font-bold">
-          {users.filter((u: any) => u.role === 'superadmin' || u.role === 'pastor').length}
+          {users.filter((u) => u.role === 'superadmin' || u.role === 'pastor').length}
         </span>
       </Badge>
 
@@ -66,7 +68,7 @@ export const ResponsiveStatsBadges: React.FC<ResponsiveStatsBadgesProps> = ({
         <User className="h-2.5 w-2.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-2 drop-shadow-sm" />
         <span className="font-semibold tracking-wide">Membros</span>
         <span className="ml-0.5 sm:ml-2 px-1 sm:px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded-full text-[10px] sm:text-sm font-bold">
-          {users.filter((u: any) => u.role.includes('member')).length}
+          {users.filter((u) => u.role.includes('member')).length}
         </span>
       </Badge>
 
@@ -84,7 +86,7 @@ export const ResponsiveStatsBadges: React.FC<ResponsiveStatsBadgesProps> = ({
         <span className="font-semibold tracking-wide hidden sm:inline">Missionários</span>
         <span className="font-semibold tracking-wide sm:hidden">Miss.</span>
         <span className="ml-0.5 sm:ml-2 px-1 sm:px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded-full text-[10px] sm:text-sm font-bold">
-          {users.filter((u: any) => u.role.includes('missionary')).length}
+          {users.filter((u) => u.role.includes('missionary')).length}
         </span>
       </Badge>
 
@@ -102,7 +104,7 @@ export const ResponsiveStatsBadges: React.FC<ResponsiveStatsBadgesProps> = ({
         <span className="font-semibold tracking-wide hidden sm:inline">Amigos</span>
         <span className="font-semibold tracking-wide sm:hidden">Int.</span>
         <span className="ml-0.5 sm:ml-2 px-1 sm:px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded-full text-[10px] sm:text-sm font-bold">
-          {users.filter((u: any) => u.role === 'interested').length}
+          {users.filter((u) => u.role === 'interested').length}
         </span>
       </Badge>
     </>

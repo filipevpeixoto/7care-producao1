@@ -53,7 +53,7 @@ export const analyticsRoutes = (app: Express): void => {
       // A API aceita dois formatos:
       // 1. { vitals: [...], url, userAgent, timestamp } - array de vitals
       // 2. { name, value, rating, ... } - métrica individual
-      let vitals: WebVital[] = [];
+      let vitals: WebVital[];
       let url: string | undefined;
       let userAgent: string | undefined;
 

@@ -25,9 +25,10 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { getRoleDisplayName } from '@/lib/permissions';
+import type { UserMember } from '@/types/domain';
 
 interface ExportMenuProps {
-  data: any[];
+  data: UserMember[];
 }
 
 const AVAILABLE_COLUMNS = [
@@ -51,7 +52,7 @@ export function ExportMenu({ data }: ExportMenuProps) {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
-  const getUserId = (user: any) => user.id || user._id || user.email;
+  const getUserId = (user: UserMember): string => String(user.id || user.email);
 
   const filteredUsers = useMemo(() => {
     if (!userSearchTerm) return data;
@@ -82,12 +83,12 @@ export function ExportMenu({ data }: ExportMenuProps) {
     return statuses[status] || status;
   };
 
-  const getFormattedValue = (user: any, columnId: string) => {
+  const getFormattedValue = (user: UserMember, columnId: string): string | number => {
     switch (columnId) {
       case 'role':
         return translateRole(user.role);
       case 'status':
-        return translateStatus(user.status);
+        return translateStatus(user.status || 'pending');
       case 'church':
         return user.church || '-';
       case 'points':
@@ -97,7 +98,7 @@ export function ExportMenu({ data }: ExportMenuProps) {
       case 'createdAt':
         return user.createdAt ? format(new Date(user.createdAt), 'dd/MM/yyyy') : '-';
       default:
-        return user[columnId];
+        return String((user as unknown as Record<string, unknown>)[columnId] ?? '-');
     }
   };
 
@@ -124,7 +125,7 @@ export function ExportMenu({ data }: ExportMenuProps) {
     const usersToExport = data.filter(user => selectedUsers.includes(getUserId(user)));
 
     return usersToExport.map(user => {
-      const row: { [key: string]: any } = {};
+      const row: Record<string, string | number> = {};
       selectedColumns.forEach(colId => {
         const column = AVAILABLE_COLUMNS.find(c => c.id === colId);
         if (column) {

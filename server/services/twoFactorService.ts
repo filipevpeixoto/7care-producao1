@@ -80,7 +80,7 @@ export async function savePendingTwoFactorSecret(userId: number, secret: string)
   await db
     .update(schema.users)
 
-    .set({ twoFactorPendingSecret: encryptedSecret } as any)
+    .set({ twoFactorPendingSecret: encryptedSecret })
     .where(eq(schema.users.id, userId));
 }
 
@@ -221,7 +221,7 @@ export async function verifyRecoveryCode(userId: number, code: string): Promise<
   await db
     .update(schema.users)
 
-    .set({ twoFactorRecoveryCodes: JSON.stringify(hashedCodes) } as any)
+    .set({ twoFactorRecoveryCodes: JSON.stringify(hashedCodes) })
     .where(eq(schema.users.id, userId));
 
   return {
@@ -251,7 +251,7 @@ export async function regenerateRecoveryCodes(
   await db
     .update(schema.users)
 
-    .set({ twoFactorRecoveryCodes: JSON.stringify(hashedRecoveryCodes) } as any)
+    .set({ twoFactorRecoveryCodes: JSON.stringify(hashedRecoveryCodes) })
     .where(eq(schema.users.id, userId));
 
   return { codes: recoveryCodes };

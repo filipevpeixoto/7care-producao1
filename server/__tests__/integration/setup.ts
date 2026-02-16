@@ -104,13 +104,16 @@ vi.mock('../../neonConfig', () => ({
 }));
 
 // ── Mock NeonAdapter ────────────────────────────────────────────
+// NeonAdapter is used by optionalJwtAuth middleware to verify user exists.
+// Return a basic active user so JWT tokens set req.userId properly.
+const _neonMockUser = { id: 1, status: 'active', name: 'Test', email: 'test@7care.com', role: 'admin' };
 vi.mock('../../neonAdapter', () => ({
   NeonAdapter: vi.fn().mockImplementation(() => ({
-    getUserById: vi.fn().mockResolvedValue(null),
+    getUserById: vi.fn().mockResolvedValue(_neonMockUser),
     getChurchById: vi.fn().mockResolvedValue(null),
   })),
   default: vi.fn().mockImplementation(() => ({
-    getUserById: vi.fn().mockResolvedValue(null),
+    getUserById: vi.fn().mockResolvedValue(_neonMockUser),
   })),
 }));
 

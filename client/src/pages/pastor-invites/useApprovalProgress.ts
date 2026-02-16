@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type PastorInvite } from '@/types/pastor-invite';
 import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const inviteLogger = createLogger('PastorInvites');
 
 export interface ApprovalProgress {
   step: string;
@@ -66,11 +69,11 @@ export function useApprovalProgress(selectedInvite: PastorInvite | null) {
 
           await new Promise(resolve => setTimeout(resolve, 500));
         } else {
-          console.error('Erro ao importar lote:', result);
+          inviteLogger.error('Erro ao importar lote:', result);
           hasMore = false;
         }
       } catch (error) {
-        console.error('Erro na importação em lote:', error);
+        inviteLogger.error('Erro na importação em lote:', error);
         hasMore = false;
       }
     }
@@ -181,7 +184,7 @@ export function useApprovalProgress(selectedInvite: PastorInvite | null) {
       queryClient.invalidateQueries({ queryKey: ['/api/districts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       setApprovalProgress(prev => ({
         ...prev,
         step: 'Erro na aprovação',

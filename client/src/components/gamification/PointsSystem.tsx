@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,7 @@ interface Achievement {
   id: number;
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   points: number;
   category: 'attendance' | 'participation' | 'service' | 'growth' | 'special';
   isUnlocked: boolean;

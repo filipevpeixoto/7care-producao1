@@ -271,7 +271,7 @@ export const EventModal = ({
               {isEditing ? (
                 <Select 
                   value={formData.type} 
-                  onValueChange={(value) => setFormData({...formData, type: value as any})}
+                  onValueChange={(value) => setFormData({...formData, type: value as CalendarEvent['type']})}
                 >
                   <SelectTrigger data-testid="select-event-type" className="mt-1 h-6 text-xs">
                     <SelectValue />
@@ -296,7 +296,7 @@ export const EventModal = ({
               {isEditing ? (
                 <Select 
                   value={formData.status} 
-                  onValueChange={(value) => setFormData({...formData, status: value as any})}
+                  onValueChange={(value) => setFormData({...formData, status: value as CalendarEvent['status']})}
                 >
                   <SelectTrigger data-testid="select-event-status" className="mt-1 h-6 text-xs">
                     <SelectValue />

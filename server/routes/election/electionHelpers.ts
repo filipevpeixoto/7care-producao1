@@ -14,6 +14,8 @@ import {
   sendInternalError,
 } from '../../utils/apiResponse';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 export {
   sql,
   getRepository,
@@ -149,7 +151,7 @@ export const parseHeaderUserId = (req: Request): number | null => {
 };
 
 export const parseIdValue = (value: unknown): number | null => {
-  if (value == null) {
+  if (isNil(value)) {
     return null;
   }
   const rawValue = Array.isArray(value) ? value[0] : value;
@@ -158,7 +160,7 @@ export const parseIdValue = (value: unknown): number | null => {
 };
 
 export const toNumber = (value: unknown): number => {
-  if (value == null) {
+  if (isNil(value)) {
     return 0;
   }
   const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);

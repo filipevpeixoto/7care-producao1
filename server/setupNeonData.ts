@@ -1,6 +1,7 @@
 import { NeonAdapter } from './neonAdapter';
 import * as bcrypt from 'bcryptjs';
 import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from './config/security';
+import { logger } from './utils/logger';
 
 // Senha padrão do admin - usar variável de ambiente em produção
 const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || DEFAULT_RESET_PASSWORD;
@@ -8,7 +9,7 @@ const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || DEFAULT_RES
 export async function setupNeonData() {
   const storage = new NeonAdapter();
 
-  console.log('🚀 Configurando dados iniciais no Neon Database...');
+  logger.info('🚀 Configurando dados iniciais no Neon Database...');
 
   const existingUsers = await storage.getAllUsers();
   const existingAdmin = existingUsers.find(u => u.email === 'admin@7care.com');
@@ -23,11 +24,11 @@ export async function setupNeonData() {
       status: 'active',
       isApproved: true,
     });
-    console.log('✅ Super admin promovido:', existingAdmin.email);
+    logger.info(`✅ Super admin promovido: ${existingAdmin.email}`);
   }
 
   if (!existingAdmin) {
-    console.log('👑 Criando super admin...');
+    logger.info('👑 Criando super admin...');
     const adminPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, BCRYPT_SALT_ROUNDS);
     admin = await storage.createUser({
       name: 'Super Administrador',
@@ -79,11 +80,11 @@ export async function setupNeonData() {
       status: 'active',
     });
 
-    console.log('✅ Super admin criado:', admin.name);
+    logger.info(`✅ Super admin criado: ${admin.name}`);
   }
 
   if (hasNonSuperAdminUsers) {
-    console.log('✅ Dados já existem no Neon Database');
+    logger.info('✅ Dados já existem no Neon Database');
     return;
   }
 
@@ -217,7 +218,7 @@ export async function setupNeonData() {
     },
   ];
 
-  console.log('👥 Criando usuários do Armour...');
+  logger.info('👥 Criando usuários do Armour...');
 
   for (const userData of armourUsers) {
     const hashedPassword = await bcrypt.hash(userData.password, BCRYPT_SALT_ROUNDS);
@@ -226,11 +227,11 @@ export async function setupNeonData() {
       ...userData,
       password: hashedPassword,
     } as Parameters<typeof storage.createUser>[0]);
-    console.log(`✅ Usuário criado: ${user.name} (${user.email})`);
+    logger.info(`✅ Usuário criado: ${user.name} (${user.email})`);
   }
 
   // Criar igreja Armour
-  console.log('⛪ Criando igreja Armour...');
+  logger.info('⛪ Criando igreja Armour...');
   const church = await storage.createChurch({
     name: 'Igreja Armour',
     code: 'ARM001',
@@ -248,10 +249,10 @@ export async function setupNeonData() {
     isActive: true,
   });
 
-  console.log('✅ Igreja Armour criada:', church.name);
+  logger.info(`✅ Igreja Armour criada: ${church.name}`);
 
   // Criar alguns eventos da Armour
-  console.log('📅 Criando eventos da Armour...');
+  logger.info('📅 Criando eventos da Armour...');
   const events = [
     {
       title: 'Culto Dominical',
@@ -290,15 +291,15 @@ export async function setupNeonData() {
 
   for (const eventData of events) {
     const event = await storage.createEvent(eventData);
-    console.log(`✅ Evento criado: ${event.title}`);
+    logger.info(`✅ Evento criado: ${event.title}`);
   }
 
-  console.log('🎉 Setup do Neon Database concluído com sucesso!');
-  console.log('📊 Resumo:');
-  console.log('   - 1 Super Admin (admin@7care.com)');
-  console.log('   - 3 Usuários da Armour');
-  console.log('   - 1 Igreja Armour');
-  console.log('   - 3 Eventos da Armour');
+  logger.info('🎉 Setup do Neon Database concluído com sucesso!');
+  logger.info('📊 Resumo:');
+  logger.info('1 Super Admin (admin@7care.com)');
+  logger.info('3 Usuários da Armour');
+  logger.info('1 Igreja Armour');
+  logger.info('3 Eventos da Armour');
 
   return {
     admin,

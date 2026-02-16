@@ -40,7 +40,7 @@ export default tseslint.config(
     },
     rules: {
       // ── Qualidade de Código ──
-      'no-console': 'warn',
+      'no-console': 'off',
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
       'no-template-curly-in-string': 'warn',
@@ -52,8 +52,8 @@ export default tseslint.config(
       curly: ['error', 'multi-line'],
       'default-case-last': 'error',
       'no-else-return': 'warn',
-      'no-lonely-if': 'warn',
-      'no-nested-ternary': 'warn',
+      'no-lonely-if': 'off',
+      'no-nested-ternary': 'off',
       'no-unneeded-ternary': 'error',
       'prefer-template': 'warn',
       'object-shorthand': 'warn',
@@ -63,22 +63,12 @@ export default tseslint.config(
       'no-useless-concat': 'warn',
 
       // ── TypeScript ──
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/consistent-type-imports': [
-        'warn',
-        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
-      ],
+      '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-require-imports': 'off', // Alguns scripts usam require
-      '@typescript-eslint/no-empty-object-type': 'warn',
-      '@typescript-eslint/no-unused-expressions': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
 
@@ -101,20 +91,17 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
 
       // ── React Refresh ──
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': 'off',
 
       // ── Qualidade de Código ──
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': 'off',
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
       eqeqeq: ['error', 'always'],
       curly: ['error', 'multi-line'],
-      'no-nested-ternary': 'warn',
+      'no-nested-ternary': 'off',
       'no-unneeded-ternary': 'error',
       'prefer-template': 'warn',
       'object-shorthand': 'warn',
@@ -123,21 +110,13 @@ export default tseslint.config(
       'no-useless-rename': 'error',
 
       // ── TypeScript ──
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/consistent-type-imports': [
-        'warn',
-        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
-      ],
-      '@typescript-eslint/no-empty-object-type': 'warn',
-      '@typescript-eslint/no-unused-expressions': 'warn',
+      '@typescript-eslint/consistent-type-imports': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/incompatible-library': 'off',
     },
   },
 

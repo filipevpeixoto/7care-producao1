@@ -12,6 +12,7 @@ import { inviteCrudRoutes } from './invite/inviteCrudRoutes';
 import { onboardingRoutes } from './invite/onboardingRoutes';
 import { inviteReviewRoutes } from './invite/inviteReviewRoutes';
 
+/** Registers invite routes (CRUD, onboarding, review) */
 export const inviteRoutes = (app: Express): void => {
   inviteCrudRoutes(app);
   onboardingRoutes(app);

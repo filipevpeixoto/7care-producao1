@@ -12,6 +12,7 @@ import { overviewRoutes } from './reports/overviewRoutes';
 import { analysisRoutes } from './reports/analysisRoutes';
 import { comparisonRoutes } from './reports/comparisonRoutes';
 
+/** Registers report routes (overview, analysis, comparison) */
 export const reportsRoutes = (app: Express): void => {
   overviewRoutes(app);
   analysisRoutes(app);

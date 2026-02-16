@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { createLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   TrendingUp,
@@ -15,61 +15,18 @@ import {
   Gift,
   Crown,
   Mountain,
-  Lightbulb,
-  ArrowUp,
 } from 'lucide-react';
 import { getLevelByPoints, getMountName, getLevelIcon } from '@/lib/gamification';
 import { MountIcon } from '@/components/ui/mount-icon';
+import type { PointsBreakdownProps, PointsConfig } from './pointsBreakdownTypes';
+import { CategoryGrid, type Category } from './pointsBreakdown/PointsBreakdownCards';
+import {
+  PointsBreakdownLoading,
+  PointsBreakdownError,
+} from './pointsBreakdown/PointsBreakdownStates';
+import { createSafeConfig } from './pointsBreakdown/pointsBreakdownConfig';
 
-interface PointsBreakdownProps {
-  userData: any & { actualPoints?: number };
-  breakdown?: {
-    engajamento?: number;
-    classificacao?: number;
-    dizimista?: number;
-    ofertante?: number;
-    tempoBatismo?: number;
-    cargos?: number;
-    nomeUnidade?: number;
-    temLicao?: number;
-    totalPresenca?: number;
-    comunhao?: number;
-    missao?: number;
-    estudoBiblico?: number;
-    batizouAlguem?: number;
-    discipuladoPosBatismo?: number;
-    cpfValido?: number;
-    camposVaziosACMS?: number;
-  };
-  showDetails?: boolean;
-}
-
-interface PointsConfig {
-  engajamento: { baixo: number; medio: number; alto: number };
-  classificacao: { frequente: number; naoFrequente: number };
-  dizimista: { naoDizimista: number; pontual: number; sazonal: number; recorrente: number };
-  ofertante: { naoOfertante: number; pontual: number; sazonal: number; recorrente: number };
-  tempoBatismo: {
-    doisAnos: number;
-    cincoAnos: number;
-    dezAnos: number;
-    vinteAnos: number;
-    maisVinte: number;
-  };
-  cargos: { umCargo: number; doisCargos: number; tresOuMais: number };
-  nomeUnidade: { comUnidade: number };
-  temLicao: { comLicao: number };
-  totalPresenca: { zeroATres: number; quatroASete: number; oitoATreze: number };
-  escolaSabatina: {
-    comunhao: number;
-    missao: number;
-    estudoBiblico: number;
-    batizouAlguem: number;
-    discipuladoPosBatismo: number;
-  };
-  cpfValido: { valido: number };
-  camposVaziosACMS: { completos: number };
-}
+const gamificationLogger = createLogger('Gamification');
 
 export const PointsBreakdown = ({
   userData,
@@ -79,57 +36,7 @@ export const PointsBreakdown = ({
   const [pointsConfig, setPointsConfig] = useState<PointsConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Debug: Log dos dados recebidos
-  console.log('🔍 PointsBreakdown - Dados recebidos:', {
-    userData,
-    breakdown,
-    actualPoints: userData?.actualPoints,
-    showDetails,
-  });
-
-  // PROTEÇÃO GLOBAL: Criar safeConfig para TODAS as funções do componente
-  const safeConfig = pointsConfig
-    ? {
-        engajamento: pointsConfig.engajamento || { baixo: 0, medio: 0, alto: 0 },
-        classificacao: pointsConfig.classificacao || { frequente: 0, naoFrequente: 0 },
-        dizimista: pointsConfig.dizimista || {
-          naoDizimista: 0,
-          pontual: 0,
-          sazonal: 0,
-          recorrente: 0,
-        },
-        ofertante: pointsConfig.ofertante || {
-          naoOfertante: 0,
-          pontual: 0,
-          sazonal: 0,
-          recorrente: 0,
-        },
-        tempoBatismo: pointsConfig.tempoBatismo || {
-          doisAnos: 0,
-          cincoAnos: 0,
-          dezAnos: 0,
-          vinteAnos: 0,
-          maisVinte: 0,
-        },
-        cargos: pointsConfig.cargos || { umCargo: 0, doisCargos: 0, tresOuMais: 0 },
-        nomeUnidade: pointsConfig.nomeUnidade || { comUnidade: 0 },
-        temLicao: pointsConfig.temLicao || { comLicao: 0 },
-        totalPresenca: pointsConfig.totalPresenca || {
-          zeroATres: 0,
-          quatroASete: 0,
-          oitoATreze: 0,
-        },
-        escolaSabatina: pointsConfig.escolaSabatina || {
-          comunhao: 0,
-          missao: 0,
-          estudoBiblico: 0,
-          batizouAlguem: 0,
-          discipuladoPosBatismo: 0,
-        },
-        cpfValido: pointsConfig.cpfValido || { valido: 0 },
-        camposVaziosACMS: pointsConfig.camposVaziosACMS || { completos: 0 },
-      }
-    : null;
+  const safeConfig = useMemo(() => createSafeConfig(pointsConfig), [pointsConfig]);
 
   // Buscar configuração de pontos do servidor
   useEffect(() => {
@@ -307,7 +214,7 @@ export const PointsBreakdown = ({
         break;
 
       case 'Total de Presença':
-        if (userData.totalPresenca !== undefined) {
+        if (userData.totalPresenca != null) {
           const presenca = userData.totalPresenca;
           if (presenca <= 3) {
             tips.push(`🔸 Aumente sua frequência nos cultos`);
@@ -326,7 +233,7 @@ export const PointsBreakdown = ({
         break;
 
       case 'Batizou Alguém':
-        if (!userData.batizouAlguem || userData.batizouAlguem === 0) {
+        if (!userData.batizouAlguem) {
           tips.push(`🔸 Envolva-se em evangelismo`);
           tips.push(
             `🔸 Potencial de ganhar +${safeConfig.escolaSabatina.batizouAlguem} pontos por batismo`
@@ -335,14 +242,14 @@ export const PointsBreakdown = ({
         break;
 
       case 'CPF Válido':
-        if (!userData.cpfValido || userData.cpfValido !== 'Sim') {
+        if (!userData.cpfValido) {
           tips.push(`🔸 Atualize seu CPF no sistema`);
           tips.push(`🔸 Potencial de ganhar +${safeConfig.cpfValido.valido} pontos`);
         }
         break;
 
       case 'Campos Vazios ACMS':
-        if (userData.camposVaziosACMS === true) {
+        if (userData.camposVaziosACMS != null && userData.camposVaziosACMS > 0) {
           tips.push(`🔸 Complete todos os campos do seu perfil`);
           tips.push(`🔸 Potencial de ganhar +${safeConfig.camposVaziosACMS.completos} pontos`);
         }
@@ -424,7 +331,7 @@ export const PointsBreakdown = ({
   };
 
   // Se temos os pontos reais do usuário, usar eles
-  const actualPoints = (userData as any).actualPoints || 0;
+  const actualPoints = userData.actualPoints || 0;
   const currentLevel = getLevelByPoints(actualPoints);
 
   // Calcular pontos de cada categoria - PRIORIZAR breakdown da API
@@ -570,7 +477,7 @@ export const PointsBreakdown = ({
           return 0;
 
         case 'Total de Presença':
-          if (userData.totalPresenca !== undefined) {
+          if (userData.totalPresenca != null) {
             const presenca = userData.totalPresenca;
             if (presenca >= 0 && presenca <= 3) return safeConfig.totalPresenca.zeroATres;
             if (presenca >= 4 && presenca <= 7) return safeConfig.totalPresenca.quatroASete;
@@ -597,7 +504,7 @@ export const PointsBreakdown = ({
           return 0;
 
         case 'Campos Vazios ACMS':
-          if (userData.camposVaziosACMS === false) {
+          if (userData.camposVaziosACMS === 0) {
             return safeConfig.camposVaziosACMS.completos;
           }
           return 0;
@@ -606,7 +513,7 @@ export const PointsBreakdown = ({
           return 0;
       }
     } catch (error) {
-      console.error(`Erro ao calcular pontos para ${categoryName}:`, error);
+      gamificationLogger.error(`Erro ao calcular pontos para ${categoryName}:`, error);
       return 0;
     }
   };
@@ -638,39 +545,30 @@ export const PointsBreakdown = ({
     try {
       switch (categoryName) {
         case 'comunhao':
-          return (userData.escolaSabatina.comunhao || 0) * safeConfig.escolaSabatina.comunhao;
+          return Number(userData.escolaSabatina.comunhao || 0) * safeConfig.escolaSabatina.comunhao;
         case 'missao':
-          return (userData.escolaSabatina.missao || 0) * safeConfig.escolaSabatina.missao;
+          return Number(userData.escolaSabatina.missao || 0) * safeConfig.escolaSabatina.missao;
         case 'estudoBiblico':
           return (
-            (userData.escolaSabatina.estudoBiblico || 0) * safeConfig.escolaSabatina.estudoBiblico
+            Number(userData.escolaSabatina.estudoBiblico || 0) * safeConfig.escolaSabatina.estudoBiblico
           );
         case 'batizouAlguem':
           return (
-            (userData.escolaSabatina.batizouAlguem || 0) * safeConfig.escolaSabatina.batizouAlguem
+            Number(userData.escolaSabatina.batizouAlguem || 0) * safeConfig.escolaSabatina.batizouAlguem
           );
         case 'discipuladoPosBatismo':
           return (
-            (userData.escolaSabatina.discipuladoPosBatismo || 0) *
+            Number(userData.escolaSabatina.discipuladoPosBatismo || 0) *
             safeConfig.escolaSabatina.discipuladoPosBatismo
           );
         default:
           return 0;
       }
     } catch (error) {
-      console.error(`Erro ao calcular pontos para ${categoryName} da Escola Sabatina:`, error);
+      gamificationLogger.error(`Erro ao calcular pontos para ${categoryName} da Escola Sabatina:`, error);
       return 0;
     }
   };
-
-  interface Category {
-    name: string;
-    points: number;
-    icon: any;
-    color: string;
-    bgColor: string;
-    description: string;
-  }
 
   const categories: Category[] = [
     {
@@ -859,50 +757,16 @@ export const PointsBreakdown = ({
 
   // Loading state
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-primary" />
-            Detalhes da Pontuação
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Carregando configuração de pontos...</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <PointsBreakdownLoading message="Carregando configuração de pontos..." />;
   }
 
   // Error state
   if (!pointsConfig) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-primary" />
-            Detalhes da Pontuação
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center p-6">
-            <p className="text-sm text-muted-foreground mb-4">
-              Erro ao carregar configuração de pontos
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="text-sm text-primary hover:underline"
-            >
-              Tentar novamente
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      <PointsBreakdownError
+        message="Erro ao carregar configuração de pontos"
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
@@ -946,144 +810,21 @@ export const PointsBreakdown = ({
         {showDetails && (
           <>
             {/* Categorias com pontos e dicas personalizadas */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Categorias Principais</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {categories.map(category => {
-                  const IconComponent = category.icon;
-                  const tips = generatePersonalizedTips(category.name);
-                  const hasTips = tips.length > 0;
-                  const maxPoints = getMaxPointsForCategory(category.name);
-                  const isMax = maxPoints > 0 && category.points >= maxPoints;
-
-                  return (
-                    <div
-                      key={category.name}
-                      className={`p-3 rounded-lg border ${category.bgColor} hover:shadow-md transition-shadow group min-w-0 ${isMax ? 'ring-2 ring-green-200 dark:ring-green-700 border-green-300 dark:border-green-600' : ''}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <IconComponent className={`h-4 w-4 ${category.color} flex-shrink-0`} />
-                          <span className="font-medium text-sm truncate">{category.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Badge variant="secondary" className="text-xs">
-                            {category.points} pts
-                          </Badge>
-                          {isMax && (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700"
-                            >
-                              Máximo
-                            </Badge>
-                          )}
-                          {hasTips && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-yellow-50 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700"
-                            >
-                              <Lightbulb className="h-3 w-3 mr-1" />
-                              Dicas
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                        {category.description}
-                      </p>
-
-                      {/* Dicas personalizadas */}
-                      {hasTips && (
-                        <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
-                          <div className="flex items-center gap-2 mb-2">
-                            <ArrowUp className="h-3 w-3 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                            <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
-                              Como ganhar mais pontos:
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            {tips.map((tip, index) => (
-                              <p
-                                key={index}
-                                className="text-xs text-yellow-700 dark:text-yellow-300 leading-relaxed line-clamp-2"
-                              >
-                                {tip}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <CategoryGrid
+              title="Categorias Principais"
+              categories={categories}
+              columnsClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+              getTips={generatePersonalizedTips}
+              getMaxPoints={getMaxPointsForCategory}
+            />
 
             {/* Categorias da Escola Sabatina */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Escola Sabatina</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-                {escolaSabatinaCategories.map(category => {
-                  const IconComponent = category.icon;
-                  const tips = generatePersonalizedTips(category.name);
-                  const hasTips = tips.length > 0;
-
-                  return (
-                    <div
-                      key={category.name}
-                      className={`p-3 rounded-lg border ${category.bgColor} hover:shadow-md transition-shadow group min-w-0`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <IconComponent className={`h-4 w-4 ${category.color} flex-shrink-0`} />
-                          <span className="font-medium text-sm truncate">{category.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Badge variant="secondary" className="text-xs">
-                            {category.points} pts
-                          </Badge>
-                          {hasTips && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-yellow-50 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700"
-                            >
-                              <Lightbulb className="h-3 w-3 mr-1" />
-                              Dicas
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                        {category.description}
-                      </p>
-
-                      {/* Dicas personalizadas */}
-                      {hasTips && (
-                        <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
-                          <div className="flex items-center gap-2 mb-2">
-                            <ArrowUp className="h-3 w-3 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                            <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
-                              Como ganhar mais pontos:
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            {tips.map((tip, index) => (
-                              <p
-                                key={index}
-                                className="text-xs text-yellow-700 dark:text-yellow-300 leading-relaxed line-clamp-2"
-                              >
-                                {tip}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <CategoryGrid
+              title="Escola Sabatina"
+              categories={escolaSabatinaCategories}
+              columnsClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3"
+              getTips={generatePersonalizedTips}
+            />
 
             {/* Resumo dos Totais */}
             <div className="space-y-3">

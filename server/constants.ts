@@ -20,6 +20,7 @@ export const PAGINATION = {
 /** Limites de upload de arquivos */
 export const UPLOAD = {
   MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+  EXCEL_MAX_FILE_SIZE: 10 * 1024 * 1024,
   MAX_FILES: 10,
   ALLOWED_MIME_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
   ALLOWED_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -9,10 +7,9 @@ services:
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_DB: sevencare
-      POSTGRES_USER: sevencare
-      POSTGRES_PASSWORD: sevencare
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: ${POSTGRES_DB:-sevencare}
+      POSTGRES_USER: ${POSTGRES_USER:-sevencare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sevencare}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -53,11 +50,11 @@ services:
       - '3064:3064'
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://sevencare:sevencare@postgres:5432/sevencare
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sevencare}:${POSTGRES_PASSWORD:-sevencare}@postgres:5432/${POSTGRES_DB:-sevencare}
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev-jwt-secret-change-in-production
-      SESSION_SECRET: dev-session-secret-change-in-production
-      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3064
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-session-secret-change-in-production}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3064}
     depends_on:
       postgres:
         condition: service_healthy

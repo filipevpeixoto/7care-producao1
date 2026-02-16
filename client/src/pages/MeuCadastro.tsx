@@ -19,12 +19,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { createLogger } from '@/lib/logger';
+import { useTranslation } from 'react-i18next';
 
 const meuCadastroLogger = createLogger('MeuCadastro');
 
 const MeuCadastro = () => {
   const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isChangePwdOpen, setIsChangePwdOpen] = useState(false);
@@ -115,14 +117,14 @@ const MeuCadastro = () => {
       }
 
       toast({
-        title: 'Foto atualizada!',
-        description: 'Sua foto de perfil foi atualizada com sucesso',
+        title: t('myProfile.photoUpdatedTitle'),
+        description: t('myProfile.photoUpdatedDesc'),
       });
     } catch (error) {
       meuCadastroLogger.error('Erro ao fazer upload:', error);
       toast({
-        title: 'Erro ao atualizar foto',
-        description: 'Não foi possível atualizar sua foto. Tente novamente.',
+        title: t('myProfile.photoUpdateErrorTitle'),
+        description: t('myProfile.photoUpdateErrorDesc'),
         variant: 'destructive',
       });
     } finally {
@@ -148,14 +150,14 @@ const MeuCadastro = () => {
       }
 
       toast({
-        title: 'Foto removida!',
-        description: 'Sua foto de perfil foi removida com sucesso',
+        title: t('myProfile.photoRemovedTitle'),
+        description: t('myProfile.photoRemovedDesc'),
       });
     } catch (error) {
       meuCadastroLogger.error('Erro ao remover foto:', error);
       toast({
-        title: 'Erro ao remover foto',
-        description: 'Não foi possível remover sua foto. Tente novamente.',
+        title: t('myProfile.photoRemoveErrorTitle'),
+        description: t('myProfile.photoRemoveErrorDesc'),
         variant: 'destructive',
       });
     }
@@ -184,14 +186,14 @@ const MeuCadastro = () => {
 
       setIsEditing(false);
       toast({
-        title: 'Dados atualizados',
-        description: 'Suas informações foram salvas com sucesso',
+        title: t('myProfile.dataUpdatedTitle'),
+        description: t('myProfile.dataUpdatedDesc'),
       });
     } catch (error) {
       meuCadastroLogger.error('Erro ao salvar:', error);
       toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar suas informações. Tente novamente.',
+        title: t('myProfile.saveErrorTitle'),
+        description: t('myProfile.saveErrorDesc'),
         variant: 'destructive',
       });
     }
@@ -213,24 +215,24 @@ const MeuCadastro = () => {
   const validatePasswords = () => {
     if (!pwdForm.currentPassword || !pwdForm.newPassword || !pwdForm.confirmPassword) {
       toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha todas as senhas.',
+        title: t('myProfile.requiredFieldsTitle'),
+        description: t('myProfile.requiredFieldsDesc'),
         variant: 'destructive',
       });
       return false;
     }
     if (pwdForm.newPassword.length < 6) {
       toast({
-        title: 'Senha muito curta',
-        description: 'A nova senha deve ter pelo menos 6 caracteres.',
+        title: t('myProfile.passwordTooShortTitle'),
+        description: t('myProfile.passwordTooShortDesc'),
         variant: 'destructive',
       });
       return false;
     }
     if (pwdForm.newPassword !== pwdForm.confirmPassword) {
       toast({
-        title: 'Confirmação incorreta',
-        description: 'A confirmação deve coincidir com a nova senha.',
+        title: t('myProfile.passwordMismatchTitle'),
+        description: t('myProfile.passwordMismatchDesc'),
         variant: 'destructive',
       });
       return false;
@@ -254,19 +256,19 @@ const MeuCadastro = () => {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || data?.success === false) {
-        const message = data?.message || 'Falha ao alterar a senha';
-        toast({ title: 'Erro ao alterar senha', description: message, variant: 'destructive' });
+        const message = data?.message || t('myProfile.changePasswordFail');
+        toast({ title: t('myProfile.changePasswordErrorTitle'), description: message, variant: 'destructive' });
         return;
       }
       // Refresh opcional
       await refreshUserData?.();
       setIsChangePwdOpen(false);
       setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      toast({ title: 'Senha alterada', description: 'Sua senha foi atualizada com sucesso.' });
+      toast({ title: t('myProfile.passwordChangedTitle'), description: t('myProfile.passwordChangedDesc') });
     } catch (_err) {
       toast({
-        title: 'Erro ao alterar senha',
-        description: 'Tente novamente.',
+        title: t('myProfile.changePasswordErrorTitle'),
+        description: t('myProfile.tryAgain'),
         variant: 'destructive',
       });
     } finally {
@@ -290,8 +292,8 @@ const MeuCadastro = () => {
     <MobileLayout>
       <div className="p-4 space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Meu Cadastro</h1>
-          <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
+          <h1 className="text-2xl font-bold">{t('myProfile.title')}</h1>
+          <p className="text-muted-foreground">{t('myProfile.subtitle')}</p>
         </div>
 
         {/* Profile Photo */}
@@ -303,7 +305,7 @@ const MeuCadastro = () => {
                   <>
                     <img
                       src={getProfilePhotoUrl() || ''}
-                      alt={`Foto de ${user.name}`}
+                      alt={t('myProfile.photoAlt', { name: user.name })}
                       className="w-24 h-24 rounded-full object-cover border-4 border-primary/20"
                       onError={e => {
                         // Fallback para inicial se a imagem falhar
@@ -336,6 +338,7 @@ const MeuCadastro = () => {
                       size="sm"
                       className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
                       disabled={isUploadingPhoto}
+                      aria-label={isUploadingPhoto ? t('myProfile.loadingPhoto') : t('myProfile.changeProfilePhoto')}
                     >
                       {isUploadingPhoto ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -357,26 +360,26 @@ const MeuCadastro = () => {
         {/* Personal Information */}
         <Card className="shadow-divine">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Informações Pessoais</CardTitle>
+            <CardTitle>{t('myProfile.personalInfo')}</CardTitle>
             {!isEditing ? (
               <Button onClick={() => setIsEditing(true)} size="sm">
-                Editar
+                {t('myProfile.edit')}
               </Button>
             ) : (
               <div className="flex gap-2">
                 <Button onClick={handleCancel} variant="outline" size="sm">
-                  Cancelar
+                  {t('myProfile.cancel')}
                 </Button>
                 <Button onClick={handleSave} size="sm">
                   <Save className="w-4 h-4 mr-2" />
-                  Salvar
+                  {t('myProfile.save')}
                 </Button>
               </div>
             )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome completo</Label>
+              <Label htmlFor="name">{t('myProfile.fullName')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -390,7 +393,7 @@ const MeuCadastro = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('myProfile.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -405,7 +408,7 @@ const MeuCadastro = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
+              <Label htmlFor="phone">{t('myProfile.phone')}</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -421,7 +424,7 @@ const MeuCadastro = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="birthDate">Data de nascimento</Label>
+              <Label htmlFor="birthDate">{t('myProfile.birthDate')}</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -440,7 +443,7 @@ const MeuCadastro = () => {
         {/* Security */}
         <Card className="shadow-divine">
           <CardHeader>
-            <CardTitle>Segurança</CardTitle>
+            <CardTitle>{t('myProfile.security')}</CardTitle>
           </CardHeader>
           <CardContent>
             <DialogWithModalTracking
@@ -451,19 +454,19 @@ const MeuCadastro = () => {
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full">
                   <Lock className="w-4 h-4 mr-2" />
-                  Alterar Senha
+                  {t('myProfile.changePassword')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Alterar senha</DialogTitle>
+                  <DialogTitle>{t('myProfile.changePasswordDialogTitle')}</DialogTitle>
                   <DialogDescription>
-                    Informe sua senha atual e defina uma nova senha.
+                    {t('myProfile.changePasswordDesc')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Senha atual</Label>
+                    <Label htmlFor="currentPassword">{t('myProfile.currentPassword')}</Label>
                     <Input
                       id="currentPassword"
                       type="password"
@@ -474,7 +477,7 @@ const MeuCadastro = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="newPassword">Nova senha</Label>
+                    <Label htmlFor="newPassword">{t('myProfile.newPassword')}</Label>
                     <Input
                       id="newPassword"
                       type="password"
@@ -483,7 +486,7 @@ const MeuCadastro = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
+                    <Label htmlFor="confirmPassword">{t('myProfile.confirmNewPassword')}</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -500,11 +503,11 @@ const MeuCadastro = () => {
                     onClick={() => setIsChangePwdOpen(false)}
                     disabled={isChangingPwd}
                   >
-                    Cancelar
+                    {t('myProfile.cancel')}
                   </Button>
                   <Button onClick={handleSubmitChangePassword} disabled={isChangingPwd}>
                     {isChangingPwd ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Salvar nova senha
+                    {t('myProfile.saveNewPassword')}
                   </Button>
                 </DialogFooter>
               </DialogContent>

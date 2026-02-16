@@ -12,6 +12,7 @@ import { isPastor } from '../utils/permissions';
 import { getRepository } from '../container';
 import { getAuthUserId } from '../utils/authHelpers';
 
+/** Registers calendar and Google Drive integration routes */
 export const calendarRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const churchRepo = getRepository('churchRepository');

@@ -4,6 +4,7 @@ import { DayPicker } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { ariaLabels } from "@/lib/accessibility";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -50,6 +51,10 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
+      }}
+      labels={{
+        labelPrevious: () => ariaLabels.previousMonth,
+        labelNext: () => ariaLabels.nextMonth,
       }}
       components={{
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,

@@ -26,6 +26,7 @@ export interface Church extends BaseEntity {
   pastor?: string | null;
   districtId?: number | null;
   isDefault?: boolean;
+  active?: boolean;
 }
 
 // ============================================
@@ -52,7 +53,7 @@ export interface UserMember extends BaseEntity {
   districtId?: number | null;
   points?: number;
   calculatedPoints?: number;
-  level?: string | number;
+  level?: string | number | null;
   avatarUrl?: string | null;
   profilePhoto?: string | null;
   phone?: string | null;
@@ -68,13 +69,72 @@ export interface UserMember extends BaseEntity {
   firstAccess?: boolean;
   lastAccess?: string | null;
   lastLogin?: string | null;
+
   // Campos de pontuação
   engajamento?: string | null;
   classificacao?: string | null;
   dizimistaType?: string | null;
   ofertanteType?: string | null;
   tempoBatismoAnos?: number | null;
-  extraData?: Record<string, unknown>;
+  extraData?: string | Record<string, unknown> | null;
+
+  // Snake_case variants from API
+  church_code?: string | null;
+  birth_date?: string | null;
+  baptism_date?: string | null;
+  civil_status?: string | null;
+  first_access?: boolean;
+  dizimista_type?: string | null;
+  ofertante_type?: string | null;
+
+  // Campos adicionais de perfil
+  cpf?: string | null;
+  cpfValido?: boolean | null;
+  cpf_valido?: boolean | null;
+  previousReligion?: string | null;
+  previous_religion?: string | null;
+  biblicalInstructor?: string | null;
+  biblical_instructor?: string | null;
+  observations?: string | null;
+  active?: boolean;
+  interestedSituation?: string | null;
+
+  // Campos de dízimo/oferta
+  dizimista?: boolean | string | null;
+  ofertante?: boolean | string | null;
+  isDonor?: boolean | null;
+  is_donor?: boolean | null;
+  isTither?: boolean | null;
+  is_tither?: boolean | null;
+  isOffering?: boolean | null;
+
+  // Campos de gamificação e computados
+  tempoBatismo?: string | number | null;
+  cargos?: string | string[] | null;
+  nomeUnidade?: string | null;
+  nome_unidade?: string | null;
+  temLicao?: boolean | null;
+  tem_licao?: boolean | null;
+  hasLesson?: boolean | null;
+  totalPresenca?: number | null;
+  total_presenca?: number | null;
+  attendance?: number | null;
+  batizouAlguem?: boolean | null;
+  batizou_alguem?: boolean | null;
+  camposVaziosACMS?: number | null;
+  campos_vazios?: number | null;
+  escolaSabatina?: Record<string, unknown> | null;
+  isEnrolledES?: boolean | null;
+  esPeriod?: string | null;
+
+  // Campos ministeriais
+  comunhao?: string | number | null;
+  missao?: string | number | null;
+  estudo_biblico?: string | number | null;
+  disc_pos_batismal?: boolean | null;
+
+  // Sistema
+  impersonatingAs?: string | null;
 }
 
 // ============================================

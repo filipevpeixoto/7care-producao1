@@ -25,9 +25,9 @@ export const receiptConfigRoutes = (app: Express): void => {
   app.get(
     '/api/receipts/dracma-config/status',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userId = req.user?.id;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userRole = req.user?.role;
 
       if (!userId) {
@@ -42,7 +42,7 @@ export const receiptConfigRoutes = (app: Express): void => {
         SELECT key FROM automation_config
         WHERE user_id = ${userId}
         AND key IN ('dracma_username', 'dracma_password')
-        AND value != 'CHANGE_ME'
+        AND value <> 'CHANGE_ME'
       `;
 
       const isConfigured = configs.length >= 2;
@@ -70,9 +70,9 @@ export const receiptConfigRoutes = (app: Express): void => {
   app.get(
     '/api/receipts/dracma-config',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userId = req.user?.id;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userRole = req.user?.role;
 
       if (!userId) {
@@ -151,11 +151,11 @@ export const receiptConfigRoutes = (app: Express): void => {
   app.post(
     '/api/receipts/dracma-config',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userId = req.user?.id;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userRole = req.user?.role;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userDistrictId = req.user?.district_id;
 
       if (!userId) {
@@ -255,9 +255,9 @@ export const receiptConfigRoutes = (app: Express): void => {
   app.delete(
     '/api/receipts/dracma-config',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userId = req.user?.id;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userRole = req.user?.role;
 
       if (!userId) {

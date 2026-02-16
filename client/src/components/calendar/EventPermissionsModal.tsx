@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { calendarLogger } from '@/lib/logger';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -61,7 +62,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
         setPermissions(getDefaultPermissions());
       }
     } catch (error) {
-      console.error('Erro ao carregar permissões:', error);
+      calendarLogger.error('Erro ao carregar permissões:', error);
       setPermissions(getDefaultPermissions());
     }
   };
@@ -128,7 +129,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
   const handleProfileToggle = (profileId: string, value: boolean) => {
     // Verificar se as permissões foram carregadas
     if (!permissions || Object.keys(permissions).length === 0) {
-      console.warn('Permissões ainda não foram carregadas');
+      calendarLogger.warn('Permissões ainda não foram carregadas');
       return;
     }
 
@@ -175,7 +176,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
         throw new Error('Erro ao salvar permissões');
       }
     } catch (error) {
-      console.error('Erro ao salvar permissões:', error);
+      calendarLogger.error('Erro ao salvar permissões:', error);
       toast({
         title: '❌ Erro ao salvar',
         description: 'Não foi possível salvar as permissões. Tente novamente.',

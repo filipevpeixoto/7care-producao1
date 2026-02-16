@@ -249,8 +249,10 @@ export const useAppStore = create<AppState>()(
 // =====================================================
 // Selectors (para otimização de re-renders)
 // =====================================================
+// NOTA: Para auth completo (login, logout, impersonation), use `useAuth` de `@/hooks/useAuth`.
+// Estes selectors são apenas para leitura de estado do store Zustand.
 
-export const useAuth = () => useAppStore(state => state.auth);
+export const useAuthState = () => useAppStore(state => state.auth);
 export const useUser = () => useAppStore(state => state.auth.user);
 export const useIsAuthenticated = () => useAppStore(state => state.auth.isAuthenticated);
 export const useUI = () => useAppStore(state => state.ui);

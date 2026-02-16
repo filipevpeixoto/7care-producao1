@@ -31,9 +31,10 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { DiscipuladoresManager } from './DiscipuladoresManager';
+import { DiscipuladoresManager, type Discipulador } from './DiscipuladoresManager';
 import { DiscipuladorButton } from './DiscipuladorButton';
 import { cn } from '@/lib/utils';
+import { uiLogger } from '@/lib/logger';
 
 import { useState, useEffect, memo } from 'react';
 import { MarkVisitModal } from './MarkVisitModal';
@@ -50,8 +51,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
-type LocalUser = UserType & { photo?: string | null };
+import {
+  formatVisitDate,
+  generateFirstAccessUsername,
+  getExtraDataObject,
+  getLastVisitDate,
+  getPhotoUrl,
+  getSpiritualLevel,
+  getVisitCount,
+  isValidWhatsAppNumber,
+  type LocalUser,
+} from './userCardResponsiveUtils';
 
 interface UserCardProps {
   user: LocalUser;
@@ -69,12 +79,6 @@ interface UserCardProps {
   hasPendingDiscipleRequest?: boolean;
 }
 
-type Discipulador = {
-  id: number;
-  name: string;
-  relationshipId: number;
-};
-
 type VisitHistoryItem = {
   id?: number | string;
   visit_date: string;
@@ -88,6 +92,9 @@ type SpiritualCheckIn = {
 type SpiritualData = {
   checkIns: SpiritualCheckIn[];
 };
+
+const getInterestedSituationValue = (value: LocalUser) =>
+  value.interestedSituation || (value as { interested_situation?: string }).interested_situation || '';
 
 export const UserCardResponsive = memo(({
   user,
@@ -111,7 +118,7 @@ export const UserCardResponsive = memo(({
   const [showVisitHistory, setShowVisitHistory] = useState(false);
   const [visitHistory] = useState<VisitHistoryItem[]>([]);
   const [openSituationPopover, setOpenSituationPopover] = useState(false);
-  const [selectedSituation, setSelectedSituation] = useState(localUser.interestedSituation || (localUser as any).interested_situation || '');
+  const [selectedSituation, setSelectedSituation] = useState(getInterestedSituationValue(localUser));
   const [userSpiritual, setUserSpiritual] = useState<SpiritualData | null>(null);
   const [currentDiscipuladores, setCurrentDiscipuladores] = useState<Discipulador[]>([]);
 
@@ -123,7 +130,7 @@ export const UserCardResponsive = memo(({
   // Atualizar usuário local quando prop mudar
   useEffect(() => {
     setLocalUser(user);
-    setSelectedSituation(user.interestedSituation || (user as any).interested_situation || '');
+    setSelectedSituation(getInterestedSituationValue(user));
   }, [user]);
 
   // Carregar check-in espiritual do usuário
@@ -148,13 +155,6 @@ export const UserCardResponsive = memo(({
       loadSpiritualCheckIn();
     }
   }, [localUser?.id, currentUser]);
-
-  const getExtraDataObject = (value: LocalUser['extraData']): Record<string, unknown> => {
-    if (value && typeof value === 'object') {
-      return value as Record<string, unknown>;
-    }
-    return {};
-  };
 
   useEffect(() => {
     if (relationshipsData && localUser.role === 'interested') {
@@ -184,7 +184,7 @@ export const UserCardResponsive = memo(({
   useEffect(() => {
     const handleSituationLevelsUpdate = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.warn('🔄 Configurações de situação atualizadas em UserCard, novas configurações:', customEvent.detail);
+      void customEvent;
       // O hook useSituationLevels já vai receber os novos dados automaticamente via React Query
     };
 
@@ -197,20 +197,6 @@ export const UserCardResponsive = memo(({
 
   const handleDiscipuladoresChange = (newDiscipuladores: Discipulador[]) => {
     setCurrentDiscipuladores(newDiscipuladores);
-  };
-
-  const getPhotoUrl = () => {
-    const photo =
-      (localUser as LocalUser).photo || localUser.profilePhoto || localUser.avatarUrl || '';
-    if (!photo) return '';
-    if (photo.startsWith('http')) return photo;
-    return `/uploads/${photo}`;
-  };
-
-  const isValidWhatsAppNumber = (phone?: string | null) => {
-    if (!phone) return false;
-    const cleanPhone = phone.replace(/\D/g, '');
-    return cleanPhone.length >= 10 && cleanPhone.length <= 15;
   };
 
   const handleWhatsApp = () => {
@@ -268,7 +254,7 @@ export const UserCardResponsive = memo(({
         throw new Error('Erro ao marcar visita');
       }
     } catch (error) {
-      console.error('Erro ao marcar visita:', error);
+      uiLogger.error('Erro ao marcar visita:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível marcar a visita. Tente novamente.',
@@ -314,7 +300,7 @@ export const UserCardResponsive = memo(({
         throw new Error('Erro ao marcar visita');
       }
     } catch (error) {
-      console.error('Erro ao marcar visita:', error);
+      uiLogger.error('Erro ao marcar visita:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível marcar a visita. Tente novamente.',
@@ -329,94 +315,6 @@ export const UserCardResponsive = memo(({
     return typeof visited === 'boolean' ? visited : Boolean(visited);
   };
 
-  const getVisitCount = () => {
-    const extraData = getExtraDataObject(localUser.extraData);
-    const visitCount = extraData.visitCount;
-    if (typeof visitCount === 'number') return visitCount;
-    if (typeof visitCount === 'string') return Number(visitCount) || 0;
-    return 0;
-  };
-
-  const getLastVisitDate = () => {
-    const extraData = getExtraDataObject(localUser.extraData);
-    const lastVisitDate = extraData.lastVisitDate;
-    return typeof lastVisitDate === 'string' ? lastVisitDate : undefined;
-  };
-
-  const formatVisitDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
-  const generateFirstAccessUsername = (name: string) => {
-    if (!name) return 'usuario';
-
-    const nameParts = name.trim().split(/\s+/);
-    if (nameParts.length === 1) {
-      return nameParts[0].toLowerCase();
-    }
-
-    // Pegar primeiro e último nome
-    const firstName = nameParts[0].toLowerCase();
-    const lastName = nameParts[nameParts.length - 1].toLowerCase();
-
-    // Remover caracteres especiais e acentos
-    const cleanFirstName = firstName
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
-    const cleanLastName = lastName
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
-
-    return `${cleanFirstName}.${cleanLastName}`;
-  };
-
-  const getSpiritualLevel = (score: number) => {
-    switch (score) {
-      case 1:
-        return {
-          emoji: '🍃',
-          label: 'Distante',
-          color: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
-        };
-      case 2:
-        return {
-          emoji: '🔍',
-          label: 'Buscando',
-          color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
-        };
-      case 3:
-        return {
-          emoji: '🌱',
-          label: 'Enraizando',
-          color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
-        };
-      case 4:
-        return {
-          emoji: '🌳',
-          label: 'Frutificando',
-          color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-        };
-      case 5:
-        return {
-          emoji: '✨',
-          label: 'Intimidade',
-          color: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-        };
-      default:
-        return {
-          emoji: '❓',
-          label: 'Sem check-in',
-          color: 'bg-gray-100 text-gray-600 dark:bg-slate-700/50 dark:text-slate-300',
-        };
-    }
-  };
 
   const handleSituationChange = async (newSituation: string) => {
     try {
@@ -440,7 +338,7 @@ export const UserCardResponsive = memo(({
         throw new Error('Erro ao atualizar situação');
       }
     } catch (error) {
-      console.error('Erro ao atualizar situação:', error);
+      uiLogger.error('Erro ao atualizar situação:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar a situação. Tente novamente.',
@@ -461,7 +359,7 @@ export const UserCardResponsive = memo(({
     roleBorderClass = 'border-l-green-500';
   }
 
-  const visitCount = getVisitCount();
+  const visitCount = getVisitCount(localUser);
   const hasBeenVisited = isVisited();
   const visitButtonVariantClass = hasBeenVisited
     ? 'text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-800/40 dark:text-green-400 border border-green-200 dark:border-green-700/50'
@@ -527,7 +425,7 @@ export const UserCardResponsive = memo(({
                   }
                 }}
               >
-                <AvatarImage src={getPhotoUrl()} alt={localUser.name} />
+                <AvatarImage src={getPhotoUrl(localUser)} alt={localUser.name} />
                 <AvatarFallback className="text-sm sm:text-lg font-semibold">
                   {(() => {
                     if (!localUser.name || typeof localUser.name !== 'string') return 'U';
@@ -931,17 +829,17 @@ export const UserCardResponsive = memo(({
                 <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 <span>Visitado</span>
               </div>
-              {getVisitCount() > 1 && (
+              {getVisitCount(localUser) > 1 && (
                 <Badge
                   variant="secondary"
                   className="text-[10px] sm:text-xs px-1 py-0 bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                 >
-                  {getVisitCount()} visitas
+                  {getVisitCount(localUser)} visitas
                 </Badge>
               )}
-              {getLastVisitDate() && (
+              {getLastVisitDate(localUser) && (
                 <span className="text-muted-foreground">
-                  Última: {formatVisitDate(getLastVisitDate()!)}
+                  Última: {formatVisitDate(getLastVisitDate(localUser)!)}
                 </span>
               )}
             </div>
@@ -956,8 +854,8 @@ export const UserCardResponsive = memo(({
         onConfirm={handleConfirmVisit}
         userName={localUser.name}
         isLoading={isMarkingVisit}
-        visitCount={getVisitCount()}
-        lastVisitDate={getLastVisitDate()}
+        visitCount={getVisitCount(localUser)}
+        lastVisitDate={getLastVisitDate(localUser)}
       />
 
       {/* Modal para visualizar foto */}
@@ -968,10 +866,10 @@ export const UserCardResponsive = memo(({
             <DialogDescription>Foto de perfil de {localUser.name}</DialogDescription>
           </DialogHeader>
 
-          {getPhotoUrl() ? (
+          {getPhotoUrl(localUser) ? (
             <div className="flex justify-center">
               <img
-                src={getPhotoUrl()}
+                src={getPhotoUrl(localUser)}
                 alt={localUser.name}
                 className="max-w-full max-h-96 object-contain rounded-lg"
               />

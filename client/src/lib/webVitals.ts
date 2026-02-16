@@ -4,6 +4,7 @@
  */
 
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals';
+import { performanceLogger } from '@/lib/logger';
 
 // Tipos para métricas
 interface WebVitalMetric {
@@ -51,10 +52,8 @@ function handleMetric(metric: Metric): void {
 
   // Log em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
-    const color =
-      webVital.rating === 'good' ? '🟢' : webVital.rating === 'needs-improvement' ? '🟡' : '🔴';
-    console.log(
-      `${color} [Web Vital] ${webVital.name}: ${webVital.value.toFixed(2)} (${webVital.rating})`
+    performanceLogger.debug(
+      `[Web Vital] ${webVital.name}: ${webVital.value.toFixed(2)} (${webVital.rating})`
     );
   }
 

@@ -3,9 +3,8 @@
  * Middleware para validação de requests usando Zod
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request, Response, NextFunction } from 'express';
-import type { ZodError, ZodType } from 'zod';
+import type { ZodError, ZodType, ZodTypeDef } from 'zod';
 import { ErrorCodes } from '../types';
 
 /**
@@ -27,6 +26,17 @@ const formatZodErrors = (error: ZodError): { field: string; message: string }[] 
   }));
 };
 
+const shouldUseStrictValidation = process.env.STRICT_VALIDATION === 'true';
+
+const resolveValidationSchema = <T>(schema: ZodType<T, ZodTypeDef, unknown>): ZodType<T, ZodTypeDef, unknown> => {
+  if (!shouldUseStrictValidation) {
+    return schema;
+  }
+
+  const strictSchema = (schema as unknown as { strict?: () => ZodType<T, ZodTypeDef, unknown> }).strict?.();
+  return strictSchema ?? schema;
+};
+
 /**
  * Middleware factory para validação de body
  *
@@ -38,10 +48,10 @@ const formatZodErrors = (error: ZodError): { field: string; message: string }[] 
  * });
  * ```
  */
-export const validateBody = <T>(schema: ZodType<T, any, any>) => {
+export const validateBody = <T>(schema: ZodType<T, ZodTypeDef, unknown>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const result = schema.safeParse(req.body);
+      const result = resolveValidationSchema(schema).safeParse(req.body);
 
       if (!result.success) {
         res.status(400).json({
@@ -69,10 +79,10 @@ export const validateBody = <T>(schema: ZodType<T, any, any>) => {
 /**
  * Middleware factory para validação de query params
  */
-export const validateQuery = <T>(schema: ZodType<T, any, any>) => {
+export const validateQuery = <T>(schema: ZodType<T, ZodTypeDef, unknown>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const result = schema.safeParse(req.query);
+      const result = resolveValidationSchema(schema).safeParse(req.query);
 
       if (!result.success) {
         res.status(400).json({
@@ -101,10 +111,10 @@ export const validateQuery = <T>(schema: ZodType<T, any, any>) => {
 /**
  * Middleware factory para validação de path params
  */
-export const validateParams = <T>(schema: ZodType<T, any, any>) => {
+export const validateParams = <T>(schema: ZodType<T, ZodTypeDef, unknown>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const result = schema.safeParse(req.params);
+      const result = resolveValidationSchema(schema).safeParse(req.params);
 
       if (!result.success) {
         res.status(400).json({

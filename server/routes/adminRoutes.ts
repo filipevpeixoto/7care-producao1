@@ -253,5 +253,6 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(2)} ${units[i]}`;
 }
 
+/** Express router with admin routes for audit, metrics and system monitoring */
 export { router as adminRoutes };
 export default router;

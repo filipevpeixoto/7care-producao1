@@ -9,6 +9,9 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const offlineLogger = createLogger('Offline');
 import {
   setupAutoSync,
   teardownAutoSync,
@@ -179,7 +182,7 @@ export function useOffline(userRole?: string): UseOfflineReturn {
           unresolvedConflicts: conflicts,
         }));
       } catch (error) {
-        console.warn('[useOffline] Erro ao atualizar contagens:', error);
+        offlineLogger.warn('Erro ao atualizar contagens:', error);
       }
     };
 
@@ -201,7 +204,7 @@ export function useOffline(userRole?: string): UseOfflineReturn {
           storagePercentage: percentage,
         }));
       } catch (error) {
-        console.warn('[useOffline] Erro ao verificar armazenamento:', error);
+        offlineLogger.warn('Erro ao verificar armazenamento:', error);
       }
     };
 
@@ -296,7 +299,7 @@ export function useOffline(userRole?: string): UseOfflineReturn {
         isPaused: isSyncPaused(),
       }));
     } catch (error) {
-      console.warn('[useOffline] Erro ao atualizar estado:', error);
+      offlineLogger.warn('Erro ao atualizar estado:', error);
     }
   }, []);
 
@@ -357,7 +360,7 @@ export function useSyncQueue() {
         const syncStats = await getSyncStats();
         setStats(syncStats);
       } catch (error) {
-        console.warn('[useSyncQueue] Erro ao obter estatísticas:', error);
+        offlineLogger.warn('Erro ao obter estatísticas:', error);
       }
     };
 

@@ -56,6 +56,26 @@ function getCsrfToken(): string | null {
   }
 }
 
+function createCorrelationId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getHeaderValue(headers: HeadersInit | undefined, key: string): string | undefined {
+  if (!headers) return undefined;
+  if (headers instanceof Headers) {
+    return headers.get(key) || undefined;
+  }
+  if (Array.isArray(headers)) {
+    const match = headers.find(([headerKey]) => headerKey.toLowerCase() === key.toLowerCase());
+    return match ? match[1] : undefined;
+  }
+  const record = headers as Record<string, string>;
+  return record[key] || record[key.toLowerCase()];
+}
+
 /**
  * Retorna headers de autenticação para requisições HTTP
  *
@@ -75,11 +95,13 @@ function getCsrfToken(): string | null {
 export function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('7care_token');
   const csrfToken = getCsrfToken();
+  const correlationId = createCorrelationId();
 
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+    'x-correlation-id': correlationId,
   };
 }
 
@@ -108,12 +130,15 @@ export function getAuthHeaders(): HeadersInit {
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = localStorage.getItem('7care_token');
   const csrfToken = getCsrfToken();
+  const existingCorrelationId = getHeaderValue(options.headers, 'x-correlation-id');
+  const correlationId = existingCorrelationId || createCorrelationId();
 
   const headers = {
     ...options.headers,
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+    'x-correlation-id': correlationId,
   };
 
   const resolvedUrl = resolveApiUrl(url);

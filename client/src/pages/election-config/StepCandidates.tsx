@@ -18,18 +18,36 @@ import {
 } from 'lucide-react';
 import type { ElectionConfigData } from './types';
 
+export interface CandidateMember {
+  id: number;
+  name: string;
+  email?: string;
+  church?: string;
+  unit?: string;
+  role?: string;
+  status?: string;
+  churchTime?: string;
+  churchTimeYears?: number;
+  isTither?: string;
+  isDonor?: string;
+  attendance?: string;
+  classification?: string;
+  eligibilityReasons?: string[];
+  [key: string]: unknown;
+}
+
 export interface StepCandidatesProps {
   config: ElectionConfigData;
-  eligibleCandidates: any[];
-  ineligibleCandidates: any[];
+  eligibleCandidates: CandidateMember[];
+  ineligibleCandidates: CandidateMember[];
   removedCandidates: number[];
   loadingCandidates: boolean;
   eligibleSearchTerm: string;
   setEligibleSearchTerm: (value: string) => void;
-  filteredEligibleCandidates: any[];
+  filteredEligibleCandidates: CandidateMember[];
   loadEligibleCandidates: () => void;
   handleRemoveCandidate: (id: number) => void;
-  handleAddIneligibleCandidate: (candidate: any) => void;
+  handleAddIneligibleCandidate: (candidate: CandidateMember) => void;
   handleAddCandidate: (id: number) => void;
 }
 
@@ -168,7 +186,7 @@ export function StepCandidates({
                                 : 'default'
                             }
                           >
-                            {candidate.churchTimeYears > 0
+                            {(candidate.churchTimeYears ?? 0) > 0
                               ? `${candidate.churchTimeYears} anos`
                               : 'Não informado'}
                           </Badge>
@@ -317,7 +335,7 @@ export function StepCandidates({
                               candidate.churchTimeYears === 0 ? 'secondary' : 'default'
                             }
                           >
-                            {candidate.churchTimeYears > 0
+                            {(candidate.churchTimeYears ?? 0) > 0
                               ? `${candidate.churchTimeYears} anos`
                               : 'Não informado'}
                           </Badge>
@@ -385,7 +403,7 @@ export function StepCandidates({
                       <div className="mt-3 pt-3 border-t border-orange-100">
                         <p className="text-sm font-medium text-orange-700 mb-2">Motivos:</p>
                         <div className="space-y-1">
-                          {candidate.eligibilityReasons.map(
+                          {(candidate.eligibilityReasons ?? []).map(
                             (reason: string, index: number) => (
                               <div
                                 key={index}

@@ -31,7 +31,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
   };
 
   const parseBrazilianDate = (
-    dateStr: any
+    dateStr: string | number | Date | null | undefined
   ): string | { startDate: string; endDate: string } | null => {
     if (!dateStr) return null;
 
@@ -50,7 +50,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
       const ddmmyyyy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       if (ddmmyyyy) {
         const [, day, month, year] = ddmmyyyy;
-        const date = new Date(year, month - 1, day);
+        const date = new Date(Number(year), Number(month) - 1, Number(day));
         calendarLogger.debug(`Parsed DD/MM/YYYY: ${date.toISOString()}`);
         return date.toISOString();
       }
@@ -64,8 +64,8 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         const startParts = startStr.split('/');
         const endParts = endStr.split('/');
         const result = {
-          startDate: new Date(startParts[2], startParts[1] - 1, startParts[0]).toISOString(),
-          endDate: new Date(endParts[2], endParts[1] - 1, endParts[0]).toISOString(),
+          startDate: new Date(Number(startParts[2]), Number(startParts[1]) - 1, Number(startParts[0])).toISOString(),
+          endDate: new Date(Number(endParts[2]), Number(endParts[1]) - 1, Number(endParts[0])).toISOString(),
         };
         calendarLogger.debug(`Parsed full period: ${result.startDate} - ${result.endDate}`);
         return result;
@@ -77,8 +77,8 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         const [, startDay, startMonth, endDay, endMonth] = period;
         const currentYear = new Date().getFullYear();
         const result = {
-          startDate: new Date(currentYear, startMonth - 1, startDay).toISOString(),
-          endDate: new Date(currentYear, endMonth - 1, endDay).toISOString(),
+          startDate: new Date(currentYear, Number(startMonth) - 1, Number(startDay)).toISOString(),
+          endDate: new Date(currentYear, Number(endMonth) - 1, Number(endDay)).toISOString(),
         };
         calendarLogger.debug(`Parsed period: ${result.startDate} - ${result.endDate}`);
         return result;
@@ -89,13 +89,13 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
       if (ddmm) {
         const [, day, month] = ddmm;
         const currentYear = new Date().getFullYear();
-        const date = new Date(currentYear, month - 1, day);
+        const date = new Date(currentYear, Number(month) - 1, Number(day));
         calendarLogger.debug(`Parsed DD/MM: ${date.toISOString()}`);
         return date.toISOString();
       }
 
       // Tentar parsear como número de data Excel
-      if (!isNaN(dateStr) && !isNaN(parseFloat(dateStr))) {
+      if (!isNaN(Number(dateStr)) && !isNaN(parseFloat(dateStr))) {
         try {
           const excelDate = parseFloat(dateStr);
           const date = new Date((excelDate - 25569) * 86400 * 1000);
@@ -188,7 +188,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
 
       calendarLogger.debug('Índices de colunas finais:', columnIndexes);
 
-      const events: any[] = [];
+      const events: Array<{ title: string; type: string; date: string; endDate: string | null; description: string; originalData: Record<string, unknown> }> = [];
 
       let processedRows = 0;
       let skippedRows = 0;
@@ -196,7 +196,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
 
       // Processar cada linha (pular cabeçalho)
       for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i] as any[];
+        const row = jsonData[i] as (string | number | null | undefined)[];
         processedRows++;
 
         // Pular linhas vazias ou sem dados relevantes
@@ -242,7 +242,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
           // Criar evento
           const event = {
             title: evento.toString().trim(),
-            type: mapEventType(categoria),
+            type: mapEventType(String(categoria || '')),
             date: startDate,
             endDate,
             description: `${mes || 'Evento'} - ${categoria || 'Categoria não especificada'}`,
@@ -274,7 +274,9 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
       return events;
     } catch (error) {
       calendarLogger.error('Erro ao processar Excel:', error);
-      throw new Error(`Erro ao processar arquivo Excel: ${(error as Error).message}`);
+      throw new Error(`Erro ao processar arquivo Excel: ${(error as Error).message}`, {
+        cause: error,
+      });
     }
   };
 

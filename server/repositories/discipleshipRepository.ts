@@ -13,6 +13,8 @@ import type {
   UpdateDiscipleshipRequestInput,
 } from '../types/storage';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 export class DiscipleshipRepository {
   /**
    * Busca todos os pedidos de discipulado
@@ -56,7 +58,7 @@ export class DiscipleshipRepository {
         .insert(schema.discipleshipRequests)
         .values({
           interestedId: data.interestedId,
-          missionaryId: data.missionaryId ?? data.requestedMissionaryId,
+          missionaryId: data.missionaryId,
           status: data.status || 'pending',
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -121,19 +123,19 @@ export class DiscipleshipRepository {
    * Mapeia registro do banco para o tipo DiscipleshipRequest
    */
   private mapRecord(record: Record<string, unknown>): DiscipleshipRequest {
-    const interestedId = record.interestedId == null ? undefined : Number(record.interestedId);
-    const missionaryId = record.missionaryId == null ? undefined : Number(record.missionaryId);
+    const interestedId = isNil(record.interestedId) ? undefined : Number(record.interestedId);
+    const missionaryId = isNil(record.missionaryId) ? undefined : Number(record.missionaryId);
     return {
       id: Number(record.id),
       requesterId: Number(interestedId ?? 0),
       mentorId: Number(missionaryId ?? 0),
-      status: record.status == null ? '' : String(record.status),
-      message: record.notes == null ? '' : String(record.notes),
+      status: isNil(record.status) ? '' : String(record.status),
+      message: isNil(record.notes) ? '' : String(record.notes),
       createdAt: this.toDateString(record.createdAt),
       updatedAt: this.toDateString(record.updatedAt),
       interestedId,
       missionaryId,
-      notes: record.notes == null ? undefined : String(record.notes),
+      notes: isNil(record.notes) ? undefined : String(record.notes),
     };
   }
 }

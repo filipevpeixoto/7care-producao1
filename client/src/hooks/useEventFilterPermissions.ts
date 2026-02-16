@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Permissions');
 
 interface EventPermissions {
   [profileId: string]: {
@@ -24,10 +27,10 @@ export const useEventFilterPermissions = () => {
   });
 
   const getAvailableEventTypes = useCallback((userRole: string): string[] => {
-    console.log('🔍 getAvailableEventTypes:', { userRole, permissions });
+    logger.debug('🔍 getAvailableEventTypes:', { userRole, permissions });
     
     if (!permissions || !permissions[userRole]) {
-      console.log('⚠️ No permissions found, using defaults');
+      logger.debug('⚠️ No permissions found, using defaults');
       return ['igreja-local', 'asr-geral', 'asr-administrativo', 'asr-pastores', 'visitas', 'reunioes', 'pregacoes'];
     }
 
@@ -35,7 +38,7 @@ export const useEventFilterPermissions = () => {
       eventType => permissions[userRole][eventType]
     );
     
-    console.log('✅ Available event types:', availableTypes);
+    logger.debug('✅ Available event types:', availableTypes);
     return availableTypes;
   }, [permissions]);
 

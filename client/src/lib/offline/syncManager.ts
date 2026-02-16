@@ -63,6 +63,8 @@ let currentProgress: SyncProgress = {
   total: 0,
 };
 
+const isOnline = () => typeof navigator === 'undefined' || navigator.onLine !== false;
+
 // ===== LISTENERS =====
 
 /**
@@ -133,7 +135,7 @@ export async function processQueue(): Promise<SyncResult> {
     return { success: 0, failed: 0, conflicts: 0, skipped: 0, errors: [] };
   }
 
-  if (!navigator.onLine) {
+  if (!isOnline()) {
     offlineLogger.debug('Sem conexão, adiando sincronização');
     notifyListeners({ status: 'idle', lastError: 'Sem conexão' });
     return { success: 0, failed: 0, conflicts: 0, skipped: 0, errors: [] };
@@ -171,7 +173,7 @@ export async function processQueue(): Promise<SyncResult> {
       }
 
       // Verificar conexão periodicamente
-      if (!navigator.onLine) {
+      if (!isOnline()) {
         offlineLogger.debug('Conexão perdida durante sincronização');
         result.skipped = queue.length - i;
         notifyListeners({ status: 'error', lastError: 'Conexão perdida' });
@@ -192,19 +194,27 @@ export async function processQueue(): Promise<SyncResult> {
           result.conflicts++;
           offlineLogger.debug(`Conflito detectado: ${item.entity} ${item.type}`);
         } else {
-          await removeSyncQueueItem(item.id!);
           result.success++;
+          if (typeof item.id === 'number') {
+            await removeSyncQueueItem(item.id);
+          }
           offlineLogger.debug(`${item.entity} ${item.type} (${i + 1}/${total})`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-        result.errors.push({ itemId: item.id!, error: errorMessage });
+        const itemId = item.id ?? -1;
+        result.errors.push({ itemId, error: errorMessage });
+
+        if (typeof item.id !== 'number') {
+          result.failed++;
+          continue;
+        }
 
         if (item.retryCount >= MAX_RETRIES) {
           result.failed++;
           offlineLogger.error(`${item.entity} ${item.type} - Máximo de tentativas atingido`);
           // Mover para "dead letter" ou remover
-          await removeSyncQueueItem(item.id!);
+          await removeSyncQueueItem(item.id);
         } else {
           const nextRetry = getNextRetryTimestamp(item.retryCount + 1);
           offlineLogger.warn(
@@ -212,7 +222,7 @@ export async function processQueue(): Promise<SyncResult> {
             `próxima em ${Math.round((nextRetry - Date.now()) / 1000)}s`
           );
 
-          await updateSyncQueueItem(item.id!, {
+          await updateSyncQueueItem(item.id, {
             retryCount: item.retryCount + 1,
             nextRetryAt: nextRetry,
             lastError: errorMessage,
@@ -261,7 +271,13 @@ interface ProcessResult {
  * Processa um item individual da fila
  */
 async function processQueueItem(item: SyncQueueItem): Promise<ProcessResult> {
-  const token = localStorage.getItem('7care_token');
+  const storage =
+    typeof window !== 'undefined'
+      ? window.localStorage
+      : typeof localStorage !== 'undefined'
+        ? localStorage
+        : null;
+  const token = storage ? storage.getItem('7care_token') : null;
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -281,11 +297,22 @@ async function processQueueItem(item: SyncQueueItem): Promise<ProcessResult> {
     headers,
   };
 
-  if (item.method !== 'DELETE' && item.data) {
+  if (item.data !== undefined) {
     options.body = item.data;
   }
 
-  const response = await fetch(item.endpoint, options);
+  const fetchFn =
+    typeof globalThis.fetch === 'function'
+      ? globalThis.fetch
+      : typeof window !== 'undefined'
+        ? window.fetch
+        : undefined;
+
+  if (!fetchFn) {
+    throw new Error('Fetch indisponível');
+  }
+
+  const response = await fetchFn(item.endpoint, options);
 
   // Detectar conflito (409 Conflict)
   if (response.status === 409) {
@@ -338,7 +365,7 @@ export function resumeSync(): void {
   // Se não, verificar se há itens pendentes
   if (!isSyncing) {
     getPendingSyncCount().then((count) => {
-      if (count > 0 && navigator.onLine) {
+      if (count > 0 && isOnline()) {
         processQueue();
       }
     });
@@ -393,7 +420,7 @@ async function handleOnline(): Promise<void> {
   // Aguardar um pouco para garantir que a conexão está estável
   await sleep(CONNECTION_CHECK_DELAY_MS);
 
-  if (navigator.onLine && !isPaused) {
+  if (isOnline() && !isPaused) {
     const count = await getPendingSyncCount();
     if (count > 0) {
       offlineLogger.debug(`${count} itens pendentes, iniciando sync...`);
@@ -410,11 +437,11 @@ function handleOffline(): void {
 async function checkPendingOnStartup(): Promise<void> {
   try {
     const count = await getPendingSyncCount();
-    if (count > 0 && navigator.onLine) {
+    if (count > 0 && isOnline()) {
       offlineLogger.debug(`${count} itens pendentes ao iniciar`);
       // Pequeno delay para não interferir no carregamento inicial
       await sleep(3000);
-      if (navigator.onLine && !isPaused) {
+      if (isOnline() && !isPaused) {
         processQueue();
       }
     }

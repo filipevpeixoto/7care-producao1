@@ -108,7 +108,7 @@ export class RelationshipsService {
   }
 
   // Método para enriquecer relacionamentos com nomes dos usuários
-  static async enrichWithNames(relationships: Relationship[], users: any[]): Promise<Relationship[]> {
+  static async enrichWithNames(relationships: Relationship[], users: { id: number; name: string }[]): Promise<Relationship[]> {
     const userMap = new Map(users.map(user => [user.id, user.name]));
     
     return relationships.map(rel => ({

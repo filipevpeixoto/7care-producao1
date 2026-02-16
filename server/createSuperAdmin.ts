@@ -8,6 +8,7 @@ import 'dotenv/config';
 import { NeonAdapter } from './neonAdapter';
 import * as bcrypt from 'bcryptjs';
 import { BCRYPT_SALT_ROUNDS, DEFAULT_RESET_PASSWORD } from './config/security';
+import { logger } from './utils/logger';
 
 // Senha padrão do admin - usar variável de ambiente em produção
 const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || DEFAULT_RESET_PASSWORD;
@@ -17,18 +18,18 @@ async function createSuperAdmin() {
 
   // Aviso de segurança
   if (!process.env.DEFAULT_ADMIN_PASSWORD) {
-    console.warn('⚠️  AVISO: Usando senha padrão. Em produção, defina DEFAULT_ADMIN_PASSWORD.');
+    logger.warn('⚠️  AVISO: Usando senha padrão. Em produção, defina DEFAULT_ADMIN_PASSWORD.');
   }
 
-  console.log('👑 Criando super admin...\n');
+  logger.info('👑 Criando super admin...');
 
   try {
     // Verificar se admin já existe
     const existingAdmin = await storage.getUserByEmail('admin@7care.com');
     if (existingAdmin) {
-      console.log('⚠️ Super admin já existe!');
-      console.log(`📧 Email: ${existingAdmin.email}`);
-      console.log(`👤 Nome: ${existingAdmin.name}`);
+      logger.info('⚠️ Super admin já existe!');
+      logger.info(`📧 Email: ${existingAdmin.email}`);
+      logger.info(`👤 Nome: ${existingAdmin.name}`);
       process.exit(0);
     }
 
@@ -78,17 +79,17 @@ async function createSuperAdmin() {
       status: 'active',
     });
 
-    console.log('✅ Super admin criado com sucesso!');
-    console.log(`\n📋 Dados do super admin:`);
-    console.log(`   Nome: ${admin.name}`);
-    console.log(`   Email: ${admin.email}`);
-    console.log(
-      `   Senha: ${process.env.DEFAULT_ADMIN_PASSWORD ? '(definida via env)' : 'meu7care (padrão)'}`
+    logger.info('✅ Super admin criado com sucesso!');
+    logger.info('📋 Dados do super admin:');
+    logger.info(`Nome: ${admin.name}`);
+    logger.info(`Email: ${admin.email}`);
+    logger.info(
+      `Senha: ${process.env.DEFAULT_ADMIN_PASSWORD ? '(definida via env)' : 'meu7care (padrão)'}`
     );
-    console.log(`   Role: ${admin.role}`);
-    console.log(`   ID: ${admin.id}`);
+    logger.info(`Role: ${admin.role}`);
+    logger.info(`ID: ${admin.id}`);
   } catch (error) {
-    console.error('❌ Erro ao criar super admin:', error);
+    logger.error('❌ Erro ao criar super admin', error);
     process.exit(1);
   }
 

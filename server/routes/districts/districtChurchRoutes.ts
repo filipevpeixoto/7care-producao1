@@ -325,7 +325,7 @@ export const districtChurchRoutes = (app: Express): void => {
           DELETE FROM users
           WHERE church_id = ANY(${churchIds})
             AND role NOT IN ('superadmin', 'pastor', 'admin')
-            AND id != ${userId}
+            AND id <> ${userId}
         `;
         deletedUsers = (userResult as { count?: number }).count || 0;
 

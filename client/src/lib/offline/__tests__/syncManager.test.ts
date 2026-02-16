@@ -13,18 +13,27 @@ type MockFetch = MockedFunction<typeof fetch>;
 
 // Mock do fetch
 const mockFetch = vi.fn() as MockFetch;
-(global as unknown as { fetch: MockFetch }).fetch = mockFetch;
 
 describe('Sync Manager Module', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await db.syncQueue.clear();
+    vi.stubGlobal('fetch', mockFetch);
+    Object.defineProperty(window, 'fetch', { value: mockFetch, writable: true });
+    Object.defineProperty(navigator, 'onLine', {
+      writable: true,
+      value: true,
+    });
 
     // Default mock para fetch
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ success: true }),
     } as Response);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   describe('processQueue', () => {

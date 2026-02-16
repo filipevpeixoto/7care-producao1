@@ -13,6 +13,7 @@ import { isPastor } from '../utils/permissions';
 import { type User } from '../../shared/schema';
 import { getAuthUserId } from '../utils/authHelpers';
 
+/** Registers meeting and scheduling routes */
 export const meetingRoutes = (app: Express): void => {
   const meetingRepo = getRepository('meetingRepository');
   const userRepo = getRepository('userRepository');

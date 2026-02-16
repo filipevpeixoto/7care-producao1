@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Mail, Lock, Phone, Church, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/../../shared/types/user';
 
 export const RegisterForm = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,8 +38,8 @@ export const RegisterForm = () => {
 
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: 'Erro no cadastro',
-        description: 'As senhas não coincidem',
+        title: t('common.error'),
+        description: t('errors.passwordMismatch'),
         variant: 'destructive',
       });
       return;
@@ -50,11 +52,11 @@ export const RegisterForm = () => {
 
       if (success) {
         toast({
-          title: 'Cadastro realizado com sucesso!',
+          title: t('success.created'),
           description:
             formData.role === 'interested'
-              ? 'Sua conta foi criada e está ativa'
-              : 'Aguarde aprovação do administrador',
+              ? t('auth.accountActive')
+              : t('auth.awaitApproval'),
         });
 
         // Reset form
@@ -70,8 +72,8 @@ export const RegisterForm = () => {
       }
     } catch (error) {
       toast({
-        title: 'Erro no cadastro',
-        description: 'Ocorreu um erro inesperado',
+        title: t('common.error'),
+        description: t('errors.generic'),
         variant: 'destructive',
       });
     } finally {
@@ -82,17 +84,17 @@ export const RegisterForm = () => {
   return (
     <Card className="w-full max-w-md shadow-divine">
       <CardHeader className="text-center space-y-4">
-        <CardTitle className="text-2xl font-bold text-primary">Criar conta</CardTitle>
+        <CardTitle className="text-2xl font-bold text-primary">{t('auth.createAccount')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome completo</Label>
+            <Label htmlFor="name">{t('auth.fullName')}</Label>
             <div className="relative">
               <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="name"
-                placeholder="Seu nome completo"
+                placeholder={t('auth.fullName')}
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 className="pl-10"
@@ -102,7 +104,7 @@ export const RegisterForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="register-email">Email</Label>
+            <Label htmlFor="register-email">{t('auth.email')}</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -118,7 +120,7 @@ export const RegisterForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Telefone</Label>
+            <Label htmlFor="phone">{t('common.phone')}</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -132,7 +134,7 @@ export const RegisterForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="church">Igreja</Label>
+            <Label htmlFor="church">{t('users.church')}</Label>
             <div className="relative">
               <Church className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -146,24 +148,24 @@ export const RegisterForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Tipo de usuário</Label>
+            <Label htmlFor="role">{t('common.role')}</Label>
             <Select
               value={formData.role}
               onValueChange={(value: UserRole) => setFormData(prev => ({ ...prev, role: value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione seu perfil" />
+                <SelectValue placeholder={t('common.select')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="interested">Amigo</SelectItem>
-                <SelectItem value="member">Membro</SelectItem>
-                <SelectItem value="missionary">Missionário</SelectItem>
+                <SelectItem value="interested">{t('common.friend')}</SelectItem>
+                <SelectItem value="member">{t('common.member')}</SelectItem>
+                <SelectItem value="missionary">{t('common.missionary')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="register-password">Senha</Label>
+            <Label htmlFor="register-password">{t('auth.password')}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -181,6 +183,7 @@ export const RegisterForm = () => {
                 size="sm"
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -192,7 +195,7 @@ export const RegisterForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirmar senha</Label>
+            <Label htmlFor="confirm-password">{t('auth.confirmPassword')}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -212,7 +215,7 @@ export const RegisterForm = () => {
             className="w-full bg-gradient-secondary hover:opacity-90 transition-opacity"
             disabled={isLoading}
           >
-            {isLoading ? 'Criando conta...' : 'Criar conta'}
+            {isLoading ? t('common.creating') : t('auth.createAccount')}
           </Button>
         </form>
       </CardContent>

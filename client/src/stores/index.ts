@@ -5,7 +5,7 @@
 
 export {
   useAppStore,
-  useAuth,
+  useAuthState,
   useUser,
   useIsAuthenticated,
   useUI,

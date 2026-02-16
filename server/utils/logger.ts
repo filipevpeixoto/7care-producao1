@@ -9,6 +9,20 @@ const isDev = process.env.NODE_ENV === 'development';
 const isTest = process.env.NODE_ENV === 'test';
 const isProd = process.env.NODE_ENV === 'production';
 
+const writeStdout = (line: string): void => {
+  process.stdout.write(`${line}\n`);
+};
+
+const writeStderr = (line: string): void => {
+  process.stderr.write(`${line}\n`);
+};
+
+const buildPayload = (args: unknown[]): unknown => {
+  if (args.length === 0) return undefined;
+  if (args.length === 1) return args[0];
+  return args;
+};
+
 // Campos que devem ser sanitizados (nunca logados)
 const SENSITIVE_FIELDS = [
   'password',
@@ -145,13 +159,13 @@ const emit = (level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG', message: string, data?
     const jsonLine = JSON.stringify(logEntry);
     switch (level) {
       case 'ERROR':
-        console.error(jsonLine);
+        writeStderr(jsonLine);
         break;
       case 'WARN':
-        console.warn(jsonLine);
+        writeStderr(jsonLine);
         break;
       default:
-        console.log(jsonLine);
+        writeStdout(jsonLine);
     }
     return;
   }
@@ -160,13 +174,19 @@ const emit = (level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG', message: string, data?
   const prefix = `[${timestamp}] [${level}]`;
   switch (level) {
     case 'ERROR':
-      console.error(`${prefix} ${message}`, ...(data !== undefined ? [sanitizeObject(data)] : []));
+      writeStderr(
+        `${prefix} ${message}${data !== undefined ? ` ${JSON.stringify(sanitizeObject(data))}` : ''}`
+      );
       break;
     case 'WARN':
-      console.warn(`${prefix} ${message}`, ...(data !== undefined ? [sanitizeObject(data)] : []));
+      writeStderr(
+        `${prefix} ${message}${data !== undefined ? ` ${JSON.stringify(sanitizeObject(data))}` : ''}`
+      );
       break;
     default:
-      console.log(`${prefix} ${message}`, ...(data !== undefined ? [sanitizeObject(data)] : []));
+      writeStdout(
+        `${prefix} ${message}${data !== undefined ? ` ${JSON.stringify(sanitizeObject(data))}` : ''}`
+      );
   }
 };
 
@@ -179,7 +199,7 @@ export const logger = {
    */
   info: (message: string, ...args: unknown[]): void => {
     if (!isTest) {
-      emit('INFO', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
+      emit('INFO', message, buildPayload(args));
     }
   },
 
@@ -188,7 +208,7 @@ export const logger = {
    */
   error: (message: string, ...args: unknown[]): void => {
     if (!isTest) {
-      emit('ERROR', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
+      emit('ERROR', message, buildPayload(args));
     }
   },
 
@@ -197,7 +217,7 @@ export const logger = {
    */
   warn: (message: string, ...args: unknown[]): void => {
     if (!isTest) {
-      emit('WARN', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
+      emit('WARN', message, buildPayload(args));
     }
   },
 
@@ -206,7 +226,7 @@ export const logger = {
    */
   debug: (message: string, ...args: unknown[]): void => {
     if (isDev && !isTest) {
-      emit('DEBUG', message, args.length === 1 ? args[0] : args.length > 1 ? args : undefined);
+      emit('DEBUG', message, buildPayload(args));
     }
   },
 
@@ -215,7 +235,7 @@ export const logger = {
    */
   request: (method: string, path: string, statusCode: number, duration: number): void => {
     if (isDev && !isTest) {
-      console.log(`[${getTimestamp()}] [HTTP] ${method} ${path} ${statusCode} ${duration}ms`);
+      writeStdout(`[${getTimestamp()}] [HTTP] ${method} ${path} ${statusCode} ${duration}ms`);
     }
   },
 
@@ -226,7 +246,9 @@ export const logger = {
   sanitized: (message: string, data: unknown): void => {
     if (isDev && !isTest) {
       const sanitized = sanitizeObject(data);
-      console.log(`[${getTimestamp()}] [INFO] ${message}`, JSON.stringify(sanitized, null, 2));
+      writeStdout(
+        `[${getTimestamp()}] [INFO] ${message} ${JSON.stringify(sanitized, null, 2)}`
+      );
     }
   },
 
@@ -236,7 +258,7 @@ export const logger = {
   db: (operation: string, table: string, duration?: number): void => {
     if (isDev && !isTest) {
       const durationStr = duration !== undefined ? ` (${duration}ms)` : '';
-      console.log(`[${getTimestamp()}] [DB] ${operation} ${table}${durationStr}`);
+      writeStdout(`[${getTimestamp()}] [DB] ${operation} ${table}${durationStr}`);
     }
   },
 
@@ -246,7 +268,7 @@ export const logger = {
   authSuccess: (userId: number, email?: string): void => {
     if (isDev && !isTest) {
       const maskedEmail = email ? maskEmail(email) : 'unknown';
-      console.log(
+      writeStdout(
         `[${getTimestamp()}] [AUTH] Login successful - User ID: ${userId}, Email: ${maskedEmail}`
       );
     }
@@ -258,7 +280,7 @@ export const logger = {
   authFailure: (reason: string, email?: string): void => {
     if (!isTest) {
       const maskedEmail = email ? maskEmail(email) : 'unknown';
-      console.log(
+      writeStdout(
         `[${getTimestamp()}] [AUTH] Login failed - Reason: ${reason}, Email: ${maskedEmail}`
       );
     }

@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageCircle } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
@@ -36,6 +37,7 @@ interface Conversation {
 }
 
 export default function Chat() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isAdmin = useMemo(() => hasAdminAccess(user), [user]);
@@ -46,39 +48,39 @@ export default function Chat() {
     avatar?: string;
   } | null>(null);
 
-  // Handle query string parameters for direct chat
-  useEffect(() => {
+  const conversationFromParams = useMemo(() => {
     const userId = searchParams.get('user');
     const userName = searchParams.get('name');
 
-    if (userId && userName && user?.id) {
-      // Create a conversation object for the user specified in query params
-      const targetUserId = parseInt(userId);
-      const conversation: Conversation = {
-        id: targetUserId, // Use userId as conversation ID for direct chat
-        type: 'direct',
-        name: decodeURIComponent(userName),
-        participants: [
-          {
-            id: targetUserId,
-            name: decodeURIComponent(userName),
-            role: 'user',
-            isOnline: false,
-          },
-        ],
-        lastMessage: {
-          content: '',
-          timestamp: new Date().toISOString(),
-          senderId: 0,
-          senderName: '',
+    if (!userId || !userName || !user?.id) return null;
+
+    const targetUserId = Number(userId);
+    if (Number.isNaN(targetUserId)) return null;
+
+    return {
+      id: targetUserId,
+      type: 'direct',
+      name: decodeURIComponent(userName),
+      participants: [
+        {
+          id: targetUserId,
+          name: decodeURIComponent(userName),
+          role: 'user',
+          isOnline: false,
         },
-        unreadCount: 0,
-        isPinned: false,
-        isArchived: false,
-      };
-      setSelectedConversation(conversation);
-    }
+      ],
+      lastMessage: {
+        content: '',
+        timestamp: new Date().toISOString(),
+        senderId: 0,
+        senderName: '',
+      },
+      unreadCount: 0,
+      isPinned: false,
+      isArchived: false,
+    } as Conversation;
   }, [searchParams, user?.id]);
+  const activeConversation = selectedConversation ?? conversationFromParams;
   const [showNewChat, setShowNewChat] = useState(false);
 
   const handleConversationSelect = (conversation: Conversation) => {
@@ -133,7 +135,7 @@ export default function Chat() {
       unreadCount: 0,
       isPinned: false,
       isArchived: false,
-    } as any);
+    } as Conversation);
     setSelectedUser(targetUser);
     setShowNewChat(false);
   };
@@ -144,12 +146,12 @@ export default function Chat() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 h-full">
           {/* Sidebar - Hidden on mobile when conversation is selected */}
           <div
-            className={`md:col-span-1 h-full overflow-hidden ${selectedConversation ? 'hidden md:block' : 'block'}`}
+            className={`md:col-span-1 h-full overflow-hidden ${activeConversation ? 'hidden md:block' : 'block'}`}
           >
             <ChatSidebar
               mode={isAdmin ? 'users' : 'conversations'}
-              currentUserId={user?.id as any}
-              selectedConversationId={selectedConversation?.id}
+              currentUserId={user?.id}
+              selectedConversationId={activeConversation?.id}
               onConversationSelect={handleConversationSelect}
               onSelectUser={handleSelectUserToChat}
               onNewChat={handleNewChat}
@@ -158,9 +160,9 @@ export default function Chat() {
 
           {/* Chat Interface - Show back button on mobile */}
           <div
-            className={`md:col-span-2 h-full min-h-0 ${!selectedConversation && !showNewChat ? 'hidden md:block' : 'block'}`}
+            className={`md:col-span-2 h-full min-h-0 ${!activeConversation && !showNewChat ? 'hidden md:block' : 'block'}`}
           >
-            {selectedConversation ? (
+            {activeConversation ? (
               <div className="h-full flex flex-col">
                 {/* Mobile back button */}
                 <button
@@ -181,19 +183,19 @@ export default function Chat() {
                       d="M15 19l-7-7 7-7"
                     />
                   </svg>
-                  Voltar
+                  {t('chat.back')}
                 </button>
                 <div className="flex-1 min-h-0">
                   <ChatInterface
-                    chatUser={getChatUser(selectedConversation)}
-                    conversationId={selectedConversation.id}
-                    isGroup={selectedConversation.type === 'group'}
+                    chatUser={getChatUser(activeConversation)}
+                    conversationId={activeConversation.id}
+                    isGroup={activeConversation.type === 'group'}
                     groupName={
-                      selectedConversation.type === 'group' ? selectedConversation.name : undefined
+                      activeConversation.type === 'group' ? activeConversation.name : undefined
                     }
                     groupMembers={
-                      selectedConversation.type === 'group'
-                        ? selectedConversation.participants
+                      activeConversation.type === 'group'
+                        ? activeConversation.participants
                         : undefined
                     }
                   />
@@ -203,9 +205,9 @@ export default function Chat() {
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">Nova Conversa</h3>
+                  <h3 className="text-lg font-medium text-foreground mb-2">{t('chat.newConversation')}</h3>
                   <p className="text-muted-foreground">
-                    Funcionalidade em desenvolvimento. Em breve você poderá iniciar novas conversas.
+                    {t('chat.newConversationDescription')}
                   </p>
                 </CardContent>
               </Card>
@@ -214,10 +216,10 @@ export default function Chat() {
                 <CardContent className="text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2">
-                    Selecione uma conversa
+                    {t('chat.selectConversation')}
                   </h3>
                   <p className="text-muted-foreground">
-                    Escolha uma conversa da lista para começar a conversar.
+                    {t('chat.selectConversationDescription')}
                   </p>
                 </CardContent>
               </Card>

@@ -161,7 +161,7 @@ export function PageHelpModal({ open, onOpenChange }: PageHelpModalProps) {
                       </span>
                       {item.badge && (
                         <Badge
-                          variant={getBadgeVariant(item.badge) as any}
+                          variant={getBadgeVariant(item.badge) as "default" | "secondary" | "destructive" | "outline" | "success" | "warning"}
                           className="text-[10px] px-1.5 py-0"
                         >
                           {item.badge}

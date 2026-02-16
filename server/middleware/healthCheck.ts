@@ -168,5 +168,6 @@ router.get('/health/live', (_req: Request, res: Response) => {
   });
 });
 
+/** Express router providing health, readiness, and liveness check endpoints. */
 export const healthCheckRouter = router;
 export default healthCheckRouter;

@@ -114,6 +114,7 @@ export function VisitometerSkeleton() {
  * Skeleton para card de gráfico
  */
 export function ChartCardSkeleton() {
+  const heights = [40, 55, 70, 60, 50, 65, 75];
   return (
     <Card className="animate-pulse">
       <CardHeader>
@@ -126,7 +127,7 @@ export function ChartCardSkeleton() {
             <Skeleton 
               key={i} 
               className="w-full rounded-t-md" 
-              style={{ height: `${Math.random() * 60 + 40}%` }}
+              style={{ height: `${heights[i % heights.length]}%` }}
             />
           ))}
         </div>

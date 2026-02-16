@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, no-nested-ternary, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,13 +18,14 @@ import {
 } from '@/components/ui/dialog';
 import { Bell, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { settingsLogger } from '@/lib/logger';
 import { hasAdminAccess } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/api';
 
 interface SendNotificationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
+  user: Pick<import('@/types/domain').UserMember, 'id' | 'role'>;
 }
 
 export function SendNotificationModal({ isOpen, onClose, user }: SendNotificationModalProps) {
@@ -36,8 +36,8 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
   const [notificationType, setNotificationType] = useState('general');
   const [isSending, setIsSending] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | string | null>(null);
-  const [usersList, setUsersList] = useState<any[]>([]);
-  const [_subscriptionsList, setSubscriptionsList] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<{ id: number; name: string; email?: string }[]>([]);
+  const [_subscriptionsList, setSubscriptionsList] = useState<{ user_id: number; created_at: string }[]>([]);
 
   const loadUsers = async () => {
     try {
@@ -47,7 +47,7 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
         setUsersList(data.users || []);
       }
     } catch (error) {
-      console.error('Error loading users:', error);
+      settingsLogger.error('Error loading users:', error);
     }
   };
 
@@ -59,7 +59,7 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
         setSubscriptionsList(data.subscriptions || []);
       }
     } catch (error) {
-      console.error('Error loading subscriptions:', error);
+      settingsLogger.error('Error loading subscriptions:', error);
     }
   };
 
@@ -106,7 +106,7 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
 
       await loadSubscriptions();
     } catch (error) {
-      console.error('Error sending notification:', error);
+      settingsLogger.error('Error sending notification:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível enviar a notificação.',

@@ -13,6 +13,9 @@ import type { User } from '../../shared/schema';
 // Instância singleton compartilhada
 const adapter = new NeonAdapter();
 
+/**
+ * Service for calculating user points via the NeonAdapter.
+ */
 export class PointsCalculationService {
   /**
    * Calcula pontos para um único usuário
@@ -38,4 +41,5 @@ export class PointsCalculationService {
   }
 }
 
+/** Singleton instance of the points calculation service. */
 export const pointsCalculationService = new PointsCalculationService();

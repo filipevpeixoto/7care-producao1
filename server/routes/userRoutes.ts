@@ -11,6 +11,7 @@ import { userCrudRoutes } from './users/userCrudRoutes';
 import { userPointsRoutes } from './users/userPointsRoutes';
 import { userSpecialRoutes } from './users/userSpecialRoutes';
 
+/** Registers user management routes (CRUD, points, chat, bulk import) */
 export const userRoutes = (app: Express): void => {
   // userSpecialRoutes registered first to ensure /api/users/chat-list
   // is defined before /api/users/:id param routes in userCrudRoutes

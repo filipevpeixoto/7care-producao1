@@ -27,11 +27,11 @@ export const receiptAdminRoutes = (app: Express): void => {
   app.get(
     '/api/receipts/admin/pending',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore - user é injetado pelo middleware de autenticação
+      // @ts-expect-error - user é injetado pelo middleware de autenticação
       const userRole = req.user?.role;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userId = req.user?.id;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userDistrictId = req.user?.district_id;
 
       if (userRole !== 'pastor' && userRole !== 'admin' && userRole !== 'superadmin') {
@@ -107,9 +107,9 @@ export const receiptAdminRoutes = (app: Express): void => {
   app.get(
     '/api/receipts/admin/all',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userRole = req.user?.role;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userDistrictId = req.user?.district_id;
 
       if (userRole !== 'pastor' && userRole !== 'admin' && userRole !== 'superadmin') {

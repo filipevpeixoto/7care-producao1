@@ -1,4 +1,7 @@
 // Serviço para gerenciar notificações automáticas do sistema
+import { createLogger } from '@/lib/logger';
+
+const notifLogger = createLogger('Notifications');
 
 export interface NotificationData {
   title: string;
@@ -33,10 +36,10 @@ export class NotificationService {
       }
 
       const result = await response.json();
-      console.log('📱 Notificação enviada:', result);
+      notifLogger.debug('Notificação enviada:', result);
       return true;
     } catch (error) {
-      console.error('❌ Erro ao enviar notificação:', error);
+      notifLogger.error('Erro ao enviar notificação:', error);
       return false;
     }
   }

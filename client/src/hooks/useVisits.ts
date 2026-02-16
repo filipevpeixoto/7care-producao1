@@ -1,6 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { fetchWithAuth } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Visits');
 
 interface MarkVisitParams {
   userId: number;
@@ -33,7 +36,7 @@ export const useVisits = () => {
       return response.json();
     },
     onSuccess: () => {
-      console.log('✅ Visita marcada com sucesso, invalidando queries...');
+      logger.debug('✅ Visita marcada com sucesso, invalidando queries...');
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -47,7 +50,7 @@ export const useVisits = () => {
       // Force immediate refetch of visitometer data
       queryClient.refetchQueries({ queryKey: ['/api/dashboard/visits'] });
       
-      console.log('🔄 Queries invalidadas, visitômetro será atualizado');
+      logger.debug('🔄 Queries invalidadas, visitômetro será atualizado');
     },
   });
 

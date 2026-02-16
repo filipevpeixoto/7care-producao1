@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Save, RefreshCw } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 
 export default function Appearance() {
+  const { t } = useTranslation();
   // Estes estados assumem que você já tinha hooks/estados no Settings.tsx.
   // Se já existem hooks como useMobileHeaderLayout, importe-os aqui.
   const [mobileHeaderLayout, setMobileHeaderLayout] = useState({
@@ -45,21 +47,21 @@ export default function Appearance() {
       <div className="p-4 space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">Aparência</CardTitle>
-            <CardDescription>Layout do Mobile Header</CardDescription>
+            <CardTitle className="flex items-center gap-2">{t('appearance.title')}</CardTitle>
+            <CardDescription>{t('appearance.mobileHeaderLayout')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Layout do Mobile Header</h3>
+              <h3 className="text-lg font-semibold">{t('appearance.mobileHeaderLayout')}</h3>
               <Badge variant="secondary">Admin</Badge>
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                Arraste e solte os elementos para ajustar suas posições no header móvel
+                {t('appearance.dragAndDropHint')}
               </p>
               <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700 p-4 mb-4">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">
-                  Preview do Header
+                  {t('appearance.headerPreview')}
                 </div>
                 <div className="bg-gradient-to-r from-white via-blue-50/30 to-purple-50/30 rounded-lg p-3 border">
                   <div className="flex items-center gap-3">
@@ -70,7 +72,7 @@ export default function Appearance() {
                     </div>
                     <div className="relative cursor-move bg-green-100 p-2 rounded border-2 border-dashed border-green-300">
                       <div className="text-xs text-green-700 font-medium whitespace-nowrap">
-                        Boa noite, Usuário!
+                        {t('appearance.goodEveningUser')}
                       </div>
                     </div>
                     <div className="relative cursor-move bg-purple-100 p-2 rounded border-2 border-dashed border-purple-300 ml-auto">
@@ -92,7 +94,7 @@ export default function Appearance() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Logo</Label>
+                  <Label className="text-sm font-medium">{t('appearance.logo')}</Label>
                   <div className="space-y-2">
                     <div>
                       <Label className="text-xs">X: {mobileHeaderLayout.logo.offsetX}px</Label>
@@ -119,7 +121,7 @@ export default function Appearance() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Boas-vindas</Label>
+                  <Label className="text-sm font-medium">{t('appearance.welcome')}</Label>
                   <div className="space-y-2">
                     <div>
                       <Label className="text-xs">X: {mobileHeaderLayout.welcome.offsetX}px</Label>
@@ -146,7 +148,7 @@ export default function Appearance() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Botões de Ação</Label>
+                  <Label className="text-sm font-medium">{t('appearance.actionButtons')}</Label>
                   <div className="space-y-2">
                     <div>
                       <Label className="text-xs">X: {mobileHeaderLayout.actions.offsetX}px</Label>
@@ -176,11 +178,11 @@ export default function Appearance() {
               <div className="flex items-center gap-2 mt-4">
                 <Button variant="outline" size="sm" onClick={reset}>
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Resetar Posições
+                  {t('appearance.resetPositions')}
                 </Button>
                 <Button size="sm" onClick={save} className="bg-green-600 hover:bg-green-700">
                   <Save className="h-4 w-4 mr-2" />
-                  Salvar Layout
+                  {t('appearance.saveLayout')}
                 </Button>
               </div>
             </div>

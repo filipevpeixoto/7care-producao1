@@ -494,5 +494,6 @@ export class UserService {
   }
 }
 
+/** Singleton instance of the user management service. */
 export const userService = new UserService();
 export default userService;

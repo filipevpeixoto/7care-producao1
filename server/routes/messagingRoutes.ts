@@ -12,6 +12,7 @@ import { sendSuccess, sendCreated, sendError } from '../utils/apiResponse';
 import { getRepository } from '../container';
 import { getAuthUserId } from '../utils/authHelpers';
 
+/** Registers messaging and conversation routes */
 export const messagingRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const messageRepo = getRepository('messageRepository');

@@ -152,43 +152,25 @@ export function WelcomeTour({ onComplete, onSkip, userName }: WelcomeTourProps) 
 
   // Encontrar e destacar o elemento alvo
   useEffect(() => {
-    if (step.target) {
-      const element = document.querySelector(step.target);
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        setTargetRect(rect);
+    const frameId = window.requestAnimationFrame(() => {
+      if (step.target) {
+        const element = document.querySelector(step.target);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          setTargetRect(rect);
 
-        // Scroll suave até o elemento se necessário
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Scroll suave até o elemento se necessário
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          setTargetRect(null);
+        }
       } else {
         setTargetRect(null);
       }
-    } else {
-      setTargetRect(null);
-    }
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [step.target, currentStep]);
-
-  const handleNext = useCallback(() => {
-    if (isLastStep) {
-      handleComplete();
-    } else {
-      setIsAnimating(true);
-      setTimeout(() => {
-        setCurrentStep(prev => prev + 1);
-        setIsAnimating(false);
-      }, 200);
-    }
-  }, [isLastStep]);
-
-  const handlePrev = useCallback(() => {
-    if (!isFirstStep) {
-      setIsAnimating(true);
-      setTimeout(() => {
-        setCurrentStep(prev => prev - 1);
-        setIsAnimating(false);
-      }, 200);
-    }
-  }, [isFirstStep]);
 
   const handleComplete = useCallback(() => {
     setIsVisible(false);
@@ -203,6 +185,28 @@ export function WelcomeTour({ onComplete, onSkip, userName }: WelcomeTourProps) 
       onSkip();
     }, 300);
   }, [onSkip]);
+
+  const handleNext = useCallback(() => {
+    if (isLastStep) {
+      handleComplete();
+    } else {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentStep(prev => prev + 1);
+        setIsAnimating(false);
+      }, 200);
+    }
+  }, [handleComplete, isLastStep]);
+
+  const handlePrev = useCallback(() => {
+    if (!isFirstStep) {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentStep(prev => prev - 1);
+        setIsAnimating(false);
+      }, 200);
+    }
+  }, [isFirstStep]);
 
   // Keyboard navigation
   useEffect(() => {

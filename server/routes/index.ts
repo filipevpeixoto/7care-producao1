@@ -118,6 +118,7 @@ export const registerAllRoutes = async (app: Express): Promise<Server> => {
 };
 
 // Alias para compatibilidade
+/** Alias for {@link registerAllRoutes} for backward compatibility */
 export const registerRoutes = registerAllRoutes;
 
 export default registerAllRoutes;

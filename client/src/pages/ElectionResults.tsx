@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { electionLogger } from '@/lib/logger';
+import { useTranslation } from 'react-i18next';
 
 interface ElectionResult {
   positionId: string;
@@ -52,78 +54,54 @@ interface DashboardData {
 }
 
 export default function ElectionResults() {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { configId } = useParams();
+  const { t } = useTranslation();
 
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  useEffect(() => {
-    electionLogger.debug('ElectionResults mounted, user:', user);
-    electionLogger.debug('configId from params:', configId);
-
-    // Temporariamente removendo verificação de admin para debug
-    // if (user?.role !== 'admin') {
-    //   console.log('User is not admin, redirecting to dashboard');
-    //   navigate('/dashboard');
-    //   return;
-    // }
-
-    electionLogger.debug('Loading dashboard...');
-    loadDashboard();
-
-    // Auto refresh a cada 5 segundos
-    let interval: NodeJS.Timeout;
-    if (autoRefresh) {
-      interval = setInterval(loadDashboard, 5000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh, user]);
-
-  const loadDashboard = async () => {
-    try {
+  const { data: dashboardData = null, isLoading: loading } = useQuery<DashboardData | null>({
+    queryKey: ['election-results', configId],
+    queryFn: async () => {
       electionLogger.debug('Loading dashboard data for configId:', configId);
       const response = await fetch(`/api/elections/dashboard/${configId}`, {
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
       });
-
-      electionLogger.debug('Dashboard response:', response.status);
 
       if (response.ok) {
         const data = await response.json();
         electionLogger.debug('Dashboard data:', data);
-        setDashboardData(data);
-      } else if (response.status === 404) {
+        return data;
+      }
+
+      if (response.status === 404) {
         const errorData = await response.json();
         toast({
-          title: 'Nenhuma eleição ativa',
-          description: errorData.error || 'Não há eleição ativa para esta configuração.',
+          title: t('electionResults.noActiveElection'),
+          description: errorData.error || t('electionResults.noActiveElectionDesc'),
           variant: 'destructive',
         });
         navigate('/election-dashboard');
-      } else {
-        throw new Error('Erro ao carregar dashboard');
+        return null;
       }
-    } catch (error) {
-      electionLogger.error('Erro ao carregar dashboard:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao carregar resultados da nomeação',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      throw new Error('Erro ao carregar dashboard');
+    },
+    enabled: !!configId,
+    refetchInterval: autoRefresh ? 5000 : false,
+    staleTime: 3000,
+    meta: {
+      onError: () => {
+        toast({
+          title: t('electionResults.error'),
+          description: t('electionResults.nominationResultsError'),
+          variant: 'destructive',
+        });
+      },
+    },
+  });
 
   const getProgressPercentage = () => {
     if (!dashboardData) return 0;
@@ -156,15 +134,15 @@ export default function ElectionResults() {
               className="flex items-center"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
+              {t('electionResults.back')}
             </Button>
           </div>
 
           <Card>
             <CardContent className="p-8 text-center">
               <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhuma nomeação ativa</h3>
-              <p className="text-muted-foreground">Não há nomeação em andamento no momento.</p>
+              <h3 className="text-lg font-semibold mb-2">{t('electionResults.noActiveNomination')}</h3>
+              <p className="text-muted-foreground">{t('electionResults.noActiveNominationDesc')}</p>
             </CardContent>
           </Card>
         </div>
@@ -183,13 +161,13 @@ export default function ElectionResults() {
             className="flex items-center"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
+            {t('electionResults.back')}
           </Button>
 
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
               <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? 'Pausar' : 'Atualizar'}
+              {autoRefresh ? t('electionResults.pause') : t('electionResults.refresh')}
             </Button>
           </div>
         </div>
@@ -199,27 +177,27 @@ export default function ElectionResults() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <BarChart3 className="h-5 w-5 mr-2" />
-              Dashboard de Nomeações
+              {t('electionResults.dashboardTitle')}
             </CardTitle>
-            <CardDescription>Acompanhe as nomeações em tempo real</CardDescription>
+            <CardDescription>{t('electionResults.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
               <div className="flex items-center space-x-2 flex-wrap">
                 <Users className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium">Total de Votantes:</span>
+                <span className="text-xs sm:text-sm font-medium">{t('electionResults.totalVoters')}</span>
                 <Badge variant="secondary">{dashboardData.totalVoters}</Badge>
               </div>
 
               <div className="flex items-center space-x-2 flex-wrap">
                 <Vote className="h-4 w-4 text-green-600 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium">Votaram:</span>
+                <span className="text-xs sm:text-sm font-medium">{t('electionResults.voted')}</span>
                 <Badge variant="secondary">{dashboardData.votedVoters}</Badge>
               </div>
 
               <div className="flex items-center space-x-2 flex-wrap">
                 <Clock className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium">Progresso:</span>
+                <span className="text-xs sm:text-sm font-medium">{t('electionResults.progress')}</span>
                 <Badge variant="secondary">
                   {dashboardData.currentPosition}/{dashboardData.totalPositions}
                 </Badge>
@@ -228,7 +206,7 @@ export default function ElectionResults() {
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Participação dos Votantes</span>
+                <span>{t('electionResults.voterTurnout')}</span>
                 <span>{getVoterTurnout().toFixed(1)}%</span>
               </div>
               <Progress value={getVoterTurnout()} className="h-2" />
@@ -236,7 +214,7 @@ export default function ElectionResults() {
 
             <div className="space-y-2 mt-4">
               <div className="flex justify-between text-sm">
-                <span>Progresso das Nomeações</span>
+                <span>{t('electionResults.nominationProgress')}</span>
                 <span>{getProgressPercentage().toFixed(1)}%</span>
               </div>
               <Progress value={getProgressPercentage()} className="h-2" />
@@ -267,17 +245,17 @@ export default function ElectionResults() {
                   </div>
                   <Badge variant={index < dashboardData.currentPosition ? 'default' : 'secondary'}>
                     {index < dashboardData.currentPosition
-                      ? 'Concluído'
+                      ? t('electionResults.completed')
                       : index === dashboardData.currentPosition
-                        ? 'Em Andamento'
-                        : 'Pendente'}
+                        ? t('electionResults.inProgress')
+                        : t('electionResults.pending')}
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  {position.totalNominations > 0 && `${position.totalNominations} indicações • `}
+                  {position.totalNominations > 0 && `${position.totalNominations} ${t('electionResults.nominations')} • `}
                   {position.totalVotes > 0
-                    ? `${position.totalVotes} votos registrados`
-                    : 'Nenhum voto registrado'}
+                    ? t('electionResults.votesRegistered', { count: position.totalVotes })
+                    : t('electionResults.noVotesRegistered')}
                 </CardDescription>
               </CardHeader>
 
@@ -300,13 +278,12 @@ export default function ElectionResults() {
                               <div className="text-sm text-muted-foreground space-y-1">
                                 {result.nominations > 0 && (
                                   <p>
-                                    📝 {result.nominations} indicação
-                                    {result.nominations !== 1 ? 'ões' : ''}
+                                    📝 {result.nominations} {result.nominations !== 1 ? t('electionResults.nominationsPlural') : t('electionResults.nominationSingular')}
                                   </p>
                                 )}
                                 {result.votes > 0 && (
                                   <p>
-                                    🗳️ {result.votes} voto{result.votes !== 1 ? 's' : ''}
+                                    🗳️ {result.votes} {result.votes !== 1 ? t('electionResults.votesPlural') : t('electionResults.voteSingular')}
                                   </p>
                                 )}
                               </div>
@@ -332,11 +309,11 @@ export default function ElectionResults() {
                         <div className="flex items-center space-x-2">
                           <Trophy className="h-5 w-5 text-green-600" />
                           <span className="font-semibold text-green-800">
-                            Nomeado: {position.winner.candidateName}
+                            {t('electionResults.nominated')}: {position.winner.candidateName}
                           </span>
                         </div>
                         <p className="text-sm text-green-700 mt-1">
-                          {position.winner.votes} votos ({position.winner.percentage.toFixed(1)}%)
+                          {position.winner.votes} {t('electionResults.votesPlural')} ({position.winner.percentage.toFixed(1)}%)
                         </p>
                       </div>
                     )}
@@ -344,7 +321,7 @@ export default function ElectionResults() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Vote className="h-8 w-8 mx-auto mb-2" />
-                    <p>Nenhum voto registrado para esta posição</p>
+                    <p>{t('electionResults.noVotesForPosition')}</p>
                   </div>
                 )}
               </CardContent>

@@ -37,6 +37,9 @@ import {
   type PrepareOfflineProgress,
 } from '@/lib/offline/prepareOffline';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Offline');
 
 // ===== STRINGS PARA I18N =====
 // Estas strings podem ser facilmente extraídas para um sistema de i18n
@@ -127,7 +130,7 @@ export function OfflineIndicator({
   className,
   compact = false,
 }: OfflineIndicatorProps) {
-  console.log('🔌 OfflineIndicator render - userRole:', userRole, 'compact:', compact);
+  logger.debug('🔌 OfflineIndicator render - userRole:', userRole, 'compact:', compact);
   
   const { toast } = useToast();
   const {

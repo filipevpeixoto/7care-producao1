@@ -14,6 +14,7 @@ import { getAuthUserId } from '../utils/authHelpers';
 let autoCleanupInterval: NodeJS.Timeout | null = null;
 let autoCleanupEnabled = true;
 
+/** Registers system routes (cleanup, maintenance, status) */
 export const systemRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const discipleshipRepo = getRepository('discipleshipRepository');
@@ -30,7 +31,7 @@ export const systemRoutes = (app: Express): void => {
 
       for (const request of approvedRequests) {
         try {
-          if (request.interestedId == null) {
+          if (request.interestedId === null || request.interestedId === undefined) {
             continue;
           }
           const relationships = await relationshipRepo.getByInterested(request.interestedId);
@@ -115,7 +116,7 @@ export const systemRoutes = (app: Express): void => {
 
       for (const request of approvedRequests) {
         try {
-          if (request.interestedId == null) {
+          if (request.interestedId === null || request.interestedId === undefined) {
             continue;
           }
           const relationships = await relationshipRepo.getByInterested(request.interestedId);

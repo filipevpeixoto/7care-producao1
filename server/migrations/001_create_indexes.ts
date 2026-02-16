@@ -4,9 +4,10 @@
  */
 
 import { type NeonQueryFunction } from '@neondatabase/serverless';
+import { logger } from '../utils/logger';
 
 export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('📋 Criando índices de performance...');
+  logger.info('📋 Criando índices de performance...');
 
   // Índices para tabela users
   await sql`CREATE INDEX IF NOT EXISTS idx_users_church ON users(church)`;
@@ -40,11 +41,11 @@ export async function up(sql: NeonQueryFunction<boolean, boolean>): Promise<void
   await sql`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, is_read)`;
 
-  console.log('✅ Índices criados com sucesso!');
+  logger.info('✅ Índices criados com sucesso!');
 }
 
 export async function down(sql: NeonQueryFunction<boolean, boolean>): Promise<void> {
-  console.log('📋 Removendo índices...');
+  logger.info('📋 Removendo índices...');
 
   // Remover índices de users
   await sql`DROP INDEX IF EXISTS idx_users_church`;
@@ -78,5 +79,5 @@ export async function down(sql: NeonQueryFunction<boolean, boolean>): Promise<vo
   await sql`DROP INDEX IF EXISTS idx_notifications_user`;
   await sql`DROP INDEX IF EXISTS idx_notifications_read`;
 
-  console.log('✅ Índices removidos com sucesso!');
+  logger.info('✅ Índices removidos com sucesso!');
 }

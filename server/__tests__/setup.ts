@@ -16,6 +16,8 @@ vi.mock('../utils/logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
+    authSuccess: vi.fn(),
+    authFailure: vi.fn(),
   },
 }));
 
@@ -23,6 +25,13 @@ vi.mock('../utils/logger', () => ({
 vi.mock('../services/sentryService', () => ({
   captureException: vi.fn(),
   captureMessage: vi.fn(),
+  initSentry: vi.fn(),
+  sentryRequestHandler: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
+  sentryTracingHandler: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
+  sentryErrorHandler: vi.fn(
+    () => (err: Error, _req: unknown, _res: unknown, next: (err?: Error) => void) => next(err)
+  ),
+  sentryUserContext: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
 }));
 
 // ── Mock NeonAdapter (DB) ───────────────────────────────────────

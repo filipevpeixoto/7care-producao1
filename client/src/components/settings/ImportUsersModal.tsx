@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -52,7 +51,7 @@ import {
 interface ImportUsersModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
+  user: Pick<import('@/types/domain').UserMember, 'id' | 'name' | 'role' | 'church' | 'churchCode' | 'districtId'>;
   onImportComplete: () => void;
   loadChurches: () => Promise<void>;
 }
@@ -71,9 +70,9 @@ export function ImportUsersModal({
   const [_importFile, setImportFile] = useState<File | null>(null);
   const [importProgress, setImportProgress] = useState(0);
   const [importStep, setImportStep] = useState<ImportStep>('upload');
-  const [importData, setImportData] = useState<any[]>([]);
+  const [importData, setImportData] = useState<Record<string, string | number | boolean | Date | null | undefined>[]>([]);
   const [importErrors, setImportErrors] = useState<string[]>([]);
-  const [importDuplicates, setImportDuplicates] = useState<any[]>([]);
+  const [importDuplicates, setImportDuplicates] = useState<Record<string, string | number | boolean | Date | null | undefined>[]>([]);
 
   const processRealFile = async (file: File) => {
     try {
@@ -124,7 +123,7 @@ export function ImportUsersModal({
     const emails = new Set();
 
     const validatedData = importData.map((row, index) => {
-      const validatedRow = { ...row, valid: true, errors: [] };
+      const validatedRow: Record<string, string | number | boolean | Date | null | undefined> = { ...row, valid: true, errors: '' };
       const lineNumber = index + 1;
 
       const name = row.nome || row.Nome || row.name;
@@ -177,7 +176,6 @@ export function ImportUsersModal({
 
     setImportData(validatedData);
     setImportErrors([...errors, ...duplicates]);
-    setImportDuplicates(duplicates);
   };
 
   const performImport = async () => {
@@ -212,14 +210,14 @@ export function ImportUsersModal({
           const phoneWarning = originalPhone && !formattedPhone;
 
           return {
-            name: row.Nome || row.nome || row.name || 'Usuário Importado',
+            name: String(row.Nome || row.nome || row.name || 'Usuário Importado'),
             email:
               row.Email || row.email ||
-              `${(row.Nome || row.nome || 'usuario').toLowerCase().replace(/\s+/g, '.')}@igreja.com`,
+              `${String(row.Nome || row.nome || 'usuario').toLowerCase().replace(/\s+/g, '.')}@igreja.com`,
             password: undefined,
-            role: getRole(row.Tipo || row.tipo || row.role),
-            church: row.Igreja || row.igreja || row.church || 'Igreja Principal',
-            churchCode: row.Código || row.codigo || row.code,
+            role: getRole(String(row.Tipo || row.tipo || row.role || '')),
+            church: String(row.Igreja || row.igreja || row.church || 'Igreja Principal'),
+            churchCode: String(row.Código || row.codigo || row.code || ''),
             phone: formattedPhone,
             cpf: row.CPF || row.cpf,
             address: row.Endereço || row.endereco || row.address,
@@ -520,15 +518,15 @@ export function ImportUsersModal({
                   <TableBody>
                     {importData.slice(0, 5).map((row, index) => (
                       <TableRow key={index}>
-                        <TableCell>{row.Nome || row.nome || 'N/A'}</TableCell>
-                        <TableCell>{row.Igreja || row.igreja || 'N/A'}</TableCell>
-                        <TableCell>{row.Código || row.codigo || 'N/A'}</TableCell>
-                        <TableCell>{row.Tipo || row.tipo || 'N/A'}</TableCell>
-                        <TableCell>{row.Email || row.email || 'N/A'}</TableCell>
-                        <TableCell>{row.Celular || row.celular || 'N/A'}</TableCell>
+                        <TableCell>{String(row.Nome || row.nome || 'N/A')}</TableCell>
+                        <TableCell>{String(row.Igreja || row.igreja || 'N/A')}</TableCell>
+                        <TableCell>{String(row.Código || row.codigo || 'N/A')}</TableCell>
+                        <TableCell>{String(row.Tipo || row.tipo || 'N/A')}</TableCell>
+                        <TableCell>{String(row.Email || row.email || 'N/A')}</TableCell>
+                        <TableCell>{String(row.Celular || row.celular || 'N/A')}</TableCell>
                         <TableCell>
-                          <Badge variant={row.valid !== false ? 'secondary' : 'destructive'}>
-                            {row.valid !== false ? 'Válido' : 'Erro'}
+                          <Badge variant={String(row.valid) !== 'false' ? 'secondary' : 'destructive'}>
+                            {String(row.valid) !== 'false' ? 'Válido' : 'Erro'}
                           </Badge>
                         </TableCell>
                       </TableRow>

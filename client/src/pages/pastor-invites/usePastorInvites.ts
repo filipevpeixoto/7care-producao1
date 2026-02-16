@@ -46,7 +46,7 @@ export function usePastorInvites(userId: number | undefined, isSuperAdmin: boole
 
       navigator.clipboard.writeText(data.link);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível criar o convite.',
@@ -74,7 +74,7 @@ export function usePastorInvites(userId: number | undefined, isSuperAdmin: boole
         description: 'O convite foi rejeitado e o pastor foi notificado.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível rejeitar o convite.',
@@ -101,7 +101,7 @@ export function usePastorInvites(userId: number | undefined, isSuperAdmin: boole
         description: 'O convite foi excluído com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível excluir o convite.',
@@ -128,7 +128,7 @@ export function usePastorInvites(userId: number | undefined, isSuperAdmin: boole
         description: `${data.deletedCount} convites foram excluídos com sucesso.`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível excluir os convites.',

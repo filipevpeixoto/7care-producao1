@@ -90,6 +90,7 @@ export function Carousel({ images, autoPlay = true, interval = 5000, className }
             size="icon"
             className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/80 hover:bg-white shadow-lg"
             onClick={goToPrevious}
+            aria-label="Slide anterior"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -98,6 +99,7 @@ export function Carousel({ images, autoPlay = true, interval = 5000, className }
             size="icon"
             className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/80 hover:bg-white shadow-lg"
             onClick={goToNext}
+            aria-label="Próximo slide"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -115,6 +117,8 @@ export function Carousel({ images, autoPlay = true, interval = 5000, className }
                 index === currentIndex ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/75'
               )}
               onClick={() => goToSlide(index)}
+              aria-label={`Ir para o slide ${index + 1}`}
+              aria-current={index === currentIndex ? 'true' : undefined}
             />
           ))}
         </div>

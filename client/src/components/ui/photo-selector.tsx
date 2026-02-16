@@ -10,6 +10,7 @@ import {
   DialogDescription,
 } from './dialog';
 import { CameraCapture } from './camera-capture';
+import { ariaLabels } from '@/lib/accessibility';
 
 interface PhotoSelectorProps {
   currentPhoto?: string | null;
@@ -84,7 +85,7 @@ export const PhotoSelector: React.FC<PhotoSelectorProps> = ({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0">
+          <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0" aria-label="Alterar foto de perfil">
             <Camera className="w-4 h-4" />
           </Button>
         )}
@@ -118,6 +119,7 @@ export const PhotoSelector: React.FC<PhotoSelectorProps> = ({
                         setSelectedFile(null);
                         setPreviewUrl(null);
                       }}
+                      aria-label={ariaLabels.removeSelectedPhoto}
                     >
                       <X className="w-3 h-3" />
                     </Button>

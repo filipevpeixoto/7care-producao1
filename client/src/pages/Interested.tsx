@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { UserPlus, Heart, Phone, MessageCircle, MapPin, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,16 +53,17 @@ const statusColors = {
   inactive: 'bg-gray-500 text-white',
 };
 
-const statusLabels = {
-  new: 'Novo',
-  contacted: 'Contatado',
-  studying: 'Estudando',
-  baptized: 'Batizado',
-  inactive: 'Inativo',
-};
-
 const Interested = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const statusLabels: Record<string, string> = {
+    new: t('interested.statusNew'),
+    contacted: t('interested.statusContacted'),
+    studying: t('interested.statusStudying'),
+    baptized: t('interested.statusBaptized'),
+    inactive: t('interested.statusInactive'),
+  };
+
   const [interested, setInterested] = useState(mockInterested);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -110,9 +112,9 @@ const Interested = () => {
       <MobileLayout>
         <div className="p-4 text-center">
           <UserPlus className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
+          <h2 className="text-xl font-semibold mb-2">{t('interested.restrictedAccess')}</h2>
           <p className="text-muted-foreground">
-            Apenas administradores e missionários podem gerenciar amigos.
+            {t('interested.restrictedMessage')}
           </p>
         </div>
       </MobileLayout>
@@ -124,12 +126,12 @@ const Interested = () => {
       <div className="p-4 space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Amigos</h1>
-            <p className="text-muted-foreground">Gerencie pessoas interessadas</p>
+            <h1 className="text-2xl font-bold">{t('interested.friends')}</h1>
+            <p className="text-muted-foreground">{t('interested.manageFriends')}</p>
           </div>
           <Button className="bg-gradient-primary hover:opacity-90">
             <UserPlus className="w-4 h-4 mr-2" />
-            Novo
+            {t('interested.new')}
           </Button>
         </div>
 
@@ -138,25 +140,25 @@ const Interested = () => {
           <Card className="text-center shadow-sm">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-xs text-muted-foreground">{t('interested.total')}</p>
             </CardContent>
           </Card>
           <Card className="text-center shadow-sm">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-yellow-600">{stats.new}</div>
-              <p className="text-xs text-muted-foreground">Novos</p>
+              <p className="text-xs text-muted-foreground">{t('interested.newCount')}</p>
             </CardContent>
           </Card>
           <Card className="text-center shadow-sm">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">{stats.studying}</div>
-              <p className="text-xs text-muted-foreground">Estudando</p>
+              <p className="text-xs text-muted-foreground">{t('interested.studyingLabel')}</p>
             </CardContent>
           </Card>
           <Card className="text-center shadow-sm">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-purple-600">{stats.myAssigned}</div>
-              <p className="text-xs text-muted-foreground">Meus</p>
+              <p className="text-xs text-muted-foreground">{t('interested.mine')}</p>
             </CardContent>
           </Card>
         </div>
@@ -166,7 +168,8 @@ const Interested = () => {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar amigos..."
+              aria-label={t('interested.searchFriends')}
+              placeholder={t('interested.searchFriendsPlaceholder')}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -182,7 +185,7 @@ const Interested = () => {
                 onClick={() => setFilterStatus(status)}
                 className="whitespace-nowrap"
               >
-                {status === 'all' ? 'Todos' : statusLabels[status as keyof typeof statusLabels]}
+                {status === 'all' ? t('interested.all') : statusLabels[status as keyof typeof statusLabels]}
               </Button>
             ))}
           </div>
@@ -221,12 +224,12 @@ const Interested = () => {
                     {person.assignedTo && (
                       <div className="flex items-center gap-2">
                         <Heart className="w-4 h-4" />
-                        Responsável: {person.assignedTo}
+                      {t('interested.responsible')}: {person.assignedTo}
                       </div>
                     )}
                     {person.lastContact && (
                       <div>
-                        Último contato: {new Date(person.lastContact).toLocaleDateString('pt-BR')}
+                        {t('interested.lastContact')}: {new Date(person.lastContact).toLocaleDateString('pt-BR')}
                       </div>
                     )}
                   </div>
@@ -234,7 +237,7 @@ const Interested = () => {
                   <div className="flex gap-2 pt-2 border-t">
                     <Button size="sm" variant="outline" className="flex-1">
                       <Phone className="w-4 h-4 mr-2" />
-                      Ligar
+                      {t('interested.call')}
                     </Button>
                     <Button size="sm" variant="outline" className="flex-1">
                       <MessageCircle className="w-4 h-4 mr-2" />
@@ -249,7 +252,7 @@ const Interested = () => {
                       onClick={() => handleAssignToMe(person.id)}
                     >
                       <Heart className="w-4 h-4 mr-2" />
-                      Assumir Responsabilidade
+                      {t('interested.takeResponsibility')}
                     </Button>
                   )}
 
@@ -261,7 +264,7 @@ const Interested = () => {
                           className="flex-1"
                           onClick={() => handleUpdateStatus(person.id, 'contacted')}
                         >
-                          Marcar como Contatado
+                          {t('interested.markAsContacted')}
                         </Button>
                       )}
                       {person.status === 'contacted' && (
@@ -270,7 +273,7 @@ const Interested = () => {
                           className="flex-1"
                           onClick={() => handleUpdateStatus(person.id, 'studying')}
                         >
-                          Iniciar Estudo
+                          {t('interested.startStudy')}
                         </Button>
                       )}
                     </div>
@@ -285,7 +288,7 @@ const Interested = () => {
           <Card className="text-center py-8 shadow-sm">
             <CardContent>
               <UserPlus className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Nenhum amigo encontrado</p>
+              <p className="text-muted-foreground">{t('interested.noFriendsFound')}</p>
             </CardContent>
           </Card>
         )}

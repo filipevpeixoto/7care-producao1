@@ -51,9 +51,7 @@ export type UpdateRelationshipInput = Partial<Omit<Relationship, 'id' | 'created
 export type CreateDiscipleshipRequestInput = Omit<
   DiscipleshipRequest,
   'id' | 'createdAt' | 'updatedAt'
-> & {
-  requestedMissionaryId?: number | null;
-};
+>;
 export type UpdateDiscipleshipRequestInput = Partial<Omit<DiscipleshipRequest, 'id' | 'createdAt'>>;
 
 // Tipos para check-in emocional

@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { type UserData } from '@/lib/pointsCalculator';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const pointsLogger = createLogger('Points');
 
@@ -16,86 +18,94 @@ interface UserPointsData {
     role: string;
     status: string;
   };
-  breakdown: any;
+  breakdown: Record<string, number>;
   total: number;
 }
 
 export const useUserPoints = () => {
   const { user } = useAuth();
-  const [data, setData] = useState<UserPointsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pointsConfig, setPointsConfig] = useState<any>(null);
+  const userId = Number(user?.id);
+  const hasValidUserId = Boolean(user?.id) && !Number.isNaN(userId) && userId > 0;
 
-  // Buscar configuração de pontuação
-  useEffect(() => {
-    const fetchPointsConfig = async () => {
+  const { data: pointsConfig } = useQuery({
+    queryKey: queryKeys.system.pointsConfig(),
+    queryFn: async () => {
       try {
         const response = await fetchWithAuth('/api/system/points-config');
-        if (response.ok) {
-          const config = await response.json();
-          setPointsConfig(config);
+        if (!response.ok) {
+          return null;
         }
+        return response.json();
       } catch (err) {
         pointsLogger.warn('Não foi possível carregar configuração de pontuação:', err);
+        return null;
       }
-    };
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-    fetchPointsConfig();
-  }, []);
+  const {
+    data: rawData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.users.points(userId || 0),
+    queryFn: async () => {
+      if (!hasValidUserId) {
+        return null;
+      }
 
-  const fetchUserPoints = async () => {
-    // Validação robusta do user.id
-    const userId = Number(user?.id);
-    if (!user?.id || isNaN(userId) || userId <= 0) {
-      pointsLogger.debug('No valid user ID, skipping fetch');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetchWithAuth(`/api/users/${user.id}/points-details`);
+      const response = await fetchWithAuth(`/api/users/${userId}/points-details`);
 
       if (!response.ok) {
-        // 404 significa usuário não encontrado - não é um erro crítico
         if (response.status === 404) {
-          pointsLogger.debug(`Usuário ${user.id} não encontrado no banco de dados`);
-          setData(null);
-          return;
+          pointsLogger.debug(`Usuário ${userId} não encontrado no banco de dados`);
+          return null;
         }
         throw new Error(`Erro ao carregar dados de pontuação: ${response.status}`);
       }
 
-      const result = await response.json();
+      return response.json();
+    },
+    enabled: hasValidUserId,
+    staleTime: 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchInterval: 300000,
+    refetchOnWindowFocus: true,
+  });
 
-      // Verificar se userData existe e extrair dados de extraData
-      if (!result.userData) {
-        result.userData = {
-          engajamento: 'Baixo',
-          classificacao: 'A resgatar',
-          dizimista: 'Não dizimista',
-          ofertante: 'Não ofertante',
-          tempoBatismo: 0,
-          cargos: [],
-          nomeUnidade: null,
-          temLicao: false,
-          comunhao: 0,
-          missao: 0,
-          estudoBiblico: 0,
-          totalPresenca: 0,
-          batizouAlguem: false,
-          discipuladoPosBatismo: 0,
-          cpfValido: false,
-          camposVaziosACMS: false,
-        };
-      } else if (result.userData.extraData) {
-        // Extrair dados de extraData para o nível raiz para compatibilidade com PointsBreakdown
-        const extraData = result.userData.extraData;
-        result.userData = {
-          ...result.userData,
+  const data = useMemo<UserPointsData | null>(() => {
+    if (!rawData) {
+      return null;
+    }
+
+    const baseUserData: UserData = {
+      engajamento: 'Baixo',
+      classificacao: 'A resgatar',
+      dizimista: 'Não dizimista',
+      ofertante: 'Não ofertante',
+      tempoBatismo: 0,
+      cargos: [],
+      nomeUnidade: undefined,
+      temLicao: false,
+      comunhao: 0,
+      missao: 0,
+      estudoBiblico: 0,
+      totalPresenca: 0,
+      batizouAlguem: false,
+      discipuladoPosBatismo: 0,
+      cpfValido: false,
+      camposVaziosACMS: false,
+    };
+
+    const rawUserData = rawData.userData || baseUserData;
+    const extraData = rawUserData?.extraData;
+    const normalizedUserData: UserData = extraData
+      ? {
+          ...rawUserData,
           engajamento: extraData.engajamento || 'Baixo',
           classificacao: extraData.classificacao || 'A resgatar',
           dizimista: extraData.dizimistaType || extraData.dizimista || 'Não dizimista',
@@ -104,7 +114,7 @@ export const useUserPoints = () => {
           cargos: extraData.departamentosCargos
             ? extraData.departamentosCargos.split(';').filter((c: string) => c.trim())
             : [],
-          nomeUnidade: extraData.nomeUnidade || null,
+          nomeUnidade: extraData.nomeUnidade ?? undefined,
           temLicao:
             extraData.temLicao === true ||
             extraData.temLicao === 'true' ||
@@ -119,91 +129,42 @@ export const useUserPoints = () => {
             extraData.cpfValido === 'Sim' || (extraData.cpf && extraData.cpf.length === 11),
           camposVaziosACMS:
             extraData.camposVaziosACMS === 'true' || extraData.camposVaziosACMS === true,
-        };
-      }
+        }
+      : rawUserData;
 
-      // CORREÇÃO: Usar calculatedPoints ou currentPoints da API
-      const apiPoints = result.calculatedPoints || result.currentPoints || 0;
-      result.points = apiPoints;
+    const apiPoints = rawData.calculatedPoints || rawData.currentPoints || 0;
+    const totalPoints = apiPoints;
+    const finalBreakdown = rawData.breakdown || {};
 
-      // Adicionar os pontos reais do usuário aos dados
-      result.userData.actualPoints = apiPoints;
+    const finalUserData = {
+      ...baseUserData,
+      ...normalizedUserData,
+      actualPoints: totalPoints,
+    };
 
-      // Se temos configuração do banco, usar ela para cálculo correto
-      if (pointsConfig && typeof pointsConfig === 'object') {
-        // USAR DIRETAMENTE OS PONTOS E BREAKDOWN DA API
-        const totalPoints = apiPoints;
-
-        // Usar o breakdown da API se disponível, senão calcular
-        const apiBreakdown = result.breakdown;
-
-        setData({
-          ...result,
-          breakdown: apiBreakdown || {},
-          total: totalPoints,
-        });
-
-        // Definir actualPoints como o valor da API
-        result.userData.actualPoints = totalPoints;
-      } else {
-        // Fallback para usar dados da API diretamente
-        setData({
-          ...result,
-          breakdown: result.breakdown || {},
-          total: apiPoints,
-        });
-
-        // Definir actualPoints como o valor da API
-        result.userData.actualPoints = apiPoints;
-      }
-    } catch (err) {
-      pointsLogger.error('Erro ao buscar dados de pontuação:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setIsLoading(false);
+    if (pointsConfig && typeof pointsConfig === 'object') {
+      return {
+        ...rawData,
+        userData: finalUserData,
+        points: apiPoints,
+        breakdown: finalBreakdown,
+        total: totalPoints,
+      };
     }
-  };
 
-  useEffect(() => {
-    fetchUserPoints();
-  }, [user?.id, pointsConfig]);
-
-  // Refetch quando o usuário voltar para a aba (visibility change)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user?.id) {
-        pointsLogger.debug('Refetching on visibility change');
-        fetchUserPoints();
-      }
+    return {
+      ...rawData,
+      userData: finalUserData,
+      points: apiPoints,
+      breakdown: finalBreakdown,
+      total: totalPoints,
     };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user?.id]);
-
-  // Refetch automático a cada 5 minutos (reduzido de 60 segundos para evitar sobrecarga)
-  useEffect(() => {
-    const userId = Number(user?.id);
-    if (!user?.id || isNaN(userId) || userId <= 0) return;
-
-    const interval = setInterval(() => {
-      pointsLogger.debug('Auto-refetch interval (5 min)');
-      fetchUserPoints();
-    }, 300000); // 5 minutos
-
-    return () => clearInterval(interval);
-  }, [user?.id]);
-
-  const refetch = () => {
-    fetchUserPoints();
-  };
+  }, [pointsConfig, rawData]);
 
   return {
     data,
     isLoading,
-    error,
+    error: error instanceof Error ? error.message : null,
     refetch,
   };
 };

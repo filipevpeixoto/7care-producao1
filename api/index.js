@@ -17,9 +17,11 @@
  * The Express server already handles all routes via server/routes/*.
  */
 // Vercel Serverless Function - wrapper para a função Netlify
-const netlifyHandler = require('../netlify/functions/api.js');
+import netlifyHandler from '../netlify/functions/api.js';
 
-module.exports = async (req, res) => {
+const { URL, URLSearchParams, console } = globalThis;
+
+export default async (req, res) => {
   if (!netlifyHandler || !netlifyHandler.handler) {
     return res.status(500).json({ error: 'Handler not loaded' });
   }

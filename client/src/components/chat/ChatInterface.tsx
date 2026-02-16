@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { chatLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,11 +83,11 @@ export const ChatInterface = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id }),
-          }).catch(console.error);
+          }).catch((err) => chatLogger.error('Erro ao marcar como lido:', err));
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar mensagens:', error);
+      chatLogger.error('Erro ao carregar mensagens:', error);
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +160,7 @@ export const ChatInterface = ({
         });
       }
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      chatLogger.error('Erro ao enviar mensagem:', error);
       setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
       toast({
         title: 'Erro',

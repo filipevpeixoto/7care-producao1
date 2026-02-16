@@ -26,19 +26,21 @@ import type {
   PushSubscription
 } from '../types/storage';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 // ========== Conversão de Datas ==========
 export function toDateString(value: unknown): string {
   if (value instanceof Date) {
     return value.toISOString();
   }
-  if (value == null) {
+  if (isNil(value)) {
     return '';
   }
   return String(value);
 }
 
 export function toOptionalDateString(value: unknown): string | null {
-  if (value == null) {
+  if (isNil(value)) {
     return null;
   }
   return value instanceof Date ? value.toISOString() : String(value);
@@ -46,7 +48,7 @@ export function toOptionalDateString(value: unknown): string | null {
 
 // ========== Normalização de Dados ==========
 export function normalizeExtraData(value: unknown): Record<string, unknown> | string | null | undefined {
-  if (value == null) {
+  if (isNil(value)) {
     return value as null | undefined;
   }
   if (typeof value === 'string') {
@@ -102,60 +104,60 @@ export async function resolveChurchCode(name: string, providedCode?: string | nu
 export function toUser(row: Record<string, unknown>): User {
   return {
     id: Number(row.id),
-    name: row.name == null ? '' : String(row.name),
-    email: row.email == null ? '' : String(row.email),
-    password: row.password == null ? '' : String(row.password),
-    role: (row.role == null ? 'member' : String(row.role)) as User['role'],
-    church: row.church == null ? null : String(row.church),
-    churchCode: row.churchCode == null ? '' : String(row.churchCode),
-    districtId: row.districtId == null ? null : Number(row.districtId),
-    departments: row.departments == null ? '' : String(row.departments),
-    birthDate: row.birthDate == null ? '' : String(row.birthDate),
-    civilStatus: row.civilStatus == null ? '' : String(row.civilStatus),
-    occupation: row.occupation == null ? '' : String(row.occupation),
-    education: row.education == null ? '' : String(row.education),
-    address: row.address == null ? '' : String(row.address),
-    baptismDate: row.baptismDate == null ? '' : String(row.baptismDate),
-    previousReligion: row.previousReligion == null ? '' : String(row.previousReligion),
-    biblicalInstructor: row.biblicalInstructor == null ? null : String(row.biblicalInstructor),
-    interestedSituation: row.interestedSituation == null ? '' : String(row.interestedSituation),
+    name: isNil(row.name) ? '' : String(row.name),
+    email: isNil(row.email) ? '' : String(row.email),
+    password: isNil(row.password) ? '' : String(row.password),
+    role: (isNil(row.role) ? 'member' : String(row.role)) as User['role'],
+    church: isNil(row.church) ? null : String(row.church),
+    churchCode: isNil(row.churchCode) ? '' : String(row.churchCode),
+    districtId: isNil(row.districtId) ? null : Number(row.districtId),
+    departments: isNil(row.departments) ? '' : String(row.departments),
+    birthDate: isNil(row.birthDate) ? '' : String(row.birthDate),
+    civilStatus: isNil(row.civilStatus) ? '' : String(row.civilStatus),
+    occupation: isNil(row.occupation) ? '' : String(row.occupation),
+    education: isNil(row.education) ? '' : String(row.education),
+    address: isNil(row.address) ? '' : String(row.address),
+    baptismDate: isNil(row.baptismDate) ? '' : String(row.baptismDate),
+    previousReligion: isNil(row.previousReligion) ? '' : String(row.previousReligion),
+    biblicalInstructor: isNil(row.biblicalInstructor) ? null : String(row.biblicalInstructor),
+    interestedSituation: isNil(row.interestedSituation) ? '' : String(row.interestedSituation),
     isDonor: Boolean(row.isDonor),
     isTither: Boolean(row.isTither),
     isApproved: Boolean(row.isApproved),
     points: Number(row.points ?? 0),
-    level: row.level == null ? '' : String(row.level),
+    level: isNil(row.level) ? '' : String(row.level),
     attendance: Number(row.attendance ?? 0),
     extraData: normalizeExtraData(row.extraData),
-    observations: row.observations == null ? '' : String(row.observations),
+    observations: isNil(row.observations) ? '' : String(row.observations),
     createdAt: toDateString(row.createdAt),
     updatedAt: toDateString(row.updatedAt),
     firstAccess: Boolean(row.firstAccess),
-    status: (row.status == null ? 'active' : String(row.status)) as import('../../shared/types/user').UserStatus,
-    phone: row.phone == null ? undefined : String(row.phone),
-    cpf: row.cpf == null ? undefined : String(row.cpf),
-    profilePhoto: row.profilePhoto == null ? undefined : String(row.profilePhoto),
-    isOffering: row.isOffering == null ? undefined : Boolean(row.isOffering),
-    hasLesson: row.hasLesson == null ? undefined : Boolean(row.hasLesson)
+    status: (isNil(row.status) ? 'active' : String(row.status)) as import('../../shared/types/user').UserStatus,
+    phone: isNil(row.phone) ? undefined : String(row.phone),
+    cpf: isNil(row.cpf) ? undefined : String(row.cpf),
+    profilePhoto: isNil(row.profilePhoto) ? undefined : String(row.profilePhoto),
+    isOffering: isNil(row.isOffering) ? undefined : Boolean(row.isOffering),
+    hasLesson: isNil(row.hasLesson) ? undefined : Boolean(row.hasLesson)
   };
 }
 
 export function mapChurchRecord(record: Record<string, unknown>): Church {
   return {
     id: Number(record.id),
-    name: record.name == null ? '' : String(record.name),
-    code: record.code == null ? undefined : String(record.code),
-    address: record.address == null ? null : String(record.address),
-    city: record.city == null ? null : String(record.city),
-    state: record.state == null ? null : String(record.state),
-    zip_code: record.zip_code == null ? null : String(record.zip_code),
-    email: record.email == null ? null : String(record.email),
-    phone: record.phone == null ? null : String(record.phone),
-    pastor_name: record.pastor_name == null ? null : String(record.pastor_name),
-    pastor_email: record.pastor_email == null ? null : String(record.pastor_email),
-    established_date: record.established_date == null ? null : String(record.established_date),
-    status: record.status == null ? null : String(record.status),
-    districtId: record.districtId == null ? null : Number(record.districtId),
-    isActive: record.isActive == null ? true : Boolean(record.isActive),
+    name: isNil(record.name) ? '' : String(record.name),
+    code: isNil(record.code) ? undefined : String(record.code),
+    address: isNil(record.address) ? null : String(record.address),
+    city: isNil(record.city) ? null : String(record.city),
+    state: isNil(record.state) ? null : String(record.state),
+    zip_code: isNil(record.zip_code) ? null : String(record.zip_code),
+    email: isNil(record.email) ? null : String(record.email),
+    phone: isNil(record.phone) ? null : String(record.phone),
+    pastor_name: isNil(record.pastor_name) ? null : String(record.pastor_name),
+    pastor_email: isNil(record.pastor_email) ? null : String(record.pastor_email),
+    established_date: isNil(record.established_date) ? null : String(record.established_date),
+    status: isNil(record.status) ? null : String(record.status),
+    districtId: isNil(record.districtId) ? null : Number(record.districtId),
+    isActive: isNil(record.isActive) ? true : Boolean(record.isActive),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
@@ -164,13 +166,13 @@ export function mapChurchRecord(record: Record<string, unknown>): Church {
 export function mapRelationshipRecord(record: Record<string, unknown>): Relationship {
   return {
     id: Number(record.id),
-    interestedId: record.interestedId == null ? undefined : Number(record.interestedId),
-    missionaryId: record.missionaryId == null ? undefined : Number(record.missionaryId),
-    userId1: record.userId1 == null ? undefined : Number(record.userId1),
-    userId2: record.userId2 == null ? undefined : Number(record.userId2),
-    relationshipType: record.relationshipType == null ? undefined : String(record.relationshipType),
-    status: record.status == null ? undefined : String(record.status),
-    notes: record.notes == null ? undefined : String(record.notes),
+    interestedId: isNil(record.interestedId) ? undefined : Number(record.interestedId),
+    missionaryId: isNil(record.missionaryId) ? undefined : Number(record.missionaryId),
+    userId1: isNil(record.userId1) ? undefined : Number(record.userId1),
+    userId2: isNil(record.userId2) ? undefined : Number(record.userId2),
+    relationshipType: isNil(record.relationshipType) ? undefined : String(record.relationshipType),
+    status: isNil(record.status) ? undefined : String(record.status),
+    notes: isNil(record.notes) ? undefined : String(record.notes),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
@@ -182,15 +184,15 @@ export function mapMeetingRecord(record: Record<string, unknown>): Meeting {
     requesterId: Number(record.requesterId ?? 0),
     assignedToId: Number(record.assignedToId ?? 0),
     typeId: Number(record.typeId ?? 0),
-    title: record.title == null ? '' : String(record.title),
-    description: record.description == null ? '' : String(record.description),
+    title: isNil(record.title) ? '' : String(record.title),
+    description: isNil(record.description) ? '' : String(record.description),
     scheduledAt: toDateString(record.scheduledAt),
     duration: Number(record.duration ?? 0),
-    location: record.location == null ? '' : String(record.location),
-    priority: record.priority == null ? '' : String(record.priority),
+    location: isNil(record.location) ? '' : String(record.location),
+    priority: isNil(record.priority) ? '' : String(record.priority),
     isUrgent: Boolean(record.isUrgent),
-    status: record.status == null ? '' : String(record.status),
-    notes: record.notes == null ? '' : String(record.notes),
+    status: isNil(record.status) ? '' : String(record.status),
+    notes: isNil(record.notes) ? '' : String(record.notes),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
@@ -199,23 +201,23 @@ export function mapMeetingRecord(record: Record<string, unknown>): Meeting {
 export function mapMeetingTypeRecord(record: Record<string, unknown>): MeetingType {
   return {
     id: Number(record.id),
-    name: record.name == null ? '' : String(record.name),
-    description: record.description == null ? '' : String(record.description),
+    name: isNil(record.name) ? '' : String(record.name),
+    description: isNil(record.description) ? '' : String(record.description),
     duration: Number(record.duration ?? 0),
-    isActive: record.isActive == null ? true : Boolean(record.isActive),
+    isActive: isNil(record.isActive) ? true : Boolean(record.isActive),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
 }
 
 export function mapConversationRecord(record: Record<string, unknown>): Conversation {
-  const typeValue = record.type == null ? '' : String(record.type);
+  const typeValue = isNil(record.type) ? '' : String(record.type);
   return {
     id: Number(record.id),
-    title: record.title == null ? '' : String(record.title),
+    title: isNil(record.title) ? '' : String(record.title),
     type: typeValue,
     isGroup: typeValue === 'group' || typeValue === 'grupo',
-    createdBy: record.createdBy == null ? null : Number(record.createdBy),
+    createdBy: isNil(record.createdBy) ? null : Number(record.createdBy),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
@@ -226,9 +228,9 @@ export function mapMessageRecord(record: Record<string, unknown>): Message {
     id: Number(record.id),
     conversationId: Number(record.conversationId ?? 0),
     senderId: Number(record.senderId ?? 0),
-    content: record.content == null ? '' : String(record.content),
-    messageType: record.messageType == null ? 'text' : String(record.messageType),
-    isRead: record.isRead == null ? false : Boolean(record.isRead),
+    content: isNil(record.content) ? '' : String(record.content),
+    messageType: isNil(record.messageType) ? 'text' : String(record.messageType),
+    isRead: isNil(record.isRead) ? false : Boolean(record.isRead),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
@@ -240,7 +242,7 @@ export function mapPointActivityRecord(record: Record<string, unknown>): PointAc
     userId: Number(record.userId ?? 0),
     pointId: Number(record.pointId ?? record.id ?? 0),
     points: Number(record.points ?? 0),
-    description: record.description == null ? '' : String(record.description),
+    description: isNil(record.description) ? '' : String(record.description),
     createdAt: toDateString(record.createdAt)
   };
 }
@@ -248,32 +250,32 @@ export function mapPointActivityRecord(record: Record<string, unknown>): PointAc
 export function mapAchievementRecord(record: Record<string, unknown>): Achievement {
   return {
     id: Number(record.id),
-    name: record.name == null ? '' : String(record.name),
-    description: record.description == null ? '' : String(record.description),
-    icon: record.icon == null ? '' : String(record.icon),
+    name: isNil(record.name) ? '' : String(record.name),
+    description: isNil(record.description) ? '' : String(record.description),
+    icon: isNil(record.icon) ? '' : String(record.icon),
     requiredPoints: Number(record.pointsRequired ?? record.requiredPoints ?? 0),
-    requiredConditions: record.requiredConditions == null ? '' : String(record.requiredConditions),
-    badgeColor: record.badgeColor == null ? '' : String(record.badgeColor),
-    isActive: record.isActive == null ? true : Boolean(record.isActive),
+    requiredConditions: isNil(record.requiredConditions) ? '' : String(record.requiredConditions),
+    badgeColor: isNil(record.badgeColor) ? '' : String(record.badgeColor),
+    isActive: isNil(record.isActive) ? true : Boolean(record.isActive),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
 }
 
 export function mapDiscipleshipRequestRecord(record: Record<string, unknown>): DiscipleshipRequest {
-  const interestedId = record.interestedId == null ? undefined : Number(record.interestedId);
-  const missionaryId = record.missionaryId == null ? undefined : Number(record.missionaryId);
+  const interestedId = isNil(record.interestedId) ? undefined : Number(record.interestedId);
+  const missionaryId = isNil(record.missionaryId) ? undefined : Number(record.missionaryId);
   return {
     id: Number(record.id),
     requesterId: Number(interestedId ?? 0),
     mentorId: Number(missionaryId ?? 0),
-    status: record.status == null ? '' : String(record.status),
-    message: record.notes == null ? '' : String(record.notes),
+    status: isNil(record.status) ? '' : String(record.status),
+    message: isNil(record.notes) ? '' : String(record.notes),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt),
     interestedId,
     missionaryId,
-    notes: record.notes == null ? undefined : String(record.notes)
+    notes: isNil(record.notes) ? undefined : String(record.notes)
   };
 }
 
@@ -281,11 +283,11 @@ export function mapEmotionalCheckInRecord(record: Record<string, unknown>): Emot
   return {
     id: Number(record.id),
     userId: Number(record.userId ?? 0),
-    emotionalScore: record.emotionalScore == null ? null : Number(record.emotionalScore),
-    mood: record.mood == null ? null : String(record.mood),
-    prayerRequest: record.prayerRequest == null ? null : String(record.prayerRequest),
+    emotionalScore: isNil(record.emotionalScore) ? null : Number(record.emotionalScore),
+    mood: isNil(record.mood) ? null : String(record.mood),
+    prayerRequest: isNil(record.prayerRequest) ? null : String(record.prayerRequest),
     isPrivate: Boolean(record.isPrivate),
-    allowChurchMembers: record.allowChurchMembers == null ? true : Boolean(record.allowChurchMembers),
+    allowChurchMembers: isNil(record.allowChurchMembers) ? true : Boolean(record.allowChurchMembers),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt)
   };
@@ -295,14 +297,16 @@ export function mapMissionaryProfileRecord(record: Record<string, unknown>): Mis
   return {
     id: Number(record.id),
     userId: Number(record.userId ?? 0),
-    missionField: record.missionField == null ? String(record.specialization ?? '') : String(record.missionField),
-    startDate: record.startDate == null ? '' : String(record.startDate),
-    endDate: record.endDate == null ? '' : String(record.endDate),
-    status: record.status == null ? 'active' : String(record.status),
-    notes: record.notes == null ? String(record.experience ?? '') : String(record.notes),
+    missionField: isNil(record.missionField)
+      ? String(record.specialization ?? '')
+      : String(record.missionField),
+    startDate: isNil(record.startDate) ? '' : String(record.startDate),
+    endDate: isNil(record.endDate) ? '' : String(record.endDate),
+    status: isNil(record.status) ? 'active' : String(record.status),
+    notes: isNil(record.notes) ? String(record.experience ?? '') : String(record.notes),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt),
-    isActive: record.isActive == null ? undefined : Boolean(record.isActive)
+    isActive: isNil(record.isActive) ? undefined : Boolean(record.isActive)
   };
 }
 
@@ -310,13 +314,13 @@ export function mapPushSubscriptionRecord(record: Record<string, unknown>): Push
   return {
     id: Number(record.id),
     userId: Number(record.userId ?? 0),
-    endpoint: record.endpoint == null ? '' : String(record.endpoint),
-    p256dh: record.p256dh == null ? '' : String(record.p256dh),
-    auth: record.auth == null ? '' : String(record.auth),
-    isActive: record.isActive == null ? true : Boolean(record.isActive),
+    endpoint: isNil(record.endpoint) ? '' : String(record.endpoint),
+    p256dh: isNil(record.p256dh) ? '' : String(record.p256dh),
+    auth: isNil(record.auth) ? '' : String(record.auth),
+    isActive: isNil(record.isActive) ? true : Boolean(record.isActive),
     createdAt: toDateString(record.createdAt),
     updatedAt: toDateString(record.updatedAt),
-    deviceName: record.deviceName == null ? null : String(record.deviceName)
+    deviceName: isNil(record.deviceName) ? null : String(record.deviceName)
   };
 }
 
@@ -324,10 +328,10 @@ export function mapNotificationRecord(record: Record<string, unknown>): Notifica
   return {
     id: Number(record.id),
     userId: Number(record.userId ?? 0),
-    title: record.title == null ? '' : String(record.title),
-    message: record.message == null ? '' : String(record.message),
-    type: record.type == null ? 'general' : String(record.type),
-    isRead: record.isRead == null ? false : Boolean(record.isRead),
+    title: isNil(record.title) ? '' : String(record.title),
+    message: isNil(record.message) ? '' : String(record.message),
+    type: isNil(record.type) ? 'general' : String(record.type),
+    isRead: isNil(record.isRead) ? false : Boolean(record.isRead),
     createdAt: toDateString(record.createdAt)
   };
 }
@@ -339,9 +343,9 @@ export function mapPrayerRecord(record: Record<string, unknown>): Prayer {
   return {
     id: Number(record.id),
     userId: Number(record.requesterId),
-    districtId: record.districtId != null ? Number(record.districtId) : null,
+    districtId: isNil(record.districtId) ? null : Number(record.districtId),
     title: String(record.title),
-    description: record.description == null ? null : String(record.description),
+    description: isNil(record.description) ? null : String(record.description),
     isPublic: record.isPrivate === null ? true : !record.isPrivate,
     isAnswered,
     answeredAt: isAnswered ? (updatedAt ? String(updatedAt) : null) : null,

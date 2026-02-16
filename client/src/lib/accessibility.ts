@@ -1,3 +1,37 @@
+import { useEffect, useState } from 'react';
+
+export const ariaLabels = {
+  back: 'Voltar',
+  close: 'Fechar',
+  capturePhoto: 'Capturar foto',
+  switchCamera: 'Alternar câmera',
+  removeSelectedPhoto: 'Remover foto selecionada',
+  addDiscipulador: 'Adicionar discipulador',
+  removeDiscipulador: (name: string) => `Remover discipulador ${name}`,
+  closeInstallPrompt: 'Fechar aviso de instalação',
+  removeImage: 'Remover imagem',
+  playAudio: 'Reproduzir áudio',
+  pauseAudio: 'Pausar áudio',
+  removeAudio: 'Remover áudio',
+  savePosition: 'Salvar cargo',
+  cancelPositionEdit: 'Cancelar edição do cargo',
+  cancelAddPosition: 'Cancelar adição de cargo',
+  saveDescription: 'Salvar descrição do cargo',
+  cancelDescriptionEdit: 'Cancelar edição da descrição',
+  editPosition: (position: string) => `Editar cargo ${position}`,
+  editDescription: (position: string) => `Editar descrição do cargo ${position}`,
+  deletePosition: (position: string) => `Excluir cargo ${position}`,
+  movePositionUp: (position: string) => `Mover cargo ${position} para cima`,
+  movePositionDown: (position: string) => `Mover cargo ${position} para baixo`,
+  emojiButton: (emoji: string) => `Adicionar emoji ${emoji}`,
+  editField: (label: string) => `Editar ${label}`,
+  deleteSubscription: (name: string) => `Excluir inscrição de ${name}`,
+  previousMonth: 'Mês anterior',
+  nextMonth: 'Próximo mês',
+  previousWeek: 'Semana anterior',
+  nextWeek: 'Próxima semana',
+};
+
 /**
  * Utilitários de acessibilidade para componentes React
  * Implementa WCAG 2.1 guidelines e melhores práticas
@@ -75,9 +109,21 @@ export function prefersReducedMotion(): boolean {
  * @returns true se preferir movimento reduzido
  */
 export function usePrefersReducedMotion(): boolean {
-  // Esta é uma função que pode ser usada em componentes React
-  // Para uso reativo com useState/useEffect, use o hook de accessibility.tsx
-  return prefersReducedMotion();
+  const [prefersReducedMotionState, setPrefersReducedMotionState] = useState(() => prefersReducedMotion());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotionState(event.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return prefersReducedMotionState;
 }
 
 /**

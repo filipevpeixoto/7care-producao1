@@ -18,7 +18,7 @@ interface MetricCard {
   value: string | number;
   change: number;
   changeType: 'increase' | 'decrease' | 'neutral';
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
 }
 

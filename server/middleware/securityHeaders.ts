@@ -13,43 +13,49 @@ import { type Request, type Response, type NextFunction } from 'express';
  * NOTA: Esta é a ÚNICA definição de CSP do sistema.
  * Os arquivos cspHeaders.ts e security.ts (configureHelmet) são legado/dead code.
  */
-const cspDirectives = {
-  defaultSrc: ["'self'"],
-  scriptSrc: [
+const getCspDirectives = () => {
+  const isStrict = process.env.CSP_STRICT === 'true';
+  const scriptSrc = [
     "'self'",
-    "'unsafe-inline'", // Necessário para React
-    ...(process.env.NODE_ENV === 'development' ? ["'unsafe-eval'"] : []),
+    ...(isStrict ? [] : ["'unsafe-inline'"]),
+    ...(process.env.NODE_ENV === 'development' && !isStrict ? ["'unsafe-eval'"] : []),
     'https://cdn.jsdelivr.net',
     'https://unpkg.com',
-  ],
-  styleSrc: [
+  ];
+  const styleSrc = [
     "'self'",
-    "'unsafe-inline'", // Necessário para CSS-in-JS e Tailwind
+    ...(isStrict ? [] : ["'unsafe-inline'"]),
     'https://fonts.googleapis.com',
-  ],
-  imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http://localhost:*'],
-  fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-  connectSrc: [
-    "'self'",
-    'https://api.sentry.io',
-    'https://*.sentry.io',
-    'wss:',
-    'ws:',
-    process.env.NODE_ENV === 'development' ? 'http://localhost:*' : '',
-  ].filter(Boolean),
-  frameSrc: ["'self'"],
-  objectSrc: ["'none'"],
-  baseUri: ["'self'"],
-  formAction: ["'self'"],
-  frameAncestors: ["'self'"],
-  upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : undefined,
+  ];
+
+  return {
+    defaultSrc: ["'self'"],
+    scriptSrc,
+    styleSrc,
+    imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http://localhost:*'],
+    fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+    connectSrc: [
+      "'self'",
+      'https://api.sentry.io',
+      'https://*.sentry.io',
+      'wss:',
+      'ws:',
+      process.env.NODE_ENV === 'development' ? 'http://localhost:*' : '',
+    ].filter(Boolean),
+    frameSrc: ["'self'"],
+    objectSrc: ["'none'"],
+    baseUri: ["'self'"],
+    formAction: ["'self'"],
+    frameAncestors: ["'self'"],
+    upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : undefined,
+  };
 };
 
 /**
  * Gera string do CSP a partir das diretivas
  */
 const buildCspString = (): string => {
-  return Object.entries(cspDirectives)
+  return Object.entries(getCspDirectives())
     .filter(([, values]) => values !== undefined)
     .map(([directive, values]) => {
       const kebabDirective = directive.replace(/([A-Z])/g, '-$1').toLowerCase();

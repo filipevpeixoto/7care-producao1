@@ -11,6 +11,7 @@ import { receiptCrudRoutes } from './receipts/receiptCrudRoutes';
 import { receiptAdminRoutes } from './receipts/receiptAdminRoutes';
 import { receiptConfigRoutes } from './receipts/receiptConfigRoutes';
 
+/** Registers receipt routes (CRUD, admin, Dracma config) */
 export const receiptRoutes = (app: Express): void => {
   // Config routes registered first so /api/receipts/dracma-config/status
   // is defined before any potential param-based routes

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { dashboardLogger } from '@/lib/logger';
 import {
   DialogWithModalTracking,
   DialogContent,
@@ -184,7 +185,7 @@ export const SpiritualCheckInModal = ({ isOpen, onClose }: SpiritualCheckInModal
         throw new Error('Erro ao enviar check-in');
       }
     } catch (error) {
-      console.error('Erro ao enviar check-in espiritual:', error);
+      dashboardLogger.error('Erro ao enviar check-in espiritual:', error);
       toast({
         title: 'Erro ao enviar check-in',
         description: 'Não foi possível enviar seu check-in espiritual. Tente novamente.',

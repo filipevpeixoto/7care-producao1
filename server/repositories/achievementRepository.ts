@@ -9,6 +9,8 @@ import { schema } from '../schema';
 import { logger } from '../utils/logger';
 import type { Achievement } from '../../shared/schema';
 
+const isNil = (value: unknown): value is null | undefined => value === null || value === undefined;
+
 export class AchievementRepository {
   /**
    * Busca todas as conquistas
@@ -130,15 +132,15 @@ export class AchievementRepository {
   private mapRecord(record: Record<string, unknown>): Achievement {
     return {
       id: Number(record.id),
-      name: record.name == null ? '' : String(record.name),
-      description: record.description == null ? '' : String(record.description),
-      icon: record.icon == null ? '' : String(record.icon),
+      name: isNil(record.name) ? '' : String(record.name),
+      description: isNil(record.description) ? '' : String(record.description),
+      icon: isNil(record.icon) ? '' : String(record.icon),
       requiredPoints: Number(record.pointsRequired ?? record.requiredPoints ?? 0),
       pointsRequired: Number(record.pointsRequired ?? record.requiredPoints ?? 0),
       requiredConditions:
-        record.requiredConditions == null ? '' : String(record.requiredConditions),
-      badgeColor: record.badgeColor == null ? '' : String(record.badgeColor),
-      isActive: record.isActive == null ? true : Boolean(record.isActive),
+        isNil(record.requiredConditions) ? '' : String(record.requiredConditions),
+      badgeColor: isNil(record.badgeColor) ? '' : String(record.badgeColor),
+      isActive: isNil(record.isActive) ? true : Boolean(record.isActive),
       createdAt: this.toDateString(record.createdAt),
       updatedAt: this.toDateString(record.updatedAt),
     };

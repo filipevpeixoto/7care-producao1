@@ -303,12 +303,14 @@ export async function encryptData<T>(data: T): Promise<string> {
     return await encryptWithKey(key, data);
   } catch (error) {
     offlineLogger.error('Erro ao criptografar:', error);
-    // Fallback APENAS em desenvolvimento para facilitar debug
     if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
       offlineLogger.warn('Usando fallback não criptografado (DEV ONLY)');
       return JSON.stringify({ __unencrypted: true, __warning: 'DEV_ONLY', data });
     }
-    throw new Error('Falha ao criptografar dados sensíveis');
+    if (error instanceof Error) {
+      throw new Error('Falha ao criptografar dados sensíveis', { cause: error });
+    }
+    throw new Error('Falha ao criptografar dados sensíveis', { cause: error });
   }
 }
 
@@ -340,7 +342,10 @@ export async function decryptData<T>(encryptedString: string): Promise<T> {
     return await decryptWithKey<T>(key, encryptedString);
   } catch (error) {
     offlineLogger.error('Erro ao descriptografar:', error);
-    throw new Error('Falha ao descriptografar dados');
+    if (error instanceof Error) {
+      throw new Error('Falha ao descriptografar dados', { cause: error });
+    }
+    throw new Error('Falha ao descriptografar dados', { cause: error });
   }
 }
 

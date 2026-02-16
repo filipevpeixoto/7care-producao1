@@ -6,9 +6,13 @@
  */
 
 import multer from 'multer';
+import { UPLOAD } from '../../constants';
 
 // Multer upload configuration for file handling
-export const upload = multer({ dest: 'uploads/' });
+export const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: UPLOAD.EXCEL_MAX_FILE_SIZE },
+});
 
 // Re-export common dependencies for convenience
 // Sub-modules can import directly from source if preferred

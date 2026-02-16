@@ -12,7 +12,10 @@ import multer from 'multer';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository, getService } from '../container';
 import { getAuthUserId } from '../utils/authHelpers';
+import { uploadRateLimiter } from '../middleware';
+import { UPLOAD } from '../constants';
 
+/** Registers system settings routes */
 export const settingsRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const churchRepo = getRepository('churchRepository');
@@ -103,6 +106,7 @@ export const settingsRoutes = (app: Express): void => {
    */
   app.post(
     '/api/settings/logo',
+    uploadRateLimiter,
     asyncHandler(async (req: Request, res: Response) => {
       const authHeader = req.headers.authorization;
 
@@ -112,7 +116,7 @@ export const settingsRoutes = (app: Express): void => {
 
       const upload = multer({
         dest: 'uploads/',
-        limits: { fileSize: 5 * 1024 * 1024 },
+        limits: { fileSize: UPLOAD.MAX_FILE_SIZE },
       }).single('logo');
 
       upload(req, res, async (err: unknown) => {

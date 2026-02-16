@@ -191,10 +191,10 @@ export function useTasks() {
         if (index !== -1) {
           tasks[index] = updatedTask;
           localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(tasks));
-          console.log('💾 Cache atualizado após edição');
+          tasksLogger.debug('Cache atualizado após edição');
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao atualizar cache:', error);
+        tasksLogger.warn('Erro ao atualizar cache:', error);
       }
       
       queryClient.invalidateQueries({ queryKey: ['tasks'] });

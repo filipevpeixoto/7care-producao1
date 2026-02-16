@@ -5,6 +5,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
+import { logger } from '../utils/logger';
 
 dotenv.config();
 
@@ -16,27 +17,27 @@ if (!DATABASE_URL) {
 const sql = neon(DATABASE_URL);
 
 async function migrate() {
-  console.log('🚀 Iniciando migração: Adicionando district_id às tabelas...');
+  logger.info('🚀 Iniciando migração: Adicionando district_id às tabelas...');
 
   try {
     // 1. Adicionar district_id à tabela prayers
-    console.log('📝 Adicionando district_id à tabela prayers...');
+    logger.info('📝 Adicionando district_id à tabela prayers...');
     await sql`
       ALTER TABLE prayers 
       ADD COLUMN IF NOT EXISTS district_id INTEGER REFERENCES districts(id)
     `;
-    console.log('✅ Coluna district_id adicionada à tabela prayers');
+    logger.info('✅ Coluna district_id adicionada à tabela prayers');
 
     // 2. Adicionar district_id à tabela conversations
-    console.log('📝 Adicionando district_id à tabela conversations...');
+    logger.info('📝 Adicionando district_id à tabela conversations...');
     await sql`
       ALTER TABLE conversations 
       ADD COLUMN IF NOT EXISTS district_id INTEGER REFERENCES districts(id)
     `;
-    console.log('✅ Coluna district_id adicionada à tabela conversations');
+    logger.info('✅ Coluna district_id adicionada à tabela conversations');
 
     // 3. Adicionar district_id à tabela activities (se existir)
-    console.log('📝 Verificando tabela activities...');
+    logger.info('📝 Verificando tabela activities...');
     const activitiesTable = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -49,21 +50,21 @@ async function migrate() {
         ALTER TABLE activities 
         ADD COLUMN IF NOT EXISTS district_id INTEGER REFERENCES districts(id)
       `;
-      console.log('✅ Coluna district_id adicionada à tabela activities');
+      logger.info('✅ Coluna district_id adicionada à tabela activities');
     } else {
-      console.log('⚠️ Tabela activities não existe, pulando...');
+      logger.info('⚠️ Tabela activities não existe, pulando...');
     }
 
     // 4. Adicionar district_id à tabela events
-    console.log('📝 Adicionando district_id à tabela events...');
+    logger.info('📝 Adicionando district_id à tabela events...');
     await sql`
       ALTER TABLE events 
       ADD COLUMN IF NOT EXISTS district_id INTEGER REFERENCES districts(id)
     `;
-    console.log('✅ Coluna district_id adicionada à tabela events');
+    logger.info('✅ Coluna district_id adicionada à tabela events');
 
     // 5. Criar índices para melhorar performance
-    console.log('📝 Criando índices...');
+    logger.info('📝 Criando índices...');
 
     await sql`
       CREATE INDEX IF NOT EXISTS prayers_district_idx ON prayers(district_id)
@@ -77,43 +78,46 @@ async function migrate() {
       CREATE INDEX IF NOT EXISTS events_district_idx ON events(district_id)
     `;
 
-    console.log('✅ Índices criados com sucesso');
+    logger.info('✅ Índices criados com sucesso');
 
     // 6. Atualizar prayers existentes com base no requester_id
-    console.log('📝 Atualizando prayers existentes com district_id...');
+    logger.info('📝 Atualizando prayers existentes com district_id...');
     await sql`
       UPDATE prayers p
       SET district_id = u.district_id
       FROM users u
       WHERE p.requester_id = u.id AND p.district_id IS NULL AND u.district_id IS NOT NULL
     `;
-    console.log('✅ Prayers atualizadas');
+    logger.info('✅ Prayers atualizadas');
 
     // 7. Atualizar conversations existentes com base no created_by
-    console.log('📝 Atualizando conversations existentes com district_id...');
+    logger.info('📝 Atualizando conversations existentes com district_id...');
     await sql`
       UPDATE conversations c
       SET district_id = u.district_id
       FROM users u
       WHERE c.created_by = u.id AND c.district_id IS NULL AND u.district_id IS NOT NULL
     `;
-    console.log('✅ Conversations atualizadas');
+    logger.info('✅ Conversations atualizadas');
 
     // 8. Atualizar events existentes com base no created_by
-    console.log('📝 Atualizando events existentes com district_id...');
+    logger.info('📝 Atualizando events existentes com district_id...');
     await sql`
       UPDATE events e
       SET district_id = u.district_id
       FROM users u
       WHERE e.created_by = u.id AND e.district_id IS NULL AND u.district_id IS NOT NULL
     `;
-    console.log('✅ Events atualizados');
+    logger.info('✅ Events atualizados');
 
-    console.log('\n🎉 Migração concluída com sucesso!');
+    logger.info('🎉 Migração concluída com sucesso!');
   } catch (error) {
-    console.error('❌ Erro na migração:', error);
+    logger.error('❌ Erro na migração', error);
     throw error;
   }
 }
 
-migrate().catch(console.error);
+migrate().catch(error => {
+  logger.error('❌ Erro na migração', error);
+  process.exit(1);
+});

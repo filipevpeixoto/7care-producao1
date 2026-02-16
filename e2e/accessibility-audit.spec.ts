@@ -11,7 +11,7 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3064';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3065';
 
 // Pages that don't require authentication
 const PUBLIC_PAGES = [

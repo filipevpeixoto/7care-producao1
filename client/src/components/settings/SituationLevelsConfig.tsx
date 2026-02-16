@@ -122,6 +122,7 @@ export function SituationLevelsConfig({
                 className="h-8 w-8 text-muted-foreground hover:text-red-500"
                 onClick={() => removeLevel(index)}
                 disabled={levels.length <= 1}
+                aria-label={`Remover nível ${level.value}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

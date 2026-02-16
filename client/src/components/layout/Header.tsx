@@ -1,4 +1,5 @@
 import { LogOut, Settings as SettingsIcon, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { uiLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
@@ -12,9 +13,12 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
+import { useTranslation } from 'react-i18next';
 
 export const Header = () => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -50,12 +54,12 @@ export const Header = () => {
   }, []);
 
   const toggleExpansion = () => {
-    console.log('🔍 Toggle clicked! Current state:', isExpanded);
+    uiLogger.debug('Toggle clicked! Current state:', isExpanded);
     setIsExpanded(!isExpanded);
-    console.log('🔍 New state will be:', !isExpanded);
+    uiLogger.debug('New state will be:', !isExpanded);
   };
 
-  console.log('🔍 Header render - isExpanded:', isExpanded, 'user:', user?.name);
+  uiLogger.debug('Header render - isExpanded:', isExpanded, 'user:', user?.name);
 
   return (
     <header className="border-b bg-background shadow-sm">
@@ -75,6 +79,7 @@ export const Header = () => {
           <OfflineIndicator userRole={user?.role} compact />
 
           <ThemeToggle variant="icon" />
+          <LanguageSwitcher />
 
           {user && (
             <DropdownMenu>
@@ -113,18 +118,18 @@ export const Header = () => {
               <DropdownMenuContent align="end" className="w-44 bg-popover">
                 <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
                   <SettingsIcon className="mr-2 h-4 w-4" />
-                  Configurações
+                  {t('nav.settings')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleProfile} className="cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
-                  Meu Cadastro
+                  {t('nav.profile')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleLogout}
                   className="cursor-pointer text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Sair
+                  {t('nav.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

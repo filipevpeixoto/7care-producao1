@@ -79,6 +79,12 @@ export const users = pgTable(
     cpfValido: boolean('cpf_valido').default(false), // CPF válido
     camposVazios: boolean('campos_vazios').default(true), // Tem campos vazios no ACMS
 
+    // Campos de autenticação de dois fatores (2FA)
+    twoFactorEnabled: boolean('two_factor_enabled').default(false),
+    twoFactorSecret: text('two_factor_secret'),
+    twoFactorPendingSecret: text('two_factor_pending_secret'),
+    twoFactorRecoveryCodes: text('two_factor_recovery_codes'),
+
     observations: text('observations'),
     firstAccess: boolean('first_access').default(true),
     status: text('status').default('pending'),

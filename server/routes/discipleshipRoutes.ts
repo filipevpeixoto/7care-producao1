@@ -13,6 +13,7 @@ import { sendSuccess, sendCreated, sendError, sendNotFound } from '../utils/apiR
 import { getRepository } from '../container';
 import { getAuthUserId, getAuthUserRole } from '../utils/authHelpers';
 
+/** Registers discipleship request routes */
 export const discipleshipRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const discipleshipRepo = getRepository('discipleshipRepository');

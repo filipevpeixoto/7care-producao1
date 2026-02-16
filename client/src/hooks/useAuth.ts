@@ -23,10 +23,11 @@
  * ```
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AuthUser as User } from '@/../../shared/types/user';
 import type { AuthState } from '@/types/auth';
 import { saveUsersOffline, canAccessFullOfflineData, clearEncryptionKey } from '@/lib/offline';
+import { fetchWithAuth } from '@/lib/api';
 import { authLogger } from '@/lib/logger';
 
 /**
@@ -109,9 +110,16 @@ export const useAuth = () => {
     isLoading: true,
   });
 
-  // Estado separado para o usuário real (não impersonado)
-  const [realUser, setRealUser] = useState<ExtendedUser | null>(null);
-  const [isImpersonating, setIsImpersonating] = useState(false);
+  const isImpersonating = Boolean(authState.user?.isImpersonating);
+  const realUser = useMemo(() => {
+    const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!storedAuth) return null;
+    try {
+      return JSON.parse(storedAuth) as ExtendedUser;
+    } catch {
+      return null;
+    }
+  }, [authState.user?.id, authState.isAuthenticated]);
 
   useEffect(() => {
     authLogger.debug('Checking stored auth...');
@@ -120,6 +128,14 @@ export const useAuth = () => {
     const timeoutId = setTimeout(() => {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }, AUTH_TIMEOUT_MS);
+
+    const scheduleAuthState = (
+      nextState: AuthState | ((prev: AuthState) => AuthState)
+    ) => {
+      setTimeout(() => {
+        setAuthState(nextState);
+      }, 0);
+    };
 
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
 
@@ -132,17 +148,12 @@ export const useAuth = () => {
         const context = JSON.parse(impersonationContext);
         if (Date.now() - context.timestamp < IMPERSONATION_MAX_AGE_MS && context.isImpersonating) {
           impersonatingUser = context.impersonatingAs;
-          setIsImpersonating(true);
         } else {
           localStorage.removeItem(IMPERSONATION_KEY);
-          setIsImpersonating(false);
         }
       } catch {
         localStorage.removeItem(IMPERSONATION_KEY);
-        setIsImpersonating(false);
       }
-    } else {
-      setIsImpersonating(false);
     }
 
     if (storedAuth) {
@@ -150,14 +161,11 @@ export const useAuth = () => {
         const user = JSON.parse(storedAuth);
         clearTimeout(timeoutId);
 
-        // SEMPRE manter o usuário real disponível
-        setRealUser(user);
-
         const finalUser = impersonatingUser
           ? { ...user, ...impersonatingUser, isImpersonating: true }
           : user;
 
-        setAuthState({
+        scheduleAuthState({
           user: finalUser,
           isAuthenticated: true,
           isLoading: false,
@@ -165,13 +173,11 @@ export const useAuth = () => {
       } catch {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         clearTimeout(timeoutId);
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        setRealUser(null);
+        scheduleAuthState(prev => ({ ...prev, isLoading: false }));
       }
     } else {
       clearTimeout(timeoutId);
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-      setRealUser(null);
+      scheduleAuthState(prev => ({ ...prev, isLoading: false }));
     }
 
     return () => clearTimeout(timeoutId);
@@ -229,7 +235,7 @@ export const useAuth = () => {
 
               // Salvar dados do usuário offline se tiver permissão
               if (canAccessFullOfflineData(userWithChurch.role)) {
-                saveUsersOffline([userWithChurch as any], userWithChurch.role).catch(err =>
+                saveUsersOffline([userWithChurch as unknown as import('@shared/schema').User], userWithChurch.role).catch(err =>
                   authLogger.debug('Erro ao salvar offline:', err)
                 );
               }
@@ -278,12 +284,10 @@ export const useAuth = () => {
 
   const stopImpersonating = useCallback(() => {
     localStorage.removeItem(IMPERSONATION_KEY);
-    setIsImpersonating(false);
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
     if (storedAuth) {
       try {
         const user = JSON.parse(storedAuth);
-        setRealUser(user);
         setAuthState({
           user,
           isAuthenticated: true,
@@ -301,19 +305,17 @@ export const useAuth = () => {
     try {
       authLogger.debug('Refreshing user data');
 
-      const response = await fetch(`/api/users/${authState.user.id}`);
-      if (response.ok) {
-        const userData = await response.json();
-        const updatedUser = { ...authState.user, ...userData };
+      const response = await fetchWithAuth(`/api/users/${authState.user.id}`);
+      if (!response.ok) return false;
+      const userData = await response.json();
+      const updatedUser = { ...authState.user, ...userData };
 
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
-        setAuthState(prev => ({
-          ...prev,
-          user: updatedUser,
-        }));
-        return true;
-      }
-      return false;
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+      setAuthState(prev => ({
+        ...prev,
+        user: updatedUser,
+      }));
+      return true;
     } catch (error) {
       authLogger.error('Error refreshing user data:', error);
       return false;

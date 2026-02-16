@@ -3,7 +3,7 @@
  * Endpoints para integração OAuth2 com Google Calendar e sincronização de eventos
  */
 
-import { type Express, type Request, type Response } from 'express';
+import { type Express, type Request, type Response, type NextFunction } from 'express';
 import { NeonAdapter } from '../neonAdapter';
 import { GoogleCalendarService } from '../services/googleCalendarService';
 import { logger } from '../utils/logger';
@@ -11,7 +11,9 @@ import { asyncHandler, sendSuccess, sendError } from '../utils';
 import { hasAdminAccess, isPastor } from '../utils/permissions';
 import { getRepository } from '../container';
 import { getAuthUserId } from '../utils/authHelpers';
+import type { AuthenticatedRequest } from '../types';
 
+/** Registers Google Calendar OAuth2 integration and event sync routes */
 export const googleCalendarRoutes = (app: Express): void => {
   // NeonAdapter mantido apenas para GoogleCalendarService (TODO: refatorar service)
   const storage = new NeonAdapter();
@@ -33,7 +35,7 @@ export const googleCalendarRoutes = (app: Express): void => {
   /**
    * Middleware to check authorization
    */
-  const checkAuthorization = async (req: Request, res: Response, next: Function) => {
+  const checkAuthorization = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = resolveUserId(req);
       const user = await userRepo.getUserById(userId);
@@ -50,7 +52,7 @@ export const googleCalendarRoutes = (app: Express): void => {
         );
       }
 
-      (req as any).user = user;
+      (req as AuthenticatedRequest).user = user;
       next();
     } catch (error) {
       return sendError(res, (error as Error).message, 401);

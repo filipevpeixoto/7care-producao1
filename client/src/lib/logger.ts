@@ -9,7 +9,9 @@
  * - Sentry integration for errors and breadcrumbs (when available)
  */
 
-const isDev = import.meta.env.DEV;
+const isDev =
+  typeof import.meta !== 'undefined' &&
+  (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -25,8 +27,7 @@ function getSentry(): {
   addBreadcrumb?: (breadcrumb: Record<string, unknown>) => void;
 } | null {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (window as any).__SENTRY__ || null;
+    return (window as unknown as Record<string, unknown>).__SENTRY__ as ReturnType<typeof getSentry> || null;
   } catch {
     return null;
   }

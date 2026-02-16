@@ -1,2 +1,2 @@
 npx lint-staged
-npx tsc --noEmit --pretty 2>/dev/null || echo '⚠️ TypeScript errors detected (non-blocking)'
+npx tsc --noEmit --pretty

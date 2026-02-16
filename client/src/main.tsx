@@ -4,6 +4,9 @@ import './index.css';
 import './i18n';
 import { initWebVitals } from './lib/webVitals';
 import { initSentry } from './lib/sentry';
+import { createLogger } from './lib/logger';
+
+const appLogger = createLogger('App');
 
 // Global error handler for Chrome extension messages and service worker errors
 window.addEventListener('unhandledrejection', event => {
@@ -80,7 +83,7 @@ if (!isTauri && 'serviceWorker' in navigator) {
         scope: '/',
       });
 
-      console.log('[App] Service Worker registrado:', registration.scope);
+      appLogger.info('Service Worker registrado:', registration.scope);
 
       // Verificar atualizações
       registration.addEventListener('updatefound', () => {
@@ -89,7 +92,7 @@ if (!isTauri && 'serviceWorker' in navigator) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // Nova versão disponível
-              console.log('[App] Nova versão do app disponível');
+              appLogger.info('Nova versão do app disponível');
               // Pode mostrar um toast para o usuário atualizar
             }
           });
@@ -99,13 +102,13 @@ if (!isTauri && 'serviceWorker' in navigator) {
       // Escutar mensagens do Service Worker
       navigator.serviceWorker.addEventListener('message', event => {
         if (event.data?.type === 'SYNC_REQUIRED') {
-          console.log('[App] Sincronização solicitada pelo SW');
+          appLogger.info('Sincronização solicitada pelo SW');
           // Dispara evento customizado para o app tratar
           window.dispatchEvent(new CustomEvent('sw-sync-required'));
         }
       });
     } catch (error) {
-      console.warn('[App] Erro ao registrar Service Worker:', error);
+      appLogger.warn('Erro ao registrar Service Worker:', error);
     }
   });
 }

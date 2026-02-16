@@ -37,27 +37,22 @@ function getStoredTheme(): Theme {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
-    const stored = getStoredTheme();
-    return stored === 'system' ? getSystemTheme() : stored;
-  });
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => getSystemTheme());
+  const resolvedTheme = theme === 'system' ? systemTheme : theme;
 
   // Atualiza o tema resolvido quando o tema ou preferência do sistema muda
   useEffect(() => {
-    const resolved = theme === 'system' ? getSystemTheme() : theme;
-    setResolvedTheme(resolved);
-    
     // Aplica classe no documento
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-    root.classList.add(resolved);
+    root.classList.add(resolvedTheme);
     
     // Atualiza meta tag para mobile
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', resolved === 'dark' ? '#1f2937' : '#ffffff');
+      metaThemeColor.setAttribute('content', resolvedTheme === 'dark' ? '#1f2937' : '#ffffff');
     }
-  }, [theme]);
+  }, [resolvedTheme]);
 
   // Listener para mudanças na preferência do sistema
   useEffect(() => {
@@ -65,7 +60,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => {
-      setResolvedTheme(e.matches ? 'dark' : 'light');
+      setSystemTheme(e.matches ? 'dark' : 'light');
     };
 
     mediaQuery.addEventListener('change', handler);
@@ -76,6 +71,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem(STORAGE_KEY, newTheme);
+    if (newTheme === 'system') {
+      setSystemTheme(getSystemTheme());
+    }
   }, []);
 
   // Alterna entre temas

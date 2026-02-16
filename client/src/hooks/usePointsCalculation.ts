@@ -18,16 +18,23 @@ export const usePointsCalculation = () => {
       if (!response.ok) {
         throw new Error('Falha ao carregar usuários');
       }
-      const usersData = await response.json();
+      const usersData = (await response.json()) as User[];
       
       // Simular pontos para usuários que não têm
-      return usersData.map((user: any) => ({
+      return usersData.map(user => {
+        let fallbackPoints = 250;
+        if (hasAdminAccess(user)) {
+          fallbackPoints = 1000;
+        } else if (user.role === 'member') {
+          fallbackPoints = 500;
+        } else if (user.role === 'missionary') {
+          fallbackPoints = 750;
+        }
+        return {
         ...user,
-        points: user.points || 
-          (hasAdminAccess(user) ? 1000 : 
-           user.role === 'member' ? 500 : 
-           user.role === 'missionary' ? 750 : 250)
-      })) as Promise<User[]>;
+        points: user.points || fallbackPoints,
+        };
+      });
     },
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -50,17 +57,24 @@ export const usePointsCalculation = () => {
   const calculateUserPoints = (user: User): number => {
     // Helper: strip null to undefined for UserData compatibility
     const n = <T,>(v: T | null | undefined): T | undefined => v ?? undefined;
+    const toArray = <T,>(value: T | T[] | null | undefined): T[] | undefined => {
+      if (Array.isArray(value)) return value;
+      if (value) return [value];
+      return undefined;
+    };
+    const toUserDataString = <K extends keyof UserData>(value: unknown): UserData[K] | undefined =>
+      value as UserData[K] | undefined;
 
     // Se não temos configuração, usar valores padrão
     if (!pointsConfig) {
       const userData: UserData = {
-        engajamento: user.engajamento as any,
-        classificacao: user.classificacao as any,
-        dizimista: user.dizimista as any,
-        ofertante: user.ofertante as any,
+        engajamento: toUserDataString<'engajamento'>(user.engajamento),
+        classificacao: toUserDataString<'classificacao'>(user.classificacao),
+        dizimista: toUserDataString<'dizimista'>(user.dizimista),
+        ofertante: toUserDataString<'ofertante'>(user.ofertante),
         tempoBatismo: n(user.tempoBatismo),
-        cargos: Array.isArray(user.cargos) ? user.cargos : user.cargos ? [user.cargos] : undefined,
-        departamentos: user.departamentos ? [user.departamentos] : undefined,
+        cargos: toArray(user.cargos),
+        departamentos: toArray(user.departamentos),
         nomeUnidade: n(user.nomeUnidade),
         temLicao: user.hasLesson || n(user.temLicao),
         comunhao: n(user.comunhao),
@@ -70,7 +84,10 @@ export const usePointsCalculation = () => {
         batizouAlguem: n(user.batizouAlguem),
         discipuladoPosBatismo: n(user.discipuladoPosBatismo),
         cpfValido: n(user.cpfValido),
-        camposVaziosACMS: user.camposVaziosACMS != null ? Boolean(user.camposVaziosACMS) : undefined
+        camposVaziosACMS:
+          user.camposVaziosACMS !== null && user.camposVaziosACMS !== undefined
+            ? Boolean(user.camposVaziosACMS)
+            : undefined
       };
       const result = PointsCalculator.calculateTotalPoints(userData);
       return typeof result === 'number' ? result : 0;
@@ -164,19 +181,27 @@ export const usePointsCalculation = () => {
   const calculateAllUsersPoints = () => {
     if (!users || !Array.isArray(users)) return [];
     
+    const toArray = <T,>(value: T | T[] | null | undefined): T[] | undefined => {
+      if (Array.isArray(value)) return value;
+      if (value) return [value];
+      return undefined;
+    };
+    const toUserDataString = <K extends keyof UserData>(value: unknown): UserData[K] | undefined =>
+      value as UserData[K] | undefined;
+
     return users.map(user => {
       const calculatedPoints = calculateUserPoints(user);
       return {
         ...user,
         calculatedPoints: typeof calculatedPoints === 'number' ? calculatedPoints : 0,
         pointsBreakdown: PointsCalculator.calculateDetailedPoints({
-          engajamento: user.engajamento as any,
-          classificacao: user.classificacao as any,
-          dizimista: user.dizimista as any,
-          ofertante: user.ofertante as any,
+          engajamento: toUserDataString<'engajamento'>(user.engajamento),
+          classificacao: toUserDataString<'classificacao'>(user.classificacao),
+          dizimista: toUserDataString<'dizimista'>(user.dizimista),
+          ofertante: toUserDataString<'ofertante'>(user.ofertante),
           tempoBatismo: user.tempoBatismo ?? undefined,
-          cargos: Array.isArray(user.cargos) ? user.cargos : user.cargos ? [user.cargos] : undefined,
-          departamentos: user.departamentos ? [user.departamentos] : undefined,
+          cargos: toArray(user.cargos),
+          departamentos: toArray(user.departamentos),
           nomeUnidade: user.nomeUnidade ?? undefined,
           temLicao: user.hasLesson || (user.temLicao ?? undefined),
           comunhao: user.comunhao ?? undefined,
@@ -186,7 +211,10 @@ export const usePointsCalculation = () => {
           batizouAlguem: user.batizouAlguem ?? undefined,
           discipuladoPosBatismo: user.discipuladoPosBatismo ?? undefined,
           cpfValido: user.cpfValido ?? undefined,
-          camposVaziosACMS: user.camposVaziosACMS != null ? Boolean(user.camposVaziosACMS) : undefined
+          camposVaziosACMS:
+            user.camposVaziosACMS !== null && user.camposVaziosACMS !== undefined
+              ? Boolean(user.camposVaziosACMS)
+              : undefined
         })
       };
     });

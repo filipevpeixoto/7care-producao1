@@ -299,4 +299,5 @@ class PrometheusService {
   }
 }
 
+/** Singleton instance of the Prometheus metrics service. */
 export const prometheusService = new PrometheusService();

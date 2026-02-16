@@ -14,6 +14,7 @@ import { type PaginatedResult } from '../repositories/BaseRepository';
 import { logger } from '../utils/logger';
 import type { Request } from 'express';
 
+/** Context information attached to every audit log entry. */
 export interface AuditContext {
   userId: number;
   userEmail: string;
@@ -22,6 +23,9 @@ export interface AuditContext {
   correlationId?: string;
 }
 
+/**
+ * Service for recording audit trail entries for system actions.
+ */
 export class AuditService {
   private initialized = false;
 
@@ -410,5 +414,6 @@ export class AuditService {
   }
 }
 
+/** Singleton instance of the audit service. */
 export const auditService = new AuditService();
 export default auditService;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { dashboardLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, RefreshCw } from 'lucide-react';
@@ -13,7 +14,7 @@ interface VisitometerProps {
   onRefresh?: () => void;
 }
 
-export const Visitometer = ({
+const VisitometerComponent = ({
   visitsCompleted,
   visitsExpected,
   totalVisits = 0,
@@ -28,7 +29,7 @@ export const Visitometer = ({
     (visitsExpected > 0 ? Math.round((visitsCompleted / visitsExpected) * 100) : 0);
 
   // Log para debug
-  console.log('📊 Visitômetro atualizado:', {
+  dashboardLogger.debug('Visitômetro atualizado:', {
     visitsCompleted,
     visitsExpected,
     totalVisits,
@@ -257,3 +258,5 @@ export const Visitometer = ({
     </Card>
   );
 };
+
+export const Visitometer = React.memo(VisitometerComponent);

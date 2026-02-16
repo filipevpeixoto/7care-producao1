@@ -1,187 +1,65 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess, isPastor } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock } from 'lucide-react';
 import { getLevelIcon } from '@/lib/gamification';
 import { fetchWithAuth } from '@/lib/api';
 import { useSituationLevels } from '@/hooks/useSituationLevels';
 import type { UserMember, ActiveRelationship } from '@/types/domain';
 import { createLogger } from '@/lib/logger';
+import type { DiscipleshipRequest, InterestedPerson, Relationship } from './myInterestedTypes';
+import { useMyInterestedQueries } from './useMyInterestedQueries';
+import { useMyInterestedMutations } from './useMyInterestedMutations';
+import {
+  formatDate as formatDateHelper,
+  getDiscipleStatus as getDiscipleStatusHelper,
+  getMissionaryFirstNames as getMissionaryFirstNamesHelper,
+  getStatusColor as getStatusColorHelper,
+  getStatusLabel as getStatusLabelHelper,
+  getUserInfo as getUserInfoHelper,
+  hasAnyActiveRelationship as hasAnyActiveRelationshipHelper,
+  hasAnyApprovedRequest as hasAnyApprovedRequestHelper,
+} from './myInterestedHelpers';
 
 const myInterestedLogger = createLogger('MyInterested');
 
-// ── Types ─────────────────────────────────────────────────────
+type UseMyInterestedComputedInput = {
+  isAdmin: boolean;
+  userId?: number;
+  searchTerm: string;
+  selectedStatus: string;
+  selectedChurch: string;
+  selectedTab: 'my' | 'church';
+  currentPage: number;
+  itemsPerPage: number;
+  churchInterested?: InterestedPerson[];
+  myRelationships: Relationship[];
+  myRequests: DiscipleshipRequest[];
+  allRequests: DiscipleshipRequest[];
+  allRelationships: ActiveRelationship[];
+  allUsers?: InterestedPerson[];
+  allMembersForInvite?: UserMember[];
+};
 
-export interface InterestedPerson {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  church: string;
-  status: 'novo' | 'contato-inicial' | 'estudando' | 'batizado' | 'inativo';
-  assignedDate?: string;
-  lastContact?: string;
-  nextStudy?: string;
-  studiesCompleted: number;
-  totalStudies: number;
-  notes: string;
-  source: 'evento' | 'indicacao' | 'online' | 'visita' | 'outro';
-  interestedSituation?: string;
-  interested_situation?: string;
-  interests?: string[];
-  relationship?: Relationship;
-}
-
-export interface Relationship {
-  id: number;
-  missionaryId: number;
-  interestedId: number;
-  status: 'active' | 'inactive' | 'completed';
-  assignedAt: string;
-  notes: string;
-}
-
-export interface DiscipleshipRequest {
-  id: number;
-  missionaryId: number;
-  interestedId: number;
-  status: 'pending' | 'approved' | 'rejected';
-  type?: 'member-request' | 'pastor-invite';
-  invitedBy?: number;
-  requestedAt: string;
-  createdAt?: string;
-  notes: string;
-  adminNotes?: string;
-  interestedName?: string;
-  missionaryName?: string;
-}
-
-// ── Hook ──────────────────────────────────────────────────────
-
-export function useMyInterestedState() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { levels: situationLevels, getLevelByValue } = useSituationLevels();
-
-  // ── State ─────────────────────────────────────────────────
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedTab, setSelectedTab] = useState<'my' | 'church'>('my');
-  const [showDiscipleDialog, setShowDiscipleDialog] = useState(false);
-  const [selectedInterested, setSelectedInterested] = useState<InterestedPerson | null>(null);
-  const [discipleMessage, setDiscipleMessage] = useState('');
-  const [selectedChurch, setSelectedChurch] = useState<string>('all');
-
-  // Paginação
-  const [itemsPerPage] = useState(50);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Admin authorization
-  const [showAuthorizationModal, setShowAuthorizationModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<DiscipleshipRequest | null>(null);
-  const [adminNotes, setAdminNotes] = useState('');
-
-  // Pastor invite
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteInterested, setInviteInterested] = useState<InterestedPerson | null>(null);
-  const [selectedMissionaryId, setSelectedMissionaryId] = useState<string>('');
-
-  // Situation update
-  const [updatingSituation, setUpdatingSituation] = useState<number | null>(null);
-
-  // Permissions
-  const isPastorUser = isPastor(user);
-  const isAdmin = hasAdminAccess(user);
-
-  // ── Queries ───────────────────────────────────────────────
-
-  const { data: churchInterested = [], isLoading: loadingChurch } = useQuery({
-    queryKey: ['church-interested', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/my-interested');
-      if (!response.ok) throw new Error('Erro ao buscar interessados da igreja');
-      return response.json();
-    },
-    enabled: !!user?.id && !hasAdminAccess(user),
-  });
-
-  const { data: myRelationships = [], isLoading: loadingRelationships } = useQuery({
-    queryKey: ['my-relationships', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await fetchWithAuth(`/api/relationships?missionaryId=${user.id}`);
-      if (!response.ok) throw new Error('Erro ao buscar relacionamentos');
-      return response.json();
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: myRequests = [], isLoading: loadingRequests } = useQuery({
-    queryKey: ['my-discipleship-requests', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await fetchWithAuth(`/api/discipleship-requests?missionaryId=${user.id}`);
-      if (!response.ok) throw new Error('Erro ao buscar solicitações');
-      return response.json();
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: allRequests = [] } = useQuery({
-    queryKey: ['all-discipleship-requests', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/discipleship-requests');
-      if (!response.ok) throw new Error('Erro ao buscar solicitações');
-      return response.json();
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: allRelationships = [] } = useQuery({
-    queryKey: ['all-relationships', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/relationships');
-      if (!response.ok) throw new Error('Erro ao buscar relacionamentos');
-      return response.json();
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['all-users', user?.id, isAdmin],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const endpoint = isAdmin ? '/api/users?role=interested' : '/api/users';
-      const response = await fetchWithAuth(endpoint);
-      if (!response.ok) throw new Error('Erro ao buscar usuários');
-      return response.json();
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: allMembersForInvite = [] } = useQuery({
-    queryKey: ['all-members-for-invite', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/users');
-      if (!response.ok) throw new Error('Erro ao buscar membros');
-      return response.json();
-    },
-    enabled: !!user?.id && isPastorUser,
-  });
-
-  // ── Computed (useMemo) ────────────────────────────────────
-
+const useMyInterestedComputed = ({
+  isAdmin,
+  userId,
+  searchTerm,
+  selectedStatus,
+  selectedChurch,
+  selectedTab,
+  currentPage,
+  itemsPerPage,
+  churchInterested,
+  myRelationships,
+  myRequests,
+  allRequests,
+  allRelationships,
+  allUsers,
+  allMembersForInvite,
+}: UseMyInterestedComputedInput) => {
   const interestedBase: InterestedPerson[] = useMemo(() => {
     try {
       return isAdmin ? allUsers || [] : churchInterested || [];
@@ -218,19 +96,19 @@ export function useMyInterestedState() {
     [interestedBase, searchTerm, selectedStatus, selectedChurch, isAdmin]
   );
 
-  const myInterested = useMemo(
+  const myInterested = useMemo<InterestedPerson[]>(
     () =>
       isAdmin
         ? []
         : (myRelationships || [])
-            .map((rel: Relationship) => {
+            .map((rel: Relationship): InterestedPerson | null => {
               if (!rel?.interestedId) return null;
               const interested = (interestedBase || []).find(
                 (p: InterestedPerson) => p?.id === rel.interestedId
               );
               return interested ? { ...interested, relationship: rel } : null;
             })
-            .filter(Boolean),
+            .filter((person): person is InterestedPerson => Boolean(person)),
     [isAdmin, myRelationships, interestedBase]
   );
 
@@ -258,12 +136,12 @@ export function useMyInterestedState() {
     () =>
       (allMembersForInvite || [])
         .filter(
-          (u: UserMember) => u.role !== 'interested' && u.role !== 'superadmin' && u.id !== user?.id
+          (u: UserMember) => u.role !== 'interested' && u.role !== 'superadmin' && u.id !== userId
         )
         .sort((a: UserMember, b: UserMember) =>
           (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
         ),
-    [allMembersForInvite, user?.id]
+    [allMembersForInvite, userId]
   );
 
   const activeRelationshipsMap = useMemo(() => {
@@ -315,11 +193,11 @@ export function useMyInterestedState() {
     () =>
       (allRequests || []).filter(
         (req: DiscipleshipRequest) =>
-          req?.missionaryId === Number(user?.id) &&
+          req?.missionaryId === Number(userId) &&
           req?.type === 'pastor-invite' &&
           req?.status === 'pending'
       ),
-    [allRequests, user?.id]
+    [allRequests, userId]
   );
 
   const paginatedMyInterested = useMemo(() => {
@@ -334,7 +212,6 @@ export function useMyInterestedState() {
     return sortedFilteredChurchInterested.slice(startIndex, endIndex);
   }, [sortedFilteredChurchInterested, currentPage, itemsPerPage]);
 
-  // Stats & pagination
   const statsData = {
     totalMy: sortedMyInterested.length,
     totalChurch: sortedFilteredChurchInterested.length,
@@ -351,288 +228,63 @@ export function useMyInterestedState() {
   const totalPages = selectedTab === 'my' ? totalPagesMyInterested : totalPagesChurch;
   const currentList = selectedTab === 'my' ? paginatedMyInterested : paginatedChurchInterested;
 
-  // ── Mutations ─────────────────────────────────────────────
+  return {
+    interestedBase,
+    availableChurches,
+    myInterested,
+    sortedMyInterested,
+    sortedFilteredChurchInterested,
+    availableMissionaries,
+    activeRelationshipsMap,
+    approvedRequestsSet,
+    pendingRequestsSet,
+    missionaryNamesMap,
+    myPendingInvites,
+    paginatedMyInterested,
+    paginatedChurchInterested,
+    statsData,
+    totalPages,
+    currentList,
+  };
+};
 
-  const createDiscipleRequestMutation = useMutation({
-    mutationFn: async (data: {
-      missionaryId: number;
-      interestedId: number;
-      status: string;
-      notes: string;
-      type?: string;
-    }) => {
-      const response = await fetchWithAuth('/api/discipleship-requests', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Erro ao criar solicitação');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discipleship-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['all-discipleship-requests'] });
-      toast({
-        title: '✅ Solicitação enviada!',
-        description: 'Aguarde a aprovação do administrador.',
-      });
-      setShowDiscipleDialog(false);
-      setSelectedInterested(null);
-      setDiscipleMessage('');
-    },
-    onError: (error: Error) => {
-      toast({
-        title: '❌ Erro ao enviar solicitação',
-        description: error.message || 'Não foi possível enviar a solicitação.',
-        variant: 'destructive',
-      });
-    },
-  });
+type UseMyInterestedEffectsInput = {
+  isAdmin: boolean;
+  selectedTab: 'my' | 'church';
+  setSelectedTab: (value: 'my' | 'church') => void;
+  searchTerm: string;
+  selectedStatus: string;
+  selectedChurch: string;
+  setCurrentPage: (value: number) => void;
+  isPastorUser: boolean;
+  situationLevels: { value: string }[];
+  currentList: InterestedPerson[];
+  queryClient: ReturnType<typeof useQueryClient>;
+};
 
-  const updateRequestMutation = useMutation({
-    mutationFn: async ({
-      requestId,
-      status,
-      adminNotes,
-    }: {
-      requestId: number;
-      status: 'approved' | 'rejected';
-      adminNotes: string;
-    }) => {
-      const response = await fetchWithAuth(`/api/discipleship-requests/${requestId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          status,
-          adminNotes,
-          processedBy: user?.id || 1,
-        }),
-      });
-      if (!response.ok) throw new Error('Erro ao atualizar solicitação');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discipleship-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['relationships'] });
-      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
-      queryClient.invalidateQueries({ queryKey: ['my-interested'] });
-      toast({
-        title: '✅ Solicitação processada!',
-        description: 'A solicitação foi processada com sucesso.',
-      });
-      setShowAuthorizationModal(false);
-      setSelectedRequest(null);
-      setAdminNotes('');
-    },
-    onError: (error: Error) => {
-      toast({
-        title: '❌ Erro ao processar',
-        description: error.message || 'Não foi possível processar a solicitação.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const updateSituationMutation = useMutation({
-    mutationFn: async ({ userId, situation }: { userId: number; situation: string }) => {
-      const response = await fetchWithAuth(`/api/users/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ interestedSituation: situation }),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        myInterestedLogger.error('Erro PUT situação:', response.status, errorText);
-        throw new Error(`Erro ao atualizar situação: ${response.status}`);
-      }
-      const data = await response.json();
-      return {
-        ...data,
-        _confirmedSituation:
-          data?.user?.interestedSituation || data?.user?.interested_situation || situation,
-      };
-    },
-    onMutate: async ({ userId, situation }) => {
-      await queryClient.cancelQueries({ queryKey: ['church-interested'] });
-      await queryClient.cancelQueries({ queryKey: ['all-users'] });
-
-      const previousChurch = queryClient.getQueryData(['church-interested', user?.id]);
-      const previousAll = queryClient.getQueryData(['all-users', user?.id, isAdmin]);
-
-      const updateFn = (old: InterestedPerson[] | undefined) => {
-        if (!old) return old;
-        return old.map((person) =>
-          person.id === userId
-            ? { ...person, interestedSituation: situation, interested_situation: situation }
-            : person
-        );
-      };
-
-      queryClient.setQueryData(['church-interested', user?.id], updateFn);
-      queryClient.setQueryData(['all-users', user?.id, isAdmin], updateFn);
-
-      return { previousChurch, previousAll };
-    },
-    onSuccess: (data, variables) => {
-      const confirmedSituation = data._confirmedSituation;
-      const updateFn = (old: InterestedPerson[] | undefined) => {
-        if (!old) return old;
-        return old.map((person) =>
-          person.id === variables.userId
-            ? {
-                ...person,
-                interestedSituation: confirmedSituation,
-                interested_situation: confirmedSituation,
-              }
-            : person
-        );
-      };
-
-      queryClient.setQueryData(['church-interested', user?.id], updateFn);
-      queryClient.setQueryData(['all-users', user?.id, isAdmin], updateFn);
-      queryClient.invalidateQueries({ queryKey: ['/api/users'], refetchType: 'none' });
-
-      setUpdatingSituation(null);
-      toast({
-        title: '✅ Situação atualizada!',
-        description: 'A situação do amigo foi atualizada com sucesso.',
-      });
-    },
-    onError: (error: Error, _variables, context) => {
-      myInterestedLogger.error('Erro ao atualizar situação:', error);
-      if (context?.previousChurch) {
-        queryClient.setQueryData(['church-interested', user?.id], context.previousChurch);
-      }
-      if (context?.previousAll) {
-        queryClient.setQueryData(['all-users', user?.id, isAdmin], context.previousAll);
-      }
-      setUpdatingSituation(null);
-      toast({
-        title: '❌ Erro ao atualizar situação',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const directDiscipleMutation = useMutation({
-    mutationFn: async ({
-      interestedId,
-      missionaryId,
-    }: {
-      interestedId: number;
-      missionaryId: number;
-    }) => {
-      const response = await fetchWithAuth(`/api/users/${interestedId}/disciple`, {
-        method: 'POST',
-        body: JSON.stringify({ missionaryId }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Erro ao vincular discipulador');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-relationships'] });
-      queryClient.invalidateQueries({ queryKey: ['relationships'] });
-      queryClient.invalidateQueries({ queryKey: ['all-discipleship-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['church-interested'] });
-      toast({
-        title: '✅ Discipulador vinculado!',
-        description: 'O discipulador foi vinculado com sucesso.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: '❌ Erro ao vincular',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const pastorInviteMutation = useMutation({
-    mutationFn: async ({
-      interestedId,
-      missionaryId,
-    }: {
-      interestedId: number;
-      missionaryId: number;
-    }) => {
-      const response = await fetchWithAuth('/api/discipleship-requests', {
-        method: 'POST',
-        body: JSON.stringify({
-          interestedId,
-          missionaryId,
-          type: 'pastor-invite',
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Erro ao enviar convite');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-discipleship-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['discipleship-requests'] });
-      setShowInviteModal(false);
-      setInviteInterested(null);
-      setSelectedMissionaryId('');
-      toast({
-        title: '✅ Convite enviado!',
-        description: 'O membro receberá o convite para discipular.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: '❌ Erro ao enviar convite',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Disabled query - kept for reference
-  const { data: interestedPoints = {}, isLoading: loadingPoints } = useQuery({
-    queryKey: [
-      'interested-points',
-      myInterested.map((p: InterestedPerson) => p?.id).filter(Boolean),
-    ],
-    queryFn: async () => {
-      const pointsMap: Record<number, number> = {};
-      for (const interested of myInterested) {
-        if (interested) {
-          try {
-            const response = await fetchWithAuth(`/api/users/${interested.id}/points-details`);
-            if (response.ok) {
-              const data = await response.json();
-              pointsMap[interested.id] = data.points || 0;
-            }
-          } catch {
-            // silently ignore
-          }
-        }
-      }
-      return pointsMap;
-    },
-    enabled: false,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // ── Effects ───────────────────────────────────────────────
-
-  // Force admin to 'church' tab
+const useMyInterestedEffects = ({
+  isAdmin,
+  selectedTab,
+  setSelectedTab,
+  searchTerm,
+  selectedStatus,
+  selectedChurch,
+  setCurrentPage,
+  isPastorUser,
+  situationLevels,
+  currentList,
+  queryClient,
+}: UseMyInterestedEffectsInput) => {
   useEffect(() => {
     if (isAdmin && selectedTab !== 'church') {
       setSelectedTab('church');
     }
-  }, [isAdmin, selectedTab]);
+  }, [isAdmin, selectedTab, setSelectedTab]);
 
-  // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedStatus, selectedChurch, selectedTab]);
+  }, [searchTerm, selectedStatus, selectedChurch, selectedTab, setCurrentPage]);
 
-  // Debug logging
   useEffect(() => {
     myInterestedLogger.debug('Estado MyInterested:', {
       isPastorUser,
@@ -644,7 +296,6 @@ export function useMyInterestedState() {
     });
   }, [isPastorUser, isAdmin, selectedTab, situationLevels, currentList]);
 
-  // Listen for situation-levels config changes
   useEffect(() => {
     const handleSituationLevelsUpdate = () => {
       myInterestedLogger.debug('Configurações de situação atualizadas, forçando refresh...');
@@ -658,8 +309,85 @@ export function useMyInterestedState() {
       window.removeEventListener('situation-levels-updated', handleSituationLevelsUpdate);
     };
   }, [queryClient]);
+};
 
-  // ── Handlers ──────────────────────────────────────────────
+type UseMyInterestedActionsInput = {
+  user: ReturnType<typeof useAuth>['user'];
+  isPastorUser: boolean;
+  selectedTab: 'my' | 'church';
+  interestedBase: InterestedPerson[];
+  allUsers?: InterestedPerson[];
+  allMembersForInvite?: UserMember[];
+  missionaryNamesMap: Map<number, string[]>;
+  pendingRequestsSet: Set<number>;
+  approvedRequestsSet: Set<number>;
+  activeRelationshipsMap: Map<number, ActiveRelationship[]>;
+  myRelationships: Relationship[];
+  allRequests: DiscipleshipRequest[];
+  getLevelByValue: (value?: string) => { value: string; label: string } | undefined;
+  updateSituationMutation: ReturnType<typeof useMyInterestedMutations>['updateSituationMutation'];
+  updateRequestMutation: ReturnType<typeof useMyInterestedMutations>['updateRequestMutation'];
+  pastorInviteMutation: ReturnType<typeof useMyInterestedMutations>['pastorInviteMutation'];
+  createDiscipleRequestMutation: ReturnType<typeof useMyInterestedMutations>['createDiscipleRequestMutation'];
+  setUpdatingSituation: (value: number | null) => void;
+  setInviteInterested: (value: InterestedPerson | null) => void;
+  setSelectedMissionaryId: (value: string) => void;
+  setShowInviteModal: (value: boolean) => void;
+  inviteInterested: InterestedPerson | null;
+  selectedMissionaryId: string;
+  setSelectedInterested: (value: InterestedPerson | null) => void;
+  setShowDiscipleDialog: (value: boolean) => void;
+  setSelectedRequest: (value: DiscipleshipRequest | null) => void;
+  setAdminNotes: (value: string) => void;
+  setShowAuthorizationModal: (value: boolean) => void;
+  selectedRequest: DiscipleshipRequest | null;
+  adminNotes: string;
+  toast: ReturnType<typeof useToast>['toast'];
+  queryClient: ReturnType<typeof useQueryClient>;
+  navigate: ReturnType<typeof useNavigate>;
+  discipleMessage: string;
+  selectedInterested: InterestedPerson | null;
+};
+
+const useMyInterestedActions = ({
+  user,
+  isPastorUser,
+  selectedTab,
+  interestedBase,
+  allUsers,
+  allMembersForInvite,
+  missionaryNamesMap,
+  pendingRequestsSet,
+  approvedRequestsSet,
+  activeRelationshipsMap,
+  myRelationships,
+  allRequests,
+  getLevelByValue,
+  updateSituationMutation,
+  updateRequestMutation,
+  pastorInviteMutation,
+  createDiscipleRequestMutation,
+  setUpdatingSituation,
+  setInviteInterested,
+  setSelectedMissionaryId,
+  setShowInviteModal,
+  inviteInterested,
+  selectedMissionaryId,
+  setSelectedInterested,
+  setShowDiscipleDialog,
+  setSelectedRequest,
+  setAdminNotes,
+  setShowAuthorizationModal,
+  selectedRequest,
+  adminNotes,
+  toast,
+  queryClient,
+  navigate,
+  discipleMessage,
+  selectedInterested,
+}: UseMyInterestedActionsInput) => {
+  const safeAllUsers = allUsers || [];
+  const safeAllMembersForInvite = allMembersForInvite || [];
 
   const getSituationOption = (situation?: string) => getLevelByValue(situation);
 
@@ -715,20 +443,16 @@ export function useMyInterestedState() {
     });
   };
 
-  const getUserInfo = (userId: number) => {
-    if (!userId) return 'Usuário desconhecido';
-    const interested = interestedBase?.find((u: InterestedPerson) => u.id === userId);
-    if (interested) return interested.name;
-    const fromAllUsers = allUsers?.find((u: UserMember) => u.id === userId);
-    if (fromAllUsers) return fromAllUsers.name;
-    const fromMembers = allMembersForInvite?.find((u: UserMember) => u.id === userId);
-    if (fromMembers) return fromMembers.name;
-    return `Usuário ${userId}`;
-  };
+  const getUserInfo = (userId: number) =>
+    getUserInfoHelper({
+      userId,
+      interestedBase,
+      allUsers: safeAllUsers,
+      allMembersForInvite: safeAllMembersForInvite,
+    });
 
-  const getMissionaryFirstNames = (interestedId: number): string[] => {
-    return missionaryNamesMap.get(interestedId) || [];
-  };
+  const getMissionaryFirstNames = (interestedId: number): string[] =>
+    getMissionaryFirstNamesHelper(missionaryNamesMap, interestedId);
 
   const handleUnlinkDisciple = async (interestedId: number) => {
     try {
@@ -798,108 +522,259 @@ export function useMyInterestedState() {
     navigate(`/chat?user=${interestedId}&name=${encodeURIComponent(interestedName)}`);
   };
 
-  // ── Helper functions ──────────────────────────────────────
+  const getStatusColor = (status: string) => getStatusColorHelper(status);
+  const getStatusLabel = (status: string) => getStatusLabelHelper(status);
+  const getDiscipleStatus = (interestedId: number) =>
+    getDiscipleStatusHelper({
+      interestedId,
+      myRelationships,
+      allRequests,
+      userId: user?.id ? Number(user.id) : undefined,
+    });
+  const hasAnyActiveRelationship = (interestedId: number) =>
+    hasAnyActiveRelationshipHelper(activeRelationshipsMap, interestedId);
+  const hasAnyApprovedRequest = (interestedId: number) =>
+    hasAnyApprovedRequestHelper(approvedRequestsSet, interestedId);
+  const formatDate = (dateString: string) => formatDateHelper(dateString);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'novo':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'contato-inicial':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'estudando':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'batizado':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      case 'inativo':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
+  return {
+    getSituationOption,
+    handleSituationChange,
+    handleOpenInvite,
+    handleConfirmInvite,
+    handleRespondInvite,
+    hasPendingRequestForAdmin,
+    handleDiscipleRequest,
+    openAuthorizationModal,
+    handleProcessRequest,
+    getUserInfo,
+    getMissionaryFirstNames,
+    handleUnlinkDisciple,
+    confirmDiscipleRequest,
+    handleWhatsApp,
+    handleOpenChat,
+    getStatusColor,
+    getStatusLabel,
+    getDiscipleStatus,
+    hasAnyActiveRelationship,
+    hasAnyApprovedRequest,
+    formatDate,
   };
+};
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'novo':
-        return 'Novo';
-      case 'contato-inicial':
-        return 'Contato Inicial';
-      case 'estudando':
-        return 'Estudando';
-      case 'batizado':
-        return 'Batizado';
-      case 'inativo':
-        return 'Inativo';
-      default:
-        return status;
-    }
-  };
+// ── Hook ──────────────────────────────────────────────────────
 
-  const getDiscipleStatus = (interestedId: number) => {
-    const myActiveRelationship = (myRelationships || []).find(
-      (rel: Relationship) => rel.interestedId === interestedId && rel.status === 'active'
-    );
+export function useMyInterestedState() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { levels: situationLevels, getLevelByValue } = useSituationLevels();
 
-    if (myActiveRelationship) {
-      return {
-        label: 'Discipulando',
-        color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-        icon: CheckCircle,
-        missionaryId: myActiveRelationship.missionaryId,
-        type: 'active',
-        isMyRelationship: true,
-      };
-    }
+  // ── State ─────────────────────────────────────────────────
 
-    const myApprovedRequest = (allRequests || []).find(
-      (req: DiscipleshipRequest) =>
-        req.interestedId === interestedId &&
-        req.status === 'approved' &&
-        req.missionaryId === Number(user?.id)
-    );
+  const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedTab, setSelectedTab] = useState<'my' | 'church'>('my');
+  const [showDiscipleDialog, setShowDiscipleDialog] = useState(false);
+  const [selectedInterested, setSelectedInterested] = useState<InterestedPerson | null>(null);
+  const [discipleMessage, setDiscipleMessage] = useState('');
+  const [selectedChurch, setSelectedChurch] = useState<string>('all');
 
-    if (myApprovedRequest) {
-      return {
-        label: 'Aprovado',
-        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-        icon: CheckCircle,
-        missionaryId: myApprovedRequest.missionaryId,
-        type: 'approved',
-        isMyRelationship: true,
-      };
-    }
+  // Paginação
+  const [itemsPerPage] = useState(50);
+  const [currentPage, setCurrentPage] = useState(1);
 
-    const myPendingRequest = (allRequests || []).find(
-      (req: DiscipleshipRequest) =>
-        req.interestedId === interestedId &&
-        req.status === 'pending' &&
-        req.missionaryId === Number(user?.id)
-    );
+  // Admin authorization
+  const [showAuthorizationModal, setShowAuthorizationModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<DiscipleshipRequest | null>(null);
+  const [adminNotes, setAdminNotes] = useState('');
 
-    if (myPendingRequest) {
-      return {
-        label: 'Solicitado',
-        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-        icon: Clock,
-        missionaryId: myPendingRequest.missionaryId,
-        type: 'pending',
-        isMyRelationship: true,
-      };
-    }
+  // Pastor invite
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteInterested, setInviteInterested] = useState<InterestedPerson | null>(null);
+  const [selectedMissionaryId, setSelectedMissionaryId] = useState<string>('');
 
-    return null;
-  };
+  // Situation update
+  const [updatingSituation, setUpdatingSituation] = useState<number | null>(null);
 
-  const hasAnyActiveRelationship = (interestedId: number) => {
-    return activeRelationshipsMap.has(interestedId);
-  };
+  // Permissions
+  const isPastorUser = isPastor(user);
+  const isAdmin = hasAdminAccess(user);
 
-  const hasAnyApprovedRequest = (interestedId: number) => {
-    return approvedRequestsSet.has(interestedId);
-  };
+  // ── Queries ───────────────────────────────────────────────
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
+  const {
+    churchInterested,
+    loadingChurch,
+    myRelationships,
+    loadingRelationships,
+    myRequests,
+    loadingRequests,
+    allRequests,
+    allRelationships,
+    allUsers,
+    allMembersForInvite,
+  } = useMyInterestedQueries(user, isAdmin, isPastorUser);
+
+  const {
+    interestedBase,
+    availableChurches,
+    myInterested,
+    sortedMyInterested,
+    sortedFilteredChurchInterested,
+    availableMissionaries,
+    activeRelationshipsMap,
+    approvedRequestsSet,
+    pendingRequestsSet,
+    missionaryNamesMap,
+    myPendingInvites,
+    statsData,
+    totalPages,
+    currentList,
+  } = useMyInterestedComputed({
+    isAdmin,
+    userId: user?.id ? Number(user.id) : undefined,
+    searchTerm: deferredSearchTerm,
+    selectedStatus,
+    selectedChurch,
+    selectedTab,
+    currentPage,
+    itemsPerPage,
+    churchInterested,
+    myRelationships,
+    myRequests,
+    allRequests,
+    allRelationships,
+    allUsers,
+    allMembersForInvite,
+  });
+
+  const {
+    createDiscipleRequestMutation,
+    updateRequestMutation,
+    updateSituationMutation,
+    directDiscipleMutation,
+    pastorInviteMutation,
+  } = useMyInterestedMutations({
+    userId: user?.id ? Number(user.id) : undefined,
+    isAdmin,
+    queryClient,
+    toast,
+    logger: myInterestedLogger,
+    setShowDiscipleDialog,
+    setSelectedInterested,
+    setDiscipleMessage,
+    setShowAuthorizationModal,
+    setSelectedRequest,
+    setAdminNotes,
+    setUpdatingSituation,
+    setShowInviteModal,
+    setInviteInterested,
+    setSelectedMissionaryId,
+  });
+
+  // Disabled query - kept for reference
+  const { data: interestedPoints = {}, isLoading: loadingPoints } = useQuery({
+    queryKey: [
+      'interested-points',
+      myInterested.map((p: InterestedPerson) => p?.id).filter(Boolean),
+    ],
+    queryFn: async () => {
+      const pointsMap: Record<number, number> = {};
+      for (const interested of myInterested) {
+        if (interested) {
+          try {
+            const response = await fetchWithAuth(`/api/users/${interested.id}/points-details`);
+            if (response.ok) {
+              const data = await response.json();
+              pointsMap[interested.id] = data.points || 0;
+            }
+          } catch {
+            // silently ignore
+          }
+        }
+      }
+      return pointsMap;
+    },
+    enabled: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useMyInterestedEffects({
+    isAdmin,
+    selectedTab,
+    setSelectedTab,
+    searchTerm,
+    selectedStatus,
+    selectedChurch,
+    setCurrentPage,
+    isPastorUser,
+    situationLevels,
+    currentList,
+    queryClient,
+  });
+
+  const {
+    getSituationOption,
+    handleSituationChange,
+    handleOpenInvite,
+    handleConfirmInvite,
+    handleRespondInvite,
+    hasPendingRequestForAdmin,
+    handleDiscipleRequest,
+    openAuthorizationModal,
+    handleProcessRequest,
+    getUserInfo,
+    getMissionaryFirstNames,
+    handleUnlinkDisciple,
+    confirmDiscipleRequest,
+    handleWhatsApp,
+    handleOpenChat,
+    getStatusColor,
+    getStatusLabel,
+    getDiscipleStatus,
+    hasAnyActiveRelationship,
+    hasAnyApprovedRequest,
+    formatDate,
+  } = useMyInterestedActions({
+    user,
+    isPastorUser,
+    selectedTab,
+    interestedBase,
+    allUsers,
+    allMembersForInvite,
+    missionaryNamesMap,
+    pendingRequestsSet,
+    approvedRequestsSet,
+    activeRelationshipsMap,
+    myRelationships,
+    allRequests,
+    getLevelByValue,
+    updateSituationMutation,
+    updateRequestMutation,
+    pastorInviteMutation,
+    createDiscipleRequestMutation,
+    setUpdatingSituation,
+    setInviteInterested,
+    setSelectedMissionaryId,
+    setShowInviteModal,
+    inviteInterested,
+    selectedMissionaryId,
+    setSelectedInterested,
+    setShowDiscipleDialog,
+    setSelectedRequest,
+    setAdminNotes,
+    setShowAuthorizationModal,
+    selectedRequest,
+    adminNotes,
+    toast,
+    queryClient,
+    navigate,
+    discipleMessage,
+    selectedInterested,
+  });
 
   // ── Return ────────────────────────────────────────────────
 

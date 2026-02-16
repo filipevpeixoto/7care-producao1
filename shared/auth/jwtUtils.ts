@@ -240,7 +240,6 @@ export function verifyAccessToken(token: string, fingerprint?: string): JwtPaylo
 
     // Verificar fingerprint se fornecido no token
     if (decoded.fingerprint && fingerprint && decoded.fingerprint !== fingerprint) {
-      // eslint-disable-next-line no-console
       console.warn('[JWT] Fingerprint mismatch detectado', { userId: decoded.id });
       return null;
     }
@@ -267,7 +266,6 @@ export function verifyRefreshToken(token: string, fingerprint?: string): JwtPayl
 
     // Verificar fingerprint se fornecido
     if (decoded.fingerprint && fingerprint && decoded.fingerprint !== fingerprint) {
-      // eslint-disable-next-line no-console
       console.warn('[JWT] Refresh token fingerprint mismatch', { userId: decoded.id });
       return null;
     }

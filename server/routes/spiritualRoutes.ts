@@ -30,6 +30,7 @@ const MOOD_TO_SCORE: Record<string, number> = {
   Intimidade: 5,
 };
 
+/** Registers spiritual accompaniment and emotional check-in routes */
 export const spiritualRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
   const emotionalRepo = getRepository('emotionalCheckInRepository');

@@ -5,6 +5,7 @@
 
 import { logger } from '../utils/logger';
 
+/** Represents a single item in the processing queue. */
 export interface QueueItem<T = unknown> {
   id: string;
   data: T;
@@ -16,6 +17,7 @@ export interface QueueItem<T = unknown> {
   metadata?: Record<string, unknown>;
 }
 
+/** Configuration options for queue behavior (retry, delay, timeout). */
 export interface QueueOptions {
   maxAttempts?: number;
   retryDelayMs?: number;
@@ -282,7 +284,7 @@ export class QueueService<T = unknown> {
   }
 }
 
-// Instância singleton para uso geral
+/** Singleton queue service instance for general use. */
 export const queueService = new QueueService();
 
 export default QueueService;

@@ -12,14 +12,12 @@ import {
   parseHeaderUserId,
   toNumber,
   createCheckReadOnlyAccess,
-} from './electionHelpers';
-import type {
-  UserRepository,
-  Express,
-  Request,
-  Response,
-  ElectionCriteria,
-  MemberRow,
+  type UserRepository,
+  type Express,
+  type Request,
+  type Response,
+  type ElectionCriteria,
+  type MemberRow,
 } from './electionHelpers';
 
 export const electionLifecycleRoutes = (app: Express): void => {

@@ -10,8 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import type { FunnelData } from '@/types/reports';
-import { REPORT_COLORS } from '@/types/reports';
+import { REPORT_COLORS, type FunnelData } from '@/types/reports';
 
 interface FunnelTabProps {
   data?: FunnelData;

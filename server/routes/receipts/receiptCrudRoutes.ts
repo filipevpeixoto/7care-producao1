@@ -182,7 +182,7 @@ export const receiptCrudRoutes = (app: Express): void => {
   app.get(
     '/api/receipts/my-receipts',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore - userId é injetado pelo middleware de autenticação
+      // @ts-expect-error userId é injetado pelo middleware de autenticação
       const userId = req.user?.id;
 
       if (!userId) {
@@ -234,11 +234,11 @@ export const receiptCrudRoutes = (app: Express): void => {
   app.get(
     '/api/receipts/stats',
     asyncHandler(async (req: Request, res: Response) => {
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userId = req.user?.id;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userRole = req.user?.role;
-      // @ts-ignore
+      // @ts-expect-error user é injetado pelo middleware de autenticação
       const userDistrictId = req.user?.district_id;
 
       if (!userId) {
@@ -260,7 +260,7 @@ export const receiptCrudRoutes = (app: Express): void => {
             SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error,
             SUM(
               CASE
-                WHEN total_amount IS NOT NULL AND total_amount != ''
+                WHEN total_amount IS NOT NULL AND total_amount <> ''
                 THEN CAST(REPLACE(REPLACE(total_amount, '.', ''), ',', '.') AS DECIMAL(10, 2))
                 ELSE 0
               END
@@ -277,7 +277,7 @@ export const receiptCrudRoutes = (app: Express): void => {
             SUM(CASE WHEN er.status = 'error' THEN 1 ELSE 0 END) as error,
             SUM(
               CASE
-                WHEN er.total_amount IS NOT NULL AND er.total_amount != ''
+                WHEN er.total_amount IS NOT NULL AND er.total_amount <> ''
                 THEN CAST(REPLACE(REPLACE(er.total_amount, '.', ''), ',', '.') AS DECIMAL(10, 2))
                 ELSE 0
               END
@@ -296,7 +296,7 @@ export const receiptCrudRoutes = (app: Express): void => {
             SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error,
             SUM(
               CASE
-                WHEN total_amount IS NOT NULL AND total_amount != ''
+                WHEN total_amount IS NOT NULL AND total_amount <> ''
                 THEN CAST(REPLACE(REPLACE(total_amount, '.', ''), ',', '.') AS DECIMAL(10, 2))
                 ELSE 0
               END

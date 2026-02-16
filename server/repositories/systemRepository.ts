@@ -448,7 +448,10 @@ export class SystemRepository {
       await db.delete(schema.systemConfig).where(eq(schema.systemConfig.key, key));
     } catch (error) {
       logger.error(`Error deleting system config ${key}:`, error);
-      throw new Error(`Failed to delete system config: ${(error as Error).message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete system config: ${error.message}`, { cause: error });
+      }
+      throw new Error(`Failed to delete system config: ${String(error)}`, { cause: error });
     }
   }
 
@@ -460,7 +463,10 @@ export class SystemRepository {
       await db.delete(schema.systemSettings).where(eq(schema.systemSettings.key, key));
     } catch (error) {
       logger.error(`Error deleting system setting ${key}:`, error);
-      throw new Error(`Failed to delete system setting: ${(error as Error).message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete system setting: ${error.message}`, { cause: error });
+      }
+      throw new Error(`Failed to delete system setting: ${String(error)}`, { cause: error });
     }
   }
 }

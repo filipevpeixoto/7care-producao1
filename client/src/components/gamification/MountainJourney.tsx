@@ -24,7 +24,7 @@ export const MountainJourney = ({
 }: MountainJourneyProps) => {
   // Usar os pontos reais do usuário se disponível
   const actualPoints: number =
-    typeof userPoints === 'number' ? userPoints : (userPoints as any)?.actualPoints || 0;
+    typeof userPoints === 'number' ? userPoints : (userPoints as { actualPoints?: number })?.actualPoints || 0;
 
   const [selectedLevel, setSelectedLevel] = useState<(typeof GAMIFICATION_LEVELS)[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);

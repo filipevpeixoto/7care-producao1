@@ -21,13 +21,22 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
 import { formatEmailDisplay } from '@/lib/utils';
 import { createLogger } from '@/lib/logger';
+import { ariaLabels } from '@/lib/accessibility';
+import type { Discipulador } from './DiscipuladoresManager';
 
 const usersLogger = createLogger('Users');
 
+interface PotentialMissionary {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface DiscipuladorButtonProps {
   interestedId: number;
-  currentDiscipuladores: any[];
-  onDiscipuladoresChange: (discipuladores: any[]) => void;
+  currentDiscipuladores: Discipulador[];
+  onDiscipuladoresChange: (discipuladores: Discipulador[]) => void;
 }
 
 export function DiscipuladorButton({
@@ -36,7 +45,7 @@ export function DiscipuladorButton({
   onDiscipuladoresChange,
 }: DiscipuladorButtonProps) {
   const [open, setOpen] = useState(false);
-  const [potentialMissionaries, setPotentialMissionaries] = useState<any[]>([]);
+  const [potentialMissionaries, setPotentialMissionaries] = useState<PotentialMissionary[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const { toast } = useToast();
@@ -61,7 +70,7 @@ export function DiscipuladorButton({
 
       // Filtrar apenas membros/missionários (independente do status)
       const members = users.filter(
-        (user: any) => user.role.includes('member') || user.role.includes('missionary')
+        (user: PotentialMissionary) => user.role.includes('member') || user.role.includes('missionary')
       );
 
       usersLogger.debug('Membros filtrados:', members.length);
@@ -147,6 +156,7 @@ export function DiscipuladorButton({
           setOpen(true);
         }}
         title="Adicionar discipulador"
+        aria-label={ariaLabels.addDiscipulador}
       >
         <UserPlus className="h-3 w-3" />
       </Button>

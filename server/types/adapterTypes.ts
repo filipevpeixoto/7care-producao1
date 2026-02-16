@@ -201,8 +201,8 @@ export function userRowToUser(row: UserRow | Record<string, unknown>): User {
     role: toValidRole(r.role),
     church: r.church ? String(r.church) : null,
     churchCode: r.churchCode ? String(r.churchCode) : undefined,
-    churchId: r.churchId != null ? Number(r.churchId) : null,
-    districtId: r.districtId != null ? Number(r.districtId) : null,
+    churchId: r.churchId !== null && r.churchId !== undefined ? Number(r.churchId) : null,
+    districtId: r.districtId !== null && r.districtId !== undefined ? Number(r.districtId) : null,
     departments: r.departments ? String(r.departments) : undefined,
     birthDate: r.birthDate ? String(r.birthDate) : null,
     civilStatus: r.civilStatus ? String(r.civilStatus) : undefined,
@@ -217,25 +217,29 @@ export function userRowToUser(row: UserRow | Record<string, unknown>): User {
     isTither: Boolean(r.isTither),
     isApproved: Boolean(r.isApproved),
     points: Number(r.points ?? 0),
-    calculatedPoints: r.calculatedPoints != null ? Number(r.calculatedPoints) : undefined,
+    calculatedPoints:
+      r.calculatedPoints !== null && r.calculatedPoints !== undefined
+        ? Number(r.calculatedPoints)
+        : undefined,
     level: r.level ? String(r.level) : undefined,
-    attendance: r.attendance != null ? Number(r.attendance) : undefined,
+    attendance: r.attendance !== null && r.attendance !== undefined ? Number(r.attendance) : undefined,
     extraData: r.extraData as Record<string, unknown> | null,
     engajamento: r.engajamento ? String(r.engajamento) : undefined,
     classificacao: r.classificacao ? String(r.classificacao) : undefined,
     dizimistaType: r.dizimistaType ? String(r.dizimistaType) : undefined,
     observations: r.observations ? String(r.observations) : undefined,
-    firstAccess: r.firstAccess != null ? Boolean(r.firstAccess) : false,
+    firstAccess: r.firstAccess !== null && r.firstAccess !== undefined ? Boolean(r.firstAccess) : false,
     status: toValidUserStatus(r.status),
     phone: r.phone ? String(r.phone) : null,
     cpf: r.cpf ? String(r.cpf) : undefined,
     profilePhoto: r.profilePhoto ? String(r.profilePhoto) : undefined,
     avatarUrl: r.avatarUrl ? String(r.avatarUrl) : null,
-    isOffering: r.isOffering != null ? Boolean(r.isOffering) : undefined,
-    hasLesson: r.hasLesson != null ? Boolean(r.hasLesson) : undefined,
-    emotionalScore: r.emotionalScore != null ? Number(r.emotionalScore) : null,
-    streak: r.streak != null ? Number(r.streak) : undefined,
-    visitedBy: r.visitedBy != null ? Number(r.visitedBy) : null,
+    isOffering: r.isOffering !== null && r.isOffering !== undefined ? Boolean(r.isOffering) : undefined,
+    hasLesson: r.hasLesson !== null && r.hasLesson !== undefined ? Boolean(r.hasLesson) : undefined,
+    emotionalScore:
+      r.emotionalScore !== null && r.emotionalScore !== undefined ? Number(r.emotionalScore) : null,
+    streak: r.streak !== null && r.streak !== undefined ? Number(r.streak) : undefined,
+    visitedBy: r.visitedBy !== null && r.visitedBy !== undefined ? Number(r.visitedBy) : null,
     howKnew: r.howKnew ? String(r.howKnew) : null,
     invitedBy: r.invitedBy ? String(r.invitedBy) : null,
     maritalStatus: r.maritalStatus ? String(r.maritalStatus) : null,
@@ -286,18 +290,24 @@ export function eventRowToEvent(row: EventRow | Record<string, unknown>): Event 
     location: r.location ? String(r.location) : null,
     type: r.type ? String(r.type) : undefined,
     color: r.color ? String(r.color) : null,
-    organizerId: r.organizerId != null ? Number(r.organizerId) : undefined,
+    organizerId:
+      r.organizerId !== null && r.organizerId !== undefined ? Number(r.organizerId) : undefined,
     church: r.church ? String(r.church) : undefined,
-    churchId: r.churchId != null ? Number(r.churchId) : null,
-    districtId: r.districtId != null ? Number(r.districtId) : null,
-    createdBy: r.createdBy != null ? Number(r.createdBy) : null,
-    isRecurring: r.isRecurring != null ? Boolean(r.isRecurring) : undefined,
+    churchId: r.churchId !== null && r.churchId !== undefined ? Number(r.churchId) : null,
+    districtId: r.districtId !== null && r.districtId !== undefined ? Number(r.districtId) : null,
+    createdBy: r.createdBy !== null && r.createdBy !== undefined ? Number(r.createdBy) : null,
+    isRecurring:
+      r.isRecurring !== null && r.isRecurring !== undefined ? Boolean(r.isRecurring) : undefined,
     recurrencePattern: r.recurrencePattern ? String(r.recurrencePattern) : null,
     recurrenceRule: r.recurrenceRule ? String(r.recurrenceRule) : null,
-    maxParticipants: r.maxParticipants != null ? Number(r.maxParticipants) : undefined,
-    maxAttendees: r.maxAttendees != null ? Number(r.maxAttendees) : null,
-    capacity: r.capacity != null ? Number(r.capacity) : null,
-    isPublic: r.isPublic != null ? Boolean(r.isPublic) : undefined,
+    maxParticipants:
+      r.maxParticipants !== null && r.maxParticipants !== undefined
+        ? Number(r.maxParticipants)
+        : undefined,
+    maxAttendees:
+      r.maxAttendees !== null && r.maxAttendees !== undefined ? Number(r.maxAttendees) : null,
+    capacity: r.capacity !== null && r.capacity !== undefined ? Number(r.capacity) : null,
+    isPublic: r.isPublic !== null && r.isPublic !== undefined ? Boolean(r.isPublic) : undefined,
     status: toValidEventStatus(r.status),
     createdAt: r.createdAt ? String(r.createdAt) : undefined,
     updatedAt: r.updatedAt ? String(r.updatedAt) : undefined,
@@ -324,10 +334,16 @@ export function relationshipRowToRelationship(row: RelationshipRow | Record<stri
   
   return {
     id: Number(r.id),
-    interestedId: r.interestedId != null ? Number(r.interestedId) : undefined,
-    missionaryId: r.missionaryId != null ? Number(r.missionaryId) : undefined,
-    userId1: r.userId1 != null ? Number(r.userId1) : undefined,
-    userId2: r.userId2 != null ? Number(r.userId2) : undefined,
+    interestedId:
+      r.interestedId !== null && r.interestedId !== undefined
+        ? Number(r.interestedId)
+        : undefined,
+    missionaryId:
+      r.missionaryId !== null && r.missionaryId !== undefined
+        ? Number(r.missionaryId)
+        : undefined,
+    userId1: r.userId1 !== null && r.userId1 !== undefined ? Number(r.userId1) : undefined,
+    userId2: r.userId2 !== null && r.userId2 !== undefined ? Number(r.userId2) : undefined,
     relationshipType: r.relationshipType ? String(r.relationshipType) : undefined,
     status: toValidRelationshipStatus(r.status),
     notes: r.notes ? String(r.notes) : undefined,

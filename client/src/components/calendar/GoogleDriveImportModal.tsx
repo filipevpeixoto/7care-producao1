@@ -47,7 +47,7 @@ export function GoogleDriveImportModal({
   const [, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [isPolling, setIsPolling] = useState(false);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
-  const [, setLastCheckResult] = useState<any>(null);
+  const [, setLastCheckResult] = useState<{ timestamp: string; events: number } | null>(null);
 
   // const { syncNow, loadConfig } = useGoogleDriveSync(); // Removido - usando implementação direta
 

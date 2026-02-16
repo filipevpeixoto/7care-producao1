@@ -1,4 +1,7 @@
 import { useState, useCallback } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('SystemLogo');
 
 export const useSystemLogo = () => {
   // Logo fixa do sistema
@@ -8,15 +11,15 @@ export const useSystemLogo = () => {
 
   // Funções simplificadas para logo fixa
   const refreshLogo = useCallback(async () => {
-    console.log('🔄 Logo fixa do sistema - sem necessidade de refresh');
+    logger.debug('🔄 Logo fixa do sistema - sem necessidade de refresh');
   }, []);
 
   const clearLogoSystem = useCallback(async () => {
-    console.log('🗑️ Logo fixa do sistema - não pode ser removida');
+    logger.debug('🗑️ Logo fixa do sistema - não pode ser removida');
   }, []);
 
   const updateLogoSystem = useCallback((_newLogoUrl: string) => {
-    console.log('🔄 Logo fixa do sistema - não pode ser atualizada');
+    logger.debug('🔄 Logo fixa do sistema - não pode ser atualizada');
   }, []);
 
   return {

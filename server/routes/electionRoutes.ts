@@ -14,6 +14,7 @@ import { electionManagementRoutes } from './election/electionManagementRoutes';
 import { electionVotingRoutes } from './election/electionVotingRoutes';
 import { electionResultsRoutes } from './election/electionResultsRoutes';
 
+/** Registers election routes (config, management, voting, results) */
 export const electionRoutes = (app: Express): void => {
   electionConfigRoutes(app);
   electionManagementRoutes(app);

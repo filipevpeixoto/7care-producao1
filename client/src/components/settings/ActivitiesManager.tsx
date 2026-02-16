@@ -315,6 +315,7 @@ export function ActivitiesManager() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleOpenDialog(activity)}
+                        aria-label="Editar atividade"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -323,6 +324,7 @@ export function ActivitiesManager() {
                         size="sm"
                         onClick={() => handleDelete(activity.id)}
                         disabled={isDeleting}
+                        aria-label="Excluir atividade"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
