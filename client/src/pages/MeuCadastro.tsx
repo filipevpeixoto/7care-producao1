@@ -257,15 +257,22 @@ const MeuCadastro = () => {
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || data?.success === false) {
         const message = data?.message || t('myProfile.changePasswordFail');
-        toast({ title: t('myProfile.changePasswordErrorTitle'), description: message, variant: 'destructive' });
+        toast({
+          title: t('myProfile.changePasswordErrorTitle'),
+          description: message,
+          variant: 'destructive',
+        });
         return;
       }
       // Refresh opcional
       await refreshUserData?.();
       setIsChangePwdOpen(false);
       setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      toast({ title: t('myProfile.passwordChangedTitle'), description: t('myProfile.passwordChangedDesc') });
-    } catch (_err) {
+      toast({
+        title: t('myProfile.passwordChangedTitle'),
+        description: t('myProfile.passwordChangedDesc'),
+      });
+    } catch {
       toast({
         title: t('myProfile.changePasswordErrorTitle'),
         description: t('myProfile.tryAgain'),
@@ -307,7 +314,7 @@ const MeuCadastro = () => {
                       src={getProfilePhotoUrl() || ''}
                       alt={t('myProfile.photoAlt', { name: user.name })}
                       className="w-24 h-24 rounded-full object-cover border-4 border-primary/20"
-                      onError={e => {
+                      onError={(e) => {
                         // Fallback para inicial se a imagem falhar
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
@@ -338,7 +345,11 @@ const MeuCadastro = () => {
                       size="sm"
                       className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
                       disabled={isUploadingPhoto}
-                      aria-label={isUploadingPhoto ? t('myProfile.loadingPhoto') : t('myProfile.changeProfilePhoto')}
+                      aria-label={
+                        isUploadingPhoto
+                          ? t('myProfile.loadingPhoto')
+                          : t('myProfile.changeProfilePhoto')
+                      }
                     >
                       {isUploadingPhoto ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -385,7 +396,7 @@ const MeuCadastro = () => {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   className="pl-10"
                   disabled={!isEditing}
                 />
@@ -400,7 +411,7 @@ const MeuCadastro = () => {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                   className="pl-10"
                   disabled={!isEditing}
                 />
@@ -414,8 +425,8 @@ const MeuCadastro = () => {
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={e =>
-                    setFormData(prev => ({ ...prev, phone: formatPhoneBR(e.target.value) }))
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, phone: formatPhoneBR(e.target.value) }))
                   }
                   className="pl-10"
                   disabled={!isEditing}
@@ -431,7 +442,7 @@ const MeuCadastro = () => {
                   id="birthDate"
                   type="date"
                   value={formData.birthDate}
-                  onChange={e => setFormData(prev => ({ ...prev, birthDate: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, birthDate: e.target.value }))}
                   className="pl-10"
                   disabled={!isEditing}
                 />
@@ -460,9 +471,7 @@ const MeuCadastro = () => {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{t('myProfile.changePasswordDialogTitle')}</DialogTitle>
-                  <DialogDescription>
-                    {t('myProfile.changePasswordDesc')}
-                  </DialogDescription>
+                  <DialogDescription>{t('myProfile.changePasswordDesc')}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
                   <div className="space-y-2">
@@ -471,9 +480,10 @@ const MeuCadastro = () => {
                       id="currentPassword"
                       type="password"
                       value={pwdForm.currentPassword}
-                      onChange={e =>
-                        setPwdForm(prev => ({ ...prev, currentPassword: e.target.value }))
+                      onChange={(e) =>
+                        setPwdForm((prev) => ({ ...prev, currentPassword: e.target.value }))
                       }
+                      aria-required="true"
                     />
                   </div>
                   <div className="space-y-2">
@@ -482,8 +492,22 @@ const MeuCadastro = () => {
                       id="newPassword"
                       type="password"
                       value={pwdForm.newPassword}
-                      onChange={e => setPwdForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                      onChange={(e) =>
+                        setPwdForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                      }
+                      aria-invalid={
+                        pwdForm.newPassword.length > 0 && pwdForm.newPassword.length < 6
+                      }
+                      aria-required="true"
                     />
+                    {pwdForm.newPassword.length > 0 && pwdForm.newPassword.length < 6 && (
+                      <p className="text-xs text-destructive">
+                        {t(
+                          'myProfile.passwordTooShortDesc',
+                          'A senha deve ter pelo menos 6 caracteres.'
+                        )}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">{t('myProfile.confirmNewPassword')}</Label>
@@ -491,10 +515,21 @@ const MeuCadastro = () => {
                       id="confirmPassword"
                       type="password"
                       value={pwdForm.confirmPassword}
-                      onChange={e =>
-                        setPwdForm(prev => ({ ...prev, confirmPassword: e.target.value }))
+                      onChange={(e) =>
+                        setPwdForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
                       }
+                      aria-invalid={
+                        pwdForm.confirmPassword.length > 0 &&
+                        pwdForm.newPassword !== pwdForm.confirmPassword
+                      }
+                      aria-required="true"
                     />
+                    {pwdForm.confirmPassword.length > 0 &&
+                      pwdForm.newPassword !== pwdForm.confirmPassword && (
+                        <p className="text-xs text-destructive">
+                          {t('myProfile.passwordMismatchDesc', 'As senhas não coincidem.')}
+                        </p>
+                      )}
                   </div>
                 </div>
                 <DialogFooter>

@@ -34,7 +34,9 @@ import './styles/view-transitions.css';
 
 // Retry wrapper for lazy imports — if a chunk fails to load (e.g. after deploy),
 // retry once and then force-reload the page so the browser fetches the new assets.
-function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>) {
+function lazyWithRetry(
+  importFn: () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>
+) {
   return lazy(() =>
     importFn().catch((err) => {
       uiLogger.error('[LazyLoad] Chunk load failed, retrying…', err);
@@ -138,17 +140,41 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
           <div className="text-center space-y-4 max-w-md">
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              Algo deu errado ao carregar esta página.
+            <div className="w-16 h-16 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Algo deu errado</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Não se preocupe, seus dados estão seguros. Tente recarregar ou voltar ao início.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Recarregar
-            </button>
+            <div className="flex gap-3 justify-center">
+              <a
+                href="/dashboard"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition text-sm"
+              >
+                Ir para o Início
+              </a>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm"
+              >
+                Recarregar
+              </button>
+            </div>
           </div>
         </div>
       );

@@ -98,13 +98,13 @@ export const MobileBottomNav = memo(() => {
         submenu: [
           { title: 'Usuários', path: '/users', icon: Users },
           { title: 'Pedidos de Oração', path: '/prayers', icon: Heart },
-          { title: '7Mount', path: '/gamification', icon: Trophy },
+          { title: 'Pontos', path: '/gamification', icon: Trophy },
         ],
       });
     } else {
-      // Para outros usuários, manter o 7Mount
+      // Para outros usuários, botão de Pontos/Gamificação
       baseItems.push({
-        title: '7Mount',
+        title: 'Pontos',
         icon: Trophy,
         path: '/gamification',
         roles: ['missionary', 'member', 'interested'],
@@ -127,23 +127,16 @@ export const MobileBottomNav = memo(() => {
   // Filtrar itens baseado no role do usuário - memoizado
   const allowedItems = useMemo(() => {
     const userRole = user?.role || '';
-    const filtered = menuStructure.filter(item => {
+    const filtered = menuStructure.filter((item) => {
       // Verificação mais flexível para incluir roles parciais
       const hasAccess =
         user &&
         (item.roles.includes(userRole) ||
-          item.roles.some(role => userRole.includes(role)) ||
-          item.roles.some(role => role.includes(userRole)));
+          item.roles.some((role) => userRole.includes(role)) ||
+          item.roles.some((role) => role.includes(userRole)));
       return hasAccess;
     });
 
-    uiLogger.debug('MobileBottomNav - Debug:', {
-      userRole,
-      userRoleType: typeof userRole,
-      menuStructure: menuStructure.map(item => ({ title: item.title, roles: item.roles })),
-      filteredItems: filtered.map(item => ({ title: item.title, roles: item.roles })),
-      allRoles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'],
-    });
     return filtered;
   }, [menuStructure, user]);
 
@@ -283,12 +276,12 @@ export const MobileBottomNav = memo(() => {
               const isActive = isMenuOpen;
 
               return (
-                  <DropdownMenu
-                    key={index}
-                    open={isMenuOpen}
-                    onOpenChange={setAdminMenuOpen}
-                    modal={false}
-                  >
+                <DropdownMenu
+                  key={index}
+                  open={isMenuOpen}
+                  onOpenChange={setAdminMenuOpen}
+                  modal={false}
+                >
                   <DropdownMenuTrigger asChild>
                     <button
                       id="tour-nav-admin"
@@ -329,8 +322,8 @@ export const MobileBottomNav = memo(() => {
                     align="center"
                     className="mb-2 min-w-[160px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-slate-700/50 rounded-2xl shadow-2xl dark:shadow-slate-900/50 p-2 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2"
                     style={{ zIndex: 1000000 }}
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={e => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {item.submenu.map((subItem: SubmenuItem, subIndex: number) => {
                       const isSubActive = location.pathname === subItem.path;
@@ -379,7 +372,7 @@ export const MobileBottomNav = memo(() => {
                 id={tourId}
                 aria-label={item.title}
                 aria-current={isActive ? 'page' : undefined}
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   if (item.path !== '#') {
                     handleNavigation(item.path);

@@ -18,9 +18,7 @@ export const Login = () => {
   const [showInstallPrompt, setShowInstallPrompt] = useState(true);
   const { systemLogo } = useSystemLogo();
   const { isAuthenticated, isLoading, user } = useAuth();
-  const { isInstallable, isInstalled, installApp, getInstallInstructions } = usePWAInstall();
-
-  const installInstructions = getInstallInstructions();
+  const { isInstallable, isInstalled, installApp } = usePWAInstall();
 
   const handleInstall = async () => {
     const success = await installApp();
@@ -48,8 +46,7 @@ export const Login = () => {
     // Check if user needs first access (firstAccess flag, or using default password)
     // But only if they haven't completed the tutorial yet
     // Pastores aprovados via convite também veem o tour geral na primeira vez
-    const needsFirstAccess =
-      !tutorialCompleted && !tutorialSkipped && user?.firstAccess;
+    const needsFirstAccess = !tutorialCompleted && !tutorialSkipped && user?.firstAccess;
 
     if (needsFirstAccess) {
       return <Navigate to="/first-access" replace />;
@@ -71,39 +68,24 @@ export const Login = () => {
           <Alert className="bg-white/95 backdrop-blur-sm border-primary/20 shadow-lg">
             <Smartphone className="h-4 w-4" />
             <AlertDescription className="pr-6">
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex-1">
-                  <p className="font-medium text-primary mb-1 text-sm">{t('login.installApp')}</p>
-                  <div className="text-xs text-muted-foreground">
-                    <p className="font-medium mb-1">{installInstructions.platform}:</p>
-                    {installInstructions.steps.slice(0, 2).map((step, index) => (
-                      <p key={index} className="text-xs leading-tight">
-                        {step}
-                      </p>
-                    ))}
-                  </div>
-                  <Button
-                    onClick={
-                      isInstallable
-                        ? handleInstall
-                        : () => {
-                            // Para iOS/Safari, mostra todas as instruções em um alert
-                            alert(
-                              `${t('login.howToInstall')}\n\n${installInstructions.steps.join('\n')}`
-                            );
-                          }
-                    }
-                    size="sm"
-                    className="mt-2 bg-primary hover:bg-primary/90 text-white text-xs h-7 px-3"
-                  >
-                    <Download className="w-3 h-3 mr-1" />
-                    {isInstallable ? t('login.installNow') : t('login.viewInstructions')}
-                  </Button>
+                  <p className="font-medium text-primary text-sm">{t('login.installApp')}</p>
+                  {isInstallable && (
+                    <Button
+                      onClick={handleInstall}
+                      size="sm"
+                      className="mt-1 bg-primary hover:bg-primary/90 text-white text-xs h-7 px-3"
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      {t('login.installNow')}
+                    </Button>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-5 w-5 p-0 hover:bg-primary/10 ml-1"
+                  className="h-6 w-6 p-0 hover:bg-primary/10 shrink-0"
                   onClick={() => setShowInstallPrompt(false)}
                   aria-label={ariaLabels.closeInstallPrompt}
                 >
@@ -121,7 +103,11 @@ export const Login = () => {
           <div className="flex justify-center">
             <div className="w-40 h-40 bg-background backdrop-blur-sm rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.3)]">
               {systemLogo && (
-                <img src={systemLogo} alt="Logo" className="w-24 h-24 object-contain" />
+                <img
+                  src={systemLogo}
+                  alt="7Care — Sistema de Gestão Eclesiástica"
+                  className="w-24 h-24 object-contain"
+                />
               )}
             </div>
           </div>

@@ -54,9 +54,7 @@ export const RegisterForm = () => {
         toast({
           title: t('success.created'),
           description:
-            formData.role === 'interested'
-              ? t('auth.accountActive')
-              : t('auth.awaitApproval'),
+            formData.role === 'interested' ? t('auth.accountActive') : t('auth.awaitApproval'),
         });
 
         // Reset form
@@ -70,7 +68,7 @@ export const RegisterForm = () => {
           role: 'interested',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: t('common.error'),
         description: t('errors.generic'),
@@ -96,7 +94,7 @@ export const RegisterForm = () => {
                 id="name"
                 placeholder={t('auth.fullName')}
                 value={formData.name}
-                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 className="pl-10"
                 required
               />
@@ -112,7 +110,7 @@ export const RegisterForm = () => {
                 type="email"
                 placeholder="seu@email.com"
                 value={formData.email}
-                onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                 className="pl-10"
                 required
               />
@@ -127,7 +125,7 @@ export const RegisterForm = () => {
                 id="phone"
                 placeholder="(11) 99999-9999"
                 value={formData.phone}
-                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                 className="pl-10"
               />
             </div>
@@ -141,7 +139,7 @@ export const RegisterForm = () => {
                 id="church"
                 placeholder="Nome da sua igreja"
                 value={formData.church}
-                onChange={e => setFormData(prev => ({ ...prev, church: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, church: e.target.value }))}
                 className="pl-10"
               />
             </div>
@@ -151,17 +149,41 @@ export const RegisterForm = () => {
             <Label htmlFor="role">{t('common.role')}</Label>
             <Select
               value={formData.role}
-              onValueChange={(value: UserRole) => setFormData(prev => ({ ...prev, role: value }))}
+              onValueChange={(value: UserRole) => setFormData((prev) => ({ ...prev, role: value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t('common.select')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="interested">{t('common.friend')}</SelectItem>
-                <SelectItem value="member">{t('common.member')}</SelectItem>
-                <SelectItem value="missionary">{t('common.missionary')}</SelectItem>
+                <SelectItem value="interested">
+                  <div className="flex flex-col">
+                    <span>{t('common.friend')}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t('auth.roleDescFriend', 'Visitante ou pessoa interessada')}
+                    </span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="member">
+                  <div className="flex flex-col">
+                    <span>{t('common.member')}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t('auth.roleDescMember', 'Membro ativo da igreja')}
+                    </span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="missionary">
+                  <div className="flex flex-col">
+                    <span>{t('common.missionary')}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t('auth.roleDescMissionary', 'Responsável por acompanhar pessoas')}
+                    </span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              {t('auth.roleHint', 'Escolha o perfil que melhor descreve sua função na igreja.')}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -173,7 +195,7 @@ export const RegisterForm = () => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={formData.password}
-                onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                 className="pl-10 pr-10"
                 required
               />
@@ -203,7 +225,9 @@ export const RegisterForm = () => {
                 type="password"
                 placeholder="••••••••"
                 value={formData.confirmPassword}
-                onChange={e => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                }
                 className="pl-10"
                 required
               />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Heart, Phone, MessageCircle, MapPin, Search } from 'lucide-react';
+import { UserPlus, Heart, Phone, MessageCircle, MapPin, Search, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,42 +8,19 @@ import { Badge } from '@/components/ui/badge';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
+import { useQuery } from '@tanstack/react-query';
 
-const mockInterested = [
-  {
-    id: 1,
-    name: 'Ana Costa',
-    email: 'ana@email.com',
-    phone: '(11) 99999-1111',
-    address: 'Rua das Flores, 123',
-    status: 'new',
-    assignedTo: '',
-    lastContact: '',
-    source: 'site',
-  },
-  {
-    id: 2,
-    name: 'Pedro Lima',
-    email: 'pedro@email.com',
-    phone: '(11) 88888-2222',
-    address: 'Av. Principal, 456',
-    status: 'contacted',
-    assignedTo: 'Maria Santos',
-    lastContact: '2024-12-20',
-    source: 'whatsapp',
-  },
-  {
-    id: 3,
-    name: 'Julia Ferreira',
-    email: 'julia@email.com',
-    phone: '(11) 77777-3333',
-    address: 'Praça Central, 789',
-    status: 'studying',
-    assignedTo: 'Maria Santos',
-    lastContact: '2024-12-21',
-    source: 'indicacao',
-  },
-];
+interface InterestedPerson {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+  status: string;
+  assignedTo?: string;
+  lastContact?: string;
+  source?: string;
+}
 
 const statusColors = {
   new: 'bg-yellow-500 text-white',
@@ -64,11 +41,43 @@ const Interested = () => {
     inactive: t('interested.statusInactive'),
   };
 
-  const [interested, setInterested] = useState(mockInterested);
+  const canManage = hasAdminAccess(user) || user?.role === 'missionary';
+
+  const [interested, setInterested] = useState<InterestedPerson[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const filteredInterested = interested.filter(person => {
+  // Buscar dados reais da API
+  const { isLoading: dataLoading } = useQuery({
+    queryKey: ['/api/users', 'interested'],
+    queryFn: async () => {
+      const res = await fetch('/api/users?role=interested');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: canManage,
+    staleTime: 30 * 1000,
+    select: (data: InterestedPerson[]) => {
+      if (Array.isArray(data)) {
+        setInterested(
+          data.map((u) => ({
+            id: u.id,
+            name: u.name || '',
+            email: u.email || '',
+            phone: u.phone || '',
+            address: u.address || '',
+            status: u.status || 'new',
+            assignedTo: u.assignedTo || '',
+            lastContact: u.lastContact || '',
+            source: u.source || '',
+          }))
+        );
+      }
+      return data;
+    },
+  });
+
+  const filteredInterested = interested.filter((person) => {
     const matchesSearch =
       person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       person.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -77,16 +86,16 @@ const Interested = () => {
   });
 
   const handleAssignToMe = (personId: number) => {
-    setInterested(prev =>
-      prev.map(person =>
+    setInterested((prev) =>
+      prev.map((person) =>
         person.id === personId ? { ...person, assignedTo: user?.name || '' } : person
       )
     );
   };
 
   const handleUpdateStatus = (personId: number, newStatus: string) => {
-    setInterested(prev =>
-      prev.map(person =>
+    setInterested((prev) =>
+      prev.map((person) =>
         person.id === personId
           ? {
               ...person,
@@ -100,12 +109,10 @@ const Interested = () => {
 
   const stats = {
     total: interested.length,
-    new: interested.filter(p => p.status === 'new').length,
-    studying: interested.filter(p => p.status === 'studying').length,
-    myAssigned: interested.filter(p => p.assignedTo === user?.name).length,
+    new: interested.filter((p) => p.status === 'new').length,
+    studying: interested.filter((p) => p.status === 'studying').length,
+    myAssigned: interested.filter((p) => p.assignedTo === user?.name).length,
   };
-
-  const canManage = hasAdminAccess(user) || user?.role === 'missionary';
 
   if (!canManage) {
     return (
@@ -113,9 +120,20 @@ const Interested = () => {
         <div className="p-4 text-center">
           <UserPlus className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">{t('interested.restrictedAccess')}</h2>
-          <p className="text-muted-foreground">
-            {t('interested.restrictedMessage')}
-          </p>
+          <p className="text-muted-foreground">{t('interested.restrictedMessage')}</p>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (dataLoading) {
+    return (
+      <MobileLayout>
+        <div className="p-4 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
+            <p className="text-muted-foreground">{t('common.loading')}</p>
+          </div>
         </div>
       </MobileLayout>
     );
@@ -171,13 +189,13 @@ const Interested = () => {
               aria-label={t('interested.searchFriends')}
               placeholder={t('interested.searchFriendsPlaceholder')}
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {['all', 'new', 'contacted', 'studying', 'baptized'].map(status => (
+            {['all', 'new', 'contacted', 'studying', 'baptized'].map((status) => (
               <Button
                 key={status}
                 variant={filterStatus === status ? 'default' : 'outline'}
@@ -185,7 +203,9 @@ const Interested = () => {
                 onClick={() => setFilterStatus(status)}
                 className="whitespace-nowrap"
               >
-                {status === 'all' ? t('interested.all') : statusLabels[status as keyof typeof statusLabels]}
+                {status === 'all'
+                  ? t('interested.all')
+                  : statusLabels[status as keyof typeof statusLabels]}
               </Button>
             ))}
           </div>
@@ -193,7 +213,7 @@ const Interested = () => {
 
         {/* Interested List */}
         <div className="space-y-3">
-          {filteredInterested.map(person => (
+          {filteredInterested.map((person) => (
             <Card key={person.id} className="shadow-sm">
               <CardContent className="p-4">
                 <div className="space-y-3">
@@ -224,12 +244,13 @@ const Interested = () => {
                     {person.assignedTo && (
                       <div className="flex items-center gap-2">
                         <Heart className="w-4 h-4" />
-                      {t('interested.responsible')}: {person.assignedTo}
+                        {t('interested.responsible')}: {person.assignedTo}
                       </div>
                     )}
                     {person.lastContact && (
                       <div>
-                        {t('interested.lastContact')}: {new Date(person.lastContact).toLocaleDateString('pt-BR')}
+                        {t('interested.lastContact')}:{' '}
+                        {new Date(person.lastContact).toLocaleDateString('pt-BR')}
                       </div>
                     )}
                   </div>

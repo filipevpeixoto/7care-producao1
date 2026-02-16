@@ -1,5 +1,4 @@
 import { LogOut, Settings as SettingsIcon, User, ChevronDown, ChevronUp } from 'lucide-react';
-import { uiLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
@@ -54,19 +53,18 @@ export const Header = () => {
   }, []);
 
   const toggleExpansion = () => {
-    uiLogger.debug('Toggle clicked! Current state:', isExpanded);
     setIsExpanded(!isExpanded);
-    uiLogger.debug('New state will be:', !isExpanded);
   };
-
-  uiLogger.debug('Header render - isExpanded:', isExpanded, 'user:', user?.name);
 
   return (
     <header className="border-b bg-background shadow-sm">
       {/* Header Principal */}
       <div className="flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <SidebarTrigger className="text-foreground hover:bg-muted" aria-label="Alternar barra lateral" />
+          <SidebarTrigger
+            className="text-foreground hover:bg-muted"
+            aria-label="Alternar barra lateral"
+          />
           <div className="hidden md:block">
             <h2 className="text-lg font-semibold text-foreground">
               Sistema de Gestão Eclesiástica
@@ -84,7 +82,11 @@ export const Header = () => {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2" aria-label="Menu do usuário">
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2"
+                  aria-label="Menu do usuário"
+                >
                   <div className="relative w-8 h-8">
                     {getPhotoUrl() ? (
                       <>
@@ -92,7 +94,7 @@ export const Header = () => {
                           src={getPhotoUrl() || ''}
                           alt={`Foto de ${user.name}`}
                           className="w-8 h-8 rounded-full object-cover border"
-                          onError={e => {
+                          onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const fallback = target.nextElementSibling as HTMLElement;
@@ -137,42 +139,31 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* Área Expansível - SEMPRE VISÍVEL PARA TESTE */}
-      <div className="px-4 pb-4">
-        <div className="bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-900/30 dark:to-amber-900/30 rounded-lg p-4 border border-blue-100 dark:border-blue-800 shadow-sm">
-          <div className="space-y-2">
+      {/* Área Expansível - saudação */}
+      {isExpanded && (
+        <div className="px-4 pb-4">
+          <div className="bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-900/30 dark:to-amber-900/30 rounded-lg p-4 border border-blue-100 dark:border-blue-800 shadow-sm">
             <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-              {greeting}, {user?.name}! (Estado: {isExpanded ? 'EXPANDIDO' : 'CONTRAÍDO'})
+              {greeting}, {user?.name?.split(' ')[0]}!
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">Bem-vindo ao painel de controle</p>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Sistema online • Dados em tempo real
-            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Botão de Expansão - SEMPRE VISÍVEL */}
+      {/* Botão de Expansão */}
       <div className="flex justify-center pb-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={toggleExpansion}
-          aria-label={isExpanded ? 'Ocultar boas-vindas' : 'Mostrar boas-vindas'}
+          aria-label={
+            isExpanded
+              ? t('header.hideGreeting', 'Ocultar saudação')
+              : t('header.showGreeting', 'Mostrar saudação')
+          }
           className="h-8 px-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
         >
-          {isExpanded ? (
-            <>
-              <ChevronUp className="h-4 w-4 mr-1" />
-              <span className="text-xs">Ocultar ({isExpanded ? 'true' : 'false'})</span>
-            </>
-          ) : (
-            <>
-              <ChevronDown className="h-4 w-4 mr-1" />
-              <span className="text-xs">Ver boas-vindas ({isExpanded ? 'true' : 'false'})</span>
-            </>
-          )}
+          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
       </div>
     </header>

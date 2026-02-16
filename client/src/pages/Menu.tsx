@@ -52,32 +52,32 @@ type UserSummary = {
 const UserProfileCard = ({ user }: { user?: UserSummary | null }) => {
   const { t } = useTranslation();
   return (
-  <Card className="bg-gradient-to-br from-slate-800 via-blue-800 to-slate-700 text-white shadow-divine">
-    <CardContent className="p-6">
-      <div className="flex items-center gap-4">
-        <Avatar className="h-16 w-16">
-          <AvatarImage
-            src={
-              user?.profilePhoto
-                ? user.profilePhoto.startsWith('http')
-                  ? user.profilePhoto
-                  : `/uploads/${user.profilePhoto}`
-                : undefined
-            }
-            className="h-full w-full object-cover"
-          />
-          <AvatarFallback className="bg-white/20 text-2xl font-bold">
-            {user?.name?.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <h2 className="text-xl font-bold">{user?.name}</h2>
-          <p className="text-white font-medium capitalize">{getRoleDisplayName(user?.role)}</p>
-          <p className="text-white/90 text-sm">{user?.church || t('menu.churchNotInformed')}</p>
+    <Card className="bg-gradient-to-br from-slate-800 via-blue-800 to-slate-700 text-white shadow-divine">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage
+              src={
+                user?.profilePhoto
+                  ? user.profilePhoto.startsWith('http')
+                    ? user.profilePhoto
+                    : `/uploads/${user.profilePhoto}`
+                  : undefined
+              }
+              className="h-full w-full object-cover"
+            />
+            <AvatarFallback className="bg-white/20 text-2xl font-bold">
+              {user?.name?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold">{user?.name}</h2>
+            <p className="text-white font-medium capitalize">{getRoleDisplayName(user?.role)}</p>
+            <p className="text-white/90 text-sm">{user?.church || t('menu.churchNotInformed')}</p>
+          </div>
         </div>
-      </div>
-    </CardContent>
-  </Card>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -112,7 +112,7 @@ const MenuSection = ({ title, items, showDescription, onNavigate }: MenuSectionP
   <div>
     <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{title}</h3>
     <div className="grid grid-cols-2 gap-3">
-      {items.map(item => (
+      {items.map((item) => (
         <MenuItemCard
           key={item.path}
           item={item}
@@ -286,13 +286,6 @@ const Menu = () => {
         path: '/my-reports',
         color: 'bg-orange-500',
         description: t('menu.myTasksDesc'),
-      },
-      {
-        title: t('menu.generalInterested'),
-        icon: UserPlus,
-        path: '/my-interested',
-        color: 'bg-green-500',
-        description: t('menu.allContacts'),
       },
     ],
     member: [

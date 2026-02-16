@@ -14,6 +14,7 @@ export const LoginForm = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   const { login } = useAuth();
   const { toast } = useToast();
@@ -22,6 +23,7 @@ export const LoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError('');
     setIsLoading(true);
 
     try {
@@ -34,8 +36,12 @@ export const LoginForm = () => {
         });
         // Verificar se precisa de primeiro acesso - usando chave específica do usuário
         const user = JSON.parse(localStorage.getItem('7care_auth') || '{}');
-        const tutorialCompleted = user?.id ? localStorage.getItem(`tutorial_completed_${user.id}`) : null;
-        const tutorialSkipped = user?.id ? localStorage.getItem(`tutorial_skipped_${user.id}`) : null;
+        const tutorialCompleted = user?.id
+          ? localStorage.getItem(`tutorial_completed_${user.id}`)
+          : null;
+        const tutorialSkipped = user?.id
+          ? localStorage.getItem(`tutorial_skipped_${user.id}`)
+          : null;
         // Pastores aprovados via convite também veem o tour geral na primeira vez
         const needsFirstAccess =
           !tutorialCompleted && !tutorialSkipped && (user.usingDefaultPassword || user.firstAccess);
@@ -49,18 +55,10 @@ export const LoginForm = () => {
           navigate('/dashboard');
         }
       } else {
-        toast({
-          title: 'Erro no login',
-          description: 'Email ou senha incorretos',
-          variant: 'destructive',
-        });
+        setLoginError('Email ou senha incorretos. Verifique e tente novamente.');
       }
-    } catch (error) {
-      toast({
-        title: 'Erro no login',
-        description: 'Ocorreu um erro inesperado',
-        variant: 'destructive',
-      });
+    } catch {
+      setLoginError('Não foi possível conectar ao servidor. Tente novamente em alguns instantes.');
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +71,15 @@ export const LoginForm = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {loginError && (
+            <div
+              className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+              role="alert"
+            >
+              {loginError}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email ou Usuário</Label>
             <div className="relative">
@@ -82,9 +89,13 @@ export const LoginForm = () => {
                 type="text"
                 placeholder="seu@email.com ou seu.usuario"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setLoginError('');
+                }}
                 className="pl-10"
                 required
+                aria-invalid={!!loginError}
               />
             </div>
           </div>
@@ -98,9 +109,13 @@ export const LoginForm = () => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setLoginError('');
+                }}
                 className="pl-10 pr-10"
                 required
+                aria-invalid={!!loginError}
               />
               <Button
                 type="button"

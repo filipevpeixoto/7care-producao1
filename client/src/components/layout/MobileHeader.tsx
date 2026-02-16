@@ -63,7 +63,11 @@ export const MobileHeader = () => {
   });
 
   const [isImpersonating, setIsImpersonating] = useState(false);
-  const [impersonationContext, setImpersonationContext] = useState<{ userId: number; userName: string; impersonatingAs?: { name: string; districtName?: string } } | null>(null);
+  const [impersonationContext, setImpersonationContext] = useState<{
+    userId: number;
+    userName: string;
+    impersonatingAs?: { name: string; districtName?: string };
+  } | null>(null);
 
   // State para o modal de ajuda
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -118,7 +122,7 @@ export const MobileHeader = () => {
     if (hour < 12) return t('greetings.morning', 'Bom dia');
     if (hour < 18) return t('greetings.afternoon', 'Boa tarde');
     return t('greetings.evening', 'Boa noite');
-  }, []);
+  }, [t]);
 
   // Lógica de auto-hide baseada no scroll
   useEffect(() => {
@@ -156,7 +160,10 @@ export const MobileHeader = () => {
   const handleLogout = async () => {
     // Fazer logout primeiro para limpar estado de autenticação
     await logout();
-    toast({ title: t('auth.logout'), description: t('messages.logoutSuccess', 'Você foi desconectado com sucesso') });
+    toast({
+      title: t('auth.logout'),
+      description: t('messages.logoutSuccess', 'Você foi desconectado com sucesso'),
+    });
     // Navegar para login depois do logout completo
     navigate('/login');
   };
@@ -221,9 +228,9 @@ export const MobileHeader = () => {
               {systemLogo && (
                 <img
                   src={systemLogo}
-                  alt="7care"
+                  alt="7Care — Sistema de Gestão Eclesiástica"
                   className="w-16 h-16 drop-shadow-sm object-contain pointer-events-none"
-                  onError={e => {
+                  onError={(e) => {
                     // Remove a logo em caso de erro
                     e.currentTarget.style.display = 'none';
                   }}
@@ -251,7 +258,7 @@ export const MobileHeader = () => {
           </div>
 
           <div
-            className="flex items-center gap-2"
+            className="flex items-center gap-1"
             style={{
               transform: `translateX(${mobileHeaderLayout.actions.offsetX}px) translateY(${mobileHeaderLayout.actions.offsetY}px)`,
             }}
@@ -263,11 +270,11 @@ export const MobileHeader = () => {
             <Button
               id="tour-help-button"
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => setShowHelpModal(true)}
               title={t('nav.help')}
               aria-label={t('nav.help')}
-              className="bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200/50 hover:border-blue-300/50 transition-all duration-200 dark:from-blue-900/30 dark:to-cyan-900/30 dark:hover:from-blue-800/40 dark:hover:to-cyan-800/40 dark:border-blue-700/50"
+              className="min-w-[40px] min-h-[40px] bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200/50 hover:border-blue-300/50 transition-all duration-200 dark:from-blue-900/30 dark:to-cyan-900/30 dark:hover:from-blue-800/40 dark:hover:to-cyan-800/40 dark:border-blue-700/50"
             >
               <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </Button>
@@ -275,22 +282,22 @@ export const MobileHeader = () => {
             <Button
               id="tour-chat-button"
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => navigate('/chat')}
               title="Chat"
               aria-label="Chat"
-              className="bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border border-green-200/50 hover:border-green-300/50 transition-all duration-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:hover:from-green-800/40 dark:hover:to-emerald-800/40 dark:border-green-700/50"
+              className="min-w-[40px] min-h-[40px] bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border border-green-200/50 hover:border-green-300/50 transition-all duration-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:hover:from-green-800/40 dark:hover:to-emerald-800/40 dark:border-green-700/50"
             >
               <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             </Button>
             <Button
               id="tour-notifications-button"
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => navigate('/notifications')}
               title={t('nav.notifications')}
               aria-label={t('nav.notifications')}
-              className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200/50 hover:border-amber-300/50 transition-all duration-200 dark:from-amber-900/30 dark:to-orange-900/30 dark:hover:from-amber-800/40 dark:hover:to-orange-800/40 dark:border-amber-700/50"
+              className="min-w-[40px] min-h-[40px] bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200/50 hover:border-amber-300/50 transition-all duration-200 dark:from-amber-900/30 dark:to-orange-900/30 dark:hover:from-amber-800/40 dark:hover:to-orange-800/40 dark:border-amber-700/50"
             >
               <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </Button>
@@ -298,11 +305,13 @@ export const MobileHeader = () => {
             <Button
               id="tour-theme-button"
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={toggleTheme}
               title={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
-              aria-label={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
-              className="bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200/50 hover:border-purple-300/50 transition-all duration-200 dark:from-purple-900/30 dark:to-indigo-900/30 dark:hover:from-purple-800/40 dark:hover:to-indigo-800/40 dark:border-purple-700/50"
+              aria-label={
+                resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')
+              }
+              className="min-w-[40px] min-h-[40px] bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200/50 hover:border-purple-300/50 transition-all duration-200 dark:from-purple-900/30 dark:to-indigo-900/30 dark:hover:from-purple-800/40 dark:hover:to-indigo-800/40 dark:border-purple-700/50"
             >
               {resolvedTheme === 'dark' ? (
                 <Sun className="w-5 h-5 text-yellow-500" />
@@ -314,7 +323,13 @@ export const MobileHeader = () => {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button id="tour-profile-menu" variant="ghost" size="sm" className="p-0" aria-label={t('nav.profile')}>
+                  <Button
+                    id="tour-profile-menu"
+                    variant="ghost"
+                    size="sm"
+                    className="p-0"
+                    aria-label={t('nav.profile')}
+                  >
                     <div className="relative w-8 h-8">
                       {getPhotoUrl() ? (
                         <>
@@ -322,7 +337,7 @@ export const MobileHeader = () => {
                             src={getPhotoUrl() || ''}
                             alt={`Foto de ${user.name}`}
                             className="w-8 h-8 rounded-full object-cover border"
-                            onError={e => {
+                            onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                               const fallback = target.nextElementSibling as HTMLElement;

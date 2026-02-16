@@ -23,21 +23,23 @@ export const MobileLayout = ({
 }: MobileLayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Pull to Refresh - DESABILITADO para evitar conflito com navegação
+  // Pull to Refresh
   const { containerRef, pullDistance, isRefreshing, progress } = usePullToRefresh({
     onRefresh: async () => {
-      // Recarregar a página atual
       window.location.reload();
     },
     threshold: 80,
-    enabled: false, // ← DESABILITADO temporariamente
+    enabled: true,
   });
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
         <div className="text-center space-y-4" role="status" aria-live="polite">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto" aria-hidden="true"></div>
+          <div
+            className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"
+            aria-hidden="true"
+          ></div>
           <p className="text-white">Carregando...</p>
         </div>
       </div>
@@ -70,7 +72,11 @@ export const MobileLayout = ({
 
       {!fullscreen && <MobileHeader />}
       {!fullscreen && showBreadcrumbs && <Breadcrumbs />}
-      <div role="region" aria-label="Conteúdo da página" className={`flex-1 overflow-auto ${fullscreen ? '' : 'pb-24'}`}>
+      <div
+        role="region"
+        aria-label="Conteúdo da página"
+        className={`flex-1 overflow-auto ${fullscreen ? '' : 'pb-24'}`}
+      >
         <div className="animate-fade-in">{children}</div>
       </div>
       {showBottomNav && !fullscreen && <MobileBottomNav />}

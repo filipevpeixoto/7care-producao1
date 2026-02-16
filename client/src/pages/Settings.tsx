@@ -31,7 +31,14 @@ import {
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [settings, setSettings] = useState<SettingsData>(initialSettings);
+  const [settings, setSettings] = useState<SettingsData>(() => {
+    try {
+      const saved = localStorage.getItem('7care_user_settings');
+      return saved ? { ...initialSettings, ...JSON.parse(saved) } : initialSettings;
+    } catch {
+      return initialSettings;
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
 
@@ -135,9 +142,7 @@ export default function Settings() {
     staleTime: 30 * 1000,
     select: (data: { subscriptions?: Array<{ user_id: number; is_active?: boolean }> } | null) => {
       if (data?.subscriptions) {
-        const userSubscription = data.subscriptions.find(
-          (sub) => sub.user_id === user?.id
-        );
+        const userSubscription = data.subscriptions.find((sub) => sub.user_id === user?.id);
         if (userSubscription?.is_active) {
           setIsPushEnabled(true);
           setSettings((prev) => ({
@@ -153,7 +158,8 @@ export default function Settings() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Salvar preferências locais no localStorage
+      localStorage.setItem('7care_user_settings', JSON.stringify(settings));
       toast({
         title: t('settings.savedSuccess'),
         description: t('settings.savedSuccessDesc'),

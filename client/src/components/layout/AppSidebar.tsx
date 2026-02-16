@@ -34,7 +34,7 @@ import { useSystemLogo } from '@/hooks/useSystemLogo';
 // Navigation items with permissions
 const navigationItems = [
   {
-    title: 'Dashboard',
+    title: 'Início',
     url: '/dashboard',
     icon: LayoutDashboard,
     roles: ['superadmin', 'pastor', 'missionary', 'member', 'interested'] as UserRole[],
@@ -76,14 +76,14 @@ const navigationItems = [
     tourId: 'invites',
   },
   {
-    title: 'Amigos',
+    title: 'Discipulado',
     url: '/interested',
     icon: UserPlus,
     roles: ['superadmin', 'pastor', 'missionary'] as UserRole[],
-    tourId: 'prayers',
+    tourId: 'discipleship',
   },
   {
-    title: 'Meus Amigos',
+    title: 'Meu Discipulado',
     url: '/my-interested',
     icon: Heart,
     roles: ['missionary', 'member'] as UserRole[],
@@ -143,7 +143,7 @@ export function AppSidebar() {
   const isCollapsed = state === 'collapsed';
 
   // Filter items based on user role
-  const allowedItems = navigationItems.filter(item => user && item.roles.includes(user.role));
+  const allowedItems = navigationItems.filter((item) => user && item.roles.includes(user.role));
 
   const getNavClasses = (url: string) => {
     const isActive = currentPath === url;
@@ -192,7 +192,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {allowedItems.map(item => (
+              {allowedItems.map((item) => (
                 <SidebarMenuItem key={item.title} data-tour={item.tourId}>
                   <SidebarMenuButton asChild>
                     <PrefetchLink to={item.url} className={getNavClasses(item.url)} viewTransition>
