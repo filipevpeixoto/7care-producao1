@@ -16,16 +16,10 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { isSuperAdmin, isPastor } from '@/lib/permissions';
-import { useState, useRef, useMemo, useCallback, memo } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect, memo } from 'react';
 import { usePrefetch } from '@/hooks/usePrefetch';
 
 import { useModal } from '@/contexts/ModalContext';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface SubmenuItem {
   title: string;
@@ -47,7 +41,31 @@ export const MobileBottomNav = memo(() => {
   const { isAnyModalOpen } = useModal();
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
+  const adminButtonRef = useRef<HTMLButtonElement>(null);
   const { prefetchRoute } = usePrefetch();
+
+  // Fechar menu admin ao clicar fora
+  useEffect(() => {
+    if (!adminMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        adminMenuRef.current &&
+        !adminMenuRef.current.contains(target) &&
+        adminButtonRef.current &&
+        !adminButtonRef.current.contains(target)
+      ) {
+        setAdminMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [adminMenuOpen]);
 
   // Estrutura simplificada do menu - memoizada para evitar recriações
   const menuStructure = useMemo(() => {
@@ -267,7 +285,7 @@ export const MobileBottomNav = memo(() => {
             const hasSubmenu = item.submenu && item.submenu.length > 0;
             const isSubmenuButton = hasSubmenu;
 
-            // Se for botão com submenu (Admin ou Pastoral), renderizar dropdown
+            // Se for botão com submenu (Admin ou Pastoral), renderizar popup customizado
             if (isSubmenuButton) {
               const isSubmenuRoute = item.submenu.some(
                 (sub: SubmenuItem) => sub.path === location.pathname
@@ -275,82 +293,81 @@ export const MobileBottomNav = memo(() => {
               const isActive = adminMenuOpen || isSubmenuRoute;
 
               return (
-                <DropdownMenu key={index} open={adminMenuOpen} onOpenChange={setAdminMenuOpen}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      id="tour-nav-admin"
-                      aria-label="Menu Administração"
-                      aria-current={isActive ? 'page' : undefined}
-                      className={`relative flex flex-col items-center justify-center w-full h-12 transition-all duration-300 ease-out ${
-                        isActive ? 'scale-110' : 'scale-100'
-                      }`}
-                      style={{
-                        touchAction: 'manipulation',
-                        WebkitTapHighlightColor: 'transparent',
-                      }}
-                      type="button"
-                    >
-                      {/* Indicador visual quando ativo */}
-                      {isActive && (
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-amber-400/20 rounded-2xl blur-sm" />
-                      )}
-                      <div className="flex flex-col items-center justify-center w-full h-full relative z-10">
-                        <div className="relative">
-                          <item.icon
-                            className={`w-5 h-5 mb-1 transition-all duration-300 ${iconClasses(isActive)}`}
-                          />
-                          {isActive && (
-                            <ChevronUp className="absolute -top-1 -right-1 w-3 h-3 text-emerald-600 animate-bounce" />
-                          )}
-                        </div>
-                        <span
-                          className={`text-xs font-medium transition-all duration-300 ${textClasses(isActive)}`}
-                        >
-                          {item.title}
-                        </span>
-                      </div>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    side="top"
-                    align="center"
-                    className="mb-2 min-w-[160px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-slate-700/50 rounded-2xl shadow-2xl dark:shadow-slate-900/50 p-2 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2"
-                    style={{ zIndex: 1000000 }}
+                <div
+                  key={index}
+                  className="relative flex flex-col items-center justify-center w-full"
+                >
+                  <button
+                    ref={adminButtonRef}
+                    id="tour-nav-admin"
+                    aria-label="Menu Administração"
+                    aria-expanded={adminMenuOpen}
+                    aria-haspopup="true"
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={() => setAdminMenuOpen((prev) => !prev)}
+                    className={`relative flex flex-col items-center justify-center w-full h-12 transition-all duration-300 ease-out ${
+                      isActive ? 'scale-110' : 'scale-100'
+                    }`}
+                    style={{
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}
+                    type="button"
                   >
-                    {item.submenu.map((subItem: SubmenuItem, subIndex: number) => {
-                      const isSubActive = location.pathname === subItem.path;
-                      return (
-                        <DropdownMenuItem
-                          key={subIndex}
-                          onSelect={() => {
-                            setAdminMenuOpen(false);
-                            // Mesmo approach do handleNavigation para confiabilidade
-                            const wrapper = document.querySelector('.route-transition-wrapper');
-                            if (wrapper) {
-                              (wrapper as HTMLElement).style.opacity = '0';
-                              (wrapper as HTMLElement).style.transition = 'opacity 150ms ease-out';
-                              setTimeout(() => {
-                                window.location.href = subItem.path;
-                              }, 150);
-                            } else {
-                              window.location.href = subItem.path;
-                            }
-                          }}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                            isSubActive
-                              ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold'
-                              : 'hover:bg-gray-100 dark:hover:bg-slate-700/50 text-gray-700 dark:text-slate-300 focus:bg-gray-100 dark:focus:bg-slate-700/50'
-                          }`}
-                        >
-                          <subItem.icon
-                            className={`w-4 h-4 ${isSubActive ? 'text-primary' : 'text-gray-600 dark:text-slate-400'}`}
-                          />
-                          <span className="text-sm font-medium">{subItem.title}</span>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    {isActive && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-amber-400/20 rounded-2xl blur-sm" />
+                    )}
+                    <div className="flex flex-col items-center justify-center w-full h-full relative z-10">
+                      <div className="relative">
+                        <item.icon
+                          className={`w-5 h-5 mb-1 transition-all duration-300 ${iconClasses(isActive)}`}
+                        />
+                        {isActive && (
+                          <ChevronUp className="absolute -top-1 -right-1 w-3 h-3 text-emerald-600 animate-bounce" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs font-medium transition-all duration-300 ${textClasses(isActive)}`}
+                      >
+                        {item.title}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Popup do submenu */}
+                  {adminMenuOpen && (
+                    <div
+                      ref={adminMenuRef}
+                      role="menu"
+                      className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 min-w-[160px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-slate-700/50 rounded-2xl shadow-2xl dark:shadow-slate-900/50 p-2 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2"
+                      style={{ zIndex: 1000000 }}
+                    >
+                      {item.submenu.map((subItem: SubmenuItem, subIndex: number) => {
+                        const isSubActive = location.pathname === subItem.path;
+                        return (
+                          <button
+                            key={subIndex}
+                            role="menuitem"
+                            onClick={() => {
+                              setAdminMenuOpen(false);
+                              handleNavigation(subItem.path);
+                            }}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 w-full text-left ${
+                              isSubActive
+                                ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold'
+                                : 'hover:bg-gray-100 dark:hover:bg-slate-700/50 text-gray-700 dark:text-slate-300 focus:bg-gray-100 dark:focus:bg-slate-700/50'
+                            }`}
+                          >
+                            <subItem.icon
+                              className={`w-4 h-4 ${isSubActive ? 'text-primary' : 'text-gray-600 dark:text-slate-400'}`}
+                            />
+                            <span className="text-sm font-medium">{subItem.title}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             }
 
