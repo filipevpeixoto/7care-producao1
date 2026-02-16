@@ -272,16 +272,10 @@ export const MobileBottomNav = memo(() => {
               const isSubmenuRoute = item.submenu.some(
                 (sub: SubmenuItem) => sub.path === location.pathname
               );
-              const isMenuOpen = adminMenuOpen || isSubmenuRoute;
-              const isActive = isMenuOpen;
+              const isActive = adminMenuOpen || isSubmenuRoute;
 
               return (
-                <DropdownMenu
-                  key={index}
-                  open={isMenuOpen}
-                  onOpenChange={setAdminMenuOpen}
-                  modal={false}
-                >
+                <DropdownMenu key={index} open={adminMenuOpen} onOpenChange={setAdminMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <button
                       id="tour-nav-admin"
@@ -322,8 +316,6 @@ export const MobileBottomNav = memo(() => {
                     align="center"
                     className="mb-2 min-w-[160px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-slate-700/50 rounded-2xl shadow-2xl dark:shadow-slate-900/50 p-2 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2"
                     style={{ zIndex: 1000000 }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
                   >
                     {item.submenu.map((subItem: SubmenuItem, subIndex: number) => {
                       const isSubActive = location.pathname === subItem.path;
