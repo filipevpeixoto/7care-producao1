@@ -20,6 +20,9 @@
 
 import { apiLogger } from '@/lib/logger';
 
+/** Chave centralizada do token no localStorage — usada também em useAuth.ts */
+export const TOKEN_STORAGE_KEY = '7care_token';
+
 /**
  * Base URL para chamadas de API.
  * - No browser (web): string vazia (URLs relativas funcionam via proxy)
@@ -93,7 +96,7 @@ function getHeaderValue(headers: HeadersInit | undefined, key: string): string |
  * ```
  */
 export function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('7care_token');
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
   const csrfToken = getCsrfToken();
   const correlationId = createCorrelationId();
 
@@ -128,7 +131,7 @@ export function getAuthHeaders(): HeadersInit {
  * ```
  */
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = localStorage.getItem('7care_token');
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
   const csrfToken = getCsrfToken();
   const existingCorrelationId = getHeaderValue(options.headers, 'x-correlation-id');
   const correlationId = existingCorrelationId || createCorrelationId();

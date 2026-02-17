@@ -5,7 +5,7 @@
 
 import { type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import {
   type AuthenticatedRequest,
   type ApiErrorResponse,
@@ -16,8 +16,8 @@ import { hasAdminAccess, isSuperAdmin, isPastor } from '../utils/permissions';
 import { JWT_SECRET } from '../config/jwtConfig';
 import { logger } from '../utils/logger';
 
-// Instância compartilhada do storage
-const storage = new NeonAdapter();
+// Helper para acessar o userRepository via DI container
+const getUserById = (id: number) => getRepository('userRepository').getUserById(id);
 
 type JwtUserPayload = {
   id: number;
@@ -58,7 +58,7 @@ export const extractUserId = async (
 
     if (userId !== null) {
       req.userId = userId;
-      const user = await storage.getUserById(userId);
+      const user = await getUserById(userId);
 
       if (user) {
         req.user = user;
@@ -86,7 +86,7 @@ export const checkReadOnlyAccess = async (
     const userId = resolveUserId(req);
 
     if (userId !== null) {
-      const user = await storage.getUserById(userId);
+      const user = await getUserById(userId);
 
       if (user) {
         // Verificar se é admin_readonly ou tem flag readOnly
@@ -142,7 +142,7 @@ export const requireAuth = async (
       return;
     }
 
-    const user = await storage.getUserById(userId);
+    const user = await getUserById(userId);
 
     if (!user) {
       const errorResponse: ApiErrorResponse = {
@@ -192,7 +192,7 @@ export const requireAdminAccess = async (
       return;
     }
 
-    const user = await storage.getUserById(userId);
+    const user = await getUserById(userId);
 
     if (!user) {
       const errorResponse: ApiErrorResponse = {
@@ -252,7 +252,7 @@ export const requireSuperAdmin = async (
       return;
     }
 
-    const user = await storage.getUserById(userId);
+    const user = await getUserById(userId);
 
     if (!user) {
       const errorResponse: ApiErrorResponse = {
@@ -307,7 +307,7 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
         return;
       }
 
-      const user = await storage.getUserById(userId);
+      const user = await getUserById(userId);
 
       if (!user) {
         const errorResponse: ApiErrorResponse = {
@@ -365,7 +365,7 @@ export const requireDistrictAccess = (
         return;
       }
 
-      const user = await storage.getUserById(userId);
+      const user = await getUserById(userId);
 
       if (!user) {
         const errorResponse: ApiErrorResponse = {

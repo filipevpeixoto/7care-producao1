@@ -77,17 +77,13 @@ describe('Auth Routes — Integration', () => {
 
   describe('POST /api/auth/login', () => {
     it('should return 400 for empty body', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({});
+      const res = await request(app).post('/api/auth/login').send({});
 
       expect(res.status).toBe(400);
     });
 
     it('should return 400 for missing password', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ email: 'user@test.com' });
+      const res = await request(app).post('/api/auth/login').send({ email: 'user@test.com' });
 
       expect(res.status).toBe(400);
     });
@@ -163,14 +159,12 @@ describe('Auth Routes — Integration', () => {
     it('should return 400 when user already exists', async () => {
       mockUserRepo.getUserByEmail.mockResolvedValue(createMockUser());
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({
-          name: 'Test',
-          email: 'test@7care.com',
-          password: 'StrongPass123!',
-          role: 'interested',
-        });
+      const res = await request(app).post('/api/auth/register').send({
+        name: 'Test',
+        email: 'test@7care.com',
+        password: 'StrongPass123!',
+        role: 'interested',
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -179,14 +173,12 @@ describe('Auth Routes — Integration', () => {
     it('should return 400 for weak password', async () => {
       mockUserRepo.getUserByEmail.mockResolvedValue(null);
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({
-          name: 'New User',
-          email: 'new@test.com',
-          password: 'weakpass', // passes Zod min(6), fails requireStrongPassword
-          role: 'interested',
-        });
+      const res = await request(app).post('/api/auth/register').send({
+        name: 'New User',
+        email: 'new@test.com',
+        password: 'weakpass', // passes Zod min(6), fails requireStrongPassword
+        role: 'interested',
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -205,14 +197,12 @@ describe('Auth Routes — Integration', () => {
         })
       );
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({
-          name: 'New User',
-          email: 'new@test.com',
-          password: 'StrongPass123!',
-          role: 'member',
-        });
+      const res = await request(app).post('/api/auth/register').send({
+        name: 'New User',
+        email: 'new@test.com',
+        password: 'StrongPass123!',
+        role: 'member',
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -230,14 +220,12 @@ describe('Auth Routes — Integration', () => {
         });
       });
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({
-          name: 'Attacker',
-          email: 'attacker@test.com',
-          password: 'StrongPass123!',
-          role: 'superadmin', // should be rejected / forced to 'interested'
-        });
+      const res = await request(app).post('/api/auth/register').send({
+        name: 'Attacker',
+        email: 'attacker@test.com',
+        password: 'StrongPass123!',
+        role: 'superadmin', // should be rejected / forced to 'interested'
+      });
 
       // Should succeed but role should NOT be 'admin'
       if (res.status === 201) {
@@ -249,10 +237,10 @@ describe('Auth Routes — Integration', () => {
   // ── /api/auth/me ────────────────────────────────────────────
 
   describe('GET /api/auth/me', () => {
-    it('should return error without Authorization header', async () => {
+    it('should return 401 without Authorization header', async () => {
       const res = await request(app).get('/api/auth/me');
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
     });
 
@@ -262,9 +250,7 @@ describe('Auth Routes — Integration', () => {
 
       mockUserRepo.getUserById.mockResolvedValue(mockUser);
 
-      const res = await request(app)
-        .get('/api/auth/me')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('id', 1);
@@ -272,15 +258,14 @@ describe('Auth Routes — Integration', () => {
       expect(res.body).not.toHaveProperty('password');
     });
 
-    it('should return 404 for non-existent user with valid token', async () => {
+    it('should return 401 for non-existent user with valid token', async () => {
       const token = generateTestToken({ id: 999 });
       mockUserRepo.getUserById.mockResolvedValue(null);
 
-      const res = await request(app)
-        .get('/api/auth/me')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
 
-      expect(res.status).toBe(404);
+      // requireJwtAuth rejects with 401 when JWT references a deleted user
+      expect(res.status).toBe(401);
     });
 
     it('should reject invalid tokens', async () => {
@@ -320,30 +305,35 @@ describe('Auth Routes — Integration', () => {
   // ── /api/user/church ────────────────────────────────────────
 
   describe('GET /api/user/church', () => {
-    it('should return error without userId', async () => {
+    it('should return 401 without Authorization header', async () => {
       const res = await request(app).get('/api/user/church');
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(401);
     });
 
     it('should return church for valid user', async () => {
-      mockUserRepo.getUserById.mockResolvedValue(
-        createMockUser({ church: 'Central Church' })
-      );
+      mockUserRepo.getUserById.mockResolvedValue(createMockUser({ church: 'Central Church' }));
 
-      const res = await request(app).get('/api/user/church?userId=1');
+      const token = generateTestToken({ id: 1 });
+      const res = await request(app)
+        .get('/api/user/church?userId=1')
+        .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('church', 'Central Church');
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it('should return 401 for non-existent user (JWT user not found)', async () => {
       mockUserRepo.getUserById.mockResolvedValue(null);
 
-      const res = await request(app).get('/api/user/church?userId=999');
+      const token = generateTestToken({ id: 999 });
+      const res = await request(app)
+        .get('/api/user/church?userId=999')
+        .set('Authorization', `Bearer ${token}`);
 
-      expect(res.status).toBe(404);
+      // requireJwtAuth rejects with 401 when JWT references a deleted user
+      expect(res.status).toBe(401);
     });
   });
 
@@ -356,12 +346,10 @@ describe('Auth Routes — Integration', () => {
         error: 'Credenciais inválidas',
       });
 
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: '<script>alert("xss")</script>@evil.com',
-          password: 'pass123',
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        email: '<script>alert("xss")</script>@evil.com',
+        password: 'pass123',
+      });
 
       // Should still reach the handler (sanitized) — validation schema will reject
       expect(res.status).toBeGreaterThanOrEqual(400);

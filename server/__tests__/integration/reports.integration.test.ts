@@ -10,6 +10,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { reportsRoutes } from '../../routes/reportsRoutes';
+import { sql } from '../../neonConfig';
 import { createMockUser, generateTestToken } from './setup';
 
 // ── Mock repos ──────────────────────────────────────────────────
@@ -19,6 +20,7 @@ const mockUserRepo = {
   getUserByEmail: vi.fn().mockResolvedValue(null),
   getUserByNormalizedUsername: vi.fn().mockResolvedValue(null),
   getAllUsers: vi.fn().mockResolvedValue([]),
+  getUsersByDistrictId: vi.fn().mockResolvedValue([]),
   getUsersPaginated: vi.fn().mockResolvedValue({ data: [], total: 0 }),
 };
 
@@ -26,6 +28,7 @@ const mockChurchRepo = {
   getAll: vi.fn().mockResolvedValue([]),
   getById: vi.fn(),
   getAllChurches: vi.fn().mockResolvedValue([]),
+  getChurchesByDistrict: vi.fn().mockResolvedValue([]),
 };
 
 const mockEventRepo = {
@@ -55,13 +58,29 @@ describe('Reports Routes — Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Re-set sql mock (cleared by mockReset) — report handlers use sql`...` for raw queries
+    (sql as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
     adminToken = generateTestToken({ id: 1, email: 'admin@7care.com', role: 'superadmin' });
     pastorToken = generateTestToken({ id: 2, email: 'pastor@7care.com', role: 'pastor' });
     app = createTestApp();
 
+    // Re-set repo mocks (cleared by mockReset)
+    mockUserRepo.getAllUsers.mockResolvedValue([]);
+    mockUserRepo.getUsersByDistrictId.mockResolvedValue([]);
+    mockChurchRepo.getAllChurches.mockResolvedValue([]);
+    mockChurchRepo.getChurchesByDistrict.mockResolvedValue([]);
+    mockEventRepo.getAllEvents.mockResolvedValue([]);
+
     // Set up auth user resolution
     const adminUser = createMockUser({ id: 1, role: 'superadmin', email: 'admin@7care.com' });
-    const pastorUser = createMockUser({ id: 2, role: 'pastor', email: 'pastor@7care.com', districtId: 1 });
+    const pastorUser = createMockUser({
+      id: 2,
+      role: 'pastor',
+      email: 'pastor@7care.com',
+      districtId: 1,
+    });
 
     mockUserRepo.getUserById.mockImplementation(async (id: number) => {
       if (id === 1) return adminUser;

@@ -3,13 +3,11 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import React, { Suspense, lazy, useEffect, Component, type ErrorInfo, type ReactNode } from 'react';
-import { Login } from './pages/Login';
-import { FirstAccessWelcome } from './components/auth/FirstAccessWelcome';
-import {
-  createQueryClient,
-  setupPerformanceListeners,
-  prefetchImportantData,
-} from './lib/queryClient';
+const Login = lazyWithRetry(() => import('./pages/Login').then((m) => ({ default: m.Login })));
+const FirstAccessWelcome = lazyWithRetry(() =>
+  import('./components/auth/FirstAccessWelcome').then((m) => ({ default: m.FirstAccessWelcome }))
+);
+import { queryClient, setupPerformanceListeners, prefetchImportantData } from './lib/queryClient';
 import { cleanConsoleInProduction } from './lib/performance';
 import { OfflineIndicator } from './components/offline/OfflineIndicator';
 import { ModalProvider } from './contexts/ModalContext';
@@ -93,21 +91,6 @@ const PageLoader = () => {
   const SkeletonComponent = getSkeletonForRoute(location.pathname);
   return <div className="page-loading-fallback">{React.createElement(SkeletonComponent)}</div>;
 };
-
-// Fallback simples para rotas sem skeleton mapeado
-const SimpleLoader = () => (
-  <div
-    className="page-loading-fallback flex items-center justify-center min-h-screen"
-    role="status"
-    aria-live="polite"
-  >
-    <div
-      className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
-      aria-hidden="true"
-    ></div>
-    <span className="sr-only">Carregando...</span>
-  </div>
-);
 
 /**
  * RouteErrorBoundary — Error Boundary que reseta automaticamente na troca de rota.
@@ -265,8 +248,7 @@ const RoutesWrapper = () => {
   );
 };
 
-// Create optimized query client - exportado para uso global (ex: limpar cache no login/logout)
-export const queryClient = createQueryClient();
+// queryClient importado de lib/queryClient.ts (singleton) para evitar dependência circular
 
 // Wrapper para sincronização do role do usuário com o sistema offline
 function OfflineUserSync() {
@@ -351,8 +333,8 @@ const App = () => {
       30 * 60 * 1000
     );
 
-    // Expor função de teste offline no window para debug
-    if (typeof window !== 'undefined') {
+    // Expor função de teste offline no window APENAS em desenvolvimento
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
       (window as unknown as Record<string, unknown>).testOfflineData = testOfflineData;
     }
 
@@ -379,12 +361,10 @@ const App = () => {
                 <PrefetchManager />
                 {/* Anunciador de rota para leitores de tela */}
                 <RouteAnnouncer />
-                <Suspense fallback={<SimpleLoader />}>
-                  {/* Main content wrapper com id para o skip link */}
-                  <main id="main-content" role="main" tabIndex={-1}>
-                    <RoutesWrapper />
-                  </main>
-                </Suspense>
+                {/* Main content wrapper com id para o skip link */}
+                <main id="main-content" role="main" tabIndex={-1}>
+                  <RoutesWrapper />
+                </main>
               </BrowserRouter>
             </ModalProvider>
           </TooltipProvider>

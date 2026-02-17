@@ -40,7 +40,7 @@ export default tseslint.config(
     },
     rules: {
       // ── Qualidade de Código ──
-      'no-console': 'off',
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
       'no-template-curly-in-string': 'warn',
@@ -64,7 +64,7 @@ export default tseslint.config(
 
       // ── TypeScript ──
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-require-imports': 'off', // Alguns scripts usam require
       '@typescript-eslint/no-empty-object-type': 'off',
@@ -91,10 +91,10 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
 
       // ── React Refresh ──
-      'react-refresh/only-export-components': 'off',
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
       // ── Qualidade de Código ──
-      'no-console': 'off',
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
       'prefer-const': 'error',
@@ -111,12 +111,44 @@ export default tseslint.config(
 
       // ── TypeScript ──
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/incompatible-library': 'off',
+    },
+  },
+
+  // ========================================
+  // UI Components & Libraries (multi-export ok)
+  // ========================================
+  {
+    files: [
+      'client/src/components/ui/**',
+      'client/src/components/election/**',
+      'client/src/components/settings/**',
+      'client/src/utils/lazyLoading.tsx',
+      'client/src/lib/animations.tsx',
+      'client/src/contexts/**',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+
+  // ========================================
+  // Logging & Performance (console.log is intentional)
+  // ========================================
+  {
+    files: [
+      'client/src/lib/logger.ts',
+      'client/src/lib/performance.ts',
+      'client/src/components/ErrorBoundary.tsx',
+    ],
+    rules: {
+      'no-console': 'off',
+      'react-refresh/only-export-components': 'off',
     },
   },
 

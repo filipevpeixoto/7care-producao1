@@ -24,7 +24,7 @@
  */
 
 import { type Request, type Response, type NextFunction } from 'express';
-import { NeonAdapter } from '../neonAdapter';
+import { getRepository } from '../container';
 import { type ApiErrorResponse, ErrorCodes, type UserRole } from '../types';
 import { logger } from '../utils/logger';
 import { tokenBlacklist } from '../services/tokenBlacklistService';
@@ -39,7 +39,8 @@ import {
   type UserForToken,
 } from '../../shared/auth';
 
-const storage = new NeonAdapter();
+// Helper para acessar o userRepository via DI container
+const getUserById = (id: number) => getRepository('userRepository').getUserById(id);
 
 /** Nome do cookie para refresh token */
 const REFRESH_TOKEN_COOKIE = '7care_refresh_token';
@@ -202,7 +203,7 @@ export const requireJwtAuth = async (
     }
 
     // Verificar se usuário ainda existe e está ativo
-    const user = await storage.getUserById(payload.id);
+    const user = await getUserById(payload.id);
     if (!user) {
       const errorResponse: ApiErrorResponse = {
         success: false,
@@ -269,7 +270,7 @@ export const optionalJwtAuth = async (
       const payload = verifyAccessToken(token, fingerprint);
 
       if (payload) {
-        const user = await storage.getUserById(payload.id);
+        const user = await getUserById(payload.id);
         if (user && user.status !== 'inactive') {
           req.userId = payload.id;
           req.user = {

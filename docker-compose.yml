@@ -46,14 +46,13 @@ services:
     container_name: 7care-app
     restart: unless-stopped
     ports:
-      - '5000:5000'
       - '3064:3064'
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-sevencare}:${POSTGRES_PASSWORD:-sevencare}@postgres:5432/${POSTGRES_DB:-sevencare}
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
-      SESSION_SECRET: ${SESSION_SECRET:-dev-session-secret-change-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3064}
     depends_on:
       postgres:
@@ -69,13 +68,14 @@ services:
     networks:
       - 7care-network
 
-  # Adminer - Database Management UI
+  # Adminer - Database Management UI (apenas em desenvolvimento)
+  # Iniciar com: docker compose --profile dev up
   # Access at: http://localhost:8080
-  # Server: postgres, User: sevencare, Password: sevencare, Database: sevencare
   adminer:
     image: adminer:latest
     container_name: 7care-adminer
     restart: unless-stopped
+    profiles: ['dev']
     ports:
       - '8080:8080'
     environment:
@@ -86,12 +86,13 @@ services:
     networks:
       - 7care-network
 
-  # Redis Commander - Redis Management UI
-  # Access at: http://localhost:8081
+  # Redis Commander - Redis Management UI (apenas em desenvolvimento)
+  # Iniciar com: docker compose --profile dev up
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: 7care-redis-commander
     restart: unless-stopped
+    profiles: ['dev']
     ports:
       - '8081:8081'
     environment:

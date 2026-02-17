@@ -69,6 +69,9 @@ export function useIntersectionObserver(
   const ref = useRef<HTMLDivElement>(null);
   const [isIntersecting, setIsIntersecting] = useState(false);
 
+  // Desestruturar primitivos para deps estáveis (evita recriar observer a cada render)
+  const { threshold = 0.1, rootMargin = '100px' } = options;
+
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -77,20 +80,16 @@ export function useIntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsIntersecting(true);
-          observer.disconnect(); // Desconecta após primeira intersecção
+          observer.disconnect();
         }
       },
-      {
-        threshold: 0.1,
-        rootMargin: '100px',
-        ...options,
-      }
+      { threshold, rootMargin }
     );
 
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [options]);
+  }, [threshold, rootMargin]);
 
   return [ref, isIntersecting];
 }
@@ -114,32 +113,28 @@ export function useIsMounted(): () => boolean {
 
 /**
  * Hook para memoização profunda
- * Compara objetos por valor, não referência
+ * Compara objetos por valor usando referência estável
  */
 export function useDeepMemo<T>(value: T): T {
-  const serializedValue = useMemo(() => JSON.stringify(value), [value]);
-  return useMemo(() => {
-    if (!serializedValue) {
-      return undefined as T;
-    }
-    return JSON.parse(serializedValue) as T;
-  }, [serializedValue]);
+  const serialized = JSON.stringify(value);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => value, [serialized]);
 }
 
 /**
  * Hook para previous value
- * Mantém o valor anterior de um state
+ * Mantém o valor anterior de um state (sem re-render extra)
  */
 export function usePrevious<T>(value: T): T | undefined {
-  const previousValueRef = useRef<T | undefined>(undefined);
-  const [previousValue, setPreviousValue] = useState<T | undefined>(undefined);
+  const [prev, setPrev] = useState<T | undefined>(undefined);
+  const [current, setCurrent] = useState(value);
 
-  useEffect(() => {
-    setPreviousValue(previousValueRef.current);
-    previousValueRef.current = value;
-  }, [value]);
+  if (!Object.is(current, value)) {
+    setPrev(current);
+    setCurrent(value);
+  }
 
-  return previousValue;
+  return prev;
 }
 
 /**
@@ -268,17 +263,23 @@ export function usePrefetch<T>(
 
 /**
  * Hook para requestAnimationFrame
- * Útil para animações suaves
+ * Útil para animações suaves (callback estável via ref)
  */
 export function useAnimationFrame(callback: (deltaTime: number) => void): void {
   const requestRef = useRef<number>(0);
   const previousTimeRef = useRef<number>(0);
+  const callbackRef = useRef(callback);
+
+  // Atualiza a ref do callback sem recriar o loop de animação
+  useEffect(() => {
+    callbackRef.current = callback;
+  });
 
   useEffect(() => {
     const animate = (time: number) => {
       if (previousTimeRef.current !== undefined) {
         const deltaTime = time - previousTimeRef.current;
-        callback(deltaTime);
+        callbackRef.current(deltaTime);
       }
       previousTimeRef.current = time;
       requestRef.current = requestAnimationFrame(animate);
@@ -291,7 +292,7 @@ export function useAnimationFrame(callback: (deltaTime: number) => void): void {
         cancelAnimationFrame(requestRef.current);
       }
     };
-  }, [callback]);
+  }, []);
 }
 
 // Constantes para breakpoints
@@ -303,26 +304,38 @@ export const BREAKPOINTS = {
   '2xl': '(min-width: 1536px)',
 } as const;
 
-// Hook para breakpoints
+// Hook para breakpoints — usa um único listener de resize em vez de 5 matchMedia
 export function useBreakpoint() {
-  const isSm = useMediaQuery(BREAKPOINTS.sm);
-  const isMd = useMediaQuery(BREAKPOINTS.md);
-  const isLg = useMediaQuery(BREAKPOINTS.lg);
-  const isXl = useMediaQuery(BREAKPOINTS.xl);
-  const is2Xl = useMediaQuery(BREAKPOINTS['2xl']);
+  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let rafId: number;
+    const handleResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => setWidth(window.innerWidth));
+    };
+
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   return useMemo(
     () => ({
-      isSm,
-      isMd,
-      isLg,
-      isXl,
-      is2Xl,
-      isMobile: !isMd,
-      isTablet: isMd && !isLg,
-      isDesktop: isLg,
+      isSm: width >= 640,
+      isMd: width >= 768,
+      isLg: width >= 1024,
+      isXl: width >= 1280,
+      is2Xl: width >= 1536,
+      isMobile: width < 768,
+      isTablet: width >= 768 && width < 1024,
+      isDesktop: width >= 1024,
     }),
-    [isSm, isMd, isLg, isXl, is2Xl]
+    [width]
   );
 }
 

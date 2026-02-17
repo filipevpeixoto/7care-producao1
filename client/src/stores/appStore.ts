@@ -189,7 +189,7 @@ export const useAppStore = create<AppState>()(
         // Notification actions
         addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) =>
           set((state: AppState) => {
-            const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const id = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
             state.notifications.notifications.unshift({
               ...notification,
               id,
@@ -228,12 +228,8 @@ export const useAppStore = create<AppState>()(
       })),
       {
         name: '7care-store',
-        partialize: state => ({
-          auth: {
-            user: state.auth.user,
-            token: state.auth.token,
-            isAuthenticated: state.auth.isAuthenticated,
-          },
+        // Só persiste UI preferences — auth é gerenciado exclusivamente por useAuth
+        partialize: (state) => ({
           ui: {
             theme: state.ui.theme,
             locale: state.ui.locale,
@@ -252,14 +248,14 @@ export const useAppStore = create<AppState>()(
 // NOTA: Para auth completo (login, logout, impersonation), use `useAuth` de `@/hooks/useAuth`.
 // Estes selectors são apenas para leitura de estado do store Zustand.
 
-export const useAuthState = () => useAppStore(state => state.auth);
-export const useUser = () => useAppStore(state => state.auth.user);
-export const useIsAuthenticated = () => useAppStore(state => state.auth.isAuthenticated);
-export const useUI = () => useAppStore(state => state.ui);
-export const useTheme = () => useAppStore(state => state.ui.theme);
-export const useSidebarOpen = () => useAppStore(state => state.ui.sidebarOpen);
-export const useNotifications = () => useAppStore(state => state.notifications);
-export const useUnreadCount = () => useAppStore(state => state.notifications.unreadCount);
+export const useAuthState = () => useAppStore((state) => state.auth);
+export const useUser = () => useAppStore((state) => state.auth.user);
+export const useIsAuthenticated = () => useAppStore((state) => state.auth.isAuthenticated);
+export const useUI = () => useAppStore((state) => state.ui);
+export const useTheme = () => useAppStore((state) => state.ui.theme);
+export const useSidebarOpen = () => useAppStore((state) => state.ui.sidebarOpen);
+export const useNotifications = () => useAppStore((state) => state.notifications);
+export const useUnreadCount = () => useAppStore((state) => state.notifications.unreadCount);
 
 // =====================================================
 // Actions (para uso fora de componentes React)

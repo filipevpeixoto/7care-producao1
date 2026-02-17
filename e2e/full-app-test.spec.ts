@@ -2,7 +2,7 @@
  * Full Application E2E Tests
  *
  * Comprehensive testing of ALL pages, buttons, fields, modals, and flows.
- * Tests run against the production site.
+ * Tests run against local server (default) or BASE_URL.
  *
  * Coverage:
  * - Login/Register flow
@@ -28,10 +28,7 @@
 
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'https://7care.vercel.app';
-
-// Retry each test once to handle network flakiness against production
-test.describe.configure({ retries: 1 });
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3065';
 
 // ============================================================
 // SECTION 1: PUBLIC PAGES (No Auth Required)

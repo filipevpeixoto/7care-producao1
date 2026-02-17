@@ -23,11 +23,11 @@
  * ```
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AuthUser as User } from '@/../../shared/types/user';
 import type { AuthState } from '@/types/auth';
 import { saveUsersOffline, canAccessFullOfflineData, clearEncryptionKey } from '@/lib/offline';
-import { fetchWithAuth } from '@/lib/api';
+import { fetchWithAuth, TOKEN_STORAGE_KEY } from '@/lib/api';
 import { authLogger } from '@/lib/logger';
 
 /**
@@ -53,11 +53,11 @@ async function clearApiCache(): Promise<void> {
 
 /**
  * Limpa o cache do React Query
- * Importamos dinamicamente para evitar dependência circular
+ * Importa do módulo queryClient (não App.tsx) para evitar dependência circular
  */
 async function clearReactQueryCache(): Promise<void> {
   try {
-    const { queryClient } = await import('@/App');
+    const { queryClient } = await import('@/lib/queryClient');
     queryClient.clear();
     authLogger.debug('Cache do React Query limpo');
   } catch (error) {
@@ -79,7 +79,7 @@ type ExtendedUser = User;
 
 /** Chaves de armazenamento local */
 const AUTH_STORAGE_KEY = '7care_auth';
-const TOKEN_STORAGE_KEY = '7care_token';
+// TOKEN_STORAGE_KEY importado de @/lib/api (fonte única de verdade)
 const IMPERSONATION_KEY = '7care_impersonation';
 
 /** Timeout máximo para carregamento de auth (10 segundos) */
@@ -106,7 +106,7 @@ export const useAuth = () => {
   });
 
   const isImpersonating = Boolean(authState.user?.isImpersonating);
-  const realUser = (() => {
+  const realUser = useMemo(() => {
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!storedAuth) return null;
     try {
@@ -114,7 +114,9 @@ export const useAuth = () => {
     } catch {
       return null;
     }
-  })();
+    // authState.user triggers recalculation when auth changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authState.user]);
 
   useEffect(() => {
     authLogger.debug('Checking stored auth...');
@@ -125,9 +127,7 @@ export const useAuth = () => {
     }, AUTH_TIMEOUT_MS);
 
     const scheduleAuthState = (nextState: AuthState | ((prev: AuthState) => AuthState)) => {
-      setTimeout(() => {
-        setAuthState(nextState);
-      }, 0);
+      setAuthState(nextState);
     };
 
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -317,17 +317,25 @@ export const useAuth = () => {
   }, [authState.user]);
 
   const register = useCallback(async (userData: Partial<User>): Promise<boolean> => {
-    const newUser = {
-      id: Date.now(),
-      name: userData.name || '',
-      email: userData.email || '',
-      role: userData.role || 'interested',
-      church: userData.church,
-      isApproved: userData.role === 'interested',
-    } satisfies Partial<User>;
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
 
-    authLogger.debug('User registered:', newUser.email);
-    return true;
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        authLogger.error('Registration failed:', data.error || response.statusText);
+        return false;
+      }
+
+      authLogger.debug('User registered:', userData.email);
+      return true;
+    } catch (error) {
+      authLogger.error('Registration error:', error);
+      return false;
+    }
   }, []);
 
   return {

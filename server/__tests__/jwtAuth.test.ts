@@ -37,10 +37,11 @@ vi.mock('../../shared/auth', () => ({
   verifyRefreshToken: (...args: unknown[]) => mockVerifyRefreshToken(...args),
 }));
 
-vi.mock('../neonAdapter', () => ({
-  NeonAdapter: vi.fn().mockImplementation(() => ({
-    getUserById: mockGetUserById,
-  })),
+vi.mock('../container', () => ({
+  getRepository: (..._args: unknown[]) => ({
+    getUserById: (...args: unknown[]) => mockGetUserById(...args),
+  }),
+  container: { resolve: vi.fn() },
 }));
 
 vi.mock('../services/tokenBlacklistService', () => ({
@@ -64,9 +65,7 @@ import {
 } from '../middleware/jwtAuth';
 
 // ── Helpers ─────────────────────────────────────────────────────
-function mockReq(
-  overrides: Partial<AuthenticatedRequest> = {}
-): AuthenticatedRequest {
+function mockReq(overrides: Partial<AuthenticatedRequest> = {}): AuthenticatedRequest {
   return {
     headers: {},
     ip: '127.0.0.1',
@@ -119,7 +118,11 @@ describe('generateTokens', () => {
     });
     const user = { id: 1, email: 'a@b.com', role: 'member', name: 'A' };
     const result = generateTokens(user);
-    expect(result).toEqual({ accessToken: 'access-tok', refreshToken: 'refresh-tok', expiresIn: 900 });
+    expect(result).toEqual({
+      accessToken: 'access-tok',
+      refreshToken: 'refresh-tok',
+      expiresIn: 900,
+    });
   });
 });
 
@@ -156,7 +159,9 @@ describe('cookie helpers', () => {
   });
 
   it('getRefreshTokenFromCookie reads the cookie', () => {
-    const req = mockReq({ cookies: { '7care_refresh_token': 'tok-123' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      cookies: { '7care_refresh_token': 'tok-123' },
+    } as Partial<AuthenticatedRequest>);
     expect(getRefreshTokenFromCookie(req)).toBe('tok-123');
   });
 
@@ -188,7 +193,9 @@ describe('requireJwtAuth', () => {
   });
 
   it('rejects when Authorization header is not Bearer', async () => {
-    const req = mockReq({ headers: { authorization: 'Basic abc' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Basic abc' },
+    } as Partial<AuthenticatedRequest>);
     await requireJwtAuth(req, res as unknown as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
@@ -196,17 +203,22 @@ describe('requireJwtAuth', () => {
 
   it('rejects blacklisted token', async () => {
     mockIsBlacklisted.mockReturnValue(true);
-    const req = mockReq({ headers: { authorization: 'Bearer blacklisted-tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer blacklisted-tok' },
+    } as Partial<AuthenticatedRequest>);
     await requireJwtAuth(req, res as unknown as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    const body = (res.status as ReturnType<typeof vi.fn>).mock.results[0].value.json.mock.calls[0][0];
+    const body = (res.status as ReturnType<typeof vi.fn>).mock.results[0].value.json.mock
+      .calls[0][0];
     expect(body.error).toContain('revogado');
   });
 
   it('rejects invalid/expired token', async () => {
     mockVerifyAccessToken.mockReturnValue(null);
-    const req = mockReq({ headers: { authorization: 'Bearer expired-tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer expired-tok' },
+    } as Partial<AuthenticatedRequest>);
     await requireJwtAuth(req, res as unknown as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
@@ -215,29 +227,37 @@ describe('requireJwtAuth', () => {
   it('rejects when user not found in DB', async () => {
     mockVerifyAccessToken.mockReturnValue(validPayload);
     mockGetUserById.mockResolvedValue(null);
-    const req = mockReq({ headers: { authorization: 'Bearer valid-tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer valid-tok' },
+    } as Partial<AuthenticatedRequest>);
     await requireJwtAuth(req, res as unknown as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    const body = (res.status as ReturnType<typeof vi.fn>).mock.results[0].value.json.mock.calls[0][0];
+    const body = (res.status as ReturnType<typeof vi.fn>).mock.results[0].value.json.mock
+      .calls[0][0];
     expect(body.error).toContain('não encontrado');
   });
 
   it('rejects inactive user', async () => {
     mockVerifyAccessToken.mockReturnValue(validPayload);
     mockGetUserById.mockResolvedValue({ ...activeUser, status: 'inactive' });
-    const req = mockReq({ headers: { authorization: 'Bearer valid-tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer valid-tok' },
+    } as Partial<AuthenticatedRequest>);
     await requireJwtAuth(req, res as unknown as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    const body = (res.status as ReturnType<typeof vi.fn>).mock.results[0].value.json.mock.calls[0][0];
+    const body = (res.status as ReturnType<typeof vi.fn>).mock.results[0].value.json.mock
+      .calls[0][0];
     expect(body.error).toContain('desativada');
   });
 
   it('allows valid token + active user and populates req', async () => {
     mockVerifyAccessToken.mockReturnValue(validPayload);
     mockGetUserById.mockResolvedValue(activeUser);
-    const req = mockReq({ headers: { authorization: 'Bearer valid-tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer valid-tok' },
+    } as Partial<AuthenticatedRequest>);
     await requireJwtAuth(req, res as unknown as Response, next);
 
     expect(next).toHaveBeenCalledOnce();
@@ -276,7 +296,9 @@ describe('optionalJwtAuth', () => {
   it('populates user when valid token exists', async () => {
     mockVerifyAccessToken.mockReturnValue(validPayload);
     mockGetUserById.mockResolvedValue(activeUser);
-    const req = mockReq({ headers: { authorization: 'Bearer valid-tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer valid-tok' },
+    } as Partial<AuthenticatedRequest>);
     await optionalJwtAuth(req, res as unknown as Response, next);
 
     expect(next).toHaveBeenCalledOnce();
@@ -285,7 +307,9 @@ describe('optionalJwtAuth', () => {
 
   it('calls next without user when token is invalid', async () => {
     mockVerifyAccessToken.mockReturnValue(null);
-    const req = mockReq({ headers: { authorization: 'Bearer bad-tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer bad-tok' },
+    } as Partial<AuthenticatedRequest>);
     await optionalJwtAuth(req, res as unknown as Response, next);
 
     expect(next).toHaveBeenCalledOnce();
@@ -295,7 +319,9 @@ describe('optionalJwtAuth', () => {
   it('skips inactive user but still calls next', async () => {
     mockVerifyAccessToken.mockReturnValue(validPayload);
     mockGetUserById.mockResolvedValue({ ...activeUser, status: 'inactive' });
-    const req = mockReq({ headers: { authorization: 'Bearer tok' } } as Partial<AuthenticatedRequest>);
+    const req = mockReq({
+      headers: { authorization: 'Bearer tok' },
+    } as Partial<AuthenticatedRequest>);
     await optionalJwtAuth(req, res as unknown as Response, next);
 
     expect(next).toHaveBeenCalledOnce();

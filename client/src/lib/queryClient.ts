@@ -4,7 +4,7 @@ import { resolveApiUrl, getAuthHeaders } from './api';
 import { apiLogger } from '@/lib/logger';
 
 // Configuração otimizada do React Query
-export const createQueryClient = () => {
+export function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -19,7 +19,7 @@ export const createQueryClient = () => {
         refetchOnReconnect: true,
 
         // Configurações de retry inteligente
-        retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 
         // Query function padrão
         queryFn: async ({ queryKey }) => {
@@ -48,7 +48,7 @@ export const createQueryClient = () => {
       },
     },
   });
-};
+}
 
 // Configurações específicas para diferentes tipos de dados
 export const queryConfigs = {
@@ -108,7 +108,7 @@ export const createQueryConfig = (type: keyof typeof queryConfigs) => {
 
 // Função para invalidar queries relacionadas
 export const invalidateRelatedQueries = (queryClient: QueryClient, queryKeys: string[]) => {
-  queryKeys.forEach(key => {
+  queryKeys.forEach((key) => {
     queryClient.invalidateQueries({ queryKey: [key] });
   });
 };
@@ -147,7 +147,7 @@ export const cleanupOldCache = (queryClient: QueryClient) => {
   queryClient
     .getQueryCache()
     .getAll()
-    .forEach(query => {
+    .forEach((query) => {
       if (query.state.dataUpdatedAt < oneHourAgo) {
         queryClient.removeQueries({ queryKey: query.queryKey });
       }
@@ -183,3 +183,7 @@ export const setupPerformanceListeners = (queryClient: QueryClient) => {
     });
   });
 };
+
+// Instância singleton do QueryClient — exportada aqui para evitar dependência circular
+// Usar esta instância em vez de importar de App.tsx
+export const queryClient = createQueryClient();
