@@ -16,14 +16,14 @@ export const PointsDebug = () => {
       await fetch('/api/system/calculate-advanced-points', { method: 'POST' });
       queryClient.invalidateQueries({ queryKey: ['users-with-points'] });
       toast({
-        title: "Pontuação Atualizada",
-        description: "Os pontos foram recalculados com sucesso!",
+        title: 'Pontuação Atualizada',
+        description: 'Os pontos foram recalculados com sucesso!',
       });
-    } catch (error) {
+    } catch {
       toast({
-        title: "Erro",
-        description: "Falha ao recalcular pontuação.",
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Falha ao recalcular pontuação.',
+        variant: 'destructive',
       });
     }
   };

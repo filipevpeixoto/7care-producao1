@@ -8,8 +8,6 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { fetchWithAuth } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { electionLogger as _electionLogger } from '@/lib/logger';
 
 interface ActiveElection {
   election_id: number;
@@ -44,7 +42,7 @@ export default function ElectionVoting() {
 
   const handleAccessElection = (election: ActiveElection) => {
     // Redirecionar para a interface de votação mobile usando config_id
-    window.location.href = `/election-vote/${election.config_id}`;
+    window.location.assign(`/election-vote/${election.config_id}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -87,13 +85,11 @@ export default function ElectionVoting() {
               <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h2 className="text-xl font-semibold mb-2">{t('electionVoting.noNominations')}</h2>
               <p className="text-muted-foreground mb-4">
-                {!user?.id
-                  ? t('electionVoting.loginRequired')
-                  : t('electionVoting.notIncluded')}
+                {!user?.id ? t('electionVoting.loginRequired') : t('electionVoting.notIncluded')}
               </p>
               {!user?.id && (
                 <Button
-                  onClick={() => (window.location.href = '/login')}
+                  onClick={() => window.location.assign('/login')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   {t('electionVoting.login')}
@@ -103,7 +99,7 @@ export default function ElectionVoting() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {activeElections.map(election => (
+            {activeElections.map((election) => (
               <Card key={election.election_id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -117,7 +113,9 @@ export default function ElectionVoting() {
                         </CardDescription>
                       </div>
                     </div>
-                    <Badge className="bg-blue-100 text-blue-800">{t('electionVoting.activeNomination')}</Badge>
+                    <Badge className="bg-blue-100 text-blue-800">
+                      {t('electionVoting.activeNomination')}
+                    </Badge>
                   </div>
                 </CardHeader>
 
@@ -127,7 +125,10 @@ export default function ElectionVoting() {
                     <div className="flex justify-between text-sm">
                       <span>{t('electionVoting.currentPosition')}</span>
                       <span>
-                        {t('electionVoting.positionOf', { current: election.current_position + 1, total: election.positions.length })}
+                        {t('electionVoting.positionOf', {
+                          current: election.current_position + 1,
+                          total: election.positions.length,
+                        })}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -139,7 +140,8 @@ export default function ElectionVoting() {
                       ></div>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {election.positions[election.current_position] || t('electionVoting.waitingToStart')}
+                      {election.positions[election.current_position] ||
+                        t('electionVoting.waitingToStart')}
                     </p>
                   </div>
 
@@ -149,13 +151,17 @@ export default function ElectionVoting() {
                       <div className="text-2xl font-bold text-blue-600">
                         {election.voters.length}
                       </div>
-                      <div className="text-sm text-muted-foreground">{t('electionVoting.voters')}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {t('electionVoting.voters')}
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
                         {election.positions.length}
                       </div>
-                      <div className="text-sm text-muted-foreground">{t('electionVoting.positions')}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {t('electionVoting.positions')}
+                      </div>
                     </div>
                   </div>
 

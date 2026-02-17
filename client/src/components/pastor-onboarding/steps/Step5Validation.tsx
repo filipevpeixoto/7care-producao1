@@ -107,14 +107,14 @@ export function Step5Validation({
     };
 
     fetchValidations();
-  }, [excelData, token]);
+  }, [excelData, token, existingValidations, onUpdate]);
 
   const handleActionChange = (
     churchName: string,
     action: ChurchValidationAction,
     suggestionId?: number
   ) => {
-    const updated = churchValidations.map(v =>
+    const updated = churchValidations.map((v) =>
       v.excelChurchName === churchName ? { ...v, action, selectedSuggestionId: suggestionId } : v
     );
     setChurchValidations(updated);
@@ -148,9 +148,9 @@ export function Step5Validation({
   };
 
   // Contadores
-  const exactMatches = validations.filter(v => v.status === 'exact_match').length;
-  const similarFound = validations.filter(v => v.status === 'similar_found').length;
-  const notFound = validations.filter(v => v.status === 'not_found').length;
+  const exactMatches = validations.filter((v) => v.status === 'exact_match').length;
+  const similarFound = validations.filter((v) => v.status === 'similar_found').length;
+  const notFound = validations.filter((v) => v.status === 'not_found').length;
 
   // Se não há dados de Excel, pular
   if (!excelData || excelData.data.length === 0) {
@@ -215,7 +215,7 @@ export function Step5Validation({
         </div>
 
         <div className="space-y-4 max-w-2xl mx-auto">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <div key={i} className="border border-gray-200 rounded-2xl p-5">
               <div className="flex items-center gap-4">
                 <Skeleton className="w-12 h-12 rounded-xl" />
@@ -280,9 +280,9 @@ export function Step5Validation({
 
       {/* Lista de Validações */}
       <div className="space-y-4 max-w-3xl mx-auto">
-        {validations.map(validation => {
+        {validations.map((validation) => {
           const currentValidation = churchValidations.find(
-            v => v.excelChurchName === validation.churchName
+            (v) => v.excelChurchName === validation.churchName
           );
           const isExpanded = expandedChurch === validation.churchName;
 
@@ -346,7 +346,7 @@ export function Step5Validation({
                   <div className="border-t border-gray-200 pt-5">
                     <RadioGroup
                       value={currentValidation?.action || 'create_new'}
-                      onValueChange={value =>
+                      onValueChange={(value) =>
                         handleActionChange(
                           validation.churchName,
                           value as ChurchValidationAction,
@@ -382,7 +382,7 @@ export function Step5Validation({
                           <p className="text-sm font-semibold text-blue-800 mb-2">
                             Igrejas similares encontradas:
                           </p>
-                          {validation.suggestions.map(suggestion => (
+                          {validation.suggestions.map((suggestion) => (
                             <div
                               key={suggestion.id}
                               className="flex items-center space-x-3 p-4 rounded-xl bg-yellow-50 border border-yellow-200"

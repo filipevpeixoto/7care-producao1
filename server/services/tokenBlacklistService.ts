@@ -39,7 +39,6 @@ class TokenBlacklistService {
     if (!redisUrl) return;
 
     try {
-       
       const { createClient } = require('redis');
       const client = createClient({ url: redisUrl });
 
@@ -57,7 +56,7 @@ class TokenBlacklistService {
 
       await client.connect();
       this.redisClient = client;
-    } catch (err) {
+    } catch {
       logger.info('📦 Token blacklist: usando store em memória (Redis não disponível)');
     }
   }
@@ -125,7 +124,9 @@ class TokenBlacklistService {
       }
     }
     if (removed > 0) {
-      logger.info(`Blacklist cleanup: ${removed} tokens expirados removidos (restam: ${this.blacklist.size})`);
+      logger.info(
+        `Blacklist cleanup: ${removed} tokens expirados removidos (restam: ${this.blacklist.size})`
+      );
     }
   }
 

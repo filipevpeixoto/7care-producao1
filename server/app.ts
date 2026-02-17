@@ -56,9 +56,10 @@ export function createApp(): express.Express {
   app.use(securityHeadersMiddleware);
 
   // Helmet para headers de segurança HTTP
+  // CSP desabilitado no Helmet — já definido em securityHeadersMiddleware para evitar conflito
   app.use(
     helmet({
-      contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+      contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
     })
   );
@@ -79,7 +80,7 @@ export function createApp(): express.Express {
   // CORS — origens explícitas (nunca wildcard *)
   app.use((req: Request, res: Response, next: NextFunction) => {
     const defaultOrigins =
-      'https://7care-app.vercel.app,https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
+      'https://7care.vercel.app,https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
       .split(',')
       .map((origin) => origin.trim())
@@ -94,7 +95,7 @@ export function createApp(): express.Express {
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header(
       'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id, x-user-role, x-csrf-token'
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-csrf-token, x-correlation-id'
     );
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');

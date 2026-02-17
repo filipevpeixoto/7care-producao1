@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm run dev:web",
     "beforeBuildCommand": "",
     "devUrl": "http://localhost:3065",
-    "frontendDist": "https://7care-app.vercel.app"
+    "frontendDist": "https://7care.vercel.app"
   },
   "app": {
     "windows": [
@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' https://7care-app.vercel.app https://*.vercel.app; connect-src 'self' ipc: http://ipc.localhost https://7care-app.vercel.app https://*.vercel.app; img-src 'self' asset: http://asset.localhost https://7care-app.vercel.app https://*.vercel.app data: blob:; style-src 'self' 'unsafe-inline' https://7care-app.vercel.app https://*.vercel.app https://fonts.googleapis.com; font-src 'self' https://7care-app.vercel.app https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://7care-app.vercel.app https://*.vercel.app; worker-src 'self' blob:"
+      "csp": "default-src 'self' https://7care.vercel.app https://*.vercel.app; connect-src 'self' ipc: http://ipc.localhost https://7care.vercel.app https://*.vercel.app; img-src 'self' asset: http://asset.localhost https://7care.vercel.app https://*.vercel.app data: blob:; style-src 'self' 'unsafe-inline' https://7care.vercel.app https://*.vercel.app https://fonts.googleapis.com; font-src 'self' https://7care.vercel.app https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://7care.vercel.app https://*.vercel.app; worker-src 'self' blob:"
     }
   },
   "bundle": {

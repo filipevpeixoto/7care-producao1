@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { settingsLogger } from '@/lib/logger';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
@@ -110,7 +110,7 @@ export default function Settings() {
   useSystemLogo();
 
   // Fetch district name via useQuery
-  useQuery({
+  const { data: districtData } = useQuery({
     queryKey: ['/api/districts', user?.districtId],
     queryFn: async () => {
       const res = await fetch(`/api/districts/${user?.districtId}`);
@@ -119,19 +119,10 @@ export default function Settings() {
     },
     enabled: !!user?.districtId,
     staleTime: 5 * 60 * 1000,
-    select: (data: { name?: string } | null) => {
-      if (data?.name) {
-        setUserDistrictName(data.name);
-        if (!userDistrictId) setUserDistrictId(user?.districtId ?? null);
-      } else {
-        setUserDistrictName(t('settings.myDistrict'));
-      }
-      return data;
-    },
   });
 
   // Check push subscription via useQuery
-  useQuery({
+  const { data: pushSubscriptionsData } = useQuery({
     queryKey: ['/api/push/subscriptions', user?.id],
     queryFn: async () => {
       const response = await fetch(`/api/push/subscriptions?userId=${user?.id}`);
@@ -140,20 +131,35 @@ export default function Settings() {
     },
     enabled: !!user?.id,
     staleTime: 30 * 1000,
-    select: (data: { subscriptions?: Array<{ user_id: number; is_active?: boolean }> } | null) => {
-      if (data?.subscriptions) {
-        const userSubscription = data.subscriptions.find((sub) => sub.user_id === user?.id);
-        if (userSubscription?.is_active) {
-          setIsPushEnabled(true);
-          setSettings((prev) => ({
-            ...prev,
-            notifications: { ...prev.notifications, pushEnabled: true },
-          }));
-        }
-      }
-      return data;
-    },
   });
+
+  useEffect(() => {
+    if (!user?.districtId) return;
+    if (districtData?.name) {
+      setUserDistrictName(districtData.name);
+      if (!userDistrictId) {
+        setUserDistrictId(user.districtId);
+      }
+      return;
+    }
+    if (districtData === null) {
+      setUserDistrictName(t('settings.myDistrict'));
+    }
+  }, [districtData, t, user?.districtId, userDistrictId]);
+
+  useEffect(() => {
+    if (!pushSubscriptionsData?.subscriptions || !user?.id) return;
+    const userSubscription = pushSubscriptionsData.subscriptions.find(
+      (sub: { user_id: number; is_active?: boolean }) => sub.user_id === user.id
+    );
+    if (userSubscription?.is_active && !isPushEnabled) {
+      setIsPushEnabled(true);
+      setSettings((prev) => ({
+        ...prev,
+        notifications: { ...prev.notifications, pushEnabled: true },
+      }));
+    }
+  }, [isPushEnabled, pushSubscriptionsData, user?.id]);
 
   const handleSave = async () => {
     setIsLoading(true);

@@ -47,7 +47,7 @@ export const PointsBreakdown = ({
           const config = await response.json();
           setPointsConfig(config);
         }
-      } catch (error) {
+      } catch {
         // Erro silencioso - usar valores padrão
       } finally {
         setLoading(false);
@@ -214,7 +214,7 @@ export const PointsBreakdown = ({
         break;
 
       case 'Total de Presença':
-        if (userData.totalPresenca != null) {
+        if (userData.totalPresenca !== null && userData.totalPresenca !== undefined) {
           const presenca = userData.totalPresenca;
           if (presenca <= 3) {
             tips.push(`🔸 Aumente sua frequência nos cultos`);
@@ -249,7 +249,11 @@ export const PointsBreakdown = ({
         break;
 
       case 'Campos Vazios ACMS':
-        if (userData.camposVaziosACMS != null && userData.camposVaziosACMS > 0) {
+        if (
+          userData.camposVaziosACMS !== null &&
+          userData.camposVaziosACMS !== undefined &&
+          userData.camposVaziosACMS > 0
+        ) {
           tips.push(`🔸 Complete todos os campos do seu perfil`);
           tips.push(`🔸 Potencial de ganhar +${safeConfig.camposVaziosACMS.completos} pontos`);
         }
@@ -477,7 +481,7 @@ export const PointsBreakdown = ({
           return 0;
 
         case 'Total de Presença':
-          if (userData.totalPresenca != null) {
+          if (userData.totalPresenca !== null && userData.totalPresenca !== undefined) {
             const presenca = userData.totalPresenca;
             if (presenca >= 0 && presenca <= 3) return safeConfig.totalPresenca.zeroATres;
             if (presenca >= 4 && presenca <= 7) return safeConfig.totalPresenca.quatroASete;
@@ -550,11 +554,13 @@ export const PointsBreakdown = ({
           return Number(userData.escolaSabatina.missao || 0) * safeConfig.escolaSabatina.missao;
         case 'estudoBiblico':
           return (
-            Number(userData.escolaSabatina.estudoBiblico || 0) * safeConfig.escolaSabatina.estudoBiblico
+            Number(userData.escolaSabatina.estudoBiblico || 0) *
+            safeConfig.escolaSabatina.estudoBiblico
           );
         case 'batizouAlguem':
           return (
-            Number(userData.escolaSabatina.batizouAlguem || 0) * safeConfig.escolaSabatina.batizouAlguem
+            Number(userData.escolaSabatina.batizouAlguem || 0) *
+            safeConfig.escolaSabatina.batizouAlguem
           );
         case 'discipuladoPosBatismo':
           return (
@@ -565,7 +571,10 @@ export const PointsBreakdown = ({
           return 0;
       }
     } catch (error) {
-      gamificationLogger.error(`Erro ao calcular pontos para ${categoryName} da Escola Sabatina:`, error);
+      gamificationLogger.error(
+        `Erro ao calcular pontos para ${categoryName} da Escola Sabatina:`,
+        error
+      );
       return 0;
     }
   };

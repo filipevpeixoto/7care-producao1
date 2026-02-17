@@ -9,7 +9,7 @@ import { createLogger } from './lib/logger';
 const appLogger = createLogger('App');
 
 // Global error handler for Chrome extension messages and service worker errors
-window.addEventListener('unhandledrejection', event => {
+window.addEventListener('unhandledrejection', (event) => {
   const errorMessage = event.reason?.message || '';
 
   // Suppress Chrome extension and service worker message channel errors
@@ -21,12 +21,11 @@ window.addEventListener('unhandledrejection', event => {
     errorMessage.includes('asynchronous response')
   ) {
     event.preventDefault();
-    
   }
 });
 
 // Global error handler for uncaught errors
-window.addEventListener('error', event => {
+window.addEventListener('error', (event) => {
   const errorMessage = event.message || '';
 
   // Suppress service worker related errors
@@ -36,7 +35,6 @@ window.addEventListener('error', event => {
     errorMessage.includes('listener indicated')
   ) {
     event.preventDefault();
-    
   }
 });
 
@@ -63,13 +61,13 @@ if (typeof chrome !== 'undefined' && chrome?.runtime) {
       (_message: unknown, _sender: unknown, sendResponse: (response: unknown) => void) => {
         try {
           sendResponse({ success: true });
-        } catch (_e) {
+        } catch {
           // Ignore channel closure errors
         }
         return false;
       }
     );
-  } catch (error) {
+  } catch {
     // Silently ignore extension API errors
   }
 }
@@ -100,7 +98,7 @@ if (!isTauri && 'serviceWorker' in navigator) {
       });
 
       // Escutar mensagens do Service Worker
-      navigator.serviceWorker.addEventListener('message', event => {
+      navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'SYNC_REQUIRED') {
           appLogger.info('Sincronização solicitada pelo SW');
           // Dispara evento customizado para o app tratar

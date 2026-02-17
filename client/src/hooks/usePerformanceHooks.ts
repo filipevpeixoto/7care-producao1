@@ -118,7 +118,12 @@ export function useIsMounted(): () => boolean {
  */
 export function useDeepMemo<T>(value: T): T {
   const serializedValue = useMemo(() => JSON.stringify(value), [value]);
-  return useMemo(() => value, [serializedValue]);
+  return useMemo(() => {
+    if (!serializedValue) {
+      return undefined as T;
+    }
+    return JSON.parse(serializedValue) as T;
+  }, [serializedValue]);
 }
 
 /**

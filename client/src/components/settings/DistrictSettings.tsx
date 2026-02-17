@@ -3,7 +3,7 @@
  * Permite que pastores configurem settings específicos do seu distrito
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -126,12 +126,7 @@ export function DistrictSettings() {
   const [districtName, setDistrictName] = useState<string>('');
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Carregar configurações do distrito
-  useEffect(() => {
-    loadDistrictSettings();
-  }, []);
-
-  const loadDistrictSettings = async () => {
+  const loadDistrictSettings = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetchWithAuth('/api/settings/my-district');
@@ -143,7 +138,7 @@ export function DistrictSettings() {
         // Mesclar configurações salvas com defaults
         const loadedSettings = { ...defaultSettings };
         if (data.settings) {
-          Object.keys(data.settings).forEach(key => {
+          Object.keys(data.settings).forEach((key) => {
             if (key in loadedSettings) {
               (loadedSettings as Record<string, unknown>)[key] = data.settings[key];
             }
@@ -170,7 +165,12 @@ export function DistrictSettings() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  // Carregar configurações do distrito
+  useEffect(() => {
+    loadDistrictSettings();
+  }, [loadDistrictSettings]);
 
   const handleSave = async () => {
     if (!districtId) {
@@ -222,7 +222,7 @@ export function DistrictSettings() {
     key: K,
     value: DistrictSettingsData[K]
   ) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
@@ -320,7 +320,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.notifications_enabled}
-                  onCheckedChange={v => updateSetting('notifications_enabled', v)}
+                  onCheckedChange={(v) => updateSetting('notifications_enabled', v)}
                 />
               </div>
 
@@ -335,7 +335,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.meeting_reminders}
-                  onCheckedChange={v => updateSetting('meeting_reminders', v)}
+                  onCheckedChange={(v) => updateSetting('meeting_reminders', v)}
                   disabled={!settings.notifications_enabled}
                 />
               </div>
@@ -349,7 +349,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.prayer_alerts}
-                  onCheckedChange={v => updateSetting('prayer_alerts', v)}
+                  onCheckedChange={(v) => updateSetting('prayer_alerts', v)}
                   disabled={!settings.notifications_enabled}
                 />
               </div>
@@ -363,7 +363,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.weekly_report}
-                  onCheckedChange={v => updateSetting('weekly_report', v)}
+                  onCheckedChange={(v) => updateSetting('weekly_report', v)}
                   disabled={!settings.notifications_enabled}
                 />
               </div>
@@ -390,7 +390,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.gamification_enabled}
-                  onCheckedChange={v => updateSetting('gamification_enabled', v)}
+                  onCheckedChange={(v) => updateSetting('gamification_enabled', v)}
                 />
               </div>
 
@@ -407,7 +407,7 @@ export function DistrictSettings() {
                   max={5}
                   step={0.5}
                   value={settings.points_multiplier}
-                  onChange={e =>
+                  onChange={(e) =>
                     updateSetting('points_multiplier', parseFloat(e.target.value) || 1)
                   }
                   disabled={!settings.gamification_enabled}
@@ -424,7 +424,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.show_leaderboard}
-                  onCheckedChange={v => updateSetting('show_leaderboard', v)}
+                  onCheckedChange={(v) => updateSetting('show_leaderboard', v)}
                   disabled={!settings.gamification_enabled}
                 />
               </div>
@@ -449,7 +449,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.allow_self_registration}
-                  onCheckedChange={v => updateSetting('allow_self_registration', v)}
+                  onCheckedChange={(v) => updateSetting('allow_self_registration', v)}
                 />
               </div>
 
@@ -462,7 +462,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.require_approval}
-                  onCheckedChange={v => updateSetting('require_approval', v)}
+                  onCheckedChange={(v) => updateSetting('require_approval', v)}
                 />
               </div>
 
@@ -477,7 +477,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.show_member_contacts}
-                  onCheckedChange={v => updateSetting('show_member_contacts', v)}
+                  onCheckedChange={(v) => updateSetting('show_member_contacts', v)}
                 />
               </div>
 
@@ -490,7 +490,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.show_attendance_reports}
-                  onCheckedChange={v => updateSetting('show_attendance_reports', v)}
+                  onCheckedChange={(v) => updateSetting('show_attendance_reports', v)}
                 />
               </div>
             </CardContent>
@@ -514,7 +514,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.show_all_events}
-                  onCheckedChange={v => updateSetting('show_all_events', v)}
+                  onCheckedChange={(v) => updateSetting('show_all_events', v)}
                 />
               </div>
 
@@ -527,7 +527,7 @@ export function DistrictSettings() {
                 </div>
                 <Switch
                   checked={settings.allow_member_events}
-                  onCheckedChange={v => updateSetting('allow_member_events', v)}
+                  onCheckedChange={(v) => updateSetting('allow_member_events', v)}
                 />
               </div>
             </CardContent>

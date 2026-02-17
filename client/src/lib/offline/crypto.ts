@@ -79,7 +79,7 @@ function generateUUID(): string {
     return crypto.randomUUID();
   }
   // Fallback para navegadores sem randomUUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -252,7 +252,7 @@ async function decryptWithKey<T>(key: CryptoKey, encryptedString: string): Promi
   const combined = new Uint8Array(
     atob(encryptedString)
       .split('')
-      .map(c => c.charCodeAt(0))
+      .map((c) => c.charCodeAt(0))
   );
 
   // Detectar formato: novo (com versão) ou legado (sem versão)
@@ -418,8 +418,8 @@ export async function hashData(data: string): Promise<string> {
     const dataBuffer = encoder.encode(data);
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch (_error) {
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
     // Fallback em caso de erro
     let hash = 0;
     for (let i = 0; i < data.length; i++) {

@@ -96,9 +96,7 @@ export default function PastorOnboarding() {
         if (data.valid) {
           setInviteData({ email: data.email, expiresAt: data.expiresAt });
         } else if (data.status === 'submitted') {
-          setValidationError(
-            data.message || t('pastorOnboarding.submittedWaiting')
-          );
+          setValidationError(data.message || t('pastorOnboarding.submittedWaiting'));
         } else {
           setValidationError(data.error || t('pastorOnboarding.invalidInvite'));
         }
@@ -115,7 +113,7 @@ export default function PastorOnboarding() {
     return () => {
       isActive = false;
     };
-  }, [token]);
+  }, [token, t]);
 
   // Handlers
   const handleStep1Next = (personalData: PersonalData) => {
@@ -171,7 +169,7 @@ export default function PastorOnboarding() {
     });
 
     // Simular progresso visual enquanto aguarda o backend
-    setOnboardingProgress(prev => ({
+    setOnboardingProgress((prev) => ({
       ...prev,
       step: t('pastorOnboarding.creatingUserDistrict'),
       progress: 30,
@@ -182,7 +180,7 @@ export default function PastorOnboarding() {
 
     if (response.success) {
       // Atualizar progresso com resultado
-      setOnboardingProgress(prev => ({
+      setOnboardingProgress((prev) => ({
         ...prev,
         step: t('pastorOnboarding.importingChurchesMembers'),
         progress: 70,
@@ -230,7 +228,9 @@ export default function PastorOnboarding() {
 
         <div className="relative z-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-12 max-w-md w-full mx-4 text-center shadow-2xl">
           <Loader2 className="w-16 h-16 text-blue-400 mx-auto mb-6 animate-spin" />
-          <h2 className="text-2xl font-bold text-white mb-2">{t('pastorOnboarding.validatingInvite')}</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {t('pastorOnboarding.validatingInvite')}
+          </h2>
           <p className="text-blue-200">{t('pastorOnboarding.validatingDesc')}</p>
         </div>
       </div>
@@ -278,7 +278,9 @@ export default function PastorOnboarding() {
             {/* Badge */}
             <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
               <Sparkles className="w-4 h-4 text-yellow-400" />
-              <span className="text-white/80 text-sm font-medium">{t('pastorOnboarding.exclusiveInvite')}</span>
+              <span className="text-white/80 text-sm font-medium">
+                {t('pastorOnboarding.exclusiveInvite')}
+              </span>
             </div>
           </div>
         </div>
@@ -292,12 +294,16 @@ export default function PastorOnboarding() {
               <div className="bg-gradient-to-br from-orange-400 to-amber-500 p-1.5 rounded-lg shadow-lg shadow-orange-500/30">
                 <WifiOff className="w-4 h-4 text-white" />
               </div>
-              <span className="text-white font-semibold text-sm">{t('pastorOnboarding.offlineModeBadge')}</span>
+              <span className="text-white font-semibold text-sm">
+                {t('pastorOnboarding.offlineModeBadge')}
+              </span>
             </div>
             <span className="text-orange-200/80 text-xs sm:text-sm hidden sm:inline">
               {t('pastorOnboarding.offlineModeDescDesktop')}
             </span>
-            <span className="text-orange-200/80 text-xs sm:hidden">{t('pastorOnboarding.offlineModeDescMobile')}</span>
+            <span className="text-orange-200/80 text-xs sm:hidden">
+              {t('pastorOnboarding.offlineModeDescMobile')}
+            </span>
           </div>
         </div>
       </div>
@@ -419,7 +425,7 @@ export default function PastorOnboarding() {
 
       <ProgressDialog
         isOpen={isProgressDialogOpen}
-        onRequestClose={open => {
+        onRequestClose={(open) => {
           if (!open && (onboardingProgress.isComplete || onboardingProgress.isError)) {
             handleCloseProgressDialog();
           }

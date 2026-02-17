@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import React from 'react';
+import { useState, type ComponentType } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ interface Achievement {
   id: number;
   title: string;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   points: number;
   category: 'attendance' | 'participation' | 'service' | 'growth' | 'special';
   isUnlocked: boolean;
@@ -140,9 +139,9 @@ export const PointsSystem = ({
   const filteredAchievements =
     selectedCategory === 'all'
       ? mockAchievements
-      : mockAchievements.filter(a => a.category === selectedCategory);
+      : mockAchievements.filter((a) => a.category === selectedCategory);
 
-  const unlockedAchievements = mockAchievements.filter(a => a.isUnlocked);
+  const unlockedAchievements = mockAchievements.filter((a) => a.isUnlocked);
   const totalPossiblePoints = mockAchievements.reduce((sum, a) => sum + a.points, 0);
 
   return (
@@ -275,7 +274,7 @@ export const PointsSystem = ({
               Todas ({mockAchievements.length})
             </Button>
             {Object.entries(categoryLabels).map(([category, label]) => {
-              const count = mockAchievements.filter(a => a.category === category).length;
+              const count = mockAchievements.filter((a) => a.category === category).length;
               if (count === 0) return null;
 
               return (
@@ -294,7 +293,7 @@ export const PointsSystem = ({
 
           {/* Achievement List */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAchievements.map(achievement => {
+            {filteredAchievements.map((achievement) => {
               const IconComponent = achievement.icon;
               const isInProgress = !achievement.isUnlocked && achievement.progress !== undefined;
 

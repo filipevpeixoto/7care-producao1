@@ -80,7 +80,7 @@ export function GoogleCalendarConfigModal({
   const handleConnect = async () => {
     try {
       await connect();
-    } catch (err) {
+    } catch {
       toast.error('Erro ao conectar com Google Calendar');
     }
   };
@@ -93,7 +93,7 @@ export function GoogleCalendarConfigModal({
       try {
         await disconnect();
         toast.success('Desconectado com sucesso');
-      } catch (err) {
+      } catch {
         toast.error('Erro ao desconectar');
       }
     }
@@ -118,7 +118,7 @@ export function GoogleCalendarConfigModal({
           onSyncComplete();
         }
       }
-    } catch (err) {
+    } catch {
       toast.error('Erro ao sincronizar eventos');
     }
   };
@@ -133,13 +133,19 @@ export function GoogleCalendarConfigModal({
       if (success) {
         toast.success('Configuração salva com sucesso');
       }
-    } catch (err) {
+    } catch {
       toast.error('Erro ao salvar configuração');
     }
   };
 
   return (
-    <DialogWithModalTracking modalId="google-calendar-config" open={isOpen} onOpenChange={(open: boolean) => { if (!open) onClose(); }}>
+    <DialogWithModalTracking
+      modalId="google-calendar-config"
+      open={isOpen}
+      onOpenChange={(open: boolean) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -204,14 +210,16 @@ export function GoogleCalendarConfigModal({
                 </Label>
                 <Select
                   value={localConfig.calendarId}
-                  onValueChange={value => setLocalConfig(prev => ({ ...prev, calendarId: value }))}
+                  onValueChange={(value) =>
+                    setLocalConfig((prev) => ({ ...prev, calendarId: value }))
+                  }
                   disabled={isLoading || calendars.length === 0}
                 >
                   <SelectTrigger id="calendar-select">
                     <SelectValue placeholder="Selecione um calendário" />
                   </SelectTrigger>
                   <SelectContent>
-                    {calendars.map(cal => (
+                    {calendars.map((cal) => (
                       <SelectItem key={cal.id} value={cal.id}>
                         {cal.name} {cal.primary && '(Principal)'}
                       </SelectItem>
@@ -238,8 +246,8 @@ export function GoogleCalendarConfigModal({
                   <Switch
                     id="auto-sync"
                     checked={localConfig.autoSync}
-                    onCheckedChange={checked =>
-                      setLocalConfig(prev => ({ ...prev, autoSync: checked }))
+                    onCheckedChange={(checked) =>
+                      setLocalConfig((prev) => ({ ...prev, autoSync: checked }))
                     }
                   />
                 </div>
@@ -256,8 +264,8 @@ export function GoogleCalendarConfigModal({
                       min={5}
                       max={1440}
                       value={localConfig.syncInterval}
-                      onChange={e =>
-                        setLocalConfig(prev => ({
+                      onChange={(e) =>
+                        setLocalConfig((prev) => ({
                           ...prev,
                           syncInterval: parseInt(e.target.value, 10) || 60,
                         }))

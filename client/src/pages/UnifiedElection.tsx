@@ -8,8 +8,6 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useNavigate } from 'react-router-dom';
 import { fetchWithAuth } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { electionLogger as _electionLogger } from '@/lib/logger';
 import {
   ElectionHeader,
   DashboardTab,
@@ -79,17 +77,19 @@ export default function UnifiedElection() {
       const elections = Array.isArray(data.elections)
         ? data.elections
         : data.election
-          ? [{
-              election_id: data.election.id,
-              config_id: data.election.config_id,
-              church_name: data.election.church_name,
-              title: data.election.title,
-              status: 'active',
-              current_position: data.election.current_position,
-              positions: data.election.positions,
-              voters: data.election.voters || [],
-              created_at: data.election.created_at || new Date().toISOString(),
-            }]
+          ? [
+              {
+                election_id: data.election.id,
+                config_id: data.election.config_id,
+                church_name: data.election.church_name,
+                title: data.election.title,
+                status: 'active',
+                current_position: data.election.current_position,
+                positions: data.election.positions,
+                voters: data.election.voters || [],
+                created_at: data.election.created_at || new Date().toISOString(),
+              },
+            ]
           : [];
       return elections;
     },
@@ -116,15 +116,26 @@ export default function UnifiedElection() {
       }
     },
     onSuccess: () => {
-      toast({ title: t('unifiedElection.nominationStarted'), description: t('unifiedElection.nominationStartedDesc') });
+      toast({
+        title: t('unifiedElection.nominationStarted'),
+        description: t('unifiedElection.nominationStartedDesc'),
+      });
       queryClient.invalidateQueries({ queryKey: ['election-configs'] });
       queryClient.invalidateQueries({ queryKey: ['elections-active'] });
     },
     onError: (error: Error) => {
       if (error.message === 'ALREADY_ACTIVE') {
-        toast({ title: t('unifiedElection.nominationAlreadyActive'), description: t('unifiedElection.nominationAlreadyActiveDesc'), variant: 'destructive' });
+        toast({
+          title: t('unifiedElection.nominationAlreadyActive'),
+          description: t('unifiedElection.nominationAlreadyActiveDesc'),
+          variant: 'destructive',
+        });
       } else {
-        toast({ title: t('unifiedElection.error'), description: t('unifiedElection.couldNotStartNomination'), variant: 'destructive' });
+        toast({
+          title: t('unifiedElection.error'),
+          description: t('unifiedElection.couldNotStartNomination'),
+          variant: 'destructive',
+        });
       }
     },
   });
@@ -135,11 +146,18 @@ export default function UnifiedElection() {
       if (!response.ok) throw new Error('Erro ao excluir configuração');
     },
     onSuccess: () => {
-      toast({ title: t('unifiedElection.configDeleted'), description: t('unifiedElection.configDeletedDesc') });
+      toast({
+        title: t('unifiedElection.configDeleted'),
+        description: t('unifiedElection.configDeletedDesc'),
+      });
       queryClient.invalidateQueries({ queryKey: ['election-configs'] });
     },
     onError: () => {
-      toast({ title: t('unifiedElection.error'), description: t('unifiedElection.couldNotDeleteConfig'), variant: 'destructive' });
+      toast({
+        title: t('unifiedElection.error'),
+        description: t('unifiedElection.couldNotDeleteConfig'),
+        variant: 'destructive',
+      });
     },
   });
 

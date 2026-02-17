@@ -6,7 +6,12 @@
 import { type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { NeonAdapter } from '../neonAdapter';
-import { type AuthenticatedRequest, type ApiErrorResponse, ErrorCodes, type UserRole } from '../types';
+import {
+  type AuthenticatedRequest,
+  type ApiErrorResponse,
+  ErrorCodes,
+  type UserRole,
+} from '../types';
 import { hasAdminAccess, isSuperAdmin, isPastor } from '../utils/permissions';
 import { JWT_SECRET } from '../config/jwtConfig';
 import { logger } from '../utils/logger';
@@ -22,11 +27,7 @@ type JwtUserPayload = {
 };
 
 const resolveUserId = (req: AuthenticatedRequest): number | null => {
-  const headerValue = req.headers['x-user-id'];
-  const rawHeader = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-  const parsedHeader = rawHeader ? parseInt(String(rawHeader), 10) : NaN;
-  if (!Number.isNaN(parsedHeader)) return parsedHeader;
-
+  // Autenticação exclusivamente via JWT — headers não assinados não são aceitos
   const authHeaderValue = req.headers.authorization;
   if (!authHeaderValue) return null;
   const rawAuth = Array.isArray(authHeaderValue) ? authHeaderValue[0] : authHeaderValue;
@@ -67,7 +68,7 @@ export const extractUserId = async (
 
     next();
   } catch (error) {
-    // Não bloquear em caso de erro, apenas continuar
+    // Fail-closed: em caso de erro, não autenticar o usuário
     logger.error('Error extracting user ID:', error);
     next();
   }
@@ -110,9 +111,14 @@ export const checkReadOnlyAccess = async (
 
     next();
   } catch (error) {
-    // Em caso de erro, permitir continuar (fail open para não bloquear)
+    // Fail-closed: em caso de erro, bloquear a ação por segurança
     logger.error('Error checking read-only access:', error);
-    next();
+    const errorResponse: ApiErrorResponse = {
+      success: false,
+      error: 'Erro ao verificar permissões. Tente novamente.',
+      code: ErrorCodes.INTERNAL_ERROR,
+    };
+    res.status(500).json(errorResponse);
   }
 };
 
@@ -408,7 +414,7 @@ export const requireDistrictAccess = (
         code: ErrorCodes.FORBIDDEN,
       };
       res.status(403).json(errorResponse);
-    } catch (_error) {
+    } catch {
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: 'Authorization error',

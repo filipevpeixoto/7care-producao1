@@ -3,14 +3,20 @@
  * Configurações de notificações push
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bell, Send, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,7 +40,7 @@ export function PushNotificationSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isSupported, subscription, subscribe, unsubscribe } = usePushNotifications();
-  
+
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -44,18 +50,7 @@ export function PushNotificationSettings() {
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
   const [sendingNotification, setSendingNotification] = useState(false);
 
-  // Carregar usuários
-  useEffect(() => {
-    loadUsers();
-    loadSubscriptions();
-  }, [user?.id]);
-
-  // Verificar estado do push
-  useEffect(() => {
-    setIsPushEnabled(!!subscription);
-  }, [subscription]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const response = await fetchWithAuth('/api/users');
       if (response.ok) {
@@ -65,9 +60,9 @@ export function PushNotificationSettings() {
     } catch (error) {
       settingsLogger.error('Erro ao carregar usuários:', error);
     }
-  };
+  }, []);
 
-  const loadSubscriptions = async () => {
+  const loadSubscriptions = useCallback(async () => {
     try {
       const response = await fetch('/api/push/subscriptions');
       if (response.ok) {
@@ -77,7 +72,18 @@ export function PushNotificationSettings() {
     } catch (error) {
       settingsLogger.error('Erro ao carregar inscrições:', error);
     }
-  };
+  }, []);
+
+  // Carregar usuários
+  useEffect(() => {
+    loadUsers();
+    loadSubscriptions();
+  }, [user?.id, loadUsers, loadSubscriptions]);
+
+  // Verificar estado do push
+  useEffect(() => {
+    setIsPushEnabled(!!subscription);
+  }, [subscription]);
 
   const handleTogglePush = async (enabled: boolean) => {
     setIsLoading(true);
@@ -96,7 +102,7 @@ export function PushNotificationSettings() {
         });
       }
       setIsPushEnabled(enabled);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível alterar as configurações de notificação.',
@@ -164,9 +170,7 @@ export function PushNotificationSettings() {
         <CardContent>
           <Alert>
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Seu navegador não suporta notificações push.
-            </AlertDescription>
+            <AlertDescription>Seu navegador não suporta notificações push.</AlertDescription>
           </Alert>
         </CardContent>
       </Card>
@@ -180,32 +184,22 @@ export function PushNotificationSettings() {
           <Bell className="h-5 w-5" />
           Notificações Push
         </CardTitle>
-        <CardDescription>
-          Gerencie notificações em tempo real para este dispositivo
-        </CardDescription>
+        <CardDescription>Gerencie notificações em tempo real para este dispositivo</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Toggle de notificações */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label>Notificações neste dispositivo</Label>
-            <p className="text-sm text-muted-foreground">
-              Receba alertas importantes diretamente
-            </p>
+            <p className="text-sm text-muted-foreground">Receba alertas importantes diretamente</p>
           </div>
-          <Switch
-            checked={isPushEnabled}
-            onCheckedChange={handleTogglePush}
-            disabled={isLoading}
-          />
+          <Switch checked={isPushEnabled} onCheckedChange={handleTogglePush} disabled={isLoading} />
         </div>
 
         {isPushEnabled && (
           <Alert>
             <CheckCircle className="h-4 w-4 text-green-500" />
-            <AlertDescription>
-              Notificações ativadas neste dispositivo
-            </AlertDescription>
+            <AlertDescription>Notificações ativadas neste dispositivo</AlertDescription>
           </Alert>
         )}
 
@@ -214,7 +208,7 @@ export function PushNotificationSettings() {
           <>
             <div className="border-t pt-4">
               <h4 className="font-medium mb-4">Enviar Notificação</h4>
-              
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Destinatário</Label>
@@ -251,8 +245,8 @@ export function PushNotificationSettings() {
                   />
                 </div>
 
-                <Button 
-                  onClick={sendNotification} 
+                <Button
+                  onClick={sendNotification}
                   disabled={sendingNotification}
                   className="w-full"
                 >
@@ -274,15 +268,13 @@ export function PushNotificationSettings() {
                 </h4>
                 <div className="space-y-2">
                   {subscriptions.map((sub) => (
-                    <div 
-                      key={sub.id} 
+                    <div
+                      key={sub.id}
                       className="flex items-center justify-between p-2 bg-muted rounded"
                     >
                       <div>
                         <p className="text-sm font-medium">{sub.deviceName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Usuário #{sub.userId}
-                        </p>
+                        <p className="text-xs text-muted-foreground">Usuário #{sub.userId}</p>
                       </div>
                       <Badge variant={sub.isActive ? 'default' : 'secondary'}>
                         {sub.isActive ? 'Ativo' : 'Inativo'}

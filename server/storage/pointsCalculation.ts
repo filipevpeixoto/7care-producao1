@@ -490,7 +490,7 @@ export const calculateAdvancedUserPoints = async (
         } else {
           errorCount++;
         }
-      } catch (_userError) {
+      } catch {
         errorCount++;
       }
     }

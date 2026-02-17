@@ -19,7 +19,7 @@ function parseCookies(req: Request): Record<string, string> {
   const cookieHeader = req.headers.cookie;
   if (!cookieHeader) return {};
   return Object.fromEntries(
-    cookieHeader.split(';').map(c => {
+    cookieHeader.split(';').map((c) => {
       const [key, ...rest] = c.trim().split('=');
       return [key, decodeURIComponent(rest.join('='))];
     })
@@ -50,13 +50,13 @@ export function generateCsrfToken(): string {
  */
 export function csrfCookie(req: Request, res: Response, next: NextFunction): void {
   const csrfReq = req as CsrfRequest;
-  
+
   const cookies = parseCookies(req);
-  
+
   // Se não existe cookie CSRF, criar um
   if (!cookies[CSRF_COOKIE_NAME]) {
     const token = generateCsrfToken();
-    
+
     res.cookie(CSRF_COOKIE_NAME, token, {
       httpOnly: false, // Precisa ser lido pelo JS para enviar no header
       secure: process.env.NODE_ENV === 'production',
@@ -64,13 +64,13 @@ export function csrfCookie(req: Request, res: Response, next: NextFunction): voi
       maxAge: 24 * 60 * 60 * 1000, // 24 horas
       path: '/',
     });
-    
+
     // Adicionar ao request para uso posterior
     csrfReq.csrfToken = token;
   } else {
     csrfReq.csrfToken = cookies[CSRF_COOKIE_NAME];
   }
-  
+
   next();
 }
 
@@ -82,54 +82,51 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   if (!UNSAFE_METHODS.includes(req.method)) {
     return next();
   }
-  
-  // Verificar se a rota está isenta
-  const isExempt = EXEMPT_ROUTES.some(route => 
-    req.path === route || req.path.startsWith(route)
-  );
-  
+
+  // Verificar se a rota está isenta (match exato, sem startsWith para evitar bypass)
+  const isExempt = EXEMPT_ROUTES.some((route) => req.path === route);
+
   if (isExempt) {
     return next();
   }
-  
+
   // Obter tokens
   const cookies = parseCookies(req);
   const cookieToken = cookies[CSRF_COOKIE_NAME];
   const headerToken = req.headers[CSRF_TOKEN_HEADER] as string;
-  
+
   // Verificar se ambos os tokens existem e são iguais
   if (!cookieToken || !headerToken) {
-    logger.warn('CSRF token ausente', { 
-      path: req.path, 
+    logger.warn('CSRF token ausente', {
+      path: req.path,
       method: req.method,
       hasCookie: !!cookieToken,
-      hasHeader: !!headerToken
+      hasHeader: !!headerToken,
     });
-    
+
     res.status(403).json({
       error: 'CSRF token ausente',
-      code: 'CSRF_TOKEN_MISSING'
+      code: 'CSRF_TOKEN_MISSING',
     });
     return;
   }
-  
-  // Comparação segura contra timing attacks
-  if (!crypto.timingSafeEqual(
-    Buffer.from(cookieToken),
-    Buffer.from(headerToken)
-  )) {
-    logger.warn('CSRF token inválido', { 
-      path: req.path, 
-      method: req.method 
+
+  // Verificar comprimento antes do timingSafeEqual (que exige buffers de mesmo tamanho)
+  const cookieBuf = Buffer.from(cookieToken);
+  const headerBuf = Buffer.from(headerToken);
+  if (cookieBuf.length !== headerBuf.length || !crypto.timingSafeEqual(cookieBuf, headerBuf)) {
+    logger.warn('CSRF token inválido', {
+      path: req.path,
+      method: req.method,
     });
-    
+
     res.status(403).json({
       error: 'CSRF token inválido',
-      code: 'CSRF_TOKEN_INVALID'
+      code: 'CSRF_TOKEN_INVALID',
     });
     return;
   }
-  
+
   next();
 }
 
@@ -139,7 +136,7 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
 export function csrfTokenEndpoint(req: Request, res: Response): void {
   const csrfReq = req as CsrfRequest;
   const token = csrfReq.csrfToken || generateCsrfToken();
-  
+
   // Atualizar cookie
   res.cookie(CSRF_COOKIE_NAME, token, {
     httpOnly: false,
@@ -148,7 +145,7 @@ export function csrfTokenEndpoint(req: Request, res: Response): void {
     maxAge: 24 * 60 * 60 * 1000,
     path: '/',
   });
-  
+
   res.json({ csrfToken: token });
 }
 

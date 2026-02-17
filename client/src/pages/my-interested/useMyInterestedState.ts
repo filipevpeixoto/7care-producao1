@@ -324,11 +324,13 @@ type UseMyInterestedActionsInput = {
   activeRelationshipsMap: Map<number, ActiveRelationship[]>;
   myRelationships: Relationship[];
   allRequests: DiscipleshipRequest[];
-  getLevelByValue: (value?: string) => { value: string; label: string } | undefined;
+  getLevelByValue: (value?: string) => { value: string; label: string; color: string } | undefined;
   updateSituationMutation: ReturnType<typeof useMyInterestedMutations>['updateSituationMutation'];
   updateRequestMutation: ReturnType<typeof useMyInterestedMutations>['updateRequestMutation'];
   pastorInviteMutation: ReturnType<typeof useMyInterestedMutations>['pastorInviteMutation'];
-  createDiscipleRequestMutation: ReturnType<typeof useMyInterestedMutations>['createDiscipleRequestMutation'];
+  createDiscipleRequestMutation: ReturnType<
+    typeof useMyInterestedMutations
+  >['createDiscipleRequestMutation'];
   setUpdatingSituation: (value: number | null) => void;
   setInviteInterested: (value: InterestedPerson | null) => void;
   setSelectedMissionaryId: (value: string) => void;
@@ -389,10 +391,15 @@ const useMyInterestedActions = ({
   const safeAllUsers = allUsers || [];
   const safeAllMembersForInvite = allMembersForInvite || [];
 
-  const getSituationOption = (situation?: string) => getLevelByValue(situation);
+  const getSituationOption = (situation?: string) => getLevelByValue(situation) ?? null;
 
   const handleSituationChange = (userId: number, situation: string) => {
-    myInterestedLogger.debug('Atualizando situação:', { userId, situation, isPastorUser, selectedTab });
+    myInterestedLogger.debug('Atualizando situação:', {
+      userId,
+      situation,
+      isPastorUser,
+      selectedTab,
+    });
     setUpdatingSituation(userId);
     updateSituationMutation.mutate({ userId, situation });
   };
@@ -785,20 +792,32 @@ export function useMyInterestedState() {
     isAdmin,
 
     // State
-    searchTerm, setSearchTerm,
-    selectedStatus, setSelectedStatus,
-    selectedTab, setSelectedTab,
-    showDiscipleDialog, setShowDiscipleDialog,
-    selectedInterested, setSelectedInterested,
-    discipleMessage, setDiscipleMessage,
-    selectedChurch, setSelectedChurch,
-    currentPage, setCurrentPage,
-    showAuthorizationModal, setShowAuthorizationModal,
+    searchTerm,
+    setSearchTerm,
+    selectedStatus,
+    setSelectedStatus,
+    selectedTab,
+    setSelectedTab,
+    showDiscipleDialog,
+    setShowDiscipleDialog,
+    selectedInterested,
+    setSelectedInterested,
+    discipleMessage,
+    setDiscipleMessage,
+    selectedChurch,
+    setSelectedChurch,
+    currentPage,
+    setCurrentPage,
+    showAuthorizationModal,
+    setShowAuthorizationModal,
     selectedRequest,
-    adminNotes, setAdminNotes,
-    showInviteModal, setShowInviteModal,
+    adminNotes,
+    setAdminNotes,
+    showInviteModal,
+    setShowInviteModal,
     inviteInterested,
-    selectedMissionaryId, setSelectedMissionaryId,
+    selectedMissionaryId,
+    setSelectedMissionaryId,
     updatingSituation,
 
     // Loading states

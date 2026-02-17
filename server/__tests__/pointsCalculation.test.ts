@@ -4,8 +4,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { parseExtraData, calculateUserPointsFromConfig } from '../services/pointsCalculation';
-import type { PointsConfig } from '../services/pointsCalculation';
+import {
+  parseExtraData,
+  calculateUserPointsFromConfig,
+  type PointsConfig,
+} from '../services/pointsCalculation';
 
 /** Helper to create a minimal User with extraData */
 const makeUser = (extraData: unknown) =>
@@ -294,14 +297,16 @@ describe('pointsCalculation', () => {
 
     // Combined scoring
     it('combines multiple criteria correctly', () => {
-      const user = makeUser(JSON.stringify({
-        engajamento: 'Alto',
-        classificacao: 'Frequente',
-        dizimistaType: 'Recorrente',
-        tempoBatismoAnos: 22,
-        temLicao: true,
-        cpfValido: 'Sim',
-      }));
+      const user = makeUser(
+        JSON.stringify({
+          engajamento: 'Alto',
+          classificacao: 'Frequente',
+          dizimistaType: 'Recorrente',
+          tempoBatismoAnos: 22,
+          temLicao: true,
+          cpfValido: 'Sim',
+        })
+      );
 
       // 30 + 15 + 20 + 25 + 10 + 5 = 105
       expect(calculateUserPointsFromConfig(user, fullConfig)).toBe(105);

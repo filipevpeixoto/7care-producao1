@@ -1099,7 +1099,7 @@ exports.handler = async (event, context) => {
   const startTime = Date.now();
   
   // Configurar CORS
-  const defaultOrigins = 'https://7care.netlify.app,https://7care-app.vercel.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
+  const defaultOrigins = 'https://7care.netlify.app,https://7care.vercel.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
     .split(',').map((origin) => origin.trim()).filter(Boolean);
   const requestOrigin = event.headers.origin || event.headers.Origin;
@@ -5067,7 +5067,7 @@ exports.handler = async (event, context) => {
               message: "✅ Usuário de teste já existe! Use o fluxo de reset de senha se necessário.",
               credentials: {
                 email: "admin.teste@7care.test",
-                loginUrl: "https://7care-app.vercel.app",
+                loginUrl: "https://7care.vercel.app",
                 instructions: "Usuário já existe. Use 'esqueci minha senha' se necessário."
               }
             })
@@ -5093,7 +5093,7 @@ exports.handler = async (event, context) => {
             credentials: {
               email: "admin.teste@7care.test",
               password: tempPassword,
-              loginUrl: "https://7care-app.vercel.app",
+              loginUrl: "https://7care.vercel.app",
               instructions: "Clique no link acima e faça login com as credenciais fornecidas. IMPORTANTE: Salve esta senha em local seguro!"
             }
           })
@@ -14525,7 +14525,7 @@ exports.handler = async (event, context) => {
     if (path === '/api/calendar/sync-status' && method === 'GET') {
       try {
         // Buscar configuração salva
-        const configResponse = await fetch(`${process.env.URL || 'https://7care-app.vercel.app'}/api/calendar/google-drive-config`);
+        const configResponse = await fetch(`${process.env.URL || 'https://7care.vercel.app'}/api/calendar/google-drive-config`);
         if (!configResponse.ok) {
           return {
             statusCode: 404,
@@ -14666,7 +14666,7 @@ exports.handler = async (event, context) => {
         const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
         
         // Fazer a chamada para a API de sincronização
-        const syncResponse = await fetch(`${process.env.URL || 'https://7care-app.vercel.app'}/api/calendar/sync-google-drive`, {
+        const syncResponse = await fetch(`${process.env.URL || 'https://7care.vercel.app'}/api/calendar/sync-google-drive`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -14681,7 +14681,7 @@ exports.handler = async (event, context) => {
         
         if (syncResult.success) {
           // Atualizar timestamp da última sincronização
-          await fetch(`${process.env.URL || 'https://7care-app.vercel.app'}/api/calendar/google-drive-config`, {
+          await fetch(`${process.env.URL || 'https://7care.vercel.app'}/api/calendar/google-drive-config`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -18262,7 +18262,7 @@ exports.handler = async (event, context) => {
           RETURNING *
         `;
 
-        const APP_URL = process.env.APP_URL || 'https://7care-app.vercel.app';
+        const APP_URL = process.env.APP_URL || 'https://7care.vercel.app';
         const link = `${APP_URL}/convite-pastor.html?token=${token}`;
         const directLink = `${APP_URL}/pastor-onboarding/${token}`;
 

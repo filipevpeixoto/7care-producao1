@@ -122,7 +122,7 @@ export const useElectionManageState = (configId?: string) => {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível avançar para a votação.',
@@ -156,7 +156,7 @@ export const useElectionManageState = (configId?: string) => {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível avançar para o próximo cargo.',
@@ -222,7 +222,7 @@ export const useElectionManageState = (configId?: string) => {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível repetir a votação.',
@@ -261,7 +261,7 @@ export const useElectionManageState = (configId?: string) => {
       } else {
         throw new Error('Erro ao salvar');
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível salvar a configuração.',
@@ -299,11 +299,11 @@ export const useElectionManageState = (configId?: string) => {
   };
 
   const increaseZoom = () => {
-    setZoomLevel(prev => Math.min(prev + 10, 150));
+    setZoomLevel((prev) => Math.min(prev + 10, 150));
   };
 
   const decreaseZoom = () => {
-    setZoomLevel(prev => Math.max(prev - 10, 70));
+    setZoomLevel((prev) => Math.max(prev - 10, 70));
   };
 
   const getZoomedSize = (baseSize: string) => {

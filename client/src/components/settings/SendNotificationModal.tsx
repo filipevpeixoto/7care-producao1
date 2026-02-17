@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,9 +37,11 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
   const [isSending, setIsSending] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | string | null>(null);
   const [usersList, setUsersList] = useState<{ id: number; name: string; email?: string }[]>([]);
-  const [_subscriptionsList, setSubscriptionsList] = useState<{ user_id: number; created_at: string }[]>([]);
+  const [_subscriptionsList, setSubscriptionsList] = useState<
+    { user_id: number; created_at: string }[]
+  >([]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const response = await fetchWithAuth('/api/users');
       if (response.ok) {
@@ -49,9 +51,9 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
     } catch (error) {
       settingsLogger.error('Error loading users:', error);
     }
-  };
+  }, []);
 
-  const loadSubscriptions = async () => {
+  const loadSubscriptions = useCallback(async () => {
     try {
       const response = await fetch('/api/push/subscriptions');
       if (response.ok) {
@@ -61,7 +63,7 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
     } catch (error) {
       settingsLogger.error('Error loading subscriptions:', error);
     }
-  };
+  }, []);
 
   const sendNotification = async () => {
     if (isSending) return;
@@ -122,10 +124,15 @@ export function SendNotificationModal({ isOpen, onClose, user }: SendNotificatio
       loadUsers();
       loadSubscriptions();
     }
-  }, [isOpen, user?.role]);
+  }, [isOpen, user, loadUsers, loadSubscriptions]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

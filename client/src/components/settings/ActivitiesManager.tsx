@@ -96,7 +96,7 @@ export function ActivitiesManager() {
         active: true,
         order: 0,
       });
-    } catch (error) {
+    } catch {
       toast.error('Erro ao salvar atividade');
     }
   };
@@ -106,7 +106,7 @@ export function ActivitiesManager() {
       try {
         await deleteActivity(id);
         toast.success('Atividade excluída com sucesso!');
-      } catch (error) {
+      } catch {
         toast.error('Erro ao excluir atividade');
       }
     }
@@ -145,7 +145,7 @@ export function ActivitiesManager() {
                   <Input
                     id="title"
                     value={formData.title}
-                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Ex: Culto de Domingo"
                     required
                   />
@@ -157,7 +157,7 @@ export function ActivitiesManager() {
                     id="order"
                     type="number"
                     value={formData.order}
-                    onChange={e =>
+                    onChange={(e) =>
                       setFormData({ ...formData, order: parseInt(e.target.value) || 0 })
                     }
                     placeholder="0"
@@ -170,7 +170,7 @@ export function ActivitiesManager() {
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Descrição da atividade (opcional)"
                   rows={3}
                 />
@@ -183,7 +183,7 @@ export function ActivitiesManager() {
                     <Input
                       id="imageUrl"
                       value={formData.imageUrl}
-                      onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                       placeholder="https://exemplo.com/imagem.jpg"
                       required
                     />
@@ -198,7 +198,7 @@ export function ActivitiesManager() {
                       id="date"
                       type="date"
                       value={formData.date}
-                      onChange={e => setFormData({ ...formData, date: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     />
                     <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   </div>
@@ -209,7 +209,7 @@ export function ActivitiesManager() {
                 <Switch
                   id="active"
                   checked={formData.active}
-                  onCheckedChange={checked => setFormData({ ...formData, active: checked })}
+                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
                 />
                 <Label htmlFor="active">Ativa</Label>
               </div>
@@ -222,7 +222,7 @@ export function ActivitiesManager() {
                       src={formData.imageUrl}
                       alt="Preview"
                       className="w-full h-full object-cover"
-                      onError={e => {
+                      onError={(e) => {
                         e.currentTarget.src =
                           'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik04MCAxMDBDODAgODkuNTQ0NyA4OC4wMDAxIDgxIDEwMCA4MUMxMTEuOTU2IDgxIDEyMCA4OS41NDQ3IDEyMCAxMDBDMTIwIDExMC40NTUgMTExLjk1NiAxMTkgMTAwIDExOUM4OC4wMDAxIDExOSA4MCAxMTAuNDU1IDgwIDEwMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTEwMCAxMzVDMTA4LjI4NCAxMzUgMTE1IDEyOC4yODQgMTE1IDEyMEMxMTUgMTExLjcxNiAxMDguMjg0IDEwNSAxMDAgMTA1QzkxLjcxNTcgMTA1IDg1IDExMS43MTYgODUgMTIwQzg1IDEyOC4yODQgOTEuNzE1NyAxMzUgMTAwIDEzNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
                       }}
@@ -262,7 +262,7 @@ export function ActivitiesManager() {
             </CardContent>
           </Card>
         ) : (
-          sortedActivities.map(activity => (
+          sortedActivities.map((activity) => (
             <Card key={activity.id} className="overflow-hidden">
               <div className="flex">
                 <div className="w-32 h-24 flex-shrink-0">
@@ -270,7 +270,7 @@ export function ActivitiesManager() {
                     src={activity.imageUrl}
                     alt={activity.title}
                     className="w-full h-full object-cover"
-                    onError={e => {
+                    onError={(e) => {
                       e.currentTarget.src =
                         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik04MCAxMDBDODAgODkuNTQ0NyA4OC4wMDAxIDgxIDEwMCA4MUMxMTEuOTU2IDgxIDEyMCA4OS41NDQ3IDEyMCAxMDBDMTIwIDExMC40NTUgMTExLjk1NiAxMTkgMTAwIDExOUM4OC4wMDAxIDExOSA4MCAxMTAuNDU1IDgwIDEwMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTEwMCAxMzVDMTA4LjI4NCAxMzUgMTE1IDEyOC4yODQgMTE1IDEyMEMxMTUgMTExLjcxNiAxMDguMjg0IDEwNSAxMDAgMTA1QzkxLjcxNTcgMTA1IDg1IDExMS43MTYgODUgMTIwQzg1IDEyOC4yODQgOTEuNzE1NyAxMzUgMTAwIDEzNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
                     }}

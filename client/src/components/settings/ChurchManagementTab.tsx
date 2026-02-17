@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,17 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import {
-  Globe,
-  Plus,
-  Star,
-  Save,
-  Trash2,
-  Eye,
-  EyeOff,
-  Building2,
-  Loader2,
-} from 'lucide-react';
+import { Globe, Plus, Star, Save, Trash2, Eye, EyeOff, Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Church } from '@/types/domain';
 import { EditableField } from '@/components/ui/EditableField';
@@ -32,7 +22,11 @@ interface ChurchManagementTabProps {
   userDistrictName: string;
 }
 
-export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: ChurchManagementTabProps) {
+export function ChurchManagementTab({
+  user,
+  userDistrictId,
+  userDistrictName,
+}: ChurchManagementTabProps) {
   const { toast } = useToast();
 
   const [churchesList, setChurchesList] = useState<Church[]>([]);
@@ -40,7 +34,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
   const [defaultChurchName, setDefaultChurchName] = useState<string>('');
   const [isSavingDefault, setIsSavingDefault] = useState(false);
 
-  const loadChurches = async () => {
+  const loadChurches = useCallback(async () => {
     try {
       const churchesUrl =
         user?.role === 'superadmin'
@@ -73,9 +67,9 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
     } catch (error) {
       settingsLogger.error('Error loading churches:', error);
     }
-  };
+  }, [user?.role, userDistrictId]);
 
-  const loadDefaultChurch = async () => {
+  const loadDefaultChurch = useCallback(async () => {
     try {
       const response = await fetch('/api/settings/default-church');
       if (response.ok) {
@@ -88,7 +82,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
     } catch (error) {
       settingsLogger.error('Error loading default church:', error);
     }
-  };
+  }, []);
 
   const saveDefaultChurch = async () => {
     if (!defaultChurchId) return;
@@ -105,7 +99,12 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
         const data = await response.json();
         if (data.success) {
           const selectedChurch = (
-            churchesList as Array<{ id: number | string; name: string; address: string; active: boolean }>
+            churchesList as Array<{
+              id: number | string;
+              name: string;
+              address: string;
+              active: boolean;
+            }>
           ).find((c) => c.id === defaultChurchId);
           if (selectedChurch) {
             setDefaultChurchName(selectedChurch.name);
@@ -154,7 +153,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
           description: `${church.name} foi ${statusText} com sucesso.${!newStatus ? ' Usuários associados podem ser afetados.' : ''}`,
         });
       }
-    } catch (_error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o status da igreja.',
@@ -177,7 +176,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
           description: 'Nova igreja foi criada. Clique nos campos para editar.',
         });
       }
-    } catch (_error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível criar a igreja.',
@@ -208,7 +207,8 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
           } else {
             toast({
               title: 'Igreja atualizada',
-              description: 'As informações da igreja foram salvas e todos os usuários associados serão atualizados.',
+              description:
+                'As informações da igreja foram salvas e todos os usuários associados serão atualizados.',
             });
           }
         } else {
@@ -218,7 +218,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
           });
         }
       }
-    } catch (_error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar a igreja.',
@@ -245,7 +245,7 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
   useEffect(() => {
     loadChurches();
     loadDefaultChurch();
-  }, [user, userDistrictId]);
+  }, [loadChurches, loadDefaultChurch]);
 
   return (
     <Card>
@@ -263,7 +263,11 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
                 : `Gerencie as igrejas do ${userDistrictName || 'seu distrito'}`}
             </CardDescription>
           </div>
-          <Button onClick={addNewChurch} data-testid="add-church-button" className="w-full sm:w-auto">
+          <Button
+            onClick={addNewChurch}
+            data-testid="add-church-button"
+            className="w-full sm:w-auto"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nova Igreja
           </Button>
@@ -313,7 +317,11 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
               size="sm"
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {isSavingDefault ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isSavingDefault ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               Salvar
             </Button>
           </div>
@@ -336,7 +344,10 @@ export function ChurchManagementTab({ user, userDistrictId, userDistrictName }: 
 
           {/* Lista de Igrejas */}
           {churchesList.map((church) => (
-            <div key={church.id} className="border rounded-lg p-3 hover:bg-muted/20 transition-colors">
+            <div
+              key={church.id}
+              className="border rounded-lg p-3 hover:bg-muted/20 transition-colors"
+            >
               {/* Layout Mobile */}
               <div className="sm:hidden space-y-3">
                 <div className="space-y-2">

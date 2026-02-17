@@ -142,7 +142,8 @@ const STEP_DETAILS: Record<
 > = {
   0: {
     text: 'Complete seu perfil com informações básicas como telefone, endereço e dados pessoais. Isso nos ajuda a personalizar sua experiência.',
-    tipText: '💡 Dica: Você pode editar essas informações a qualquer momento no menu "Meu Cadastro"',
+    tipText:
+      '💡 Dica: Você pode editar essas informações a qualquer momento no menu "Meu Cadastro"',
     tipClassName: 'bg-blue-50',
     tipTextClassName: 'text-blue-800',
   },
@@ -174,7 +175,7 @@ const STEP_DETAILS: Record<
 
 const StepProgressList = ({ steps }: { steps: TutorialStep[] }) => (
   <div className="grid grid-cols-2 gap-2">
-    {steps.map(step => (
+    {steps.map((step) => (
       <div key={step.id} className="flex items-center space-x-2 text-sm">
         {step.completed ? (
           <CheckCircle className="w-4 h-4 text-green-500" />
@@ -293,7 +294,7 @@ const PasswordChangeForm = ({
             type={showCurrentPassword ? 'text' : 'password'}
             placeholder="Digite sua senha atual"
             value={currentPassword}
-            onChange={e => onChangeCurrentPassword(e.target.value)}
+            onChange={(e) => onChangeCurrentPassword(e.target.value)}
             className="pr-10"
           />
           <Button
@@ -321,7 +322,7 @@ const PasswordChangeForm = ({
             type={showNewPassword ? 'text' : 'password'}
             placeholder="Digite sua nova senha"
             value={newPassword}
-            onChange={e => onChangeNewPassword(e.target.value)}
+            onChange={(e) => onChangeNewPassword(e.target.value)}
             className="pr-10"
           />
           <Button
@@ -349,7 +350,7 @@ const PasswordChangeForm = ({
             type={showConfirmPassword ? 'text' : 'password'}
             placeholder="Confirme sua nova senha"
             value={confirmPassword}
-            onChange={e => onChangeConfirmPassword(e.target.value)}
+            onChange={(e) => onChangeConfirmPassword(e.target.value)}
             className="pr-10"
           />
           <Button
@@ -358,7 +359,9 @@ const PasswordChangeForm = ({
             size="sm"
             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
             onClick={onToggleConfirmPassword}
-            aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+            aria-label={
+              showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'
+            }
           >
             {showConfirmPassword ? (
               <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -505,9 +508,7 @@ const StepList = ({ steps, currentStep, onGoToStep }: StepListProps) => (
                 <p className="font-medium text-sm">{step.title}</p>
                 <p className="text-xs text-muted-foreground truncate">{step.description}</p>
               </div>
-              {step.completed && (
-                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-              )}
+              {step.completed && <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />}
               {index === currentStep && (
                 <Badge variant="secondary" className="flex-shrink-0">
                   Atual
@@ -548,8 +549,8 @@ export const FirstAccessWelcome = () => {
     const savedProgress = localStorage.getItem(`tutorial_progress_${user.id}`);
     if (savedProgress) {
       const progress = JSON.parse(savedProgress);
-      setSteps(prevSteps =>
-        prevSteps.map(step => ({
+      setSteps((prevSteps) =>
+        prevSteps.map((step) => ({
           ...step,
           completed: progress.includes(step.id),
         }))
@@ -565,7 +566,9 @@ export const FirstAccessWelcome = () => {
   // Save progress to localStorage - usando chave específica do usuário
   const saveProgress = (stepId: number) => {
     if (!user?.id) return;
-    const currentProgress = JSON.parse(localStorage.getItem(`tutorial_progress_${user.id}`) || '[]');
+    const currentProgress = JSON.parse(
+      localStorage.getItem(`tutorial_progress_${user.id}`) || '[]'
+    );
     if (!currentProgress.includes(stepId)) {
       currentProgress.push(stepId);
       localStorage.setItem(`tutorial_progress_${user.id}`, JSON.stringify(currentProgress));
@@ -573,8 +576,8 @@ export const FirstAccessWelcome = () => {
   };
 
   const completeStep = (stepId: number) => {
-    setSteps(prevSteps =>
-      prevSteps.map(step => (step.id === stepId ? { ...step, completed: true } : step))
+    setSteps((prevSteps) =>
+      prevSteps.map((step) => (step.id === stepId ? { ...step, completed: true } : step))
     );
     saveProgress(stepId);
 
@@ -681,7 +684,7 @@ export const FirstAccessWelcome = () => {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Erro de conexão',
@@ -693,7 +696,7 @@ export const FirstAccessWelcome = () => {
   };
 
   const getProgressPercentage = () => {
-    const completedSteps = steps.filter(step => step.completed).length;
+    const completedSteps = steps.filter((step) => step.completed).length;
     return (completedSteps / steps.length) * 100;
   };
 

@@ -1,7 +1,7 @@
 import { Bell, Volume2, Image as ImageIcon, Clock, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +42,7 @@ export default function NotificationsHistory() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const { t } = useTranslation();
 
-  const notificationsQueryKey = ['notifications', user?.id] as const;
+  const notificationsQueryKey = useMemo(() => ['notifications', user?.id] as const, [user?.id]);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: notificationsQueryKey,
@@ -94,7 +94,7 @@ export default function NotificationsHistory() {
     const handleNewNotification = (event: CustomEvent) => {
       const newNotif = event.detail as Notification;
       queryClient.setQueryData<Notification[]>(notificationsQueryKey, (prev = []) =>
-        [newNotif, ...prev].slice(0, 50),
+        [newNotif, ...prev].slice(0, 50)
       );
     };
 
@@ -142,7 +142,7 @@ export default function NotificationsHistory() {
         audio.remove();
       });
 
-      audio.play().catch(err => {
+      audio.play().catch((err) => {
         notificationsLogger.error('Erro ao tocar áudio:', err);
         toast({
           title: t('notificationsHistory.playbackError'),
@@ -162,18 +162,21 @@ export default function NotificationsHistory() {
     }
   };
 
-  const deleteNotification = useCallback((id: string) => {
-    queryClient.setQueryData<Notification[]>(notificationsQueryKey, (prev = []) => {
-      const updated = prev.filter(n => n.id !== id);
-      localStorage.setItem(`notifications_${user?.id}`, JSON.stringify(updated));
-      return updated;
-    });
+  const deleteNotification = useCallback(
+    (id: string) => {
+      queryClient.setQueryData<Notification[]>(notificationsQueryKey, (prev = []) => {
+        const updated = prev.filter((n) => n.id !== id);
+        localStorage.setItem(`notifications_${user?.id}`, JSON.stringify(updated));
+        return updated;
+      });
 
-    toast({
-      title: t('notificationsHistory.notificationDeleted'),
-      description: t('notificationsHistory.notificationDeletedDesc'),
-    });
-  }, [queryClient, notificationsQueryKey, user?.id, toast]);
+      toast({
+        title: t('notificationsHistory.notificationDeleted'),
+        description: t('notificationsHistory.notificationDeletedDesc'),
+      });
+    },
+    [queryClient, notificationsQueryKey, user?.id, toast, t]
+  );
 
   const clearAll = useCallback(() => {
     if (confirm(t('notificationsHistory.confirmClearAll'))) {
@@ -184,7 +187,7 @@ export default function NotificationsHistory() {
         description: t('notificationsHistory.historyClearedDesc'),
       });
     }
-  }, [queryClient, notificationsQueryKey, user?.id, toast]);
+  }, [queryClient, notificationsQueryKey, user?.id, toast, t]);
 
   const formatDate = (timestamp: string) => {
     try {
@@ -272,7 +275,7 @@ export default function NotificationsHistory() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {notifications.map(notification => (
+              {notifications.map((notification) => (
                 <Card
                   key={notification.id}
                   className="group hover:shadow-lg transition-all duration-200 border-l-4"
@@ -320,7 +323,9 @@ export default function NotificationsHistory() {
                               className="gap-2"
                             >
                               <Volume2 className="h-4 w-4" />
-                              {playingAudioId === notification.id ? t('notificationsHistory.playing') : t('notificationsHistory.listenAudio')}
+                              {playingAudioId === notification.id
+                                ? t('notificationsHistory.playing')
+                                : t('notificationsHistory.listenAudio')}
                             </Button>
                           )}
 

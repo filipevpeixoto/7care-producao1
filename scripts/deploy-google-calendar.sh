@@ -18,7 +18,7 @@ CLIENT_ID="61388812338-se0a70hkratv97es0geudr9p8km45kdg.apps.googleusercontent.c
 CLIENT_SECRET="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"
 
 echo -e "${BLUE}📝 Digite a URL de produção:${NC}"
-echo "   Exemplo: https://7care-app.vercel.app"
+echo "   Exemplo: https://7care.vercel.app"
 read -p "   > " prod_url
 
 if [ -z "$prod_url" ]; then

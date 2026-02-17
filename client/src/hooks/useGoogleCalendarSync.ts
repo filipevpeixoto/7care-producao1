@@ -119,6 +119,37 @@ export function useGoogleCalendarSync() {
   }, [loadStatus, loadConfig]);
 
   // ============================================
+  // CALENDAR OPERATIONS
+  // ============================================
+
+  /**
+   * Lista calendários disponíveis do usuário
+   */
+  const loadCalendars = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetchWithAuth('/api/calendar/google/calendars');
+
+      if (!response.ok) {
+        throw new Error('Erro ao carregar calendários');
+      }
+
+      const data: CalendarInfo[] = await response.json();
+      setCalendars(data);
+
+      return data;
+    } catch (err) {
+      calendarLogger.error('Erro ao carregar calendários:', err);
+      setError((err as Error).message);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ============================================
   // OAUTH2 CONNECTION
   // ============================================
 
@@ -189,7 +220,7 @@ export function useGoogleCalendarSync() {
       setIsLoading(false);
       setConnectionStatus('disconnected');
     }
-  }, [loadStatus]);
+  }, [loadStatus, loadCalendars]);
 
   /**
    * Desconecta conta Google Calendar
@@ -218,37 +249,6 @@ export function useGoogleCalendarSync() {
     } catch (err) {
       calendarLogger.error('Erro ao desconectar:', err);
       setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // ============================================
-  // CALENDAR OPERATIONS
-  // ============================================
-
-  /**
-   * Lista calendários disponíveis do usuário
-   */
-  const loadCalendars = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetchWithAuth('/api/calendar/google/calendars');
-
-      if (!response.ok) {
-        throw new Error('Erro ao carregar calendários');
-      }
-
-      const data: CalendarInfo[] = await response.json();
-      setCalendars(data);
-
-      return data;
-    } catch (err) {
-      calendarLogger.error('Erro ao carregar calendários:', err);
-      setError((err as Error).message);
-      return [];
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +316,7 @@ export function useGoogleCalendarSync() {
         throw new Error('Erro ao salvar configuração');
       }
 
-      setConfig(prev => ({ ...prev, ...newConfig }));
+      setConfig((prev) => ({ ...prev, ...newConfig }));
 
       return true;
     } catch (err) {

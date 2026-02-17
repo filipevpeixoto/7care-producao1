@@ -184,43 +184,6 @@ export const electionLifecycleRoutes = (app: Express): void => {
         ? config[0].positions
         : JSON.parse(String(config[0].positions || '[]'));
 
-      // Garantir que voters seja um array
-      let votersArray: number[] = [];
-      if (Array.isArray(config[0].voters)) {
-        votersArray = config[0].voters;
-      } else if (typeof config[0].voters === 'string') {
-        try {
-          const parsed = JSON.parse(config[0].voters);
-          if (Array.isArray(parsed)) {
-            votersArray = parsed
-              .map((value: unknown) => {
-                if (typeof value === 'number') {
-                  return value;
-                }
-                if (typeof value === 'string') {
-                  const normalized = value.trim().replace(/^['"]+|['"]+$/g, '');
-                  return parseInt(normalized, 10);
-                }
-                return Number.NaN;
-              })
-              .filter((v: number) => !Number.isNaN(v));
-          }
-        } catch (_jsonErr) {
-          const cleaned = config[0].voters.replace(/[{}]/g, '');
-          if (cleaned.trim().length > 0) {
-            votersArray = cleaned
-              .split(',')
-              .map((v: string) => {
-                const normalized = v.trim().replace(/^['"]+|['"]+$/g, '');
-                return parseInt(normalized, 10);
-              })
-              .filter((v: number) => !Number.isNaN(v));
-          }
-        }
-      }
-      votersArray = Array.from(
-        new Set(votersArray.filter(v => typeof v === 'number' && !Number.isNaN(v)))
-      );
       if (!positions || positions.length === 0) {
         logger.warn(' Nenhuma posição configurada na eleição');
         return sendValidationError(res, {

@@ -28,12 +28,16 @@ const formatZodErrors = (error: ZodError): { field: string; message: string }[] 
 
 const shouldUseStrictValidation = process.env.STRICT_VALIDATION === 'true';
 
-const resolveValidationSchema = <T>(schema: ZodType<T, ZodTypeDef, unknown>): ZodType<T, ZodTypeDef, unknown> => {
+const resolveValidationSchema = <T>(
+  schema: ZodType<T, ZodTypeDef, unknown>
+): ZodType<T, ZodTypeDef, unknown> => {
   if (!shouldUseStrictValidation) {
     return schema;
   }
 
-  const strictSchema = (schema as unknown as { strict?: () => ZodType<T, ZodTypeDef, unknown> }).strict?.();
+  const strictSchema = (
+    schema as unknown as { strict?: () => ZodType<T, ZodTypeDef, unknown> }
+  ).strict?.();
   return strictSchema ?? schema;
 };
 
@@ -66,7 +70,7 @@ export const validateBody = <T>(schema: ZodType<T, ZodTypeDef, unknown>) => {
       // Adiciona os dados validados ao request
       (req as ValidatedRequest<T>).validatedBody = result.data;
       next();
-    } catch (_error) {
+    } catch {
       res.status(500).json({
         success: false,
         error: 'Erro interno de validação',
@@ -98,7 +102,7 @@ export const validateQuery = <T>(schema: ZodType<T, ZodTypeDef, unknown>) => {
       req.query = result.data as Record<string, string>;
       (req as ValidatedRequest<T>).validatedQuery = result.data;
       next();
-    } catch (_error) {
+    } catch {
       res.status(500).json({
         success: false,
         error: 'Erro interno de validação',
@@ -129,7 +133,7 @@ export const validateParams = <T>(schema: ZodType<T, ZodTypeDef, unknown>) => {
       req.params = result.data as Record<string, string>;
       (req as ValidatedRequest<T>).validatedParams = result.data;
       next();
-    } catch (_error) {
+    } catch {
       res.status(500).json({
         success: false,
         error: 'Erro interno de validação',

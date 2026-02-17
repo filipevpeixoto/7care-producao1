@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { useState } from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SkipLink, LiveRegion, VisuallyHidden, FocusTrap } from './accessibility';
@@ -179,7 +180,7 @@ describe('Keyboard Navigation', () => {
     expect(screen.getByText('Enabled')).toHaveFocus();
 
     await user.tab();
-    // Should skip disabled and go to Another  
+    // Should skip disabled and go to Another
     expect(screen.getByText('Another')).toHaveFocus();
   });
 
@@ -204,22 +205,6 @@ describe('Keyboard Navigation', () => {
 describe('ARIA Attributes', () => {
   it('buttons with aria-expanded toggle correctly', async () => {
     const user = userEvent.setup();
-
-    function TestComponent() {
-      const [expanded, setExpanded] = React.useState(false);
-      return (
-        <div>
-          <button aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-            Toggle
-          </button>
-          {expanded && <div>Content</div>}
-        </div>
-      );
-    }
-
-    // Need React import for the component
-    const React = await import('react');
-    const { useState } = React;
 
     function ExpandableComponent() {
       const [expanded, setExpanded] = useState(false);

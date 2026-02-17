@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPlus, Heart, Phone, MessageCircle, MapPin, Search, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,12 +43,14 @@ const Interested = () => {
 
   const canManage = hasAdminAccess(user) || user?.role === 'missionary';
 
-  const [interested, setInterested] = useState<InterestedPerson[]>([]);
+  const [interestedOverrides, setInterestedOverrides] = useState<
+    Record<number, Partial<InterestedPerson>>
+  >({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
   // Buscar dados reais da API
-  const { isLoading: dataLoading } = useQuery({
+  const { data: interestedData = [], isLoading: dataLoading } = useQuery({
     queryKey: ['/api/users', 'interested'],
     queryFn: async () => {
       const res = await fetch('/api/users?role=interested');
@@ -57,25 +59,31 @@ const Interested = () => {
     },
     enabled: canManage,
     staleTime: 30 * 1000,
-    select: (data: InterestedPerson[]) => {
-      if (Array.isArray(data)) {
-        setInterested(
-          data.map((u) => ({
-            id: u.id,
-            name: u.name || '',
-            email: u.email || '',
-            phone: u.phone || '',
-            address: u.address || '',
-            status: u.status || 'new',
-            assignedTo: u.assignedTo || '',
-            lastContact: u.lastContact || '',
-            source: u.source || '',
-          }))
-        );
-      }
-      return data;
-    },
   });
+
+  const baseInterested = useMemo(() => {
+    if (!Array.isArray(interestedData)) return [];
+    return interestedData.map((u) => ({
+      id: u.id,
+      name: u.name || '',
+      email: u.email || '',
+      phone: u.phone || '',
+      address: u.address || '',
+      status: u.status || 'new',
+      assignedTo: u.assignedTo || '',
+      lastContact: u.lastContact || '',
+      source: u.source || '',
+    }));
+  }, [interestedData]);
+
+  const interested = useMemo(
+    () =>
+      baseInterested.map((person) => ({
+        ...person,
+        ...(interestedOverrides[person.id] || {}),
+      })),
+    [baseInterested, interestedOverrides]
+  );
 
   const filteredInterested = interested.filter((person) => {
     const matchesSearch =
@@ -86,25 +94,21 @@ const Interested = () => {
   });
 
   const handleAssignToMe = (personId: number) => {
-    setInterested((prev) =>
-      prev.map((person) =>
-        person.id === personId ? { ...person, assignedTo: user?.name || '' } : person
-      )
-    );
+    setInterestedOverrides((prev) => ({
+      ...prev,
+      [personId]: { ...prev[personId], assignedTo: user?.name || '' },
+    }));
   };
 
   const handleUpdateStatus = (personId: number, newStatus: string) => {
-    setInterested((prev) =>
-      prev.map((person) =>
-        person.id === personId
-          ? {
-              ...person,
-              status: newStatus,
-              lastContact: new Date().toISOString().split('T')[0],
-            }
-          : person
-      )
-    );
+    setInterestedOverrides((prev) => ({
+      ...prev,
+      [personId]: {
+        ...prev[personId],
+        status: newStatus,
+        lastContact: new Date().toISOString().split('T')[0],
+      },
+    }));
   };
 
   const stats = {

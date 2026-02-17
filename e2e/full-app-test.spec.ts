@@ -28,7 +28,7 @@
 
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'https://7care-app.vercel.app';
+const BASE_URL = process.env.BASE_URL || 'https://7care.vercel.app';
 
 // Retry each test once to handle network flakiness against production
 test.describe.configure({ retries: 1 });

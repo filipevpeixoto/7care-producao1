@@ -17,6 +17,15 @@ interface ImportExcelModalProps {
   onImportComplete?: () => void;
 }
 
+type ParsedEvent = {
+  title: string;
+  type: string;
+  date: string;
+  endDate: string | null;
+  description: string;
+  originalData: Record<string, unknown>;
+};
+
 export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportExcelModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,8 +73,16 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         const startParts = startStr.split('/');
         const endParts = endStr.split('/');
         const result = {
-          startDate: new Date(Number(startParts[2]), Number(startParts[1]) - 1, Number(startParts[0])).toISOString(),
-          endDate: new Date(Number(endParts[2]), Number(endParts[1]) - 1, Number(endParts[0])).toISOString(),
+          startDate: new Date(
+            Number(startParts[2]),
+            Number(startParts[1]) - 1,
+            Number(startParts[0])
+          ).toISOString(),
+          endDate: new Date(
+            Number(endParts[2]),
+            Number(endParts[1]) - 1,
+            Number(endParts[0])
+          ).toISOString(),
         };
         calendarLogger.debug(`Parsed full period: ${result.startDate} - ${result.endDate}`);
         return result;
@@ -130,7 +147,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
     return 'geral'; // Tipo padrão
   };
 
-  const parseExcelFile = async (file: File): Promise<any[]> => {
+  const parseExcelFile = async (file: File): Promise<ParsedEvent[]> => {
     try {
       const { data: jsonData, sheetName } = await readExcelAsRawData(file);
 
@@ -188,7 +205,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
 
       calendarLogger.debug('Índices de colunas finais:', columnIndexes);
 
-      const events: Array<{ title: string; type: string; date: string; endDate: string | null; description: string; originalData: Record<string, unknown> }> = [];
+      const events: ParsedEvent[] = [];
 
       let processedRows = 0;
       let skippedRows = 0;
@@ -200,7 +217,7 @@ export function ImportExcelModal({ isOpen, onClose, onImportComplete }: ImportEx
         processedRows++;
 
         // Pular linhas vazias ou sem dados relevantes
-        if (!row || row.length === 0 || !row.some(cell => cell)) {
+        if (!row || row.length === 0 || !row.some((cell) => cell)) {
           calendarLogger.debug(`Linha ${i} vazia, pulando`);
           skippedRows++;
           continue;

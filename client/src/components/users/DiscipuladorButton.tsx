@@ -51,13 +51,7 @@ export function DiscipuladorButton({
   const { toast } = useToast();
 
   // Carregar membros disponíveis quando o modal abrir
-  useEffect(() => {
-    if (open) {
-      loadPotentialMissionaries();
-    }
-  }, [open]);
-
-  const loadPotentialMissionaries = async () => {
+  const loadPotentialMissionaries = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetchWithAuth('/api/users');
@@ -70,7 +64,8 @@ export function DiscipuladorButton({
 
       // Filtrar apenas membros/missionários (independente do status)
       const members = users.filter(
-        (user: PotentialMissionary) => user.role.includes('member') || user.role.includes('missionary')
+        (user: PotentialMissionary) =>
+          user.role.includes('member') || user.role.includes('missionary')
       );
 
       usersLogger.debug('Membros filtrados:', members.length);
@@ -85,7 +80,13 @@ export function DiscipuladorButton({
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (open) {
+      loadPotentialMissionaries();
+    }
+  }, [open, loadPotentialMissionaries]);
 
   const handleAddDiscipulador = useCallback(
     async (missionaryId: number) => {
@@ -112,7 +113,7 @@ export function DiscipuladorButton({
         const newRelationship = await response.json();
 
         // Atualizar lista local
-        const newDiscipulador = potentialMissionaries.find(m => m.id === missionaryId);
+        const newDiscipulador = potentialMissionaries.find((m) => m.id === missionaryId);
         if (newDiscipulador) {
           const updatedDiscipuladores = [
             ...currentDiscipuladores,
@@ -151,7 +152,7 @@ export function DiscipuladorButton({
         size="sm"
         variant="ghost"
         className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full border border-blue-200"
-        onClick={e => {
+        onClick={(e) => {
           e.stopPropagation();
           setOpen(true);
         }}
@@ -192,7 +193,7 @@ export function DiscipuladorButton({
                 <CommandList className="max-h-[350px] overflow-auto">
                   <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
                   <CommandGroup>
-                    {potentialMissionaries.map(member => (
+                    {potentialMissionaries.map((member) => (
                       <CommandItem
                         key={member.id}
                         value={member.name}

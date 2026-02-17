@@ -36,7 +36,7 @@ export function VirtualList<T>({
     getScrollElement: () => parentRef.current,
     estimateSize: () => estimateSize,
     overscan,
-    getItemKey: getItemKey 
+    getItemKey: getItemKey
       ? (index) => (isLoading ? `skeleton-${index}` : getItemKey(items[index], index))
       : undefined,
   });
@@ -45,11 +45,8 @@ export function VirtualList<T>({
 
   if (!isLoading && items.length === 0) {
     return (
-      <div 
-        className={cn(
-          'flex items-center justify-center text-muted-foreground',
-          className
-        )}
+      <div
+        className={cn('flex items-center justify-center text-muted-foreground', className)}
         style={{ height }}
       >
         {emptyMessage}
@@ -58,11 +55,7 @@ export function VirtualList<T>({
   }
 
   return (
-    <div
-      ref={parentRef}
-      className={cn('overflow-auto', className)}
-      style={{ height }}
-    >
+    <div ref={parentRef} className={cn('overflow-auto', className)} style={{ height }}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -126,7 +119,7 @@ export function VirtualGrid<T>({
   renderSkeleton,
 }: VirtualGridProps<T>) {
   const parentRef = React.useRef<HTMLDivElement>(null);
-  
+
   const displayItems = isLoading ? Array(loadingCount).fill(null) : items;
   const rowCount = Math.ceil(displayItems.length / columnCount);
 
@@ -141,11 +134,8 @@ export function VirtualGrid<T>({
 
   if (!isLoading && items.length === 0) {
     return (
-      <div 
-        className={cn(
-          'flex items-center justify-center text-muted-foreground',
-          className
-        )}
+      <div
+        className={cn('flex items-center justify-center text-muted-foreground', className)}
         style={{ height }}
       >
         {emptyMessage}
@@ -154,11 +144,7 @@ export function VirtualGrid<T>({
   }
 
   return (
-    <div
-      ref={parentRef}
-      className={cn('overflow-auto', className)}
-      style={{ height }}
-    >
+    <div ref={parentRef} className={cn('overflow-auto', className)} style={{ height }}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -187,9 +173,7 @@ export function VirtualGrid<T>({
             >
               {rowItems.map((item, colIndex) => {
                 const globalIndex = startIndex + colIndex;
-                const key = getItemKey && item
-                  ? getItemKey(item, globalIndex)
-                  : globalIndex;
+                const key = getItemKey && item ? getItemKey(item, globalIndex) : globalIndex;
 
                 return (
                   <div key={key}>
@@ -232,7 +216,7 @@ export function useResponsiveColumns(
     resizeObserver.observe(containerRef.current);
 
     return () => resizeObserver.disconnect();
-  }, [minColumnWidth, maxColumns]);
+  }, [containerRef, minColumnWidth, maxColumns]);
 
   return columns;
 }

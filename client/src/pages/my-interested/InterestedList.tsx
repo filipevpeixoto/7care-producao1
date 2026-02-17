@@ -17,11 +17,13 @@ type InterestedListProps = {
   interestedPoints: Record<number, number>;
   getStatusColor: (status: string) => string;
   getStatusLabel: (status: string) => string;
-  getDiscipleStatus: (personId: number) => any;
-  getSituationOption: (value?: string) => any;
+  getDiscipleStatus: (personId: number) => unknown;
+  getSituationOption: (value?: string) => { value: string; label: string; color: string } | null;
   handleSituationChange: (personId: number, value: string) => void;
   handleOpenInvite: (person: InterestedPerson) => void;
-  directDiscipleMutation: { mutate: (data: { interestedId: number; missionaryId: number }) => void };
+  directDiscipleMutation: {
+    mutate: (data: { interestedId: number; missionaryId: number }) => void;
+  };
   availableMissionaries: UserMember[];
   handleDiscipleRequest: (person: InterestedPerson) => void;
   handleWhatsApp: (phone: string, name: string) => void;
@@ -79,38 +81,38 @@ export const InterestedList = ({
         return (
           <InterestedListCard
             key={`${person.id}-${currentSituation || 'no-situation'}`}
-          person={person}
-          index={index}
-          selectedTab={selectedTab}
-          user={user}
-          pendingRequestsSet={pendingRequestsSet}
-          situationLevels={situationLevels}
-          updatingSituation={updatingSituation}
-          loadingPoints={loadingPoints}
-          interestedPoints={interestedPoints}
-          getStatusColor={getStatusColor}
-          getStatusLabel={getStatusLabel}
-          getDiscipleStatus={getDiscipleStatus}
-          getSituationOption={getSituationOption}
-          handleSituationChange={handleSituationChange}
-          handleOpenInvite={handleOpenInvite}
-          directDiscipleMutation={directDiscipleMutation}
-          availableMissionaries={availableMissionaries}
-          handleDiscipleRequest={handleDiscipleRequest}
-          handleWhatsApp={handleWhatsApp}
-          handleOpenChat={handleOpenChat}
-          handleUnlinkDisciple={handleUnlinkDisciple}
-          hasAnyActiveRelationship={hasAnyActiveRelationship}
-          hasAnyApprovedRequest={hasAnyApprovedRequest}
-          hasPendingRequestForAdmin={hasPendingRequestForAdmin}
-          allRequests={allRequests}
-          openAuthorizationModal={openAuthorizationModal}
-          getMissionaryFirstNames={getMissionaryFirstNames}
-          formatDate={formatDate}
-          getLevelIcon={getLevelIcon}
-          getMountName={getMountName}
-          isPastorUser={isPastorUser}
-        />
+            person={person}
+            index={index}
+            selectedTab={selectedTab}
+            user={user}
+            pendingRequestsSet={pendingRequestsSet}
+            situationLevels={situationLevels}
+            updatingSituation={updatingSituation}
+            loadingPoints={loadingPoints}
+            interestedPoints={interestedPoints}
+            getStatusColor={getStatusColor}
+            getStatusLabel={getStatusLabel}
+            getDiscipleStatus={getDiscipleStatus}
+            getSituationOption={getSituationOption}
+            handleSituationChange={handleSituationChange}
+            handleOpenInvite={handleOpenInvite}
+            directDiscipleMutation={directDiscipleMutation}
+            availableMissionaries={availableMissionaries}
+            handleDiscipleRequest={handleDiscipleRequest}
+            handleWhatsApp={handleWhatsApp}
+            handleOpenChat={handleOpenChat}
+            handleUnlinkDisciple={handleUnlinkDisciple}
+            hasAnyActiveRelationship={hasAnyActiveRelationship}
+            hasAnyApprovedRequest={hasAnyApprovedRequest}
+            hasPendingRequestForAdmin={hasPendingRequestForAdmin}
+            allRequests={allRequests}
+            openAuthorizationModal={openAuthorizationModal}
+            getMissionaryFirstNames={getMissionaryFirstNames}
+            formatDate={formatDate}
+            getLevelIcon={getLevelIcon}
+            getMountName={getMountName}
+            isPastorUser={isPastorUser}
+          />
         );
       })}
   </div>

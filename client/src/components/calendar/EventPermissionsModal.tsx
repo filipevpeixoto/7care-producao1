@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { calendarLogger } from '@/lib/logger';
 import {
   DialogWithModalTracking,
@@ -45,34 +45,12 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Carregar permissões salvas
-  useEffect(() => {
-    if (isOpen) {
-      loadPermissions();
-    }
-  }, [isOpen]);
-
-  const loadPermissions = async () => {
-    try {
-      const response = await fetch('/api/system/event-permissions');
-      if (response.ok) {
-        const data = await response.json();
-        setPermissions(data.permissions || getDefaultPermissions());
-      } else {
-        setPermissions(getDefaultPermissions());
-      }
-    } catch (error) {
-      calendarLogger.error('Erro ao carregar permissões:', error);
-      setPermissions(getDefaultPermissions());
-    }
-  };
-
-  const getDefaultPermissions = (): ProfilePermissions => {
+  const getDefaultPermissions = useCallback((): ProfilePermissions => {
     const defaultPerms: ProfilePermissions = {};
 
-    USER_PROFILES.forEach(profile => {
+    USER_PROFILES.forEach((profile) => {
       defaultPerms[profile.id] = {};
-      EVENT_TYPES.forEach(eventType => {
+      EVENT_TYPES.forEach((eventType) => {
         // Por padrão, superadmin e pastores veem tudo, outros perfis veem eventos básicos
         if (profile.id === 'superadmin' || profile.id === 'pastor') {
           defaultPerms[profile.id][eventType.id] = true;
@@ -113,10 +91,32 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
     });
 
     return defaultPerms;
-  };
+  }, []);
+
+  const loadPermissions = useCallback(async () => {
+    try {
+      const response = await fetch('/api/system/event-permissions');
+      if (response.ok) {
+        const data = await response.json();
+        setPermissions(data.permissions || getDefaultPermissions());
+      } else {
+        setPermissions(getDefaultPermissions());
+      }
+    } catch (error) {
+      calendarLogger.error('Erro ao carregar permissões:', error);
+      setPermissions(getDefaultPermissions());
+    }
+  }, [getDefaultPermissions]);
+
+  // Carregar permissões salvas
+  useEffect(() => {
+    if (isOpen) {
+      loadPermissions();
+    }
+  }, [isOpen, loadPermissions]);
 
   const handlePermissionChange = (profileId: string, eventTypeId: string, value: boolean) => {
-    setPermissions(prev => ({
+    setPermissions((prev) => ({
       ...prev,
       [profileId]: {
         ...(prev[profileId] || {}),
@@ -140,7 +140,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
       newPermissions[profileId] = {};
     }
 
-    EVENT_TYPES.forEach(eventType => {
+    EVENT_TYPES.forEach((eventType) => {
       newPermissions[profileId][eventType.id] = value;
     });
     // Incluir aniversários no controle global
@@ -227,7 +227,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
                 Tipos de Eventos
               </Label>
             </div>
-            {USER_PROFILES.map(profile => (
+            {USER_PROFILES.map((profile) => (
               <div key={profile.id} className="col-span-2 text-center">
                 <div className="flex items-center justify-center gap-2">
                   <div className={`p-1.5 rounded-full ${profile.color} text-white`}>
@@ -242,7 +242,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
           </div>
 
           {/* Linhas dos Tipos de Eventos */}
-          {EVENT_TYPES.map(eventType => (
+          {EVENT_TYPES.map((eventType) => (
             <div
               key={eventType.id}
               className="grid grid-cols-12 gap-2 p-2 rounded-lg border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
@@ -254,7 +254,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
                 </Label>
               </div>
 
-              {USER_PROFILES.map(profile => {
+              {USER_PROFILES.map((profile) => {
                 const profilePermissions = permissions[profile.id] || {};
                 const isVisible = profilePermissions[eventType.id] || false;
 
@@ -269,7 +269,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
 
                       <Switch
                         checked={isVisible}
-                        onCheckedChange={value =>
+                        onCheckedChange={(value) =>
                           handlePermissionChange(profile.id, eventType.id, value)
                         }
                       />
@@ -292,7 +292,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
               </div>
             </div>
 
-            {USER_PROFILES.map(profile => {
+            {USER_PROFILES.map((profile) => {
               const profilePermissions = permissions[profile.id] || {};
               const isVisible = profilePermissions['aniversarios'] || false;
 
@@ -307,7 +307,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
 
                     <Switch
                       checked={isVisible}
-                      onCheckedChange={value =>
+                      onCheckedChange={(value) =>
                         handlePermissionChange(profile.id, 'aniversarios', value)
                       }
                     />
@@ -324,7 +324,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
               <Label className="text-sm font-semibold text-blue-800">Controle Global</Label>
             </div>
 
-            {USER_PROFILES.map(profile => {
+            {USER_PROFILES.map((profile) => {
               const profilePermissions = permissions[profile.id] || {};
               const allVisible = Object.values(profilePermissions).every(Boolean);
 
@@ -333,7 +333,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={allVisible}
-                      onCheckedChange={value => handleProfileToggle(profile.id, value)}
+                      onCheckedChange={(value) => handleProfileToggle(profile.id, value)}
                     />
                     <Label className="text-xs text-blue-700 font-medium">
                       {allVisible ? 'Ver tudo' : 'Ver selecionados'}
@@ -352,7 +352,7 @@ export const EventPermissionsModal: React.FC<EventPermissionsModalProps> = ({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {USER_PROFILES.map(profile => {
+              {USER_PROFILES.map((profile) => {
                 const profilePermissions = permissions[profile.id] || {};
                 const visibleCount = Object.values(profilePermissions).filter(Boolean).length;
                 const totalCount = EVENT_TYPES.length + 1; // +1 para incluir aniversários

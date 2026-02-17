@@ -2,7 +2,7 @@
  * Hook para gerenciar o estado do wizard de onboarding de pastores
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { type OnboardingData } from '@/types/pastor-invite';
 import { createLogger } from '@/lib/logger';
@@ -19,32 +19,32 @@ interface WizardState {
 const STORAGE_KEY = 'pastor_onboarding_draft';
 
 export function useOnboardingWizard(token: string) {
-  const [state, setState] = useState<WizardState>({
-    currentStep: 1,
-    data: {
-      completedSteps: [],
-      lastStepAt: new Date().toISOString(),
-    },
-    isLoading: false,
-    error: null,
-  });
+  const [state, setState] = useState<WizardState>(() => {
+    const baseState: WizardState = {
+      currentStep: 1,
+      data: {
+        completedSteps: [],
+        lastStepAt: new Date().toISOString(),
+      },
+      isLoading: false,
+      error: null,
+    };
 
-  // Recuperar rascunho do localStorage ao montar
-  useEffect(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_${token}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setState(prev => ({
-          ...prev,
-          currentStep: parsed.currentStep || 1,
-          data: parsed.data || { completedSteps: [], lastStepAt: new Date().toISOString() },
-        }));
-      } catch (error) {
-        onboardingLogger.error('Erro ao carregar rascunho:', error);
-      }
+    if (!saved) return baseState;
+
+    try {
+      const parsed = JSON.parse(saved);
+      return {
+        ...baseState,
+        currentStep: parsed.currentStep || 1,
+        data: parsed.data || baseState.data,
+      };
+    } catch (error) {
+      onboardingLogger.error('Erro ao carregar rascunho:', error);
+      return baseState;
     }
-  }, [token]);
+  });
 
   // Salvar rascunho no localStorage
   const saveDraft = useCallback(() => {
@@ -61,7 +61,7 @@ export function useOnboardingWizard(token: string) {
   // Atualizar dados de um passo
   const updateStepData = useCallback(
     (step: number, data: Record<string, unknown>) => {
-      setState(prev => {
+      setState((prev) => {
         const completedSteps = prev.data.completedSteps || [];
         const newData = {
           ...prev.data,
@@ -93,7 +93,7 @@ export function useOnboardingWizard(token: string) {
 
   // Ir para próximo passo
   const nextStep = useCallback(() => {
-    setState(prev => {
+    setState((prev) => {
       const newStep = Math.min(prev.currentStep + 1, 8);
 
       // Salvar no localStorage
@@ -117,7 +117,7 @@ export function useOnboardingWizard(token: string) {
 
   // Voltar passo
   const prevStep = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       currentStep: Math.max(prev.currentStep - 1, 1),
     }));
@@ -125,7 +125,7 @@ export function useOnboardingWizard(token: string) {
 
   // Ir para um passo específico
   const goToStep = useCallback((step: number) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       currentStep: Math.max(1, Math.min(step, 8)),
     }));
@@ -177,12 +177,12 @@ export function useOnboardingWizard(token: string) {
       };
       error?: string;
     }> => {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const data = await submitMutation.mutateAsync(password);
 
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState((prev) => ({ ...prev, isLoading: false }));
         return {
           success: true,
           result: {
@@ -194,7 +194,7 @@ export function useOnboardingWizard(token: string) {
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           error: errorMessage,
           isLoading: false,
@@ -207,7 +207,7 @@ export function useOnboardingWizard(token: string) {
 
   // Limpar erro
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   return {

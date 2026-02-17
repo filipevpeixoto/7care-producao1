@@ -3,6 +3,7 @@ import { type ExtendedNavigator } from '@/types/extensions';
 import { createLogger } from '@/lib/logger';
 
 const pwaLogger = createLogger('PWA');
+let cachedDeferredPrompt: BeforeInstallPromptEvent | null = null;
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -14,30 +15,24 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export const usePWAInstall = () => {
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstallable, setIsInstallable] = useState(() => Boolean(cachedDeferredPrompt));
+  const [isInstalled, setIsInstalled] = useState(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+    const isMinimalUI = window.matchMedia('(display-mode: minimal-ui)').matches;
+    const isIOSStandalone = (window.navigator as ExtendedNavigator).standalone === true;
+    return isStandalone || isFullscreen || isMinimalUI || isIOSStandalone;
+  });
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
+    () => cachedDeferredPrompt
+  );
 
   useEffect(() => {
-    // Check if app is already installed
-    const checkIfInstalled = () => {
-      // Check if running in standalone mode (installed)
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
-      const isMinimalUI = window.matchMedia('(display-mode: minimal-ui)').matches;
-      
-      // Check for iOS standalone mode
-      const isIOSStandalone = (window.navigator as ExtendedNavigator).standalone === true;
-      
-      setIsInstalled(isStandalone || isFullscreen || isMinimalUI || isIOSStandalone);
-    };
-
-    checkIfInstalled();
-
     // Listen for the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      cachedDeferredPrompt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(cachedDeferredPrompt);
       setIsInstallable(true);
     };
 
@@ -46,6 +41,7 @@ export const usePWAInstall = () => {
       setIsInstalled(true);
       setIsInstallable(false);
       setDeferredPrompt(null);
+      cachedDeferredPrompt = null;
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -63,7 +59,7 @@ export const usePWAInstall = () => {
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      
+
       if (outcome === 'accepted') {
         setIsInstalled(true);
         setIsInstallable(false);
@@ -79,15 +75,15 @@ export const usePWAInstall = () => {
 
   const getInstallInstructions = () => {
     const userAgent = navigator.userAgent.toLowerCase();
-    
+
     if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
       return {
         platform: 'iOS',
         steps: [
           '1. Toque no ícone de compartilhar no Safari',
           '2. Role para baixo e selecione "Adicionar à Tela de Início"',
-          '3. Toque em "Adicionar" no canto superior direito'
-        ]
+          '3. Toque em "Adicionar" no canto superior direito',
+        ],
       };
     } else if (userAgent.includes('android')) {
       return {
@@ -95,8 +91,8 @@ export const usePWAInstall = () => {
         steps: [
           '1. Toque no menu (⋮) do navegador',
           '2. Selecione "Adicionar à tela inicial" ou "Instalar app"',
-          '3. Confirme tocando em "Adicionar" ou "Instalar"'
-        ]
+          '3. Confirme tocando em "Adicionar" ou "Instalar"',
+        ],
       };
     } else {
       return {
@@ -104,8 +100,8 @@ export const usePWAInstall = () => {
         steps: [
           '1. Clique no ícone de instalação na barra de endereços',
           '2. Ou acesse o menu do navegador e selecione "Instalar 7care"',
-          '3. Confirme a instalação'
-        ]
+          '3. Confirme a instalação',
+        ],
       };
     }
   };

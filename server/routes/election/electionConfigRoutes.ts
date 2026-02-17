@@ -242,7 +242,7 @@ export const electionConfigRoutes = (app: Express): void => {
         if (typeof configData.removed_candidates === 'string') {
           try {
             configData.removed_candidates = JSON.parse(configData.removed_candidates);
-          } catch (_e) {
+          } catch {
             configData.removed_candidates = [];
           }
         }
@@ -255,7 +255,7 @@ export const electionConfigRoutes = (app: Express): void => {
         if (typeof configData.current_leaders === 'string') {
           try {
             configData.current_leaders = JSON.parse(configData.current_leaders);
-          } catch (_e2) {
+          } catch {
             configData.current_leaders = {};
           }
         }
@@ -290,7 +290,7 @@ export const electionConfigRoutes = (app: Express): void => {
           if (typeof configData.removed_candidates === 'string') {
             try {
               configData.removed_candidates = JSON.parse(configData.removed_candidates);
-            } catch (_e3) {
+            } catch {
               configData.removed_candidates = [];
             }
           }
@@ -326,9 +326,9 @@ export const electionConfigRoutes = (app: Express): void => {
           configData.removed_candidates
         );
         return sendSuccess(res, configData);
-      } 
-        // Buscar última configuração criada
-        const config = await sql`
+      }
+      // Buscar última configuração criada
+      const config = await sql`
           SELECT ec.*, e.status as election_status, e.created_at as election_created_at
           FROM election_configs ec
           LEFT JOIN (
@@ -340,13 +340,12 @@ export const electionConfigRoutes = (app: Express): void => {
           LIMIT 1
         `;
 
-        if (config.length === 0) {
-          return sendNotFound(res, 'Nenhuma configuração encontrada');
-        }
+      if (config.length === 0) {
+        return sendNotFound(res, 'Nenhuma configuração encontrada');
+      }
 
-        const configData = parseRemovedCandidates(config[0]);
-        return sendSuccess(res, configData);
-      
+      const configData = parseRemovedCandidates(config[0]);
+      return sendSuccess(res, configData);
     } catch (error: unknown) {
       logger.error('❌ Erro ao buscar configuração:', error);
       return sendInternalError(res, 'Erro interno do servidor');
@@ -403,7 +402,7 @@ export const electionConfigRoutes = (app: Express): void => {
         const districtChurches = await sql<{ name: string }>`
           SELECT name FROM churches WHERE district_id = ${requestingUser!.district_id}
         `;
-        const churchNames = districtChurches.map(c => c.name);
+        const churchNames = districtChurches.map((c) => c.name);
 
         if (churchNames.length > 0) {
           configs = await sql`

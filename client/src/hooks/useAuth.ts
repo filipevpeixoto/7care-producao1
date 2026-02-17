@@ -23,7 +23,7 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { AuthUser as User } from '@/../../shared/types/user';
 import type { AuthState } from '@/types/auth';
 import { saveUsersOffline, canAccessFullOfflineData, clearEncryptionKey } from '@/lib/offline';
@@ -38,14 +38,12 @@ async function clearApiCache(): Promise<void> {
   try {
     if ('caches' in window) {
       const cacheNames = await caches.keys();
-      const apiCaches = cacheNames.filter(name => 
-        name.includes('api') || name.includes('7care')
-      );
-      
+      const apiCaches = cacheNames.filter((name) => name.includes('api') || name.includes('7care'));
+
       for (const cacheName of apiCaches) {
         await caches.delete(cacheName);
       }
-      
+
       authLogger.debug('Cache de Service Worker limpo');
     }
   } catch (error) {
@@ -71,10 +69,7 @@ async function clearReactQueryCache(): Promise<void> {
  * Limpa todos os caches (Service Worker + React Query)
  */
 async function clearAllCaches(): Promise<void> {
-  await Promise.all([
-    clearApiCache(),
-    clearReactQueryCache(),
-  ]);
+  await Promise.all([clearApiCache(), clearReactQueryCache()]);
 }
 
 /** User type com propriedades estendidas */
@@ -111,7 +106,7 @@ export const useAuth = () => {
   });
 
   const isImpersonating = Boolean(authState.user?.isImpersonating);
-  const realUser = useMemo(() => {
+  const realUser = (() => {
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!storedAuth) return null;
     try {
@@ -119,19 +114,17 @@ export const useAuth = () => {
     } catch {
       return null;
     }
-  }, [authState.user?.id, authState.isAuthenticated]);
+  })();
 
   useEffect(() => {
     authLogger.debug('Checking stored auth...');
 
     // Timeout de segurança para evitar loading infinito
     const timeoutId = setTimeout(() => {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
     }, AUTH_TIMEOUT_MS);
 
-    const scheduleAuthState = (
-      nextState: AuthState | ((prev: AuthState) => AuthState)
-    ) => {
+    const scheduleAuthState = (nextState: AuthState | ((prev: AuthState) => AuthState)) => {
       setTimeout(() => {
         setAuthState(nextState);
       }, 0);
@@ -173,11 +166,11 @@ export const useAuth = () => {
       } catch {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         clearTimeout(timeoutId);
-        scheduleAuthState(prev => ({ ...prev, isLoading: false }));
+        scheduleAuthState((prev) => ({ ...prev, isLoading: false }));
       }
     } else {
       clearTimeout(timeoutId);
-      scheduleAuthState(prev => ({ ...prev, isLoading: false }));
+      scheduleAuthState((prev) => ({ ...prev, isLoading: false }));
     }
 
     return () => clearTimeout(timeoutId);
@@ -194,7 +187,7 @@ export const useAuth = () => {
     try {
       // Limpar TODOS os caches antes do login para garantir dados frescos
       await clearAllCaches();
-      
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,9 +228,10 @@ export const useAuth = () => {
 
               // Salvar dados do usuário offline se tiver permissão
               if (canAccessFullOfflineData(userWithChurch.role)) {
-                saveUsersOffline([userWithChurch as unknown as import('@shared/schema').User], userWithChurch.role).catch(err =>
-                  authLogger.debug('Erro ao salvar offline:', err)
-                );
+                saveUsersOffline(
+                  [userWithChurch as unknown as import('@shared/schema').User],
+                  userWithChurch.role
+                ).catch((err) => authLogger.debug('Erro ao salvar offline:', err));
               }
 
               return true;
@@ -268,7 +262,7 @@ export const useAuth = () => {
   const logout = useCallback(async () => {
     // Limpar TODOS os caches no logout para segurança
     await clearAllCaches();
-    
+
     localStorage.removeItem(AUTH_STORAGE_KEY);
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(IMPERSONATION_KEY);
@@ -311,7 +305,7 @@ export const useAuth = () => {
       const updatedUser = { ...authState.user, ...userData };
 
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
-      setAuthState(prev => ({
+      setAuthState((prev) => ({
         ...prev,
         user: updatedUser,
       }));

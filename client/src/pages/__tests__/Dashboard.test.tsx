@@ -4,8 +4,37 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
+type MockUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  church: string;
+} | null;
+
+type MockDashboardData = {
+  user: MockUser;
+  stats: {
+    totalUsers: number;
+    totalTasks: number;
+    totalChurches: number;
+    totalRequests: number;
+  };
+  isLoading: boolean;
+  tasksLoading: boolean;
+  birthdayData: unknown[];
+  visitData: unknown[];
+  userEvents: unknown[];
+  spiritualCheckIns: unknown[];
+  districtsCount: number;
+  pastorsCount: number;
+  churchInterested: unknown[];
+  userRelationships: unknown[];
+  userDetailedData: unknown | null;
+};
+
 // Mock the dashboard data hook
-const mockDashboardData = {
+const mockDashboardData: MockDashboardData = {
   user: {
     id: 1,
     name: 'Admin User',
@@ -41,10 +70,10 @@ vi.mock('@/hooks/useTransitionNavigate', () => ({
 }));
 
 vi.mock('@/lib/permissions', () => ({
-  hasAdminAccess: (user: any) =>
-    user && ['admin', 'superadmin', 'pastor'].includes(user.role),
-  isSuperAdmin: (user: any) => user && user.role === 'superadmin',
-  isPastor: (user: any) => user && user.role === 'pastor',
+  hasAdminAccess: (user: { role?: string } | null) =>
+    !!user && ['admin', 'superadmin', 'pastor'].includes(user.role ?? ''),
+  isSuperAdmin: (user: { role?: string } | null) => user?.role === 'superadmin',
+  isPastor: (user: { role?: string } | null) => user?.role === 'pastor',
 }));
 
 vi.mock('@/lib/logger', () => ({
@@ -129,12 +158,14 @@ describe('Dashboard', () => {
 
   it('shows loading state when data is loading', async () => {
     mockDashboardData.isLoading = true;
-    mockDashboardData.user = null as any;
+    mockDashboardData.user = null;
     const Dashboard = (await import('../Dashboard')).default;
     render(<Dashboard />, { wrapper: createWrapper() });
 
     // Should show loading spinner/state (may use i18n key or animation)
-    const loadingEl = screen.queryByText(/carregando|loading/i) || document.querySelector('[class*="animate-spin"]');
+    const loadingEl =
+      screen.queryByText(/carregando|loading/i) ||
+      document.querySelector('[class*="animate-spin"]');
     expect(loadingEl).toBeTruthy();
   });
 });

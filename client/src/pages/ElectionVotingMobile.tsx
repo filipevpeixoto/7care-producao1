@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -45,8 +45,24 @@ export default function ElectionVotingMobile() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [showDescriptionModal, setShowDescriptionModal] = useState(false);
 
+  const electionDataRef = useRef<ElectionData | null>(null);
+  const retryCountRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
+
+  useEffect(() => {
+    electionDataRef.current = electionData;
+  }, [electionData]);
+
+  useEffect(() => {
+    retryCountRef.current = retryCount;
+  }, [retryCount]);
+
+  useEffect(() => {
+    isInitialLoadRef.current = isInitialLoad;
+  }, [isInitialLoad]);
+
   // Função para buscar eleições ativas e encontrar a correta
-  const findActiveElection = async () => {
+  const findActiveElection = useCallback(async () => {
     try {
       const response = await fetchWithAuth('/api/elections/active', {
         headers: {
@@ -72,247 +88,265 @@ export default function ElectionVotingMobile() {
       electionLogger.error('Erro ao buscar eleições ativas:', error);
       return null;
     }
-  };
+  }, []);
 
-  const loadElectionData = async (_electionConfigId?: number, silentUpdate = false) => {
-    try {
-      // Só mostrar loading se não for uma atualização silenciosa
-      if (!silentUpdate) {
-        setLoading(true);
-      }
-      setError(null);
+  const loadAllMembers = useCallback(
+    async (_electionId: number) => {
+      try {
+        electionLogger.debug('Carregando todos os membros como candidatos...');
 
-      // Se não foi fornecido um configId, tentar encontrar eleição ativa
-      let targetConfigId = configId;
-      if (!targetConfigId || targetConfigId === 'undefined') {
-        electionLogger.debug('ConfigId não fornecido, buscando eleição ativa...');
-        const activeConfigId = await findActiveElection();
-        if (activeConfigId) {
-          targetConfigId = activeConfigId.toString();
-          // Atualizar a URL se necessário
-          if (window.location.pathname !== `/election-vote/${activeConfigId}`) {
-            window.history.replaceState(null, '', `/election-vote/${activeConfigId}`);
-          }
-        } else {
-          throw new Error(t('electionVotingMobile.noActiveElection'));
-        }
-      }
+        // Buscar todos os membros da igreja
+        const response = await fetch('/api/debug/users');
+        if (response.ok) {
+          const data = await response.json();
+          electionLogger.debug('Membros encontrados:', data.users.length);
 
-      electionLogger.debug('Carregando dados da eleição com configId:', targetConfigId);
-
-      // Adicionar timestamp para evitar cache e garantir dados atualizados
-      const timestamp = Date.now();
-      const response = await fetchWithAuth(`/api/elections/voting/${targetConfigId}?t=${timestamp}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        electionLogger.debug('Dados da eleição recebidos:', data);
-
-        // Validar dados recebidos
-        if (!data.election) {
-          throw new Error(t('electionVotingMobile.invalidElectionData'));
-        }
-
-        // Se não há candidatos, tentar carregar sem filtros
-        if (!data.candidates || data.candidates.length === 0) {
-          electionLogger.debug('Nenhum candidato encontrado, tentando carregar todos os membros...');
-          await loadAllMembers(data.election.id);
-          return;
-        }
-
-        // Se a posição mudou, resetar o candidato selecionado
-        if (electionData && electionData.currentPosition !== data.currentPosition) {
-          electionLogger.debug('Posição mudou, resetando candidato selecionado');
-          setSelectedCandidate(null);
-          setSubmitting(false);
-        }
-
-        // Se o usuário já votou ou indicou, resetar a seleção (já foi processada)
-        // Mas só resetar se realmente mudou o estado (não durante polling normal)
-        if (
-          (data.hasVoted || data.hasNominated) &&
-          (!electionData ||
-            electionData.hasVoted !== data.hasVoted ||
-            electionData.hasNominated !== data.hasNominated)
-        ) {
-          electionLogger.debug('Usuário votou/indicou, resetando seleção');
-          setSelectedCandidate(null);
-        }
-
-        const normalizedWinner = data.winner
-          ? {
-              id: data.winner.id,
-              name: data.winner.name,
-              votes: Number(data.winner.votes) || 0,
-              percentage: Number(data.winner.percentage) || 0,
-            }
-          : null;
-
-        const enrichedData: ElectionData = {
-          ...data,
-          totalVoters:
-            typeof data.totalVoters === 'number'
-              ? data.totalVoters
-              : Array.isArray(data.voters)
-                ? data.voters.length
-                : 0,
-          totalVotes: typeof data.totalVotes === 'number' ? data.totalVotes : 0,
-          votersWhoVoted: typeof data.votersWhoVoted === 'number' ? data.votersWhoVoted : 0,
-          allVotesCast: Boolean(data.allVotesCast),
-          winner: normalizedWinner,
-        };
-
-        // Verificar se a lista de candidatos mudou (apenas para logs, sem notificações)
-        const previousCandidatesCount = electionData?.candidates?.length || 0;
-        const currentCandidatesCount = enrichedData.candidates?.length || 0;
-        const previousCandidateIds =
-          electionData?.candidates
-            ?.map(c => c.id)
-            .sort()
-            .join(',') || '';
-        const currentCandidateIds =
-          enrichedData.candidates
-            ?.map(c => c.id)
-            .sort()
-            .join(',') || '';
-
-        if (previousCandidateIds !== currentCandidateIds && electionData) {
-          const previousCandidateNames = electionData.candidates?.map(c => c.name) || [];
-          const currentCandidateNames = enrichedData.candidates?.map(c => c.name) || [];
-          const removedCandidates = previousCandidateNames.filter(
-            name => !currentCandidateNames.includes(name)
+          // Converter membros em candidatos
+          const candidates: Candidate[] = data.users.map(
+            (member: { id: number; name: string; church?: string }) => ({
+              id: member.id,
+              name: member.name,
+              unit: member.church || 'N/A',
+              points: 0,
+              nominations: 0,
+              votes: 0,
+              percentage: 0,
+            })
           );
 
-          electionLogger.debug('Lista de candidatos atualizada:', {
-            anterior: previousCandidatesCount,
-            atual: currentCandidatesCount,
-            removidos: previousCandidatesCount - currentCandidatesCount,
-            candidatos_removidos: removedCandidates,
-            candidatos_anteriores: previousCandidateNames,
-            candidatos_atuais: currentCandidateNames,
+          // Atualizar dados da eleição com candidatos
+          setElectionData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  candidates,
+                }
+              : null
+          );
+
+          toast({
+            title: t('electionVotingMobile.candidatesLoaded'),
+            description: t('electionVotingMobile.candidatesLoadedDesc', {
+              count: candidates.length,
+            }),
+          });
+        }
+      } catch (error) {
+        electionLogger.error('Erro ao carregar membros:', error);
+        toast({
+          title: t('electionVotingMobile.warning'),
+          description: t('electionVotingMobile.candidatesLoadError'),
+          variant: 'destructive',
+        });
+      }
+    },
+    [t, toast]
+  );
+
+  const loadElectionData = useCallback(
+    async (_electionConfigId?: number, silentUpdate = false) => {
+      try {
+        // Só mostrar loading se não for uma atualização silenciosa
+        if (!silentUpdate) {
+          setLoading(true);
+        }
+        setError(null);
+
+        // Se não foi fornecido um configId, tentar encontrar eleição ativa
+        let targetConfigId = configId;
+        if (!targetConfigId || targetConfigId === 'undefined') {
+          electionLogger.debug('ConfigId não fornecido, buscando eleição ativa...');
+          const activeConfigId = await findActiveElection();
+          if (activeConfigId) {
+            targetConfigId = activeConfigId.toString();
+            // Atualizar a URL se necessário
+            if (window.location.pathname !== `/election-vote/${activeConfigId}`) {
+              window.history.replaceState(null, '', `/election-vote/${activeConfigId}`);
+            }
+          } else {
+            throw new Error(t('electionVotingMobile.noActiveElection'));
+          }
+        }
+
+        electionLogger.debug('Carregando dados da eleição com configId:', targetConfigId);
+
+        // Adicionar timestamp para evitar cache e garantir dados atualizados
+        const timestamp = Date.now();
+        const response = await fetchWithAuth(
+          `/api/elections/voting/${targetConfigId}?t=${timestamp}`,
+          {
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              Pragma: 'no-cache',
+              Expires: '0',
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          electionLogger.debug('Dados da eleição recebidos:', data);
+          const currentElectionData = electionDataRef.current;
+
+          // Validar dados recebidos
+          if (!data.election) {
+            throw new Error(t('electionVotingMobile.invalidElectionData'));
+          }
+
+          // Se não há candidatos, tentar carregar sem filtros
+          if (!data.candidates || data.candidates.length === 0) {
+            electionLogger.debug(
+              'Nenhum candidato encontrado, tentando carregar todos os membros...'
+            );
+            await loadAllMembers(data.election.id);
+            return;
+          }
+
+          // Se a posição mudou, resetar o candidato selecionado
+          if (currentElectionData && currentElectionData.currentPosition !== data.currentPosition) {
+            electionLogger.debug('Posição mudou, resetando candidato selecionado');
+            setSelectedCandidate(null);
+            setSubmitting(false);
+          }
+
+          // Se o usuário já votou ou indicou, resetar a seleção (já foi processada)
+          // Mas só resetar se realmente mudou o estado (não durante polling normal)
+          if (
+            (data.hasVoted || data.hasNominated) &&
+            (!currentElectionData ||
+              currentElectionData.hasVoted !== data.hasVoted ||
+              currentElectionData.hasNominated !== data.hasNominated)
+          ) {
+            electionLogger.debug('Usuário votou/indicou, resetando seleção');
+            setSelectedCandidate(null);
+          }
+
+          const normalizedWinner = data.winner
+            ? {
+                id: data.winner.id,
+                name: data.winner.name,
+                votes: Number(data.winner.votes) || 0,
+                percentage: Number(data.winner.percentage) || 0,
+              }
+            : null;
+
+          const enrichedData: ElectionData = {
+            ...data,
+            totalVoters:
+              typeof data.totalVoters === 'number'
+                ? data.totalVoters
+                : Array.isArray(data.voters)
+                  ? data.voters.length
+                  : 0,
+            totalVotes: typeof data.totalVotes === 'number' ? data.totalVotes : 0,
+            votersWhoVoted: typeof data.votersWhoVoted === 'number' ? data.votersWhoVoted : 0,
+            allVotesCast: Boolean(data.allVotesCast),
+            winner: normalizedWinner,
+          };
+
+          // Verificar se a lista de candidatos mudou (apenas para logs, sem notificações)
+          const previousCandidatesCount = currentElectionData?.candidates?.length || 0;
+          const currentCandidatesCount = enrichedData.candidates?.length || 0;
+          const previousCandidateIds =
+            currentElectionData?.candidates
+              ?.map((c) => c.id)
+              .sort()
+              .join(',') || '';
+          const currentCandidateIds =
+            enrichedData.candidates
+              ?.map((c) => c.id)
+              .sort()
+              .join(',') || '';
+
+          if (previousCandidateIds !== currentCandidateIds && currentElectionData) {
+            const previousCandidateNames = currentElectionData.candidates?.map((c) => c.name) || [];
+            const currentCandidateNames = enrichedData.candidates?.map((c) => c.name) || [];
+            const removedCandidates = previousCandidateNames.filter(
+              (name) => !currentCandidateNames.includes(name)
+            );
+
+            electionLogger.debug('Lista de candidatos atualizada:', {
+              anterior: previousCandidatesCount,
+              atual: currentCandidatesCount,
+              removidos: previousCandidatesCount - currentCandidatesCount,
+              candidatos_removidos: removedCandidates,
+              candidatos_anteriores: previousCandidateNames,
+              candidatos_atuais: currentCandidateNames,
+            });
+
+            // Removido: toast de notificação de candidatos removidos (estava atrapalhando os votantes)
+          }
+
+          setElectionData(enrichedData);
+          electionLogger.debug('Dados normalizados da eleição:', {
+            configId: enrichedData.election?.config_id,
+            position: enrichedData.currentPositionName,
+            phase: enrichedData.phase,
+            totalVoters: enrichedData.totalVoters,
+            totalVotes: enrichedData.totalVotes,
+            votersWhoVoted: enrichedData.votersWhoVoted,
+            allVotesCast: enrichedData.allVotesCast,
+            winner: enrichedData.winner,
+            candidatos: enrichedData.candidates?.length || 0,
           });
 
-          // Removido: toast de notificação de candidatos removidos (estava atrapalhando os votantes)
+          // Se o usuário já votou, mostrar o voto selecionado
+          if (data.userVote) {
+            setSelectedCandidate(data.userVote);
+          }
+          // Se não votou nem indicou, preservar a seleção atual durante polling
+          // Não resetar o selectedCandidate para não perder a seleção do usuário
+
+          retryCountRef.current = 0;
+          setRetryCount(0); // Reset retry count on success
+        } else if (response.status === 404) {
+          // Se não encontrou eleição com este configId, tentar encontrar ativa
+          electionLogger.debug('Eleição não encontrada, buscando eleição ativa...');
+          const activeConfigId = await findActiveElection();
+          if (activeConfigId && activeConfigId.toString() !== configId) {
+            electionLogger.debug('Redirecionando para eleição ativa:', activeConfigId);
+            navigate(`/election-vote/${activeConfigId}`, { replace: true });
+            return;
+          }
+
+          const errorData = await response.json();
+          throw new Error(errorData.error || t('electionVotingMobile.electionNotFound'));
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || t('electionVotingMobile.loadElectionError'));
         }
+      } catch (error) {
+        electionLogger.error('Erro ao carregar dados da eleição:', error);
+        setError(error instanceof Error ? error.message : t('electionVotingMobile.unknownError'));
 
-        setElectionData(enrichedData);
-        electionLogger.debug('Dados normalizados da eleição:', {
-          configId: enrichedData.election?.config_id,
-          position: enrichedData.currentPositionName,
-          phase: enrichedData.phase,
-          totalVoters: enrichedData.totalVoters,
-          totalVotes: enrichedData.totalVotes,
-          votersWhoVoted: enrichedData.votersWhoVoted,
-          allVotesCast: enrichedData.allVotesCast,
-          winner: enrichedData.winner,
-          candidatos: enrichedData.candidates?.length || 0,
-        });
-
-        // Se o usuário já votou, mostrar o voto selecionado
-        if (data.userVote) {
-          setSelectedCandidate(data.userVote);
-        }
-        // Se não votou nem indicou, preservar a seleção atual durante polling
-        // Não resetar o selectedCandidate para não perder a seleção do usuário
-
-        setRetryCount(0); // Reset retry count on success
-      } else if (response.status === 404) {
-        // Se não encontrou eleição com este configId, tentar encontrar ativa
-        electionLogger.debug('Eleição não encontrada, buscando eleição ativa...');
-        const activeConfigId = await findActiveElection();
-        if (activeConfigId && activeConfigId.toString() !== configId) {
-          electionLogger.debug('Redirecionando para eleição ativa:', activeConfigId);
-          navigate(`/election-vote/${activeConfigId}`, { replace: true });
+        // Se ainda não tentou buscar eleição ativa, tentar agora
+        if (retryCountRef.current === 0 && configId) {
+          electionLogger.debug('Tentando buscar eleição ativa...');
+          retryCountRef.current = 1;
+          setRetryCount(1);
+          await loadElectionData();
           return;
         }
-
-        const errorData = await response.json();
-        throw new Error(errorData.error || t('electionVotingMobile.electionNotFound'));
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || t('electionVotingMobile.loadElectionError'));
+      } finally {
+        // Só desativar loading se não for uma atualização silenciosa
+        if (!silentUpdate) {
+          setLoading(false);
+        }
+        // Após o primeiro carregamento, marcar como não sendo mais inicial
+        if (isInitialLoadRef.current) {
+          isInitialLoadRef.current = false;
+          setIsInitialLoad(false);
+        }
       }
-    } catch (error) {
-      electionLogger.error('Erro ao carregar dados da eleição:', error);
-      setError(error instanceof Error ? error.message : t('electionVotingMobile.unknownError'));
-
-      // Se ainda não tentou buscar eleição ativa, tentar agora
-      if (retryCount === 0 && configId) {
-        electionLogger.debug('Tentando buscar eleição ativa...');
-        setRetryCount(1);
-        await loadElectionData();
-        return;
-      }
-    } finally {
-      // Só desativar loading se não for uma atualização silenciosa
-      if (!silentUpdate) {
-        setLoading(false);
-      }
-      // Após o primeiro carregamento, marcar como não sendo mais inicial
-      if (isInitialLoad) {
-        setIsInitialLoad(false);
-      }
-    }
-  };
+    },
+    [configId, findActiveElection, loadAllMembers, navigate, t]
+  );
 
   const loadElectionDataRef = useRef(loadElectionData);
 
   useEffect(() => {
     loadElectionDataRef.current = loadElectionData;
   }, [loadElectionData]);
-
-  // Função para carregar todos os membros como candidatos (fallback)
-  const loadAllMembers = async (_electionId: number) => {
-    try {
-      electionLogger.debug('Carregando todos os membros como candidatos...');
-
-      // Buscar todos os membros da igreja
-      const response = await fetch('/api/debug/users');
-      if (response.ok) {
-        const data = await response.json();
-        electionLogger.debug('Membros encontrados:', data.users.length);
-
-        // Converter membros em candidatos
-        const candidates: Candidate[] = data.users.map((member: { id: number; name: string; church?: string }) => ({
-          id: member.id,
-          name: member.name,
-          unit: member.church || 'N/A',
-          points: 0,
-          nominations: 0,
-          votes: 0,
-          percentage: 0,
-        }));
-
-        // Atualizar dados da eleição com candidatos
-        setElectionData(prev =>
-          prev
-            ? {
-                ...prev,
-                candidates,
-              }
-            : null
-        );
-
-        toast({
-          title: t('electionVotingMobile.candidatesLoaded'),
-          description: t('electionVotingMobile.candidatesLoadedDesc', { count: candidates.length }),
-        });
-      }
-    } catch (error) {
-      electionLogger.error('Erro ao carregar membros:', error);
-      toast({
-        title: t('electionVotingMobile.warning'),
-        description: t('electionVotingMobile.candidatesLoadError'),
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleVote = async (candidateId: number, phase: string) => {
     if (submitting || !electionData) return;
@@ -360,16 +394,16 @@ export default function ElectionVotingMobile() {
 
   const handleRetry = () => {
     setError(null);
+    retryCountRef.current = 0;
     setRetryCount(0);
     loadElectionData();
   };
-
 
   useEffect(() => {
     if (user?.id) {
       loadElectionData();
     }
-  }, [user?.id, configId]);
+  }, [user?.id, configId, loadElectionData]);
 
   // Polling contínuo para atualização em tempo real (incluindo remoção de candidatos pelo admin)
   useEffect(() => {
@@ -378,7 +412,7 @@ export default function ElectionVotingMobile() {
     // Atualizar a cada 1 segundo para garantir que mudanças do admin sejam refletidas imediatamente
     // O polling continua mesmo quando electionData ainda não foi carregado
     const interval = setInterval(() => {
-      if (electionData) {
+      if (electionDataRef.current) {
         electionLogger.debug('Atualizando dados da eleição em tempo real...');
       }
       loadElectionDataRef.current?.(undefined, true); // true = silentUpdate (sem mostrar loading)
@@ -407,9 +441,7 @@ export default function ElectionVotingMobile() {
   const finalCardShownRef = useRef(false);
 
   useEffect(() => {
-    if (electionData) {
-      finalCardShownRef.current = false;
-    }
+    finalCardShownRef.current = false;
   }, [electionData?.currentPosition, electionData?.phase]);
 
   useEffect(() => {
@@ -417,14 +449,19 @@ export default function ElectionVotingMobile() {
       finalCardShownRef.current = true;
       const winnerName = electionData.winner?.name;
       const message = winnerName
-        ? t('electionVotingMobile.winnerElected', { name: winnerName, position: electionData.currentPositionName })
-        : t('electionVotingMobile.allVotesRegistered', { position: electionData.currentPositionName });
+        ? t('electionVotingMobile.winnerElected', {
+            name: winnerName,
+            position: electionData.currentPositionName,
+          })
+        : t('electionVotingMobile.allVotesRegistered', {
+            position: electionData.currentPositionName,
+          });
       toast({
         title: t('electionVotingMobile.votingFinished'),
         description: message,
       });
     }
-  }, [showFinalCard, electionData, toast]);
+  }, [showFinalCard, electionData, t, toast]);
 
   // Só mostrar loading completo no carregamento inicial
   if (loading && isInitialLoad) {
@@ -432,13 +469,7 @@ export default function ElectionVotingMobile() {
   }
 
   if (error) {
-    return (
-      <ErrorState
-        error={error}
-        onRetry={handleRetry}
-        onBack={() => navigate('/dashboard')}
-      />
-    );
+    return <ErrorState error={error} onRetry={handleRetry} onBack={() => navigate('/dashboard')} />;
   }
 
   if (!electionData) {

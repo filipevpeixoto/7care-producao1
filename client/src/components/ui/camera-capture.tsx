@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Camera, X, RotateCcw, Loader2, Check } from 'lucide-react';
 import { Button } from './button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog';
@@ -18,7 +18,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   isOpen,
   onClose,
   onCapture,
-  isLoading = false
+  isLoading = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,34 +31,36 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   useEffect(() => {
     // Detectar se é mobile
     const checkMobile = () => {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
       setIsMobile(isMobileDevice);
     };
-    
+
     checkMobile();
   }, []);
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       setHasPermission(null);
-      
+
       // Configurações da câmera
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: isMobile ? 'environment' : 'user', // Câmera traseira no mobile, frontal no desktop
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
-        audio: false
+        audio: false,
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         videoRef.current.play();
       }
-      
+
       setStream(mediaStream);
       setIsStreamActive(true);
       setHasPermission(true);
@@ -67,15 +69,15 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
       setHasPermission(false);
       setIsStreamActive(false);
     }
-  };
+  }, [isMobile]);
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
       setIsStreamActive(false);
     }
-  };
+  }, [stream]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -83,12 +85,12 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
         startCamera();
       }
     });
-    
+
     return () => {
       window.cancelAnimationFrame(frameId);
       stopCamera();
     };
-  }, [isOpen, capturedImage]);
+  }, [isOpen, capturedImage, startCamera, stopCamera]);
 
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -107,13 +109,17 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     // Converter para blob/file
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const imageUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setCapturedImage(imageUrl);
-        stopCamera();
-      }
-    }, 'image/jpeg', 0.8);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const imageUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setCapturedImage(imageUrl);
+          stopCamera();
+        }
+      },
+      'image/jpeg',
+      0.8
+    );
   };
 
   const retakePhoto = () => {
@@ -124,13 +130,17 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   const confirmPhoto = () => {
     if (!capturedImage || !canvasRef.current) return;
 
-    canvasRef.current.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        onCapture(file);
-        handleClose();
-      }
-    }, 'image/jpeg', 0.8);
+    canvasRef.current.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          onCapture(file);
+          handleClose();
+        }
+      },
+      'image/jpeg',
+      0.8
+    );
   };
 
   const handleClose = () => {
@@ -141,24 +151,28 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
 
   const switchCamera = async () => {
     stopCamera();
-    
+
     try {
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: isMobile ? (stream?.getVideoTracks()[0]?.getSettings().facingMode === 'environment' ? 'user' : 'environment') : 'user',
+          facingMode: isMobile
+            ? stream?.getVideoTracks()[0]?.getSettings().facingMode === 'environment'
+              ? 'user'
+              : 'environment'
+            : 'user',
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
-        audio: false
+        audio: false,
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         videoRef.current.play();
       }
-      
+
       setStream(mediaStream);
       setIsStreamActive(true);
     } catch (error) {
@@ -239,7 +253,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
                       <RotateCcw className="h-5 w-5 mr-2" />
                       Tirar Novamente
                     </Button>
-                    
+
                     <Button
                       size="lg"
                       onClick={confirmPhoto}
@@ -273,7 +287,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
                         <RotateCcw className="h-5 w-5" />
                       </Button>
                     )}
-                    
+
                     <Button
                       size="lg"
                       onClick={capturePhoto}
@@ -283,7 +297,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
                     >
                       <div className="w-12 h-12 bg-white rounded-full border-4 border-gray-300" />
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       size="lg"

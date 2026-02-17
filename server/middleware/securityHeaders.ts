@@ -14,17 +14,18 @@ import { type Request, type Response, type NextFunction } from 'express';
  * Os arquivos cspHeaders.ts e security.ts (configureHelmet) são legado/dead code.
  */
 const getCspDirectives = () => {
-  const isStrict = process.env.CSP_STRICT === 'true';
+  const isDev = process.env.NODE_ENV === 'development';
   const scriptSrc = [
     "'self'",
-    ...(isStrict ? [] : ["'unsafe-inline'"]),
-    ...(process.env.NODE_ENV === 'development' && !isStrict ? ["'unsafe-eval'"] : []),
+    // unsafe-inline apenas em dev para facilitar desenvolvimento
+    ...(isDev ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
     'https://cdn.jsdelivr.net',
     'https://unpkg.com',
   ];
   const styleSrc = [
     "'self'",
-    ...(isStrict ? [] : ["'unsafe-inline'"]),
+    // unsafe-inline para estilos é necessário para muitos frameworks CSS
+    "'unsafe-inline'",
     'https://fonts.googleapis.com',
   ];
 
@@ -32,15 +33,15 @@ const getCspDirectives = () => {
     defaultSrc: ["'self'"],
     scriptSrc,
     styleSrc,
-    imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http://localhost:*'],
+    imgSrc: ["'self'", 'data:', 'blob:', 'https:', ...(isDev ? ['http://localhost:*'] : [])],
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     connectSrc: [
       "'self'",
       'https://api.sentry.io',
       'https://*.sentry.io',
-      'wss:',
-      'ws:',
-      process.env.NODE_ENV === 'development' ? 'http://localhost:*' : '',
+      'https://7care.vercel.app',
+      'https://7care.netlify.app',
+      ...(isDev ? ['ws://localhost:*', 'wss://localhost:*', 'http://localhost:*'] : []),
     ].filter(Boolean),
     frameSrc: ["'self'"],
     objectSrc: ["'none'"],

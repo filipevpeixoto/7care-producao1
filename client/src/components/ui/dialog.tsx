@@ -33,7 +33,7 @@ const DialogWithModalTracking = ({ modalId, ...props }: DialogWithModalTrackingP
     }
 
     prevOpenRef.current = isOpen;
-  }, [props.open, modalId]); // openModal e closeModal são estáveis (memoizadas com useCallback)
+  }, [props.open, modalId, openModal, closeModal]);
 
   return <DialogPrimitive.Root {...props} />;
 };

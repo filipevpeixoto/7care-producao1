@@ -5,7 +5,6 @@
 
 import { type Express, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { getRepository } from '../container';
 import { insertUserSchema } from '../../shared/schema';
 import { logger } from '../utils/logger';
@@ -13,25 +12,19 @@ import { BCRYPT_SALT_ROUNDS } from '../config/security';
 import { authLimiter, registerLimiter, sensitiveLimiter } from '../middleware/rateLimiter';
 import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { loginSchema, changePasswordSchema, resetPasswordSchema } from '../schemas';
-import { JWT_SECRET } from '../config/jwtConfig';
 import { requireStrongPassword, getPasswordSuggestions } from '../utils/passwordValidator';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess, sendError, sendNotFound, sendUnauthorized } from '../utils/apiResponse';
 import { authService } from '../services/authService';
+import { tokenBlacklist } from '../services/tokenBlacklistService';
+import { clearRefreshTokenCookie, requireJwtAuth } from '../middleware/jwtAuth';
+import type { AuthenticatedRequest } from '../types';
 
 // SEGURANÇA: JWT_SECRET e validações agora centralizadas em config/jwtConfig.ts
-
-type JwtUserPayload = {
-  id: number;
-  email: string;
-  role: string;
-  name: string;
-};
 
 /** Registers authentication routes (login, register, logout, password reset/change) */
 export const authRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
-  const churchRepo = getRepository('churchRepository');
 
   /**
    * @swagger
@@ -222,12 +215,10 @@ export const authRoutes = (app: Express): void => {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
-      const { tokenBlacklist } = require('../services/tokenBlacklistService');
       await tokenBlacklist.add(token);
     }
 
     // Limpar refresh token cookie
-    const { clearRefreshTokenCookie } = require('../middleware/jwtAuth');
     clearRefreshTokenCookie(res);
 
     res.json({ success: true });
@@ -253,45 +244,19 @@ export const authRoutes = (app: Express): void => {
    */
   app.get(
     '/api/auth/me',
+    requireJwtAuth,
     asyncHandler(async (req: Request, res: Response) => {
-      const authHeaderValue = req.headers.authorization;
-      const rawAuth = Array.isArray(authHeaderValue) ? authHeaderValue[0] : authHeaderValue;
-      const authHeader = rawAuth ? String(rawAuth) : '';
+      const authReq = req as AuthenticatedRequest;
+      const id = authReq.userId;
 
-      let id: number | null = null;
-
-      if (authHeader.startsWith('Bearer ') && JWT_SECRET) {
-        const token = authHeader.slice('Bearer '.length).trim();
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET) as Partial<JwtUserPayload>;
-          if (typeof decoded?.id === 'number') id = decoded.id;
-        } catch {
-          id = null;
-        }
-      }
-
-      if (id === null) {
+      if (!id) {
         return sendError(res, 'ID do usuário é obrigatório');
-      }
-
-      if (isNaN(id)) {
-        return sendError(res, 'ID do usuário inválido');
       }
 
       const user = await userRepo.getUserById(id);
 
       if (!user) {
         return sendNotFound(res, 'Usuário');
-      }
-
-      // If user doesn't have a church, assign the first available church
-      if (!user.church) {
-        const churches = await churchRepo.getAllChurches();
-        if (churches.length > 0) {
-          const firstChurch = churches[0];
-          await userRepo.updateUserChurch(id, firstChurch.name);
-          user.church = firstChurch.name;
-        }
       }
 
       // Return safe user data without password
@@ -321,16 +286,15 @@ export const authRoutes = (app: Express): void => {
    */
   app.get(
     '/api/user/church',
+    requireJwtAuth,
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = req.query.userId;
+      const authReq = req as AuthenticatedRequest;
+      // Aceita userId da query para admin consultar outros, mas valida via JWT
+      const queryUserId = req.query.userId ? parseInt(req.query.userId as string) : null;
+      const id = queryUserId && !isNaN(queryUserId) ? queryUserId : authReq.userId;
 
-      if (!userId) {
+      if (!id) {
         return sendError(res, 'User ID is required');
-      }
-
-      const id = parseInt(userId as string);
-      if (isNaN(id)) {
-        return sendError(res, 'Invalid user ID');
       }
 
       const user = await userRepo.getUserById(id);
@@ -339,22 +303,8 @@ export const authRoutes = (app: Express): void => {
         return sendNotFound(res, 'User');
       }
 
-      // If user doesn't have a church, get the first available one
-      let churchName = user.church;
-      if (!churchName) {
-        const churches = await churchRepo.getAllChurches();
-        if (churches.length > 0) {
-          churchName = churches[0].name;
-          try {
-            await userRepo.updateUserChurch(id, churchName || '');
-          } catch (updateError) {
-            logger.error('Error updating user church:', updateError);
-          }
-        }
-      }
-
       sendSuccess(res, {
-        church: churchName || 'Igreja não disponível',
+        church: user.church || 'Igreja não disponível',
         userId: id,
       });
     })
@@ -393,7 +343,8 @@ export const authRoutes = (app: Express): void => {
 
       const user = await userRepo.getUserByEmail(email);
       if (!user) {
-        return sendNotFound(res, 'User');
+        // Resposta genérica para evitar enumeração de usuários
+        return sendSuccess(res, {}, 200, 'Se o email existir no sistema, a senha será redefinida.');
       }
 
       // Gerar senha temporária aleatória
@@ -411,6 +362,8 @@ export const authRoutes = (app: Express): void => {
       if (updatedUser) {
         logger.info(`Password reset for user: ${user.email}`);
 
+        // Nota: a senha temporária deve ser comunicada ao usuário por canal seguro (ex: email)
+        // Não retornamos a senha na resposta da API por segurança
         sendSuccess(
           res,
           {
@@ -468,11 +421,16 @@ export const authRoutes = (app: Express): void => {
   app.post(
     '/api/auth/change-password',
     sensitiveLimiter,
+    requireJwtAuth,
     validateBody(changePasswordSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const { userId, currentPassword, newPassword } = (
+      const { currentPassword, newPassword } = (
         req as ValidatedRequest<typeof changePasswordSchema._type>
       ).validatedBody;
+
+      // Usar userId do JWT (autenticado), não do body
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.userId!;
 
       const user = await userRepo.getUserById(userId);
       if (!user) {

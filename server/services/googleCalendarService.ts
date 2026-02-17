@@ -339,7 +339,7 @@ export class GoogleCalendarService {
     const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
     const response = await calendar.calendarList.list();
 
-    return (response.data.items || []).map(cal => ({
+    return (response.data.items || []).map((cal) => ({
       id: cal.id || '',
       name: cal.summary || '',
       description: cal.description || undefined,
@@ -496,7 +496,7 @@ export class GoogleCalendarService {
         email: settings.data.value || undefined,
         lastSync: config?.lastSync,
       };
-    } catch (error) {
+    } catch {
       return { connected: false };
     }
   }

@@ -2,7 +2,13 @@ import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Check, Edit, X as XIcon } from 'lucide-react';
 
 type EditableFieldProps = {
@@ -36,7 +42,8 @@ const UserDetailEditableFieldComponent = ({
 }: EditableFieldProps) => {
   const isEditing = editingFields[field];
   const currentValue = isEditing ? editValues[field] : value;
-  const displayValue = currentValue != null ? String(currentValue) : '';
+  const displayValue =
+    currentValue !== null && currentValue !== undefined ? String(currentValue) : '';
 
   if (isEditing) {
     return (
@@ -46,20 +53,17 @@ const UserDetailEditableFieldComponent = ({
           {type === 'textarea' ? (
             <Textarea
               value={displayValue}
-              onChange={e => onEditValueChange(field, e.target.value)}
+              onChange={(e) => onEditValueChange(field, e.target.value)}
               className="flex-1"
               rows={3}
             />
           ) : type === 'select' ? (
-            <Select
-              value={displayValue}
-              onValueChange={val => onEditValueChange(field, val)}
-            >
+            <Select value={displayValue} onValueChange={(val) => onEditValueChange(field, val)}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                {options?.map(option => (
+                {options?.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
                   </SelectItem>
@@ -69,7 +73,7 @@ const UserDetailEditableFieldComponent = ({
           ) : (
             <Input
               value={displayValue}
-              onChange={e => onEditValueChange(field, e.target.value)}
+              onChange={(e) => onEditValueChange(field, e.target.value)}
               className="flex-1"
             />
           )}

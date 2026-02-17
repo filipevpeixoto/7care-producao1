@@ -31,19 +31,21 @@ interface UserDetailModalProps {
 
 export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailModalProps) => {
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
-  const [editValues, setEditValues] = useState<Record<string, string | number | boolean | null>>({});
+  const [editValues, setEditValues] = useState<Record<string, string | number | boolean | null>>(
+    {}
+  );
   const [isUpdating, setIsUpdating] = useState(false);
 
   if (!user) return null;
 
   const startEditing = (field: string, currentValue: string | number | boolean | null) => {
-    setEditingFields(prev => ({ ...prev, [field]: true }));
-    setEditValues(prev => ({ ...prev, [field]: currentValue }));
+    setEditingFields((prev) => ({ ...prev, [field]: true }));
+    setEditValues((prev) => ({ ...prev, [field]: currentValue }));
   };
 
   const cancelEditing = (field: string) => {
-    setEditingFields(prev => ({ ...prev, [field]: false }));
-    setEditValues(prev => {
+    setEditingFields((prev) => ({ ...prev, [field]: false }));
+    setEditValues((prev) => {
       const newValues = { ...prev };
       delete newValues[field];
       return newValues;
@@ -56,8 +58,8 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
 
     try {
       await onUpdate(Number(user.id), { [field]: newValue });
-      setEditingFields(prev => ({ ...prev, [field]: false }));
-      setEditValues(prev => {
+      setEditingFields((prev) => ({ ...prev, [field]: false }));
+      setEditValues((prev) => {
         const newValues = { ...prev };
         delete newValues[field];
         return newValues;
@@ -79,7 +81,11 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
     <UserDetailEditableField
       field={field}
       label={label}
-      value={field === 'email' ? formatEmailDisplay(value != null ? String(value) : undefined) : value}
+      value={
+        field === 'email'
+          ? formatEmailDisplay(value !== null && value !== undefined ? String(value) : undefined)
+          : value
+      }
       type={type}
       options={options}
       editingFields={editingFields}
@@ -88,7 +94,7 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
       onCancelEditing={cancelEditing}
       onSaveField={saveField}
       onEditValueChange={(changedField, newValue) =>
-        setEditValues(prev => ({ ...prev, [changedField]: newValue }))
+        setEditValues((prev) => ({ ...prev, [changedField]: newValue }))
       }
       isUpdating={isUpdating}
     />
@@ -102,7 +108,7 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
     <DialogWithModalTracking
       modalId="user-detail-modal"
       open={isOpen}
-      onOpenChange={open => !open && onClose()}
+      onOpenChange={(open) => !open && onClose()}
     >
       <DialogContent className="max-w-6xl w-[95vw]" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
         <DialogHeader>
@@ -116,7 +122,9 @@ export const UserDetailModal = ({ user, isOpen, onClose, onUpdate }: UserDetailM
               </Avatar>
               <div>
                 <div className="text-xl font-bold">{user.name}</div>
-                <div className="text-sm text-muted-foreground">{formatEmailDisplay(user.email ?? undefined)}</div>
+                <div className="text-sm text-muted-foreground">
+                  {formatEmailDisplay(user.email ?? undefined)}
+                </div>
               </div>
               <Badge variant="outline" className="ml-2">
                 {getRoleLabel(user.role)}
