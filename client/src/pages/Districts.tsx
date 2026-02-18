@@ -11,7 +11,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { isSuperAdmin } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/api';
-import { useNavigate } from 'react-router-dom';
 import { createLogger } from '@/lib/logger';
 import type { Church } from '@/types/domain';
 import {
@@ -51,12 +50,16 @@ type DistrictPayload = {
   description: string | null;
 };
 
+type ApiSuccessResponse<T> = {
+  success: boolean;
+  data?: T;
+};
+
 export default function Districts() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -164,17 +167,17 @@ export default function Districts() {
   // Buscar igrejas sem distrito
   const { data: unassignedChurches = [] as Church[], refetch: refetchUnassignedChurches } =
     useQuery<Church[]>({
-    // IMPORTANTE: user?.id na queryKey para cache separado por usuário
-    queryKey: ['/api/churches/unassigned', user?.id],
-    queryFn: async () => {
-      const response = await fetchWithAuth('/api/churches/unassigned');
-      if (!response.ok) return [];
-      return response.json();
-    },
-    enabled: !!user?.id && isSuperAdmin(user),
-    staleTime: 0,
-    refetchOnMount: 'always',
-  });
+      // IMPORTANTE: user?.id na queryKey para cache separado por usuário
+      queryKey: ['/api/churches/unassigned', user?.id],
+      queryFn: async () => {
+        const response = await fetchWithAuth('/api/churches/unassigned');
+        if (!response.ok) return [];
+        return response.json();
+      },
+      enabled: !!user?.id && isSuperAdmin(user),
+      staleTime: 0,
+      refetchOnMount: 'always',
+    });
 
   // Criar distrito
   const createMutation = useMutation({
@@ -358,8 +361,8 @@ export default function Districts() {
   };
 
   const handleToggleChurch = (churchId: number) => {
-    setSelectedChurchIds(prev =>
-      prev.includes(churchId) ? prev.filter(id => id !== churchId) : [...prev, churchId]
+    setSelectedChurchIds((prev) =>
+      prev.includes(churchId) ? prev.filter((id) => id !== churchId) : [...prev, churchId]
     );
   };
 
@@ -386,7 +389,7 @@ export default function Districts() {
     }
 
     try {
-      let pastor;
+      let pastor: PastorOption | null = null;
 
       // Se temos pastor_id, buscar dados completos do usuário (não necessariamente com role='pastor')
       if (pastorId) {
@@ -396,7 +399,20 @@ export default function Districts() {
           throw new Error(t('districts.fetchPastorError'));
         }
 
-        pastor = await response.json();
+        const payload = (await response.json()) as
+          | PastorOption
+          | ApiSuccessResponse<PastorOption>
+          | null;
+
+        if (payload && typeof payload === 'object' && 'success' in payload) {
+          pastor = payload.data ?? null;
+        } else {
+          pastor = payload as PastorOption | null;
+        }
+
+        if (!pastor?.id || !pastor?.name) {
+          throw new Error(t('districts.cannotIdentifyPastor'));
+        }
       } else {
         // Se não temos pastor_id mas temos pastor_name, tentar buscar por email ou nome
         // Por enquanto, vamos apenas mostrar erro
@@ -424,14 +440,15 @@ export default function Districts() {
       };
 
       localStorage.setItem('7care_impersonation', JSON.stringify(impersonationContext));
+      queryClient.clear();
 
       toast({
         title: t('districts.viewingAsPastor'),
         description: t('districts.viewingAsPastorDesc', { name: pastor.name }),
       });
 
-      // Redirecionar para o dashboard
-      navigate('/dashboard');
+      // Forçar reidratação da autenticação para aplicar impersonação imediatamente
+      window.location.assign('/dashboard');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : undefined;
       districtsLogger.error('Erro ao visualizar como pastor:', error);
@@ -446,7 +463,7 @@ export default function Districts() {
   const toChurchId = (id: Church['id']) => (typeof id === 'string' ? Number(id) : id);
 
   const filteredDistricts = districts.filter(
-    d =>
+    (d) =>
       d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       d.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -482,7 +499,7 @@ export default function Districts() {
   } else {
     districtsContent = (
       <div className="grid gap-4">
-        {filteredDistricts.map(district => (
+        {filteredDistricts.map((district) => (
           <Card key={district.id}>
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -491,7 +508,9 @@ export default function Districts() {
                     <Building2 className="h-5 w-5" />
                     {district.name}
                   </CardTitle>
-                  <CardDescription className="mt-1">{t('districts.codeLabel', { code: district.code })}</CardDescription>
+                  <CardDescription className="mt-1">
+                    {t('districts.codeLabel', { code: district.code })}
+                  </CardDescription>
                 </div>
                 <div className="flex gap-2">
                   {(district.pastor_id || district.pastor_name) && (
@@ -543,7 +562,10 @@ export default function Districts() {
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">{t('districts.churchesLabel')}</span>
                   <Badge variant="secondary">
-                    {district.churchesCount || 0} {district.churchesCount === 1 ? t('districts.churchSingular') : t('districts.churchPlural')}
+                    {district.churchesCount || 0}{' '}
+                    {district.churchesCount === 1
+                      ? t('districts.churchSingular')
+                      : t('districts.churchPlural')}
                   </Badge>
                 </div>
               </div>
@@ -599,7 +621,7 @@ export default function Districts() {
           <Input
             placeholder={t('districts.searchPlaceholder')}
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
