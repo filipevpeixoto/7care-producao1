@@ -42,18 +42,39 @@ function createMockReq(overrides = {}): Partial<Request> {
   };
 }
 
-function createMockRes(): Partial<Response> & { _headers: Record<string, string>; _status: number; _json: unknown } {
+function createMockRes(): Partial<Response> & {
+  _headers: Record<string, string>;
+  _status: number;
+  _json: unknown;
+} {
   const res: any = {
     _headers: {} as Record<string, string>,
     _status: 200,
     _json: null,
     headersSent: false,
     statusCode: 200,
-    setHeader(key: string, value: string) { res._headers[key] = value; return res; },
-    getHeader(key: string) { return res._headers[key]; },
-    status(code: number) { res._status = code; res.statusCode = code; return res; },
-    json(data: unknown) { res._json = data; res.headersSent = true; return res; },
-    send(data: unknown) { res._json = data; res.headersSent = true; return res; },
+    setHeader(key: string, value: string) {
+      res._headers[key] = value;
+      return res;
+    },
+    getHeader(key: string) {
+      return res._headers[key];
+    },
+    status(code: number) {
+      res._status = code;
+      res.statusCode = code;
+      return res;
+    },
+    json(data: unknown) {
+      res._json = data;
+      res.headersSent = true;
+      return res;
+    },
+    send(data: unknown) {
+      res._json = data;
+      res.headersSent = true;
+      return res;
+    },
     on: vi.fn(),
   };
   return res;
@@ -72,6 +93,25 @@ describe('Cache Middleware', () => {
   });
 
   describe('cacheMiddleware', () => {
+    it('uses authenticated user context for cache key instead of x-user-id header', async () => {
+      mockCacheGet.mockResolvedValueOnce(null);
+
+      const req = createMockReq({
+        headers: { 'x-user-id': 'spoofed-user' },
+        userId: 42,
+        userRole: 'superadmin',
+        user: { districtId: 9 },
+      });
+      const res = createMockRes();
+
+      const middleware = cacheMiddleware('users', 60);
+      await middleware(req as Request, res as Response, next);
+
+      expect(mockCacheGet).toHaveBeenCalledWith(
+        expect.stringContaining('users:user:42:role:superadmin:district:9')
+      );
+    });
+
     it('returns cached data with X-Cache: HIT header on cache hit', async () => {
       const cachedPayload = { success: true, data: [1, 2, 3] };
       mockCacheGet.mockResolvedValueOnce(cachedPayload);
@@ -127,7 +167,7 @@ describe('Cache Middleware', () => {
         expect(mockCacheSet).toHaveBeenCalledWith(
           expect.stringContaining('dashboard:'),
           responseData,
-          60,
+          60
         );
       });
     });

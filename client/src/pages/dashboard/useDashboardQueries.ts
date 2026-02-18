@@ -9,6 +9,16 @@ type UseDashboardQueriesProps = {
 };
 
 export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesProps) => {
+  const isImpersonating =
+    typeof user === 'object' && user !== null && 'isImpersonating' in user
+      ? Boolean((user as { isImpersonating?: boolean }).isImpersonating)
+      : false;
+
+  const districtScope =
+    isImpersonating && user?.role === 'pastor' && user?.districtId
+      ? (user?.districtId ?? null)
+      : null;
+
   const { data: unifiedData, isLoading: unifiedLoading } = useQuery({
     queryKey: ['/api/dashboard/unified', user?.id],
     queryFn: async () => {
@@ -24,9 +34,11 @@ export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesPr
   });
 
   const { data: usersDataRaw } = useQuery({
-    queryKey: ['/api/users', user?.id],
+    queryKey: ['/api/users', user?.id, districtScope],
     queryFn: async () => {
-      const response = await fetchWithAuth('/api/users?limit=5000');
+      const usersQueryParams = new URLSearchParams({ limit: '5000' });
+      if (districtScope) usersQueryParams.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(`/api/users?${usersQueryParams.toString()}`);
       if (!response.ok) return [];
       const data = await response.json();
       return Array.isArray(data) ? data : data?.data || [];
@@ -99,10 +111,14 @@ export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesPr
   });
 
   const { data: dashboardStatsRaw, isLoading } = useQuery({
-    queryKey: ['/api/dashboard/stats', user?.id],
+    queryKey: ['/api/dashboard/stats', user?.id, districtScope],
     queryFn: async () => {
       if (unifiedData?.stats) return unifiedData.stats;
-      const response = await fetchWithAuth('/api/dashboard/stats');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(
+        `/api/dashboard/stats${params.toString() ? `?${params.toString()}` : ''}`
+      );
       if (!response.ok) throw new Error('Failed to fetch dashboard stats');
       return response.json();
     },
@@ -133,9 +149,13 @@ export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesPr
     refetch: refetchVisits,
     isLoading: visitsLoading,
   } = useQuery({
-    queryKey: ['/api/dashboard/visits', user?.id],
+    queryKey: ['/api/dashboard/visits', user?.id, districtScope],
     queryFn: async () => {
-      const response = await fetchWithAuth('/api/dashboard/visits');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(
+        `/api/dashboard/visits${params.toString() ? `?${params.toString()}` : ''}`
+      );
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },

@@ -13,6 +13,12 @@ import { sendSuccess, sendCreated, sendError, sendNotFound } from '../utils/apiR
 import { getRepository } from '../container';
 import { getAuthUserId, getAuthUserRole } from '../utils/authHelpers';
 
+const parseDistrictScope = (value: unknown): number | null => {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 /** Registers discipleship request routes */
 export const discipleshipRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -46,6 +52,7 @@ export const discipleshipRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const { missionaryId, status } = req.query;
       const userId = String(getAuthUserId(req));
+      const requestedDistrictScope = parseDistrictScope(req.query.districtId);
       const userRole = getAuthUserRole(req) as
         | 'superadmin'
         | 'pastor'
@@ -58,10 +65,19 @@ export const discipleshipRoutes = (app: Express): void => {
       let userChurch: string | null = null;
       let userDistrict: number | null = null;
       let isPastor = false;
+      let isScopedSuperadmin = false;
+
+      const userIdNum = userId ? parseInt(userId) : null;
+      const currentUser = userIdNum ? await userRepo.getUserById(userIdNum) : null;
+
+      if (currentUser?.role === 'superadmin' && requestedDistrictScope) {
+        userDistrict = requestedDistrictScope;
+        isPastor = true;
+        isScopedSuperadmin = true;
+      }
 
       // Se não for admin, filtrar por distrito (pastor) ou igreja (outros usuários)
       if (!hasAdminAccess({ role: userRole }) && userId) {
-        const currentUser = await userRepo.getUserById(parseInt(userId));
         if (currentUser) {
           // Se for pastor, usar filtro por distrito
           if (currentUser.role === 'pastor' && currentUser.districtId) {
@@ -75,6 +91,12 @@ export const discipleshipRoutes = (app: Express): void => {
             userChurch = currentUser.church;
           }
         }
+      }
+
+      if (isScopedSuperadmin) {
+        logger.debug(
+          `🏛️ Superadmin com escopo de distrito em discipleship-requests: ${userDistrict}`
+        );
       }
 
       let requests = await discipleshipRepo.getAll();
@@ -169,6 +191,16 @@ export const discipleshipRoutes = (app: Express): void => {
       const { interestedId, missionaryId, notes } = (
         req as ValidatedRequest<typeof createDiscipleshipRequestSchema._type>
       ).validatedBody;
+      const requestingUserId = getAuthUserId(req);
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 401);
+      }
+
       logger.info(
         `Creating discipleship request: missionary ${missionaryId} -> interested ${interestedId}`
       );
@@ -182,6 +214,25 @@ export const discipleshipRoutes = (app: Express): void => {
       }
       if (!missionary) {
         return sendNotFound(res, 'Discipulador');
+      }
+
+      if (!hasAdminAccess(requestingUser)) {
+        if (requestingUser.id !== missionaryId) {
+          return sendError(res, 'Você só pode criar pedidos para si mesmo', 403);
+        }
+      }
+
+      if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+        const sameDistrict =
+          interested.districtId === requestingUser.districtId &&
+          missionary.districtId === requestingUser.districtId;
+        if (!sameDistrict) {
+          return sendError(
+            res,
+            'Pastor só pode criar pedidos para usuários do próprio distrito',
+            403
+          );
+        }
       }
 
       // Verificar se pertencem à mesma igreja (apenas se ambos tiverem igreja definida)
@@ -251,6 +302,44 @@ export const discipleshipRoutes = (app: Express): void => {
       const id = parseInt(req.params.id);
       const { status, notes } = req.body;
 
+      const requestingUserId = getAuthUserId(req);
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 401);
+      }
+
+      const existingRequest = await discipleshipRepo.getById(id);
+      if (!existingRequest) {
+        return sendNotFound(res, 'Pedido');
+      }
+
+      const missionary = existingRequest.missionaryId
+        ? await userRepo.getUserById(existingRequest.missionaryId)
+        : null;
+      const interested = existingRequest.interestedId
+        ? await userRepo.getUserById(existingRequest.interestedId)
+        : null;
+
+      if (!hasAdminAccess(requestingUser)) {
+        const canManageOwnRequest = existingRequest.missionaryId === requestingUser.id;
+        if (!canManageOwnRequest) {
+          return sendError(res, 'Você só pode atualizar seus próprios pedidos', 403);
+        }
+      }
+
+      if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+        const sameDistrict =
+          interested?.districtId === requestingUser.districtId ||
+          missionary?.districtId === requestingUser.districtId;
+        if (!sameDistrict) {
+          return sendError(res, 'Pastor só pode atualizar pedidos do próprio distrito', 403);
+        }
+      }
+
       const request = await discipleshipRepo.update(id, { status, notes });
 
       if (!request) {
@@ -293,6 +382,45 @@ export const discipleshipRoutes = (app: Express): void => {
     '/api/discipleship-requests/:id',
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
+
+      const requestingUserId = getAuthUserId(req);
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 401);
+      }
+
+      const existingRequest = await discipleshipRepo.getById(id);
+      if (!existingRequest) {
+        return sendNotFound(res, 'Pedido');
+      }
+
+      const missionary = existingRequest.missionaryId
+        ? await userRepo.getUserById(existingRequest.missionaryId)
+        : null;
+      const interested = existingRequest.interestedId
+        ? await userRepo.getUserById(existingRequest.interestedId)
+        : null;
+
+      if (!hasAdminAccess(requestingUser)) {
+        const canDeleteOwnRequest = existingRequest.missionaryId === requestingUser.id;
+        if (!canDeleteOwnRequest) {
+          return sendError(res, 'Você só pode remover seus próprios pedidos', 403);
+        }
+      }
+
+      if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+        const sameDistrict =
+          interested?.districtId === requestingUser.districtId ||
+          missionary?.districtId === requestingUser.districtId;
+        if (!sameDistrict) {
+          return sendError(res, 'Pastor só pode remover pedidos do próprio distrito', 403);
+        }
+      }
+
       await discipleshipRepo.delete(id);
       sendSuccess(res, { message: 'Pedido removido' });
     })
@@ -334,8 +462,46 @@ export const discipleshipRoutes = (app: Express): void => {
       const interestedId = parseInt(req.params.id);
       const { missionaryId } = req.body;
 
+      const requestingUserId = getAuthUserId(req);
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 401);
+      }
+
       if (!missionaryId) {
         return sendError(res, 'ID do missionário é obrigatório', 400);
+      }
+
+      const interested = await userRepo.getUserById(interestedId);
+      const missionary = await userRepo.getUserById(missionaryId);
+
+      if (!interested) {
+        return sendNotFound(res, 'Interessado');
+      }
+
+      if (!missionary) {
+        return sendNotFound(res, 'Missionário');
+      }
+
+      if (!hasAdminAccess(requestingUser) && requestingUser.id !== missionaryId) {
+        return sendError(res, 'Você só pode vincular interessados para si mesmo', 403);
+      }
+
+      if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+        const sameDistrict =
+          interested.districtId === requestingUser.districtId &&
+          missionary.districtId === requestingUser.districtId;
+        if (!sameDistrict) {
+          return sendError(
+            res,
+            'Pastor só pode criar vínculos com usuários do próprio distrito',
+            403
+          );
+        }
       }
 
       // Verificar se já existe relacionamento ativo

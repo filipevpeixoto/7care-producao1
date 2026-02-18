@@ -10,14 +10,21 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { cacheGet, cacheSet, cacheDelPattern } from '../services/cacheService';
 import { CACHE_TTL as _CACHE_TTL } from '../constants';
 import { logger } from '../utils/logger';
+import { type AuthenticatedRequest } from './jwtAuth';
 
 /**
  * Gera chave de cache baseada na rota e parâmetros
  */
 function generateCacheKey(req: Request, prefix: string): string {
-  const userId = req.headers['x-user-id'] || 'anonymous';
+  const authReq = req as AuthenticatedRequest;
+  const userScope = authReq.userId ? `user:${authReq.userId}` : 'anonymous';
+  const roleScope = authReq.userRole ? `role:${authReq.userRole}` : 'role:unknown';
+  const districtScope =
+    authReq.user?.districtId !== undefined && authReq.user?.districtId !== null
+      ? `district:${authReq.user.districtId}`
+      : 'district:none';
   const queryString = JSON.stringify(req.query);
-  return `${prefix}:${userId}:${req.path}:${queryString}`;
+  return `${prefix}:${userScope}:${roleScope}:${districtScope}:${req.path}:${queryString}`;
 }
 
 /**
@@ -61,7 +68,7 @@ export function cacheMiddleware(prefix: string, ttlSeconds: number) {
       res.json = function (data: unknown): Response {
         // Só cacheia respostas de sucesso
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          cacheSet(cacheKey, data, ttlSeconds).catch(err => {
+          cacheSet(cacheKey, data, ttlSeconds).catch((err) => {
             logger.error('[Cache] Erro ao salvar cache:', err);
           });
         }
@@ -112,8 +119,8 @@ export function invalidateCacheMiddleware(...patterns: string[]) {
     res.send = function (data: unknown): Response {
       // Só invalida em respostas de sucesso de mutations
       if (res.statusCode >= 200 && res.statusCode < 300 && req.method !== 'GET') {
-        patterns.forEach(pattern => {
-          invalidateCache(pattern).catch(err => {
+        patterns.forEach((pattern) => {
+          invalidateCache(pattern).catch((err) => {
             logger.error('[Cache] Erro ao invalidar:', err);
           });
         });

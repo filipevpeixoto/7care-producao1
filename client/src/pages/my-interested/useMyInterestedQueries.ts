@@ -4,6 +4,26 @@ import type { InterestedPerson, Relationship, DiscipleshipRequest } from './myIn
 import type { UserMember, ActiveRelationship } from '@/types/domain';
 import type { AuthUser } from '@/../../shared/types/user';
 
+type ApiListResponse<T> =
+  | T[]
+  | {
+      data?: T[] | { data?: T[] };
+    };
+
+const extractList = <T>(payload: ApiListResponse<T>): T[] => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (payload?.data && Array.isArray((payload.data as { data?: T[] }).data)) {
+    return (payload.data as { data?: T[] }).data ?? [];
+  }
+  return [];
+};
+
+const getImpersonationDistrictId = (user: AuthUser | null): number | null => {
+  if (!user?.isImpersonating || user.role !== 'pastor' || !user.districtId) return null;
+  return user.districtId;
+};
+
 type MyInterestedQueriesResult = {
   churchInterested: InterestedPerson[];
   loadingChurch: boolean;
@@ -22,80 +42,109 @@ export const useMyInterestedQueries = (
   isAdmin: boolean,
   isPastorUser: boolean
 ): MyInterestedQueriesResult => {
+  const districtScope = getImpersonationDistrictId(user);
+
   const { data: churchInterested = [], isLoading: loadingChurch } = useQuery<InterestedPerson[]>({
-    queryKey: ['church-interested', user?.id],
+    queryKey: ['church-interested', user?.id, districtScope],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/my-interested');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(
+        `/api/my-interested${params.toString() ? `?${params.toString()}` : ''}`
+      );
       if (!response.ok) throw new Error('Erro ao buscar interessados da igreja');
-      return response.json();
+      const payload = (await response.json()) as ApiListResponse<InterestedPerson>;
+      return extractList(payload);
     },
     enabled: !!user?.id && !isAdmin,
   });
 
   const { data: myRelationships = [], isLoading: loadingRelationships } = useQuery<Relationship[]>({
-    queryKey: ['my-relationships', user?.id],
+    queryKey: ['my-relationships', user?.id, districtScope],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetchWithAuth(`/api/relationships?missionaryId=${user.id}`);
+      const params = new URLSearchParams({ missionaryId: String(user.id) });
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(`/api/relationships?${params.toString()}`);
       if (!response.ok) throw new Error('Erro ao buscar relacionamentos');
-      return response.json();
+      const payload = (await response.json()) as ApiListResponse<Relationship>;
+      return extractList(payload);
     },
     enabled: !!user?.id,
   });
 
   const { data: myRequests = [], isLoading: loadingRequests } = useQuery<DiscipleshipRequest[]>({
-    queryKey: ['my-discipleship-requests', user?.id],
+    queryKey: ['my-discipleship-requests', user?.id, districtScope],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetchWithAuth(`/api/discipleship-requests?missionaryId=${user.id}`);
+      const params = new URLSearchParams({ missionaryId: String(user.id) });
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(`/api/discipleship-requests?${params.toString()}`);
       if (!response.ok) throw new Error('Erro ao buscar solicitações');
-      return response.json();
+      const payload = (await response.json()) as ApiListResponse<DiscipleshipRequest>;
+      return extractList(payload);
     },
     enabled: !!user?.id,
   });
 
   const { data: allRequests = [] } = useQuery<DiscipleshipRequest[]>({
-    queryKey: ['all-discipleship-requests', user?.id],
+    queryKey: ['all-discipleship-requests', user?.id, districtScope],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/discipleship-requests');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(
+        `/api/discipleship-requests${params.toString() ? `?${params.toString()}` : ''}`
+      );
       if (!response.ok) throw new Error('Erro ao buscar solicitações');
-      return response.json();
+      const payload = (await response.json()) as ApiListResponse<DiscipleshipRequest>;
+      return extractList(payload);
     },
     enabled: !!user?.id,
   });
 
   const { data: allRelationships = [] } = useQuery<ActiveRelationship[]>({
-    queryKey: ['all-relationships', user?.id],
+    queryKey: ['all-relationships', user?.id, districtScope],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/relationships');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(
+        `/api/relationships${params.toString() ? `?${params.toString()}` : ''}`
+      );
       if (!response.ok) throw new Error('Erro ao buscar relacionamentos');
-      return response.json();
+      const payload = (await response.json()) as ApiListResponse<ActiveRelationship>;
+      return extractList(payload);
     },
     enabled: !!user?.id,
   });
 
   const { data: allUsers = [] } = useQuery<InterestedPerson[]>({
-    queryKey: ['all-users', user?.id, isAdmin],
+    queryKey: ['all-users', user?.id, isAdmin, districtScope],
     queryFn: async () => {
       if (!user?.id) return [];
-      const endpoint = isAdmin ? '/api/users?role=interested' : '/api/users';
-      const response = await fetchWithAuth(endpoint);
+      const params = new URLSearchParams({ role: 'interested', limit: '5000' });
+      if (!isAdmin) params.delete('role');
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(`/api/users?${params.toString()}`);
       if (!response.ok) throw new Error('Erro ao buscar usuários');
-      return response.json();
+      const payload = (await response.json()) as ApiListResponse<InterestedPerson>;
+      return extractList(payload);
     },
     enabled: !!user?.id,
   });
 
   const { data: allMembersForInvite = [] } = useQuery<UserMember[]>({
-    queryKey: ['all-members-for-invite', user?.id],
+    queryKey: ['all-members-for-invite', user?.id, districtScope],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetchWithAuth('/api/users');
+      const params = new URLSearchParams({ limit: '5000' });
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(`/api/users?${params.toString()}`);
       if (!response.ok) throw new Error('Erro ao buscar membros');
-      return response.json();
+      const payload = (await response.json()) as ApiListResponse<UserMember>;
+      return extractList(payload);
     },
     enabled: !!user?.id && isPastorUser,
   });

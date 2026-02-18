@@ -83,7 +83,7 @@ export const userCrudRoutes = (app: Express): void => {
     cacheMiddleware('users', CACHE_TTL.USERS),
     asyncHandler(async (req: Request, res: Response) => {
       logger.debug('🔍 [GET /api/users] Iniciando busca de usuários');
-      const { role, status, church, search } = req.query;
+      const { role, status, church, search, districtId } = req.query;
 
       // Paginação com limites sensatos (max 100, default 20)
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -96,6 +96,7 @@ export const userCrudRoutes = (app: Express): void => {
         status,
         church,
         search,
+        districtId,
         page,
         limit,
         requestingUserId,
@@ -176,12 +177,20 @@ export const userCrudRoutes = (app: Express): void => {
       if (status) filters.status = status as string;
       if (search) filters.search = search as string;
 
+      const parsedDistrictId = districtId ? parseInt(String(districtId), 10) : undefined;
+      const requestedDistrictId = Number.isNaN(parsedDistrictId) ? undefined : parsedDistrictId;
+
       if (church) {
         filters.church = church as string;
-      } else if (requestingUser && !isSuperAdmin(requestingUser)) {
+      } else if (requestingUser) {
         if (requestingUser.role === 'pastor' && requestingUser.districtId) {
           filters.districtId = requestingUser.districtId;
           logger.info(`🏛️ Pastor detectado, filtrando por distrito: ${requestingUser.districtId}`);
+        } else if (isSuperAdmin(requestingUser)) {
+          if (requestedDistrictId) {
+            filters.districtId = requestedDistrictId;
+            logger.info(`🏛️ Superadmin com escopo explícito de distrito: ${requestedDistrictId}`);
+          }
         } else if (requestingUser.church) {
           filters.church = requestingUser.church;
           logger.info(`⛪ Filtrando por igreja: ${requestingUser.church}`);

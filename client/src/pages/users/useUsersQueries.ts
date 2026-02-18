@@ -8,15 +8,24 @@ import type { AuthUser } from '@/../../shared/types/user';
 const usersLogger = createLogger('Users');
 
 export const useUsersQueries = (user: AuthUser | null, isAuthReady: boolean) => {
+  const districtScope =
+    user?.isImpersonating && user.role === 'pastor' && user.districtId ? user.districtId : null;
+
   const {
     data: usersData = [],
     isLoading,
     error,
   } = useQuery<UserType[]>({
-    queryKey: ['/api/users', user?.id],
+    queryKey: ['/api/users', user?.id, user?.isImpersonating, user?.districtId],
     queryFn: async () => {
       try {
-        const response = await fetchWithAuth('/api/users?limit=5000');
+        const usersQueryParams = new URLSearchParams({ limit: '5000' });
+
+        if (districtScope) {
+          usersQueryParams.set('districtId', String(districtScope));
+        }
+
+        const response = await fetchWithAuth(`/api/users?${usersQueryParams.toString()}`);
         if (!response.ok) {
           throw new Error('Falha ao carregar usuários');
         }
@@ -39,10 +48,14 @@ export const useUsersQueries = (user: AuthUser | null, isAuthReady: boolean) => 
   const users = Array.isArray(usersData) ? usersData : [];
 
   const { data: relationshipsData = [] } = useQuery<Relationship[]>({
-    queryKey: ['all-relationships', user?.id],
+    queryKey: ['all-relationships', user?.id, districtScope],
     queryFn: async () => {
       try {
-        const response = await fetchWithAuth('/api/relationships');
+        const params = new URLSearchParams();
+        if (districtScope) params.set('districtId', String(districtScope));
+        const response = await fetchWithAuth(
+          `/api/relationships${params.toString() ? `?${params.toString()}` : ''}`
+        );
         if (!response.ok) return [];
         const data = await response.json();
         const relationships = Array.isArray(data) ? data : data?.data || [];
@@ -84,11 +97,16 @@ export const useUsersQueries = (user: AuthUser | null, isAuthReady: boolean) => 
   });
 
   const { data: discipleshipRequests = [] } = useQuery<DiscipleshipRequestWithAdminNotes[]>({
-    queryKey: ['discipleship-requests', user?.id],
+    queryKey: ['discipleship-requests', user?.id, districtScope],
     queryFn: async () => {
-      const response = await fetchWithAuth('/api/discipleship-requests');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const response = await fetchWithAuth(
+        `/api/discipleship-requests${params.toString() ? `?${params.toString()}` : ''}`
+      );
       if (!response.ok) throw new Error('Erro ao buscar solicitações de discipulado');
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : data?.data || [];
     },
     enabled: isAuthReady,
     staleTime: 0,

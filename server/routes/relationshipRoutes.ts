@@ -12,6 +12,12 @@ import { hasAdminAccess, isSuperAdmin } from '../utils/permissions';
 import { asyncHandler, sendSuccess, sendError, sendNotFound } from '../utils';
 import { getAuthUserId, getAuthUserRole } from '../utils/authHelpers';
 
+const parseDistrictScope = (value: unknown): number | null => {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 /** Registers missionary-interested relationship routes */
 export const relationshipRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -31,6 +37,7 @@ export const relationshipRoutes = (app: Express): void => {
     '/api/relationships',
     asyncHandler(async (req: Request, res: Response) => {
       const userId = String(getAuthUserId(req));
+      const requestedDistrictScope = parseDistrictScope(req.query.districtId);
       const userRole = getAuthUserRole(req) as
         | 'superadmin'
         | 'pastor'
@@ -44,13 +51,21 @@ export const relationshipRoutes = (app: Express): void => {
       let userChurch: string | null = null;
       let userDistrictId: number | null = null;
       const userIdNum = userId ? parseInt(userId) : null;
+      const currentUser = userIdNum ? await userRepo.getUserById(userIdNum) : null;
+
+      if (currentUser?.role === 'pastor' && currentUser.districtId) {
+        userDistrictId = currentUser.districtId;
+      } else if (currentUser?.role === 'superadmin' && requestedDistrictScope) {
+        userDistrictId = requestedDistrictScope;
+      }
 
       // Se não for admin, filtrar por distrito/igreja do usuário
       if (!hasAdminAccess({ role: userRole }) && userId) {
-        const currentUser = await userRepo.getUserById(parseInt(userId));
         if (currentUser) {
           userChurch = currentUser.church || null;
-          userDistrictId = currentUser.districtId || null;
+          if (!userDistrictId) {
+            userDistrictId = currentUser.districtId || null;
+          }
 
           // Log para debug
           logger.info(
@@ -72,8 +87,8 @@ export const relationshipRoutes = (app: Express): void => {
       const enrichedRelationships = (
         relationships as { interestedId?: number; missionaryId?: number }[]
       ).map((rel) => {
-        const interested = rel.interestedId ? userMap.get(rel.interestedId) ?? null : null;
-        const missionary = rel.missionaryId ? userMap.get(rel.missionaryId) ?? null : null;
+        const interested = rel.interestedId ? (userMap.get(rel.interestedId) ?? null) : null;
+        const missionary = rel.missionaryId ? (userMap.get(rel.missionaryId) ?? null) : null;
 
         return {
           ...rel,
@@ -86,11 +101,11 @@ export const relationshipRoutes = (app: Express): void => {
         };
       });
 
-      // Filtrar por distrito se for pastor (não superadmin)
+      // Filtrar por distrito quando há escopo de distrito ativo (pastor ou superadmin em modo escopo)
       let filteredRelationships = enrichedRelationships;
-      if (userRole === 'pastor' && userDistrictId && !isSuperAdmin({ role: userRole })) {
+      if (userDistrictId) {
         logger.info(
-          `🏛️ Pastor detectado, filtrando ${enrichedRelationships.length} relationships por distrito: ${userDistrictId}`
+          `🏛️ Escopo de distrito ativo, filtrando ${enrichedRelationships.length} relationships por distrito: ${userDistrictId}`
         );
         const beforeCount = enrichedRelationships.length;
 
@@ -236,6 +251,53 @@ export const relationshipRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id);
 
+      const requestingUserId = getAuthUserId(req);
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 401);
+      }
+
+      const relationship = await relationshipRepo.getById(id);
+      if (!relationship) {
+        return sendNotFound(res, 'Relacionamento');
+      }
+
+      const missionary = relationship.missionaryId
+        ? await userRepo.getUserById(relationship.missionaryId)
+        : null;
+      const interested = relationship.interestedId
+        ? await userRepo.getUserById(relationship.interestedId)
+        : null;
+
+      if (!isSuperAdmin(requestingUser)) {
+        if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+          const sameDistrict =
+            missionary?.districtId === requestingUser.districtId ||
+            interested?.districtId === requestingUser.districtId;
+
+          if (!sameDistrict) {
+            return sendError(
+              res,
+              'Acesso negado para remover relacionamento de outro distrito',
+              403
+            );
+          }
+        } else {
+          const canDeleteOwnRelationship = relationship.missionaryId === requestingUser.id;
+          if (!canDeleteOwnRelationship) {
+            return sendError(
+              res,
+              'Acesso negado para remover relacionamento de outro usuário',
+              403
+            );
+          }
+        }
+      }
+
       const deleted = await relationshipRepo.delete(id);
 
       if (!deleted) {
@@ -359,6 +421,16 @@ export const relationshipRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const interestedId = parseInt(req.params.interestedId);
 
+      const requestingUserId = getAuthUserId(req);
+      if (!requestingUserId) {
+        return sendError(res, 'Usuário não autenticado', 401);
+      }
+
+      const requestingUser = await userRepo.getUserById(requestingUserId);
+      if (!requestingUser) {
+        return sendError(res, 'Usuário não encontrado', 401);
+      }
+
       // Buscar relacionamentos ativos
       const relationships = await relationshipRepo.getByInterested(interestedId);
       const activeRelationship = relationships.find(
@@ -367,6 +439,32 @@ export const relationshipRoutes = (app: Express): void => {
 
       if (!activeRelationship) {
         return sendNotFound(res, 'Relacionamento ativo');
+      }
+
+      const interested = await userRepo.getUserById(interestedId);
+      const missionary = activeRelationship.missionaryId
+        ? await userRepo.getUserById(activeRelationship.missionaryId)
+        : null;
+
+      if (!isSuperAdmin(requestingUser)) {
+        if (requestingUser.role === 'pastor' && requestingUser.districtId) {
+          const sameDistrict =
+            interested?.districtId === requestingUser.districtId ||
+            missionary?.districtId === requestingUser.districtId;
+          if (!sameDistrict) {
+            return sendError(
+              res,
+              'Acesso negado para remover relacionamento ativo de outro distrito',
+              403
+            );
+          }
+        } else if (activeRelationship.missionaryId !== requestingUser.id) {
+          return sendError(
+            res,
+            'Acesso negado para remover relacionamento ativo de outro usuário',
+            403
+          );
+        }
       }
 
       await relationshipRepo.delete(activeRelationship.id);

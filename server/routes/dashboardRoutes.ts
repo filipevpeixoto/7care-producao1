@@ -14,6 +14,12 @@ import { asyncHandler } from '../utils';
 import { sendSuccess, sendError, sendNotFound } from '../utils/apiResponse';
 import { getAuthUserId } from '../utils/authHelpers';
 
+const parseDistrictScope = (value: unknown): number | null => {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 /** Registers dashboard statistics and analytics routes */
 export const dashboardRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
@@ -58,6 +64,9 @@ export const dashboardRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
+      const requestedDistrictScope = parseDistrictScope(req.query.districtId);
+      const effectiveDistrictId =
+        isSuperAdmin(user) && requestedDistrictScope ? requestedDistrictScope : user?.districtId;
 
       const allEvents = await eventRepo.getAllEvents();
 
@@ -75,12 +84,12 @@ export const dashboardRoutes = (app: Express): void => {
         eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
         churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
       } else if (isSuperAdmin(user)) {
-        if (user?.districtId) {
+        if (effectiveDistrictId) {
           // Superadmin com distrito específico
-          usersToInclude = await userRepo.getUsersByDistrictId(user.districtId);
+          usersToInclude = await userRepo.getUsersByDistrictId(effectiveDistrictId);
           usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
-          eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
-          churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
+          eventsToInclude = allEvents.filter((e: Event) => e.districtId === effectiveDistrictId);
+          churchesToInclude = await churchRepo.getChurchesByDistrict(effectiveDistrictId);
         } else {
           // Superadmin sem distrito (vê tudo)
           const allUsers = await userRepo.getAllUsers();
@@ -94,13 +103,11 @@ export const dashboardRoutes = (app: Express): void => {
         if (userChurch) {
           // PERFORMANCE: Buscar apenas usuários da igreja no banco (evita carregar todos)
           const churchUsers = await userRepo.getUsersByChurch(userChurch);
-          usersToInclude = churchUsers.filter(
-            (u: User) => u.email !== 'admin@7care.com'
-          );
+          usersToInclude = churchUsers.filter((u: User) => u.email !== 'admin@7care.com');
           eventsToInclude = allEvents.filter((e: Event) => e.church === userChurch);
           churchesToInclude = await churchRepo
             .getAllChurches()
-            .then(chs => chs.filter((ch: Church) => ch.name === userChurch));
+            .then((chs) => chs.filter((ch: Church) => ch.name === userChurch));
         } else {
           usersToInclude = [];
           eventsToInclude = [];
@@ -118,7 +125,7 @@ export const dashboardRoutes = (app: Express): void => {
         {} as Record<string, number>
       );
 
-      const pendingApprovals = regularUsers.filter(user => user.status === 'pending').length;
+      const pendingApprovals = regularUsers.filter((user) => user.status === 'pending').length;
 
       const now = new Date();
       const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
@@ -160,7 +167,7 @@ export const dashboardRoutes = (app: Express): void => {
       const today = new Date();
       const todayStr = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      const birthdaysToday = regularUsers.filter(user => {
+      const birthdaysToday = regularUsers.filter((user) => {
         if (!user.birthDate) return false;
         const birthDate = new Date(user.birthDate);
         if (isNaN(birthDate.getTime())) return false;
@@ -168,7 +175,7 @@ export const dashboardRoutes = (app: Express): void => {
         return birthStr === todayStr;
       }).length;
 
-      const birthdaysThisWeek = regularUsers.filter(user => {
+      const birthdaysThisWeek = regularUsers.filter((user) => {
         if (!user.birthDate) return false;
         const birthDate = new Date(user.birthDate);
         if (isNaN(birthDate.getTime())) return false;
@@ -181,7 +188,7 @@ export const dashboardRoutes = (app: Express): void => {
       }).length;
 
       const churchesCount = churchesToInclude.length;
-      const totalMissionaries = regularUsers.filter(u => u.role === 'missionary').length;
+      const totalMissionaries = regularUsers.filter((u) => u.role === 'missionary').length;
 
       let interestedBeingDiscipled = 0;
       try {
@@ -194,10 +201,10 @@ export const dashboardRoutes = (app: Express): void => {
             includedUserIds.has(rel.interestedId)
         );
 
-        const activeRelationships = relationships.filter(rel => rel.status === 'active');
+        const activeRelationships = relationships.filter((rel) => rel.status === 'active');
         const interestedWithMentors = new Set(
           activeRelationships
-            .map(rel => rel.interestedId)
+            .map((rel) => rel.interestedId)
             .filter((id): id is number => id !== null && id !== undefined)
         );
         interestedBeingDiscipled = interestedWithMentors.size;
@@ -219,7 +226,7 @@ export const dashboardRoutes = (app: Express): void => {
         birthdaysToday,
         birthdaysThisWeek,
         totalEvents: eventsToInclude.length,
-        approvedUsers: regularUsers.filter(user => user.status === 'approved').length,
+        approvedUsers: regularUsers.filter((user) => user.status === 'approved').length,
       };
 
       sendSuccess(res, stats);
@@ -254,21 +261,24 @@ export const dashboardRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const userId = getAuthUserId(req);
       const user = userId ? await userRepo.getUserById(userId) : null;
+      const requestedDistrictScope = parseDistrictScope(req.query.districtId);
+      const effectiveDistrictId =
+        isSuperAdmin(user) && requestedDistrictScope ? requestedDistrictScope : user?.districtId;
 
       const allUsers = await userRepo.getAllUsers();
 
       // Filtrar por distrito se for pastor
       let filteredUsers: User[];
       if (isSuperAdmin(user)) {
-        if (user?.districtId) {
+        if (effectiveDistrictId) {
           // Super admin com distrito vinculado
-          const districtChurches = await churchRepo.getChurchesByDistrict(user.districtId);
+          const districtChurches = await churchRepo.getChurchesByDistrict(effectiveDistrictId);
           const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
           filteredUsers = allUsers.filter((u: User) => {
             const churchName = u.church ?? '';
             return (
               u.email !== 'admin@7care.com' &&
-              (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
+              (districtChurchNames.includes(churchName) || u.districtId === effectiveDistrictId)
             );
           });
         } else {
@@ -299,7 +309,7 @@ export const dashboardRoutes = (app: Express): void => {
       }
 
       const targetUsers = filteredUsers.filter(
-        user => user.role === 'member' || user.role === 'missionary'
+        (user) => user.role === 'member' || user.role === 'missionary'
       );
 
       let visitedPeople = 0;
@@ -313,7 +323,7 @@ export const dashboardRoutes = (app: Express): void => {
         lastVisitDate?: string;
       }> = [];
 
-      targetUsers.forEach(user => {
+      targetUsers.forEach((user) => {
         try {
           if (user.extraData) {
             let extraData;
