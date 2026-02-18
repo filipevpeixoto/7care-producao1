@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { hasAdminAccess, isSuperAdmin, type UserLike } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/api';
-import type { DashboardUser, SheetTask } from '@/types/domain';
+import type { DashboardUser } from '@/types/domain';
 
 type UseDashboardQueriesProps = {
   user: UserLike;
@@ -53,61 +53,34 @@ export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesPr
     ? usersDataRaw
     : (usersDataRaw as { data?: DashboardUser[] })?.data || [];
 
-  const GOOGLE_SHEETS_CONFIG = {
-    proxyUrl: '/api/google-sheets/proxy',
-    spreadsheetId: '1i-x-0KiciwACRztoKX-YHlXT4FsrAzaKwuH-hHkD8go',
-    sheetName: 'tarefas',
-  };
-
-  const resolveTaskStatus = (status?: string) => {
-    if (status === 'Concluída') return 'completed';
-    if (status === 'Em Progresso') return 'in_progress';
-    return 'pending';
-  };
-
-  const resolveTaskPriority = (priority?: string) => {
-    if (priority === 'Alta') return 'high';
-    if (priority === 'Baixa') return 'low';
-    return 'medium';
-  };
-
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', user?.id, districtScope],
     queryFn: async () => {
-      const response = await fetchWithAuth(GOOGLE_SHEETS_CONFIG.proxyUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'getTasks',
-          spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
-          sheetName: GOOGLE_SHEETS_CONFIG.sheetName,
-        }),
-      });
-      if (!response.ok) throw new Error('Erro ao buscar tarefas do Google Sheets');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetchWithAuth(url);
+      if (!response.ok) throw new Error('Erro ao buscar tarefas');
       const data = await response.json();
-      const tasks = data.tasks || [];
-
-      return tasks.map((sheetTask: SheetTask) => ({
-        id: sheetTask.id,
-        title: sheetTask.titulo || '',
-        description: sheetTask.descricao || '',
-        status: resolveTaskStatus(sheetTask.status),
-        priority: resolveTaskPriority(sheetTask.prioridade),
-        assigned_to_name: sheetTask.responsavel || '',
-        created_by_name: sheetTask.criador || '',
-        church: sheetTask.igreja || '',
-        created_at: sheetTask.data_criacao
-          ? new Date(sheetTask.data_criacao.split('/').reverse().join('-')).toISOString()
-          : new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        due_date: sheetTask.data_vencimento || '',
-        completed_at: sheetTask.data_conclusao || '',
-        tags: sheetTask.tags ? sheetTask.tags.split(',').filter(Boolean) : [],
-      }));
+      return (data?.data?.tasks || data?.tasks || []) as Array<{
+        id: number;
+        title: string;
+        description: string;
+        status: string;
+        priority: string;
+        assigned_to_name: string;
+        created_by_name: string;
+        church: string;
+        created_at: string;
+        updated_at: string;
+        due_date: string;
+        completed_at: string;
+        tags: string[];
+      }>;
     },
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    enabled: isAuthReady && !isSuperAdmin(user),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    enabled: isAuthReady,
   });
 
   const { data: dashboardStatsRaw, isLoading } = useQuery({

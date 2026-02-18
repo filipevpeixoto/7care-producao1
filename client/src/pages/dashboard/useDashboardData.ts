@@ -15,12 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSpiritualCheckIn } from '@/hooks/useSpiritualCheckIn';
 import { useToast } from '@/components/ui/use-toast';
 import { hasAdminAccess, isSuperAdmin } from '@/lib/permissions';
-import type {
-  DashboardUser,
-  Event,
-  BirthdayUser,
-  Task,
-} from '@/types/domain';
+import type { DashboardUser, Event, BirthdayUser } from '@/types/domain';
 import { useDashboardQueries } from './useDashboardQueries';
 
 export function useDashboardData() {
@@ -101,14 +96,13 @@ export function useDashboardData() {
     let completedTasks = 0;
     if (tasksArray.length > 0) {
       const validTasks = tasksArray.filter(
-        (task: Task, index: number, array: Task[]) =>
-          array.findIndex((t) => t.id === task.id) === index
+        (task, index, array) => array.findIndex((t) => t.id === task.id) === index
       );
       totalTasks = validTasks.length;
       pendingTasks = validTasks.filter(
-        (t: Task) => t.status === 'pending' || t.status === 'in_progress'
+        (t) => t.status === 'pending' || t.status === 'in_progress'
       ).length;
-      completedTasks = validTasks.filter((t: Task) => t.status === 'completed').length;
+      completedTasks = validTasks.filter((t) => t.status === 'completed').length;
     }
 
     return {
@@ -155,25 +149,28 @@ export function useDashboardData() {
     }).length;
   }, [userEvents]);
 
-  const stats = useMemo(() => ({
-    totalUsers: dashboardStats?.totalUsers || 0,
-    totalInterested: dashboardStats?.totalInterested || 0,
-    totalMembers: dashboardStats?.totalMembers || 0,
-    totalMissionaries: dashboardStats?.totalMissionaries || 0,
-    approvedUsers: dashboardStats?.approvedUsers || 0,
-    totalTasks: dashboardStats?.totalTasks || 0,
-    pendingTasks: dashboardStats?.pendingTasks || 0,
-    completedTasks: dashboardStats?.completedTasks || 0,
-    interestedBeingDiscipled: dashboardStatsRaw?.interestedBeingDiscipled || 0,
-    totalChurches: dashboardStatsRaw?.totalChurches || 0,
-    pendingApprovals: dashboardStatsRaw?.pendingApprovals || 0,
-    thisWeekEvents: dashboardStatsRaw?.thisWeekEvents || 0,
-    totalEvents: dashboardStatsRaw?.totalEvents || 0,
-    totalPrayers: dashboardStats?.totalPrayers || 0,
-    totalVisits: dashboardStats?.totalVisits || 0,
-    totalActivities: dashboardStats?.totalActivities || 0,
-    totalPoints: dashboardStats?.totalPoints || 0,
-  }), [dashboardStats, dashboardStatsRaw]);
+  const stats = useMemo(
+    () => ({
+      totalUsers: dashboardStats?.totalUsers || 0,
+      totalInterested: dashboardStats?.totalInterested || 0,
+      totalMembers: dashboardStats?.totalMembers || 0,
+      totalMissionaries: dashboardStats?.totalMissionaries || 0,
+      approvedUsers: dashboardStats?.approvedUsers || 0,
+      totalTasks: dashboardStats?.totalTasks || 0,
+      pendingTasks: dashboardStats?.pendingTasks || 0,
+      completedTasks: dashboardStats?.completedTasks || 0,
+      interestedBeingDiscipled: dashboardStatsRaw?.interestedBeingDiscipled || 0,
+      totalChurches: dashboardStatsRaw?.totalChurches || 0,
+      pendingApprovals: dashboardStatsRaw?.pendingApprovals || 0,
+      thisWeekEvents: dashboardStatsRaw?.thisWeekEvents || 0,
+      totalEvents: dashboardStatsRaw?.totalEvents || 0,
+      totalPrayers: dashboardStats?.totalPrayers || 0,
+      totalVisits: dashboardStats?.totalVisits || 0,
+      totalActivities: dashboardStats?.totalActivities || 0,
+      totalPoints: dashboardStats?.totalPoints || 0,
+    }),
+    [dashboardStats, dashboardStatsRaw]
+  );
 
   // ── Effects ─────────────────────────────────────────────────
 
@@ -210,8 +207,13 @@ export function useDashboardData() {
     };
 
     const events = [
-      'user-updated', 'user-approved', 'user-rejected', 'user-imported',
-      'relationship-updated', 'relationship-created', 'relationship-deleted',
+      'user-updated',
+      'user-approved',
+      'user-rejected',
+      'user-imported',
+      'relationship-updated',
+      'relationship-created',
+      'relationship-deleted',
     ];
     events.forEach((e) => window.addEventListener(e, handleUserUpdate as EventListener));
 

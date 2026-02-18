@@ -1,15 +1,7 @@
 import { useState, useEffect, useDeferredValue, startTransition } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Search,
-  Circle,
-  Clock,
-  Trash2,
-  PlusCircle,
-  CheckSquare2,
-  RefreshCw,
-} from 'lucide-react';
+import { Search, Circle, Clock, Trash2, PlusCircle, CheckSquare2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,6 +40,14 @@ export default function Tasks() {
   const { t } = useTranslation();
   const { user } = useAuth();
 
+  // District scope for impersonation
+  const isImpersonating =
+    typeof user === 'object' && user !== null && 'isImpersonating' in user
+      ? Boolean((user as { isImpersonating?: boolean }).isImpersonating)
+      : false;
+  const districtScope =
+    isImpersonating && user?.role === 'pastor' && user?.districtId ? user.districtId : null;
+
   const [searchTerm, setSearchTerm] = useState('');
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
@@ -79,9 +79,12 @@ export default function Tasks() {
     isLoading: tasksLoading,
     refetch,
   } = useQuery({
-    queryKey: ['tasks', user?.id],
+    queryKey: ['tasks', user?.id, districtScope],
     queryFn: async () => {
-      const response = await fetchWithAuth('/api/tasks');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetchWithAuth(url);
       if (!response.ok) throw new Error('Erro ao buscar tarefas');
       const data = await response.json();
       return (data?.data?.tasks || data?.tasks || []) as Task[];
@@ -209,13 +212,15 @@ export default function Tasks() {
       toast.success('Tarefa deletada!');
     } catch (error: unknown) {
       tasksLogger.error('Erro ao deletar:', error);
-      toast.error(`Erro ao deletar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      toast.error(
+        `Erro ao deletar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+      );
     }
   };
 
   const handleToggleTaskSelection = (taskId: number) => {
-    setSelectedTasks(prev =>
-      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    setSelectedTasks((prev) =>
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
     );
   };
 
@@ -274,9 +279,12 @@ export default function Tasks() {
 
   // Buscar usuários do distrito para atribuição
   const { data: usersData } = useQuery({
-    queryKey: ['tasks-users', user?.id],
+    queryKey: ['tasks-users', user?.id, districtScope],
     queryFn: async () => {
-      const response = await fetchWithAuth('/api/tasks/users');
+      const params = new URLSearchParams();
+      if (districtScope) params.set('districtId', String(districtScope));
+      const url = `/api/tasks/users${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetchWithAuth(url);
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       const data = await response.json();
       return data?.data?.users || data?.users || [];
@@ -377,7 +385,9 @@ export default function Tasks() {
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold">{t('tasks.newTask')}</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold">
+                      {t('tasks.newTask')}
+                    </DialogTitle>
                   </DialogHeader>
 
                   <div className="space-y-6">
@@ -386,7 +396,7 @@ export default function Tasks() {
                       <Input
                         id="title"
                         value={newTask.title}
-                        onChange={e => setNewTask({ ...newTask, title: e.target.value })}
+                        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                         placeholder={t('tasks.titlePlaceholder')}
                         className="mt-1"
                       />
@@ -397,7 +407,7 @@ export default function Tasks() {
                       <Textarea
                         id="description"
                         value={newTask.description}
-                        onChange={e => setNewTask({ ...newTask, description: e.target.value })}
+                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                         placeholder={t('tasks.descriptionPlaceholder')}
                         className="mt-1"
                         rows={3}
@@ -409,7 +419,7 @@ export default function Tasks() {
                         <Label htmlFor="priority">{t('tasks.priority')}</Label>
                         <Select
                           value={newTask.priority}
-                          onValueChange={value =>
+                          onValueChange={(value) =>
                             setNewTask({ ...newTask, priority: value as Task['priority'] })
                           }
                         >
@@ -430,7 +440,7 @@ export default function Tasks() {
                           id="due_date"
                           type="date"
                           value={newTask.due_date}
-                          onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
+                          onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
                           className="mt-1"
                         />
                       </div>
@@ -440,7 +450,7 @@ export default function Tasks() {
                       <Label htmlFor="assigned_to">{t('tasks.assignedTo')}</Label>
                       <Select
                         value={newTask.assigned_to}
-                        onValueChange={value => setNewTask({ ...newTask, assigned_to: value })}
+                        onValueChange={(value) => setNewTask({ ...newTask, assigned_to: value })}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder={t('tasks.selectAssignee')} />
@@ -461,7 +471,7 @@ export default function Tasks() {
                       <Input
                         id="church"
                         value={newTask.church}
-                        onChange={e => setNewTask({ ...newTask, church: e.target.value })}
+                        onChange={(e) => setNewTask({ ...newTask, church: e.target.value })}
                         placeholder={t('tasks.churchPlaceholder')}
                         className="mt-1"
                       />
@@ -494,14 +504,17 @@ export default function Tasks() {
                     <Input
                       placeholder={t('tasks.searchPlaceholder')}
                       value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-12 h-12 text-base"
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-3 flex-wrap">
-                  <Select value={selectedStatus} onValueChange={(val) => startTransition(() => setSelectedStatus(val))}>
+                  <Select
+                    value={selectedStatus}
+                    onValueChange={(val) => startTransition(() => setSelectedStatus(val))}
+                  >
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -513,7 +526,10 @@ export default function Tasks() {
                     </SelectContent>
                   </Select>
 
-                  <Select value={selectedPriority} onValueChange={(val) => startTransition(() => setSelectedPriority(val))}>
+                  <Select
+                    value={selectedPriority}
+                    onValueChange={(val) => startTransition(() => setSelectedPriority(val))}
+                  >
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Prioridade" />
                     </SelectTrigger>
@@ -525,7 +541,10 @@ export default function Tasks() {
                     </SelectContent>
                   </Select>
 
-                  <Select value={sortBy} onValueChange={(val) => startTransition(() => setSortBy(val))}>
+                  <Select
+                    value={sortBy}
+                    onValueChange={(val) => startTransition(() => setSortBy(val))}
+                  >
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Ordenar por" />
                     </SelectTrigger>
@@ -625,7 +644,7 @@ export default function Tasks() {
                   description={t('tasks.noPending')}
                 />
               ) : (
-                pendingTasks.map(task => (
+                pendingTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -647,7 +666,7 @@ export default function Tasks() {
                   description={t('tasks.noInProgress')}
                 />
               ) : (
-                inProgressTasks.map(task => (
+                inProgressTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -669,7 +688,7 @@ export default function Tasks() {
                   description={t('tasks.noCompleted')}
                 />
               ) : (
-                completedTasks.map(task => (
+                completedTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -702,7 +721,7 @@ export default function Tasks() {
                     <Input
                       id="edit-title"
                       value={editingTask.title}
-                      onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
+                      onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
                       placeholder="Digite o título"
                       className="mt-1"
                     />
@@ -713,7 +732,7 @@ export default function Tasks() {
                     <Textarea
                       id="edit-description"
                       value={editingTask.description || ''}
-                      onChange={e =>
+                      onChange={(e) =>
                         setEditingTask({ ...editingTask, description: e.target.value })
                       }
                       placeholder="Descreva a tarefa"
@@ -724,10 +743,10 @@ export default function Tasks() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <Label htmlFor="edit-priority">{t('tasks.priority')}</Label>
+                      <Label htmlFor="edit-priority">{t('tasks.priority')}</Label>
                       <Select
                         value={editingTask.priority}
-                        onValueChange={value =>
+                        onValueChange={(value) =>
                           setEditingTask({ ...editingTask, priority: value as Task['priority'] })
                         }
                       >
@@ -735,20 +754,22 @@ export default function Tasks() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="low">{t('tasks.low')}</SelectItem>
-                            <SelectItem value="medium">{t('tasks.medium')}</SelectItem>
-                            <SelectItem value="high">{t('tasks.high')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                          <SelectItem value="low">{t('tasks.low')}</SelectItem>
+                          <SelectItem value="medium">{t('tasks.medium')}</SelectItem>
+                          <SelectItem value="high">{t('tasks.high')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                      <div>
-                        <Label htmlFor="edit-due_date">{t('tasks.dueDate')}</Label>
+                    <div>
+                      <Label htmlFor="edit-due_date">{t('tasks.dueDate')}</Label>
                       <Input
                         id="edit-due_date"
                         type="date"
                         value={editingTask.due_date ? editingTask.due_date.split('T')[0] : ''}
-                        onChange={e => setEditingTask({ ...editingTask, due_date: e.target.value })}
+                        onChange={(e) =>
+                          setEditingTask({ ...editingTask, due_date: e.target.value })
+                        }
                         className="mt-1"
                       />
                     </div>
@@ -758,7 +779,7 @@ export default function Tasks() {
                     <Label htmlFor="edit-status">{t('common.status')}</Label>
                     <Select
                       value={editingTask.status}
-                      onValueChange={value =>
+                      onValueChange={(value) =>
                         setEditingTask({ ...editingTask, status: value as Task['status'] })
                       }
                     >
@@ -777,7 +798,7 @@ export default function Tasks() {
                     <Label htmlFor="edit-assigned_to">{t('tasks.assignedTo')}</Label>
                     <Select
                       value={editingTask.assigned_to?.toString() || 'none'}
-                      onValueChange={value =>
+                      onValueChange={(value) =>
                         setEditingTask({
                           ...editingTask,
                           assigned_to: value === 'none' ? undefined : parseInt(value),
@@ -803,7 +824,7 @@ export default function Tasks() {
                     <Input
                       id="edit-church"
                       value={editingTask.church || ''}
-                      onChange={e => setEditingTask({ ...editingTask, church: e.target.value })}
+                      onChange={(e) => setEditingTask({ ...editingTask, church: e.target.value })}
                       placeholder={t('tasks.churchPlaceholder')}
                       className="mt-1"
                     />

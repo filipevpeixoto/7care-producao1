@@ -43,9 +43,25 @@ export function taskRoutes(app: Express): void {
       }
 
       const currentUser = userResult[0];
+
+      // Superadmin pode filtrar por distrito via query param (impersonação)
+      const requestedDistrictId = req.query.districtId ? Number(req.query.districtId) : null;
       let tasks;
 
-      if (currentUser.role === 'superadmin') {
+      if (currentUser.role === 'superadmin' && requestedDistrictId) {
+        // Superadmin impersonando: filtra por distrito específico
+        tasks = await sql`
+          SELECT 
+            t.*,
+            u1.name as created_by_name,
+            u2.name as assigned_to_name
+          FROM tasks t
+          LEFT JOIN users u1 ON t.created_by_id = u1.id
+          LEFT JOIN users u2 ON t.assigned_to_id = u2.id
+          WHERE t.district_id = ${requestedDistrictId}
+          ORDER BY t.created_at DESC
+        `;
+      } else if (currentUser.role === 'superadmin') {
         // Superadmin vê todas as tarefas
         tasks = await sql`
           SELECT 
@@ -389,6 +405,9 @@ export function taskRoutes(app: Express): void {
       }
 
       const currentUser = userResult[0];
+
+      // Superadmin pode filtrar por distrito via query param (impersonação)
+      const requestedDistrictId = req.query.districtId ? Number(req.query.districtId) : null;
       let users: Array<{
         id: number;
         name: string;
@@ -397,7 +416,23 @@ export function taskRoutes(app: Express): void {
         church: string | null;
       }>;
 
-      if (currentUser.role === 'superadmin') {
+      if (currentUser.role === 'superadmin' && requestedDistrictId) {
+        // Superadmin impersonando: apenas usuários do distrito
+        users = (await sql`
+          SELECT id, name, email, role, church
+          FROM users
+          WHERE district_id = ${requestedDistrictId}
+            AND (status = 'active' OR status IS NULL)
+          ORDER BY name ASC
+          LIMIT 500
+        `) as Array<{
+          id: number;
+          name: string;
+          email: string;
+          role: string;
+          church: string | null;
+        }>;
+      } else if (currentUser.role === 'superadmin') {
         // Superadmin vê todos os usuários
         users = (await sql`
           SELECT id, name, email, role, church
