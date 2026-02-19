@@ -1,7 +1,7 @@
 /**
  * Task Routes
  * Rotas para gerenciamento de tarefas
- * Tarefas salvas no banco de dados, isoladas por pastor/distrito
+ * Tarefas salvas no banco de dados, isoladas por pastor
  */
 
 import type { Express, Request, Response } from 'express';
@@ -94,8 +94,7 @@ export function taskRoutes(app: Express): void {
     validateBody(createTaskSchema),
     asyncHandler(async (req: Request, res: Response) => {
       const validatedReq = req as ValidatedRequest<typeof createTaskSchema._type>;
-      const { title, description, priority, status, dueDate, assignedToId, church } =
-        validatedReq.validatedBody;
+      const { title, description, priority, status, dueDate, church } = validatedReq.validatedBody;
 
       const userId = getAuthUserId(req);
 
@@ -130,7 +129,7 @@ export function taskRoutes(app: Express): void {
           ${priority || 'medium'},
           ${dueDate || null},
           ${userId},
-          ${assignedToId || null},
+          ${userId},
           ${districtId},
           ${taskChurch},
           '[]'::jsonb
@@ -142,22 +141,12 @@ export function taskRoutes(app: Express): void {
 
       // Buscar nomes do criador e responsável
       let createdByName = '';
-      let assignedToName = '';
 
       const creatorResult = (await sql`SELECT name FROM users WHERE id = ${userId}`) as Array<{
         name: string;
       }>;
       const creatorName = creatorResult[0]?.name;
       if (creatorName) createdByName = creatorName;
-
-      if (assignedToId) {
-        const assigneeResult =
-          (await sql`SELECT name FROM users WHERE id = ${assignedToId}`) as Array<{
-            name: string;
-          }>;
-        const assigneeName = assigneeResult[0]?.name;
-        if (assigneeName) assignedToName = assigneeName;
-      }
 
       const formattedTask = {
         id: task.id,
@@ -169,7 +158,7 @@ export function taskRoutes(app: Express): void {
         created_by: task.created_by_id,
         assigned_to: task.assigned_to_id,
         created_by_name: createdByName,
-        assigned_to_name: assignedToName,
+        assigned_to_name: createdByName,
         church: task.church || '',
         district_id: task.district_id,
         tags: task.tags || [],
@@ -239,7 +228,7 @@ export function taskRoutes(app: Express): void {
           status = COALESCE(${updates.status || null}, status),
           priority = COALESCE(${updates.priority || null}, priority),
           due_date = ${updates.dueDate !== undefined ? updates.dueDate || null : existingTask.due_date},
-          assigned_to_id = ${updates.assignedToId !== undefined ? updates.assignedToId || null : existingTask.assigned_to_id},
+          assigned_to_id = ${userId},
           church = COALESCE(${updates.church !== undefined ? updates.church : null}, church),
           completed_at = ${completedAt},
           updated_at = NOW()

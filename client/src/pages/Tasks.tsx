@@ -26,13 +26,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { notificationService } from '@/lib/notificationService';
 import { fetchWithAuth } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
 import { isPastor } from '@/lib/permissions';
 import { TaskCard } from './tasks/TaskCard';
 import { TasksEmptyState } from './tasks/TasksEmptyState';
-import type { Task, TaskUser } from './tasks/tasksTypes';
+import type { Task } from './tasks/tasksTypes';
 
 const tasksLogger = createLogger('Tasks');
 
@@ -60,14 +59,12 @@ export default function Tasks() {
     description: string;
     priority: Task['priority'];
     due_date: string;
-    assigned_to: string;
     church: string;
   }>({
     title: '',
     description: '',
     priority: 'medium',
     due_date: '',
-    assigned_to: 'none',
     church: '',
   });
 
@@ -112,10 +109,6 @@ export default function Tasks() {
         description: newTask.description || undefined,
         priority: newTask.priority,
         dueDate: newTask.due_date || undefined,
-        assignedToId:
-          newTask.assigned_to && newTask.assigned_to !== 'none'
-            ? parseInt(newTask.assigned_to)
-            : undefined,
         church: newTask.church || undefined,
         status: 'pending' as const,
       };
@@ -135,20 +128,10 @@ export default function Tasks() {
         description: '',
         priority: 'medium',
         due_date: '',
-        assigned_to: 'none',
         church: '',
       });
 
       toast.success('Tarefa criada!');
-
-      // Notificar responsável
-      if (newTask.assigned_to && newTask.assigned_to !== 'none') {
-        try {
-          await notificationService.notifyTaskCreated(newTask.title, parseInt(newTask.assigned_to));
-        } catch (error) {
-          tasksLogger.error('Erro ao enviar notificação:', error);
-        }
-      }
     } catch (error) {
       tasksLogger.error('Erro ao criar tarefa:', error);
       toast.error('Erro ao criar tarefa');
@@ -169,7 +152,6 @@ export default function Tasks() {
         description: editingTask.description,
         priority: editingTask.priority,
         dueDate: editingTask.due_date,
-        assignedToId: editingTask.assigned_to,
         church: editingTask.church,
         status: editingTask.status,
       };
@@ -271,21 +253,6 @@ export default function Tasks() {
       toast.error('Erro ao alterar status');
     }
   };
-
-  // Buscar usuários do distrito para atribuição
-  const { data: usersData } = useQuery({
-    queryKey: ['tasks-users', user?.id],
-    queryFn: async () => {
-      const response = await fetchWithAuth('/api/tasks/users');
-      if (!response.ok) throw new Error('Erro ao buscar usuários');
-      const data = await response.json();
-      return data?.data?.users || data?.users || [];
-    },
-    enabled: !!user?.id && canAccessTasks,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const users: TaskUser[] = usersData || [];
 
   // Filtrar tarefas com verificações de segurança
   const filtered = allTasks.filter((task: Task) => {
@@ -447,26 +414,6 @@ export default function Tasks() {
                           className="mt-1"
                         />
                       </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="assigned_to">{t('tasks.assignedTo')}</Label>
-                      <Select
-                        value={newTask.assigned_to}
-                        onValueChange={(value) => setNewTask({ ...newTask, assigned_to: value })}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder={t('tasks.selectAssignee')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">{t('tasks.noAssignee')}</SelectItem>
-                          {users.map((u: TaskUser) => (
-                            <SelectItem key={u.id} value={u.id.toString()}>
-                              {u.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
 
                     <div>
@@ -793,31 +740,6 @@ export default function Tasks() {
                         <SelectItem value="pending">{t('tasks.pending')}</SelectItem>
                         <SelectItem value="in_progress">{t('tasks.inProgress')}</SelectItem>
                         <SelectItem value="completed">{t('tasks.completed')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="edit-assigned_to">{t('tasks.assignedTo')}</Label>
-                    <Select
-                      value={editingTask.assigned_to?.toString() || 'none'}
-                      onValueChange={(value) =>
-                        setEditingTask({
-                          ...editingTask,
-                          assigned_to: value === 'none' ? undefined : parseInt(value),
-                        })
-                      }
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder={t('tasks.selectAssignee')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{t('tasks.noAssignee')}</SelectItem>
-                        {users.map((u: TaskUser) => (
-                          <SelectItem key={u.id} value={u.id.toString()}>
-                            {u.name}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                   </div>
