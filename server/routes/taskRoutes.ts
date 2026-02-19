@@ -19,10 +19,9 @@ import { getAuthUserId } from '../utils/authHelpers';
 export function taskRoutes(app: Express): void {
   /**
    * GET /api/tasks
-   * Lista tarefas filtradas por distrito do pastor (isolamento por pastor)
-   * - Superadmin: vê todas as tarefas
-   * - Pastor: vê apenas tarefas do seu distrito
-   * - Membro: vê apenas tarefas do seu distrito
+   * Lista tarefas do pastor autenticado
+   * - Apenas pastor tem acesso
+   * - Cada pastor vê somente tarefas criadas por ele
    */
   app.get(
     '/api/tasks',
@@ -44,62 +43,21 @@ export function taskRoutes(app: Express): void {
 
       const currentUser = userResult[0];
 
-      // Superadmin pode filtrar por distrito via query param (impersonação)
-      const requestedDistrictId = req.query.districtId ? Number(req.query.districtId) : null;
-      let tasks;
-
-      if (currentUser.role === 'superadmin' && requestedDistrictId) {
-        // Superadmin impersonando: filtra por distrito específico
-        tasks = await sql`
-          SELECT 
-            t.*,
-            u1.name as created_by_name,
-            u2.name as assigned_to_name
-          FROM tasks t
-          LEFT JOIN users u1 ON t.created_by_id = u1.id
-          LEFT JOIN users u2 ON t.assigned_to_id = u2.id
-          WHERE t.district_id = ${requestedDistrictId}
-          ORDER BY t.created_at DESC
-        `;
-      } else if (currentUser.role === 'superadmin') {
-        // Superadmin vê todas as tarefas
-        tasks = await sql`
-          SELECT 
-            t.*,
-            u1.name as created_by_name,
-            u2.name as assigned_to_name
-          FROM tasks t
-          LEFT JOIN users u1 ON t.created_by_id = u1.id
-          LEFT JOIN users u2 ON t.assigned_to_id = u2.id
-          ORDER BY t.created_at DESC
-        `;
-      } else if (currentUser.district_id) {
-        // Pastor/membro: apenas tarefas do seu distrito
-        tasks = await sql`
-          SELECT 
-            t.*,
-            u1.name as created_by_name,
-            u2.name as assigned_to_name
-          FROM tasks t
-          LEFT JOIN users u1 ON t.created_by_id = u1.id
-          LEFT JOIN users u2 ON t.assigned_to_id = u2.id
-          WHERE t.district_id = ${currentUser.district_id}
-          ORDER BY t.created_at DESC
-        `;
-      } else {
-        // Sem distrito: apenas tarefas criadas pelo próprio
-        tasks = await sql`
-          SELECT 
-            t.*,
-            u1.name as created_by_name,
-            u2.name as assigned_to_name
-          FROM tasks t
-          LEFT JOIN users u1 ON t.created_by_id = u1.id
-          LEFT JOIN users u2 ON t.assigned_to_id = u2.id
-          WHERE t.created_by_id = ${userId}
-          ORDER BY t.created_at DESC
-        `;
+      if (currentUser.role !== 'pastor') {
+        return res.status(403).json({ error: 'Apenas pastores podem acessar tarefas' });
       }
+
+      const tasks = await sql`
+        SELECT 
+          t.*,
+          u1.name as created_by_name,
+          u2.name as assigned_to_name
+        FROM tasks t
+        LEFT JOIN users u1 ON t.created_by_id = u1.id
+        LEFT JOIN users u2 ON t.assigned_to_id = u2.id
+        WHERE t.created_by_id = ${userId}
+        ORDER BY t.created_at DESC
+      `;
 
       // Formatar resposta
       const formattedTasks = tasks.map((t: Record<string, unknown>) => ({
@@ -129,7 +87,7 @@ export function taskRoutes(app: Express): void {
   /**
    * POST /api/tasks
    * Cria uma nova tarefa no banco de dados
-   * Automaticamente associa ao distrito do pastor
+   * Salva no nome do pastor autenticado
    */
   app.post(
     '/api/tasks',
@@ -155,6 +113,11 @@ export function taskRoutes(app: Express): void {
       }
 
       const currentUser = userResult[0];
+
+      if (currentUser.role !== 'pastor') {
+        return res.status(403).json({ error: 'Apenas pastores podem criar tarefas' });
+      }
+
       const districtId = currentUser.district_id || null;
       const taskChurch = church || currentUser.church || '';
 
@@ -222,7 +185,7 @@ export function taskRoutes(app: Express): void {
 
   /**
    * PUT /api/tasks/:id
-   * Atualiza uma tarefa (somente se o usuário tem acesso pelo distrito)
+   * Atualiza uma tarefa do próprio pastor
    */
   app.put(
     '/api/tasks/:id',
@@ -253,12 +216,11 @@ export function taskRoutes(app: Express): void {
 
       const currentUser = userResult[0];
 
-      // Verificar permissão: superadmin pode editar qualquer tarefa,
-      // outros só podem editar tarefas do seu distrito
-      if (
-        currentUser.role !== 'superadmin' &&
-        existingTask.district_id !== currentUser.district_id
-      ) {
+      if (currentUser.role !== 'pastor') {
+        return res.status(403).json({ error: 'Apenas pastores podem editar tarefas' });
+      }
+
+      if (existingTask.created_by_id !== userId) {
         return res.status(403).json({ error: 'Sem permissão para editar esta tarefa' });
       }
 
@@ -337,7 +299,7 @@ export function taskRoutes(app: Express): void {
 
   /**
    * DELETE /api/tasks/:id
-   * Remove uma tarefa (somente se o usuário tem acesso pelo distrito)
+   * Remove uma tarefa do próprio pastor
    */
   app.delete(
     '/api/tasks/:id',
@@ -367,11 +329,11 @@ export function taskRoutes(app: Express): void {
 
       const currentUser = userResult[0];
 
-      // Verificar permissão
-      if (
-        currentUser.role !== 'superadmin' &&
-        existingTask.district_id !== currentUser.district_id
-      ) {
+      if (currentUser.role !== 'pastor') {
+        return res.status(403).json({ error: 'Apenas pastores podem deletar tarefas' });
+      }
+
+      if (existingTask.created_by_id !== userId) {
         return res.status(403).json({ error: 'Sem permissão para deletar esta tarefa' });
       }
 
@@ -385,6 +347,7 @@ export function taskRoutes(app: Express): void {
   /**
    * GET /api/tasks/users
    * Lista usuários do distrito do pastor para atribuição de tarefas
+   * - Apenas pastor tem acesso
    */
   app.get(
     '/api/tasks/users',
@@ -406,8 +369,10 @@ export function taskRoutes(app: Express): void {
 
       const currentUser = userResult[0];
 
-      // Superadmin pode filtrar por distrito via query param (impersonação)
-      const requestedDistrictId = req.query.districtId ? Number(req.query.districtId) : null;
+      if (currentUser.role !== 'pastor') {
+        return res.status(403).json({ error: 'Apenas pastores podem acessar usuários de tarefas' });
+      }
+
       let users: Array<{
         id: number;
         name: string;
@@ -416,39 +381,8 @@ export function taskRoutes(app: Express): void {
         church: string | null;
       }>;
 
-      if (currentUser.role === 'superadmin' && requestedDistrictId) {
-        // Superadmin impersonando: apenas usuários do distrito
-        users = (await sql`
-          SELECT id, name, email, role, church
-          FROM users
-          WHERE district_id = ${requestedDistrictId}
-            AND (status = 'active' OR status IS NULL)
-          ORDER BY name ASC
-          LIMIT 500
-        `) as Array<{
-          id: number;
-          name: string;
-          email: string;
-          role: string;
-          church: string | null;
-        }>;
-      } else if (currentUser.role === 'superadmin') {
-        // Superadmin vê todos os usuários
-        users = (await sql`
-          SELECT id, name, email, role, church
-          FROM users
-          WHERE status = 'active' OR status IS NULL
-          ORDER BY name ASC
-          LIMIT 500
-        `) as Array<{
-          id: number;
-          name: string;
-          email: string;
-          role: string;
-          church: string | null;
-        }>;
-      } else if (currentUser.district_id) {
-        // Pastor/membro: apenas usuários do seu distrito
+      if (currentUser.district_id) {
+        // Pastor: apenas usuários do seu distrito
         users = (await sql`
           SELECT id, name, email, role, church
           FROM users

@@ -179,13 +179,6 @@ const Menu = () => {
         description: t('menu.newContacts'),
       },
       {
-        title: t('menu.tasks'),
-        icon: CheckSquare,
-        path: '/tasks',
-        color: 'bg-orange-500',
-        description: t('menu.taskManagement'),
-      },
-      {
         title: t('menu.reports'),
         icon: BarChart3,
         path: '/reports',
@@ -279,13 +272,6 @@ const Menu = () => {
         path: '/my-interested',
         color: 'bg-red-500',
         description: t('menu.followPeople'),
-      },
-      {
-        title: t('menu.myTasks'),
-        icon: FileText,
-        path: '/my-reports',
-        color: 'bg-orange-500',
-        description: t('menu.myTasksDesc'),
       },
     ],
     member: [

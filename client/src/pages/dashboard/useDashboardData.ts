@@ -51,7 +51,7 @@ export function useDashboardData() {
     userRelationships,
     userRelationshipsLoading,
     userDetailedData,
-  } = useDashboardQueries({ user, isAuthReady });
+  } = useDashboardQueries({ user, realUser, isAuthReady });
 
   // ── Computed Stats ──────────────────────────────────────────
 

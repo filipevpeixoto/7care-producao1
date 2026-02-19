@@ -471,6 +471,8 @@
     "churchLabel": "Church",
     "churchPlaceholder": "Enter the church name",
     "refreshTitle": "Refresh tasks",
+    "accessRestricted": "Restricted Access",
+    "accessRestrictedMessage": "Tasks functionality is available only for pastors.",
     "noPending": "No pending tasks",
     "noInProgress": "No tasks in progress",
     "noCompleted": "No completed tasks",

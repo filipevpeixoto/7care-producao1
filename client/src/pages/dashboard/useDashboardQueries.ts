@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { hasAdminAccess, isSuperAdmin, type UserLike } from '@/lib/permissions';
+import { hasAdminAccess, isPastor, isSuperAdmin, type UserLike } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/api';
 import type { DashboardUser } from '@/types/domain';
 
 type UseDashboardQueriesProps = {
   user: UserLike;
+  realUser?: UserLike;
   isAuthReady: boolean;
 };
 
-export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesProps) => {
+export const useDashboardQueries = ({ user, realUser, isAuthReady }: UseDashboardQueriesProps) => {
   const isImpersonating =
     typeof user === 'object' && user !== null && 'isImpersonating' in user
       ? Boolean((user as { isImpersonating?: boolean }).isImpersonating)
@@ -53,13 +54,12 @@ export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesPr
     ? usersDataRaw
     : (usersDataRaw as { data?: DashboardUser[] })?.data || [];
 
+  const canFetchTasks = isPastor(realUser || user);
+
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
-    queryKey: ['tasks', user?.id, districtScope],
+    queryKey: ['tasks', user?.id, canFetchTasks],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (districtScope) params.set('districtId', String(districtScope));
-      const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ''}`;
-      const response = await fetchWithAuth(url);
+      const response = await fetchWithAuth('/api/tasks');
       if (!response.ok) throw new Error('Erro ao buscar tarefas');
       const data = await response.json();
       return (data?.data?.tasks || data?.tasks || []) as Array<{
@@ -80,7 +80,7 @@ export const useDashboardQueries = ({ user, isAuthReady }: UseDashboardQueriesPr
     },
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
-    enabled: isAuthReady,
+    enabled: isAuthReady && canFetchTasks,
   });
 
   const { data: dashboardStatsRaw, isLoading } = useQuery({

@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { notificationService } from '@/lib/notificationService';
 import { fetchWithAuth } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
+import { isPastor } from '@/lib/permissions';
 import { TaskCard } from './tasks/TaskCard';
 import { TasksEmptyState } from './tasks/TasksEmptyState';
 import type { Task, TaskUser } from './tasks/tasksTypes';
@@ -39,14 +40,11 @@ const tasksLogger = createLogger('Tasks');
 export default function Tasks() {
   const { t } = useTranslation();
   const { user } = useAuth();
-
-  // District scope for impersonation
   const isImpersonating =
     typeof user === 'object' && user !== null && 'isImpersonating' in user
       ? Boolean((user as { isImpersonating?: boolean }).isImpersonating)
       : false;
-  const districtScope =
-    isImpersonating && user?.role === 'pastor' && user?.districtId ? user.districtId : null;
+  const canAccessTasks = isPastor(user) && !isImpersonating;
 
   const [searchTerm, setSearchTerm] = useState('');
   const deferredSearchTerm = useDeferredValue(searchTerm);
@@ -79,19 +77,16 @@ export default function Tasks() {
     isLoading: tasksLoading,
     refetch,
   } = useQuery({
-    queryKey: ['tasks', user?.id, districtScope],
+    queryKey: ['tasks', user?.id],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (districtScope) params.set('districtId', String(districtScope));
-      const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ''}`;
-      const response = await fetchWithAuth(url);
+      const response = await fetchWithAuth('/api/tasks');
       if (!response.ok) throw new Error('Erro ao buscar tarefas');
       const data = await response.json();
       return (data?.data?.tasks || data?.tasks || []) as Task[];
     },
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
-    enabled: !!user?.id,
+    enabled: !!user?.id && canAccessTasks,
   });
 
   const allTasks: Task[] = tasksData || [];
@@ -279,17 +274,14 @@ export default function Tasks() {
 
   // Buscar usuários do distrito para atribuição
   const { data: usersData } = useQuery({
-    queryKey: ['tasks-users', user?.id, districtScope],
+    queryKey: ['tasks-users', user?.id],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (districtScope) params.set('districtId', String(districtScope));
-      const url = `/api/tasks/users${params.toString() ? `?${params.toString()}` : ''}`;
-      const response = await fetchWithAuth(url);
+      const response = await fetchWithAuth('/api/tasks/users');
       if (!response.ok) throw new Error('Erro ao buscar usuários');
       const data = await response.json();
       return data?.data?.users || data?.users || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && canAccessTasks,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -328,6 +320,17 @@ export default function Tasks() {
   const pendingTasks = filteredTasks.filter((task: Task) => task.status === 'pending');
   const inProgressTasks = filteredTasks.filter((task: Task) => task.status === 'in_progress');
   const completedTasks = filteredTasks.filter((task: Task) => task.status === 'completed');
+
+  if (!canAccessTasks) {
+    return (
+      <MobileLayout>
+        <div className="p-4 text-center">
+          <h2 className="text-xl font-semibold mb-2">{t('tasks.accessRestricted')}</h2>
+          <p className="text-muted-foreground">{t('tasks.accessRestrictedMessage')}</p>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   if (tasksLoading) {
     return (

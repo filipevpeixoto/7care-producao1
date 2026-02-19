@@ -471,6 +471,8 @@
     "churchLabel": "Igreja",
     "churchPlaceholder": "Digite o nome da igreja",
     "refreshTitle": "Atualizar tarefas",
+    "accessRestricted": "Acesso Restrito",
+    "accessRestrictedMessage": "A funcionalidade de tarefas é exclusiva para pastores.",
     "noPending": "Nenhuma tarefa pendente",
     "noInProgress": "Nenhuma tarefa em progresso",
     "noCompleted": "Nenhuma tarefa concluída",
