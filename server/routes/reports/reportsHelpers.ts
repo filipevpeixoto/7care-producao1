@@ -9,11 +9,15 @@ import { isSuperAdmin, isPastor } from '../../utils/permissions';
 import { type User, type Church, type Event } from '../../../shared/schema';
 
 /**
- * Helper function para buscar usuários com isolamento de distrito
- * PERFORMANCE & ISOLATION FIX: Usa query direta por distrito quando aplicável
+ * Helper function para buscar usuários com isolamento de distrito.
+ * Aceita effectiveDistrictId já resolvido pelo getEffectiveDistrictId.
+ *
+ * @param user - Usuário autenticado
+ * @param effectiveDistrictId - districtId efetivo (já resolvido com impersonação)
  */
 export const getUsersForReport = async (
-  user: User | null
+  user: User | null,
+  effectiveDistrictId?: number | null
 ): Promise<{ users: User[]; churches: Church[]; events: Event[] }> => {
   const userRepo = getRepository('userRepository');
   const eventRepo = getRepository('eventRepository');
@@ -21,29 +25,28 @@ export const getUsersForReport = async (
 
   const allEvents = await eventRepo.getAllEvents();
 
-  if (isPastor(user) && user?.districtId) {
-    // Pastor: query otimizada direto do banco por district_id
-    logger.info(`🏛️ Reports Helper - Query direta por distrito: ${user.districtId}`);
-    const users = await userRepo.getUsersByDistrictId(user.districtId);
+  // Usar effectiveDistrictId se fornecido, senão derivar do user
+  const districtId =
+    effectiveDistrictId !== undefined
+      ? effectiveDistrictId
+      : isPastor(user) && user?.districtId
+        ? user.districtId
+        : null;
+
+  if (districtId) {
+    // Pastor ou superadmin impersonando: filtrar por distrito
+    logger.info(`🏛️ Reports Helper - Query direta por distrito: ${districtId}`);
+    const users = await userRepo.getUsersByDistrictId(districtId);
     const filteredUsers = users.filter((u: User) => u.email !== 'admin@7care.com');
-    const churches = await churchRepo.getChurchesByDistrict(user.districtId);
-    const events = allEvents.filter((e: Event) => e.districtId === user.districtId);
+    const churches = await churchRepo.getChurchesByDistrict(districtId);
+    const events = allEvents.filter((e: Event) => e.districtId === districtId);
     return { users: filteredUsers, churches, events };
   } else if (isSuperAdmin(user)) {
-    if (user?.districtId) {
-      // Superadmin com distrito específico
-      const users = await userRepo.getUsersByDistrictId(user.districtId);
-      const filteredUsers = users.filter((u: User) => u.email !== 'admin@7care.com');
-      const churches = await churchRepo.getChurchesByDistrict(user.districtId);
-      const events = allEvents.filter((e: Event) => e.districtId === user.districtId);
-      return { users: filteredUsers, churches, events };
-    } 
-      // Superadmin sem distrito (vê tudo)
-      const allUsers = await userRepo.getAllUsers();
-      const filteredUsers = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-      const allChurches = await churchRepo.getAllChurches();
-      return { users: filteredUsers, churches: allChurches, events: allEvents };
-    
+    // Superadmin sem distrito (vê tudo)
+    const allUsers = await userRepo.getAllUsers();
+    const filteredUsers = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
+    const allChurches = await churchRepo.getAllChurches();
+    return { users: filteredUsers, churches: allChurches, events: allEvents };
   }
 
   // Fallback: sem acesso

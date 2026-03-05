@@ -8,7 +8,7 @@ import { getRepository } from '../../container';
 import { isSuperAdmin, isPastor } from '../../utils/permissions';
 import { asyncHandler } from '../../utils';
 import { sendSuccess, sendError } from '../../utils/apiResponse';
-import { getAuthUserId } from '../../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../../utils/authHelpers';
 import { getUsersForReport, getEngagementScore } from './reportsHelpers';
 
 export const analysisRoutes = (app: Express): void => {
@@ -32,18 +32,25 @@ export const analysisRoutes = (app: Express): void => {
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: usersToInclude } = await getUsersForReport(user);
+      const { users: usersToInclude } = await getUsersForReport(
+        user,
+        getEffectiveDistrictId(req, user)
+      );
 
       // Calculate funnel stages
-      const interested = usersToInclude.filter(u => u.role === 'interested');
+      const interested = usersToInclude.filter((u) => u.role === 'interested');
       const classificacaoC = interested.filter(
-        u => !u.classificacao || u.classificacao.toUpperCase() === 'C'
+        (u) => !u.classificacao || u.classificacao.toUpperCase() === 'C'
       ).length;
-      const classificacaoB = interested.filter(u => u.classificacao?.toUpperCase() === 'B').length;
-      const classificacaoA = interested.filter(u => u.classificacao?.toUpperCase() === 'A').length;
-      const baptized = usersToInclude.filter(u => u.baptismDate).length;
-      const members = usersToInclude.filter(u => u.role === 'member' && !u.baptismDate).length;
-      const missionaries = usersToInclude.filter(u => u.role === 'missionary').length;
+      const classificacaoB = interested.filter(
+        (u) => u.classificacao?.toUpperCase() === 'B'
+      ).length;
+      const classificacaoA = interested.filter(
+        (u) => u.classificacao?.toUpperCase() === 'A'
+      ).length;
+      const baptized = usersToInclude.filter((u) => u.baptismDate).length;
+      const members = usersToInclude.filter((u) => u.role === 'member' && !u.baptismDate).length;
+      const missionaries = usersToInclude.filter((u) => u.role === 'missionary').length;
 
       // Conversion rates
       const totalInterested = interested.length;
@@ -100,7 +107,10 @@ export const analysisRoutes = (app: Express): void => {
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: usersToInclude } = await getUsersForReport(user);
+      const { users: usersToInclude } = await getUsersForReport(
+        user,
+        getEffectiveDistrictId(req, user)
+      );
 
       // Engagement by category
       const engagementCategories = {
@@ -112,7 +122,7 @@ export const analysisRoutes = (app: Express): void => {
         streak: { label: 'Sequência', value: 0, max: 15 },
       };
 
-      usersToInclude.forEach(user => {
+      usersToInclude.forEach((user) => {
         engagementCategories.attendance.value += Math.min((user.attendance || 0) * 3, 30);
         engagementCategories.tithe.value += user.isTither ? 15 : 0;
         engagementCategories.offering.value += user.isDonor ? 10 : 0;
@@ -123,7 +133,7 @@ export const analysisRoutes = (app: Express): void => {
 
       // Calculate averages
       const userCount = usersToInclude.length || 1;
-      Object.keys(engagementCategories).forEach(key => {
+      Object.keys(engagementCategories).forEach((key) => {
         const k = key as keyof typeof engagementCategories;
         engagementCategories[k].value = Math.round(engagementCategories[k].value / userCount);
       });
@@ -137,7 +147,7 @@ export const analysisRoutes = (app: Express): void => {
         { range: '81-100', count: 0, label: 'Muito Alto' },
       ];
 
-      usersToInclude.forEach(user => {
+      usersToInclude.forEach((user) => {
         const score = getEngagementScore(user);
         if (score <= 20) distribution[0].count++;
         else if (score <= 40) distribution[1].count++;
@@ -148,7 +158,7 @@ export const analysisRoutes = (app: Express): void => {
 
       // Top engaged users
       const topEngaged = usersToInclude
-        .map(u => ({
+        .map((u) => ({
           id: u.id,
           name: u.name,
           church: u.church,
@@ -160,8 +170,8 @@ export const analysisRoutes = (app: Express): void => {
 
       // Users needing attention (low engagement)
       const needingAttention = usersToInclude
-        .filter(u => getEngagementScore(u) < 30)
-        .map(u => ({
+        .filter((u) => getEngagementScore(u) < 30)
+        .map((u) => ({
           id: u.id,
           name: u.name,
           church: u.church,
@@ -200,7 +210,10 @@ export const analysisRoutes = (app: Express): void => {
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: usersToInclude } = await getUsersForReport(user);
+      const { users: usersToInclude } = await getUsersForReport(
+        user,
+        getEffectiveDistrictId(req, user)
+      );
 
       const insights: Array<{
         id: number;
@@ -213,16 +226,16 @@ export const analysisRoutes = (app: Express): void => {
 
       // Calculate metrics for insights
       const totalUsers = usersToInclude.length;
-      const lowEngagement = usersToInclude.filter(u => getEngagementScore(u) < 30).length;
+      const lowEngagement = usersToInclude.filter((u) => getEngagementScore(u) < 30).length;
       const lowEngagementPct = totalUsers > 0 ? (lowEngagement / totalUsers) * 100 : 0;
 
-      const interested = usersToInclude.filter(u => u.role === 'interested');
+      const interested = usersToInclude.filter((u) => u.role === 'interested');
       const interestedC = interested.filter(
-        u => !u.classificacao || u.classificacao.toUpperCase() === 'C'
+        (u) => !u.classificacao || u.classificacao.toUpperCase() === 'C'
       ).length;
-      const interestedWithoutMentor = interested.filter(u => !u.biblicalInstructor).length;
+      const interestedWithoutMentor = interested.filter((u) => !u.biblicalInstructor).length;
 
-      const tithers = usersToInclude.filter(u => u.isTither).length;
+      const tithers = usersToInclude.filter((u) => u.isTither).length;
       const tithersRate = totalUsers > 0 ? (tithers / totalUsers) * 100 : 0;
 
       // Generate insights based on data
@@ -282,7 +295,7 @@ export const analysisRoutes = (app: Express): void => {
       // Check for recent growth
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const newThisMonth = usersToInclude.filter(u => {
+      const newThisMonth = usersToInclude.filter((u) => {
         const createdAt = u.createdAt ? new Date(u.createdAt) : null;
         return createdAt && createdAt >= monthStart;
       }).length;
@@ -305,8 +318,8 @@ export const analysisRoutes = (app: Express): void => {
         }),
         summary: {
           total: insights.length,
-          highPriority: insights.filter(i => i.priority === 'high').length,
-          actions: insights.filter(i => i.type === 'action').length,
+          highPriority: insights.filter((i) => i.priority === 'high').length,
+          actions: insights.filter((i) => i.type === 'action').length,
         },
       });
     })

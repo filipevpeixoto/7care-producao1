@@ -8,11 +8,11 @@ import { asyncHandler } from '../utils';
 import { logger } from '../utils/logger';
 import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createEmotionalCheckInSchema } from '../schemas';
-import { isPastor } from '../utils/permissions';
+import { isPastor, isSuperAdmin } from '../utils/permissions';
 import { type User } from '../../shared/schema';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository } from '../container';
-import { getAuthUserId } from '../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../utils/authHelpers';
 
 const SCORE_TO_MOOD: Record<number, string> = {
   1: 'Distante',
@@ -155,17 +155,21 @@ export const spiritualRoutes = (app: Express): void => {
       const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
 
       let checkIns;
-      let allUsers;
+      let allUsers: User[];
 
-      // Filtrar por distrito se for pastor - usando query eficiente
-      if (isPastor(requestingUser) && requestingUser?.districtId) {
-        // Buscar usuários do distrito
-        allUsers = await userRepo.getUsersByDistrictId(requestingUser.districtId);
+      // ISOLATION FIX: Usar filtro centralizado por distrito
+      const effectiveDistrictId = getEffectiveDistrictId(req, requestingUser);
+
+      if (effectiveDistrictId) {
+        // Pastor ou superadmin impersonando: filtrar por distrito
+        allUsers = await userRepo.getUsersByDistrictId(effectiveDistrictId);
         const districtUserIds = allUsers.map((u: User) => u.id);
-
-        // Buscar check-ins apenas dos usuários do distrito
         checkIns = await emotionalRepo.getByUserIds(districtUserIds);
-        logger.info(`🏛️ Scores filtrados por distrito ${requestingUser.districtId}`);
+        logger.info(`🏛️ Scores filtrados por distrito ${effectiveDistrictId}`);
+      } else if (isSuperAdmin(requestingUser)) {
+        // Superadmin sem filtro: vê tudo
+        checkIns = await emotionalRepo.getAll();
+        allUsers = await userRepo.getAllUsers();
       } else {
         checkIns = await emotionalRepo.getAll();
         allUsers = await userRepo.getAllUsers();

@@ -265,43 +265,31 @@ export const dashboardRoutes = (app: Express): void => {
       const effectiveDistrictId =
         isSuperAdmin(user) && requestedDistrictScope ? requestedDistrictScope : user?.districtId;
 
-      const allUsers = await userRepo.getAllUsers();
-
-      // Filtrar por distrito se for pastor
+      // ISOLATION FIX: Buscar apenas usuários do escopo correto no banco
       let filteredUsers: User[];
-      if (isSuperAdmin(user)) {
+      if (isPastor(user) && user?.districtId) {
+        // Pastor: filtrar por distrito direto no banco
+        filteredUsers = (await userRepo.getUsersByDistrictId(user.districtId)).filter(
+          (u: User) => u.email !== 'admin@7care.com'
+        );
+      } else if (isSuperAdmin(user)) {
         if (effectiveDistrictId) {
-          // Super admin com distrito vinculado
-          const districtChurches = await churchRepo.getChurchesByDistrict(effectiveDistrictId);
-          const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-          filteredUsers = allUsers.filter((u: User) => {
-            const churchName = u.church ?? '';
-            return (
-              u.email !== 'admin@7care.com' &&
-              (districtChurchNames.includes(churchName) || u.districtId === effectiveDistrictId)
-            );
-          });
-        } else {
-          // Super admin sem distrito - ver todos
-          filteredUsers = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-        }
-      } else if (isPastor(user) && user?.districtId) {
-        // Pastor - filtrar pelo distrito
-        const districtChurches = await churchRepo.getChurchesByDistrict(user.districtId);
-        const districtChurchNames = districtChurches.map((ch: Church) => ch.name);
-        filteredUsers = allUsers.filter((u: User) => {
-          const churchName = u.church ?? '';
-          return (
-            u.email !== 'admin@7care.com' &&
-            (districtChurchNames.includes(churchName) || u.districtId === user.districtId)
+          // Superadmin impersonando: filtrar por distrito no banco
+          filteredUsers = (await userRepo.getUsersByDistrictId(effectiveDistrictId)).filter(
+            (u: User) => u.email !== 'admin@7care.com'
           );
-        });
+        } else {
+          // Superadmin sem filtro: ver todos
+          filteredUsers = (await userRepo.getAllUsers()).filter(
+            (u: User) => u.email !== 'admin@7care.com'
+          );
+        }
       } else {
         // Outros usuários - filtrar pela igreja
         const userChurch = user?.church;
         if (userChurch) {
-          filteredUsers = allUsers.filter(
-            (u: User) => u.email !== 'admin@7care.com' && u.church === userChurch
+          filteredUsers = (await userRepo.getUsersByChurch(userChurch)).filter(
+            (u: User) => u.email !== 'admin@7care.com'
           );
         } else {
           filteredUsers = [];

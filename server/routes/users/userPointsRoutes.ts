@@ -6,11 +6,11 @@
 import { type Express, type Request, type Response } from 'express';
 import { type User } from '../../../shared/schema';
 import { parseDate } from '../../utils/parsers';
-import { hasAdminAccess } from '../../utils/permissions';
+import { isSuperAdmin } from '../../utils/permissions';
 import { asyncHandler } from '../../utils';
 import { sendSuccess, sendNotFound } from '../../utils/apiResponse';
 import { getRepository, getService } from '../../container';
-import { getAuthUserId, getAuthUserRole } from '../../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../../utils/authHelpers';
 import { formatBirthdayUser } from './userHelpers';
 
 export const userPointsRoutes = (app: Express): void => {
@@ -117,27 +117,29 @@ export const userPointsRoutes = (app: Express): void => {
   app.get(
     '/api/users/birthdays',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = String(getAuthUserId(req));
-      const userRole = getAuthUserRole(req) as string;
+      const authUserId = getAuthUserId(req);
+      const currentUser = authUserId ? await userRepo.getUserById(authUserId) : null;
 
-      let userChurch: string | null = null;
+      // ISOLATION FIX: Usar filtro por distrito centralizado
+      const effectiveDistrictId = getEffectiveDistrictId(req, currentUser);
 
-      if (!hasAdminAccess({ role: userRole as User['role'] }) && userId) {
-        const currentUser = await userRepo.getUserById(parseInt(userId));
-        if (currentUser && currentUser.church) {
-          userChurch = currentUser.church;
-        }
+      let filteredUsers: User[];
+      if (effectiveDistrictId) {
+        // Pastor ou superadmin impersonando: filtrar por distrito
+        filteredUsers = await userRepo.getUsersByDistrictId(effectiveDistrictId);
+      } else if (isSuperAdmin(currentUser)) {
+        // Superadmin sem filtro: vê todos
+        filteredUsers = await userRepo.getAllUsers();
+      } else if (currentUser?.church) {
+        // Usuário comum: filtrar por igreja
+        filteredUsers = await userRepo.getUsersByChurch(currentUser.church);
+      } else {
+        filteredUsers = [];
       }
 
-      const allUsers = await userRepo.getAllUsers();
       const today = new Date();
       const currentMonth = today.getMonth();
       const currentDay = today.getDate();
-
-      let filteredUsers = allUsers;
-      if (userChurch && userRole !== 'admin') {
-        filteredUsers = allUsers.filter((user) => user.church === userChurch);
-      }
 
       const usersWithBirthDates = filteredUsers.filter((user) => {
         if (!user.birthDate) return false;
@@ -179,7 +181,7 @@ export const userPointsRoutes = (app: Express): void => {
         today: birthdaysToday.map(formatBirthdayUser),
         thisMonth: birthdaysThisMonth.map(formatBirthdayUser),
         all: allBirthdays.map(formatBirthdayUser),
-        filteredByChurch: userChurch || null,
+        filteredByDistrict: effectiveDistrictId || null,
       });
     })
   );

@@ -13,7 +13,7 @@ import { pointsConfigSchema } from '../schemas';
 import { type User } from '../../shared/schema';
 import { type PointsConfiguration, getRequiredPointsConfig } from '../types/storage';
 import { asyncHandler } from '../utils';
-import { getAuthUserId } from '../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../utils/authHelpers';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository, getService } from '../container';
 
@@ -253,10 +253,10 @@ export const pointsRoutes = (app: Express): void => {
       'camposVaziosACMS',
     ];
 
-    categories.forEach(category => {
+    categories.forEach((category) => {
       const section = config[category];
       if (section && typeof section === 'object') {
-        Object.values(section as Record<string, number>).forEach(value => {
+        Object.values(section as Record<string, number>).forEach((value) => {
           const numValue = Number(value);
           if (numValue > 0) values.push(numValue);
         });
@@ -301,10 +301,10 @@ export const pointsRoutes = (app: Express): void => {
       'camposVaziosACMS',
     ];
 
-    pointCategories.forEach(category => {
+    pointCategories.forEach((category) => {
       const section = newConfig[category];
       if (section && typeof section === 'object') {
-        Object.keys(section as Record<string, number>).forEach(fieldKey => {
+        Object.keys(section as Record<string, number>).forEach((fieldKey) => {
           if (typeof (section as Record<string, number>)[fieldKey] === 'number') {
             (section as Record<string, number>)[fieldKey] = Math.round(
               (section as Record<string, number>)[fieldKey] * factor
@@ -470,18 +470,15 @@ export const pointsRoutes = (app: Express): void => {
     asyncHandler(async (req: Request, res: Response) => {
       const config = (req as ValidatedRequest<typeof pointsConfigSchema._type>).validatedBody;
 
-      // Obter usuário que está fazendo a requisição para filtro por distrito
+      // ISOLATION FIX: Usar filtro centralizado por distrito
       const requestingUserId = getAuthUserId(req);
-      let districtFilter: number | null = null;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+      const districtFilter = getEffectiveDistrictId(req, requestingUser);
 
-      if (requestingUserId) {
-        const requestingUser = await userRepo.getUserById(requestingUserId);
-        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
-          districtFilter = requestingUser.districtId;
-          logger.info(
-            `🏛️ Salvando config e recalculando pontos filtrado por distrito: ${districtFilter}`
-          );
-        }
+      if (districtFilter) {
+        logger.info(
+          `🏛️ Salvando config e recalculando pontos filtrado por distrito: ${districtFilter}`
+        );
       }
 
       await pointsRepo.saveConfiguration(
@@ -520,16 +517,13 @@ export const pointsRoutes = (app: Express): void => {
   app.post(
     '/api/system/points-config/reset',
     asyncHandler(async (req: Request, res: Response) => {
-      // Obter usuário que está fazendo a requisição para filtro por distrito
+      // ISOLATION FIX: Usar filtro centralizado por distrito
       const requestingUserId = getAuthUserId(req);
-      let districtFilter: number | null = null;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+      const districtFilter = getEffectiveDistrictId(req, requestingUser);
 
-      if (requestingUserId) {
-        const requestingUser = await userRepo.getUserById(requestingUserId);
-        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
-          districtFilter = requestingUser.districtId;
-          logger.info(`🏛️ Reset de config e recálculo filtrado por distrito: ${districtFilter}`);
-        }
+      if (districtFilter) {
+        logger.info(`🏛️ Reset de config e recálculo filtrado por distrito: ${districtFilter}`);
       }
 
       await db.delete(schema.pointConfigs);
@@ -566,27 +560,19 @@ export const pointsRoutes = (app: Express): void => {
   app.post(
     '/api/users/recalculate-all-points',
     asyncHandler(async (req: Request, res: Response) => {
-      // Obter usuário que está fazendo a requisição
+      // ISOLATION FIX: Usar filtro centralizado por distrito
       const requestingUserId = getAuthUserId(req);
-      let districtFilter: number | null = null;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+      const districtFilter = getEffectiveDistrictId(req, requestingUser);
 
-      if (requestingUserId) {
-        const requestingUser = await userRepo.getUserById(requestingUserId);
-
-        // Se for pastor, filtrar por distrito
-        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
-          districtFilter = requestingUser.districtId;
-          logger.info(`🏛️ Recálculo de pontos filtrado por distrito: ${districtFilter}`);
-        }
-      }
-
-      let users = await userRepo.getAllUsers();
-
-      // Aplicar filtro de distrito se necessário
+      let users: User[];
       if (districtFilter !== null) {
-        const beforeCount = users.length;
-        users = users.filter(u => u.districtId === districtFilter);
-        logger.info(`✅ Filtro aplicado: ${users.length} usuários (de ${beforeCount} total)`);
+        users = await userRepo.getUsersByDistrictId(districtFilter);
+        logger.info(
+          `🏛️ Recálculo de pontos filtrado por distrito: ${districtFilter} (${users.length} usuários)`
+        );
+      } else {
+        users = await userRepo.getAllUsers();
       }
 
       let updatedCount = 0;
@@ -697,27 +683,23 @@ export const pointsRoutes = (app: Express): void => {
         return sendError(res, 'Média desejada é obrigatória e deve ser um número', 400);
       }
 
-      // Obter usuário que está fazendo a requisição para filtro por distrito
+      // ISOLATION FIX: Usar filtro centralizado por distrito
       const requestingUserId = getAuthUserId(req);
-      let districtFilter: number | null = null;
-
-      if (requestingUserId) {
-        const requestingUser = await userRepo.getUserById(requestingUserId);
-        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
-          districtFilter = requestingUser.districtId;
-          logger.info(`🏛️ Ajuste de média filtrado por distrito: ${districtFilter}`);
-        }
-      }
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+      const districtFilter = getEffectiveDistrictId(req, requestingUser);
 
       const currentConfig = await pointsRepo.getConfiguration();
-      let allUsers = await userRepo.getAllUsers();
-
-      // Aplicar filtro de distrito se necessário
+      let allUsers: User[];
       if (districtFilter !== null) {
-        allUsers = allUsers.filter(u => u.districtId === districtFilter);
+        allUsers = await userRepo.getUsersByDistrictId(districtFilter);
+        logger.info(
+          `🏛️ Ajuste de média filtrado por distrito: ${districtFilter} (${allUsers.length} usuários)`
+        );
+      } else {
+        allUsers = await userRepo.getAllUsers();
       }
 
-      const regularUsers = allUsers.filter(user => user.email !== 'admin@7care.com');
+      const regularUsers = allUsers.filter((user) => user.email !== 'admin@7care.com');
 
       if (regularUsers.length === 0) {
         return sendError(res, 'Não há usuários para calcular a média', 400);

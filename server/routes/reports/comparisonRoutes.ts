@@ -10,7 +10,7 @@ import { isSuperAdmin, isPastor } from '../../utils/permissions';
 import { type User, type Church, type District } from '../../../shared/schema';
 import { asyncHandler } from '../../utils';
 import { sendSuccess, sendError } from '../../utils/apiResponse';
-import { getAuthUserId } from '../../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../../utils/authHelpers';
 import { getUsersForReport, getEngagementScore } from './reportsHelpers';
 
 export const comparisonRoutes = (app: Express): void => {
@@ -36,18 +36,20 @@ export const comparisonRoutes = (app: Express): void => {
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: allUsersFiltered, churches: churchesToInclude } =
-        await getUsersForReport(user);
+      const { users: allUsersFiltered, churches: churchesToInclude } = await getUsersForReport(
+        user,
+        getEffectiveDistrictId(req, user)
+      );
 
       const churchStats = churchesToInclude
-        .map(church => {
+        .map((church) => {
           const churchUsers = allUsersFiltered.filter((u: User) => u.church === church.name);
 
-          const interested = churchUsers.filter(u => u.role === 'interested').length;
-          const members = churchUsers.filter(u => u.role === 'member').length;
-          const missionaries = churchUsers.filter(u => u.role === 'missionary').length;
-          const baptized = churchUsers.filter(u => u.baptismDate).length;
-          const tithers = churchUsers.filter(u => u.isTither).length;
+          const interested = churchUsers.filter((u) => u.role === 'interested').length;
+          const members = churchUsers.filter((u) => u.role === 'member').length;
+          const missionaries = churchUsers.filter((u) => u.role === 'missionary').length;
+          const baptized = churchUsers.filter((u) => u.baptismDate).length;
+          const tithers = churchUsers.filter((u) => u.isTither).length;
           const avgEngagement =
             churchUsers.length > 0
               ? Math.round(
@@ -144,11 +146,11 @@ export const comparisonRoutes = (app: Express): void => {
           );
         });
 
-        const interested = districtUsers.filter(u => u.role === 'interested').length;
-        const members = districtUsers.filter(u => u.role === 'member').length;
-        const missionaries = districtUsers.filter(u => u.role === 'missionary').length;
-        const baptized = districtUsers.filter(u => u.baptismDate).length;
-        const tithers = districtUsers.filter(u => u.isTither).length;
+        const interested = districtUsers.filter((u) => u.role === 'interested').length;
+        const members = districtUsers.filter((u) => u.role === 'member').length;
+        const missionaries = districtUsers.filter((u) => u.role === 'missionary').length;
+        const baptized = districtUsers.filter((u) => u.baptismDate).length;
+        const tithers = districtUsers.filter((u) => u.isTither).length;
         const avgEngagement =
           districtUsers.length > 0
             ? Math.round(
@@ -217,33 +219,36 @@ export const comparisonRoutes = (app: Express): void => {
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: usersToInclude } = await getUsersForReport(user);
+      const { users: usersToInclude } = await getUsersForReport(
+        user,
+        getEffectiveDistrictId(req, user)
+      );
       const allRelationships = await relationshipRepo.getAll();
 
       // Get missionaries
-      const missionaries = usersToInclude.filter(u => u.role === 'missionary');
-      const userIds = new Set(usersToInclude.map(u => u.id));
+      const missionaries = usersToInclude.filter((u) => u.role === 'missionary');
+      const userIds = new Set(usersToInclude.map((u) => u.id));
 
       // Calculate performance for each missionary
       const missionaryStats = missionaries
-        .map(missionary => {
+        .map((missionary) => {
           // Get relationships where this missionary is mentoring
           const mentoring = allRelationships.filter(
-            rel =>
+            (rel) =>
               rel.missionaryId === missionary.id &&
               rel.interestedId &&
               userIds.has(rel.interestedId)
           );
 
-          const activeRelationships = mentoring.filter(rel => rel.status === 'active');
+          const activeRelationships = mentoring.filter((rel) => rel.status === 'active');
 
           // Get the interested people they're mentoring
-          const interestedIds = new Set(activeRelationships.map(r => r.interestedId));
-          const mentoredUsers = usersToInclude.filter(u => interestedIds.has(u.id));
+          const interestedIds = new Set(activeRelationships.map((r) => r.interestedId));
+          const mentoredUsers = usersToInclude.filter((u) => interestedIds.has(u.id));
 
           // Count conversions (interested who became members or got baptized)
           const conversions = mentoredUsers.filter(
-            u => u.role === 'member' || u.baptismDate
+            (u) => u.role === 'member' || u.baptismDate
           ).length;
 
           // Calculate missionary engagement

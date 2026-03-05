@@ -43,3 +43,38 @@ export function getAuthUserRole(req: Request): string | undefined {
 export function getAuthDistrictId(req: Request): number | undefined {
   return (req as AuthenticatedRequest).user?.districtId;
 }
+
+/**
+ * Resolve o districtId efetivo para filtrar dados, respeitando impersonação.
+ *
+ * Lógica:
+ * - Pastor: sempre retorna seu próprio districtId (obrigatório)
+ * - Superadmin com ?districtId=X (impersonação): retorna X
+ * - Superadmin sem districtId: retorna null (vê tudo)
+ * - Outros roles: retorna null (filtragem feita por outros meios)
+ *
+ * @returns districtId numérico ou null (sem filtro de distrito)
+ */
+export function getEffectiveDistrictId(
+  req: Request,
+  user: { role?: string; districtId?: number | null; email?: string | null } | null
+): number | null {
+  if (!user) return null;
+
+  // Pastor: sempre filtrado pelo seu distrito
+  if (user.role === 'pastor' && user.districtId) {
+    return user.districtId;
+  }
+
+  // Superadmin: pode filtrar por distrito via query param (impersonação)
+  if (user.role === 'superadmin') {
+    const requestedDistrict = req.query.districtId;
+    if (requestedDistrict && typeof requestedDistrict === 'string') {
+      const parsed = parseInt(requestedDistrict, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    return null; // Superadmin sem filtro vê tudo
+  }
+
+  return null;
+}

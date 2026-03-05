@@ -11,7 +11,7 @@ import { setDefaultChurchSchema } from '../schemas';
 import multer from 'multer';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 import { getRepository, getService } from '../container';
-import { getAuthUserId } from '../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../utils/authHelpers';
 import { uploadRateLimiter } from '../middleware';
 import { UPLOAD } from '../constants';
 
@@ -396,15 +396,13 @@ export const settingsRoutes = (app: Express): void => {
       }
 
       const { config } = req.body;
-      const districtId = requestingUser.districtId;
 
       // Salvar configuração global
       await pointsRepo.saveConfiguration(config);
 
-      // Recalcular pontos apenas do distrito se for pastor
-      let districtFilter: number | null = null;
-      if (requestingUser.role === 'pastor' && districtId) {
-        districtFilter = districtId;
+      // ISOLATION FIX: Usar filtro centralizado por distrito
+      const districtFilter = getEffectiveDistrictId(req, requestingUser);
+      if (districtFilter) {
         logger.info(`🏛️ Salvando config e recalculando pontos do distrito: ${districtFilter}`);
       }
 
@@ -414,7 +412,7 @@ export const settingsRoutes = (app: Express): void => {
         success: true,
         message: `Configuração salva! ${result.updatedUsers || 0} usuários atualizados.`,
         updatedUsers: result.updatedUsers || 0,
-        districtId: districtId || null,
+        districtId: districtFilter || null,
       });
     })
   );
@@ -446,12 +444,9 @@ export const settingsRoutes = (app: Express): void => {
         return sendError(res, 'Usuário não encontrado', 404);
       }
 
-      const districtId = requestingUser.districtId;
-
-      // Recalcular pontos apenas do distrito se for pastor
-      let districtFilter: number | null = null;
-      if (requestingUser.role === 'pastor' && districtId) {
-        districtFilter = districtId;
+      // ISOLATION FIX: Usar filtro centralizado por distrito
+      const districtFilter = getEffectiveDistrictId(req, requestingUser);
+      if (districtFilter) {
         logger.info(`🏛️ Reset e recálculo de pontos do distrito: ${districtFilter}`);
       }
 
@@ -461,7 +456,7 @@ export const settingsRoutes = (app: Express): void => {
         success: true,
         message: `Configuração resetada! ${result.updatedUsers || 0} usuários atualizados.`,
         updatedUsers: result.updatedUsers || 0,
-        districtId: districtId || null,
+        districtId: districtFilter || null,
       });
     })
   );

@@ -6,23 +6,15 @@
 import { type Express, type Request, type Response } from 'express';
 import { sql } from '../../neonConfig';
 import { type User } from '../../../shared/schema';
-import {
-  parseBirthDate,
-  parseCargos,
-  parseBoolean,
-  parseNumber,
-} from '../../utils/parsers';
+import { parseBirthDate, parseCargos, parseBoolean, parseNumber } from '../../utils/parsers';
 import * as bcrypt from 'bcryptjs';
 import { logger } from '../../utils/logger';
 import { BCRYPT_SALT_ROUNDS } from '../../config/security';
 import { asyncHandler } from '../../utils';
 import { sendSuccess, sendError } from '../../utils/apiResponse';
 import { getRepository, getService } from '../../container';
-import { getAuthUserId } from '../../utils/authHelpers';
-import {
-  calculateUserPointsFromConfig,
-  type PointsConfig,
-} from '../../services/pointsCalculation';
+import { getAuthUserId, getEffectiveDistrictId } from '../../utils/authHelpers';
+import { calculateUserPointsFromConfig, type PointsConfig } from '../../services/pointsCalculation';
 import { redactUserPII } from './userHelpers';
 
 export const userSpecialRoutes = (app: Express): void => {
@@ -109,9 +101,17 @@ export const userSpecialRoutes = (app: Express): void => {
         return sendError(res, 'Apenas missionários e membros podem acessar esta rota', 403);
       }
 
-      const allUsers = await userRepo.getAllUsers();
+      // ISOLATION FIX: Filtrar por distrito do usuário ao invés de carregar todos
+      let usersPool: User[];
+      if (user.districtId) {
+        usersPool = await userRepo.getUsersByDistrictId(user.districtId);
+      } else if (user.church) {
+        usersPool = await userRepo.getUsersByChurch(user.church);
+      } else {
+        usersPool = [];
+      }
 
-      const churchInterested = allUsers.filter(
+      const churchInterested = usersPool.filter(
         (u) => u.role === 'interested' && u.church === user.church
       );
 
@@ -441,16 +441,13 @@ export const userSpecialRoutes = (app: Express): void => {
         }
       }
 
-      // Obter usuário que está fazendo a requisição para filtro por distrito
+      // ISOLATION FIX: Usar filtro centralizado por distrito
       const requestingUserId = getAuthUserId(req);
-      let districtFilter: number | null = null;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+      const districtFilter = getEffectiveDistrictId(req, requestingUser);
 
-      if (requestingUserId) {
-        const requestingUser = await userRepo.getUserById(requestingUserId);
-        if (requestingUser && requestingUser.role === 'pastor' && requestingUser.districtId) {
-          districtFilter = requestingUser.districtId;
-          logger.info(`🏛️ Recálculo pós-PowerBI filtrado por distrito: ${districtFilter}`);
-        }
+      if (districtFilter) {
+        logger.info(`🏛️ Recálculo pós-PowerBI filtrado por distrito: ${districtFilter}`);
       }
 
       try {

@@ -11,7 +11,7 @@ import { validateBody, type ValidatedRequest } from '../middleware/validation';
 import { createEventSchema } from '../schemas';
 import { logger } from '../utils/logger';
 import { isPastor } from '../utils/permissions';
-import { getAuthUserId } from '../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../utils/authHelpers';
 
 /** Registers event and calendar-related routes */
 export const eventRoutes = (app: Express): void => {
@@ -77,10 +77,11 @@ export const eventRoutes = (app: Express): void => {
 
       let events;
 
-      // Usar filtro DB-level por distrito se for pastor (não superadmin)
-      if (requestingUser && isPastor(requestingUser) && requestingUser.districtId) {
-        logger.info(`📆 Buscando eventos por distrito (DB-level): ${requestingUser.districtId}`);
-        events = await eventRepo.getEventsByDistrict(requestingUser.districtId);
+      // ISOLATION FIX: Usar filtro centralizado por distrito
+      const effectiveDistrictId = getEffectiveDistrictId(req, requestingUser);
+      if (effectiveDistrictId) {
+        logger.info(`📆 Buscando eventos por distrito (DB-level): ${effectiveDistrictId}`);
+        events = await eventRepo.getEventsByDistrict(effectiveDistrictId);
       } else {
         events = await eventRepo.getAllEvents();
       }

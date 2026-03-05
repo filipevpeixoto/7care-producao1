@@ -6,18 +6,14 @@
 import { type Express, type Request, type Response } from 'express';
 import { getRepository } from '../../container';
 import { sql } from '../../neonConfig';
-import { logger } from '../../utils/logger';
 import { isSuperAdmin, isPastor } from '../../utils/permissions';
-import { type User, type Church, type Event } from '../../../shared/schema';
 import { asyncHandler } from '../../utils';
 import { sendSuccess, sendError } from '../../utils/apiResponse';
-import { getAuthUserId } from '../../utils/authHelpers';
+import { getAuthUserId, getEffectiveDistrictId } from '../../utils/authHelpers';
 import { getUsersForReport, getEngagementScore, getSpiritualStage } from './reportsHelpers';
 
 export const overviewRoutes = (app: Express): void => {
   const userRepo = getRepository('userRepository');
-  const eventRepo = getRepository('eventRepository');
-  const churchRepo = getRepository('churchRepository');
 
   /**
    * @swagger
@@ -38,38 +34,15 @@ export const overviewRoutes = (app: Express): void => {
         return sendError(res, 'Acesso não autorizado', 403);
       }
 
-      const allChurches = await churchRepo.getAllChurches();
-      const allEvents = await eventRepo.getAllEvents();
       const allDistricts = await sql`SELECT * FROM districts`;
 
-      let usersToInclude: User[] = [];
-      let churchesToInclude: Church[] = [];
-      let eventsToInclude: Event[] = [];
-
-      // PERFORMANCE & ISOLATION FIX: Usar query direta por distrito
-      if (isPastor(user) && user?.districtId) {
-        // Pastor: query otimizada direto do banco por district_id
-        logger.info(`🏛️ PASTOR em Reports - Query direta por distrito: ${user.districtId}`);
-        usersToInclude = await userRepo.getUsersByDistrictId(user.districtId);
-        usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
-        logger.info(`✅ Reports: ${usersToInclude.length} usuários carregados diretamente`);
-        churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
-        eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
-      } else if (isSuperAdmin(user)) {
-        if (user?.districtId) {
-          // Superadmin com distrito específico
-          usersToInclude = await userRepo.getUsersByDistrictId(user.districtId);
-          usersToInclude = usersToInclude.filter((u: User) => u.email !== 'admin@7care.com');
-          churchesToInclude = await churchRepo.getChurchesByDistrict(user.districtId);
-          eventsToInclude = allEvents.filter((e: Event) => e.districtId === user.districtId);
-        } else {
-          // Superadmin sem distrito (vê tudo)
-          const allUsers = await userRepo.getAllUsers();
-          usersToInclude = allUsers.filter((u: User) => u.email !== 'admin@7care.com');
-          churchesToInclude = allChurches;
-          eventsToInclude = allEvents;
-        }
-      }
+      // ISOLATION FIX: Usar helper centralizado com filtro de distrito
+      const effectiveDistrictId = getEffectiveDistrictId(req, user);
+      const {
+        users: usersToInclude,
+        churches: churchesToInclude,
+        events: eventsToInclude,
+      } = await getUsersForReport(user, effectiveDistrictId);
 
       // Calculate metrics
       const regularUsers = usersToInclude;
@@ -93,7 +66,7 @@ export const overviewRoutes = (app: Express): void => {
 
       // Engagement distribution
       const engagementLevels = { alto: 0, medio: 0, baixo: 0 };
-      regularUsers.forEach(user => {
+      regularUsers.forEach((user) => {
         const score = getEngagementScore(user);
         if (score >= 70) engagementLevels.alto++;
         else if (score >= 40) engagementLevels.medio++;
@@ -107,16 +80,16 @@ export const overviewRoutes = (app: Express): void => {
           : 0;
 
       // Tithers and donors
-      const tithers = regularUsers.filter(u => u.isTither).length;
-      const donors = regularUsers.filter(u => u.isDonor).length;
-      const withLesson = regularUsers.filter(u => u.hasLesson).length;
-      const baptized = regularUsers.filter(u => u.baptismDate).length;
+      const tithers = regularUsers.filter((u) => u.isTither).length;
+      const donors = regularUsers.filter((u) => u.isDonor).length;
+      const withLesson = regularUsers.filter((u) => u.hasLesson).length;
+      const baptized = regularUsers.filter((u) => u.baptismDate).length;
 
       // Events this month
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const eventsThisMonth = eventsToInclude.filter(e => {
+      const eventsThisMonth = eventsToInclude.filter((e) => {
         const eventDate = new Date(e.date);
         return eventDate >= monthStart && eventDate <= monthEnd;
       }).length;
@@ -125,12 +98,12 @@ export const overviewRoutes = (app: Express): void => {
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-      const usersThisMonth = regularUsers.filter(u => {
+      const usersThisMonth = regularUsers.filter((u) => {
         const createdAt = u.createdAt ? new Date(u.createdAt) : null;
         return createdAt && createdAt >= monthStart && createdAt <= monthEnd;
       }).length;
 
-      const usersLastMonth = regularUsers.filter(u => {
+      const usersLastMonth = regularUsers.filter((u) => {
         const createdAt = u.createdAt ? new Date(u.createdAt) : null;
         return createdAt && createdAt >= lastMonthStart && createdAt <= lastMonthEnd;
       }).length;
@@ -198,7 +171,10 @@ export const overviewRoutes = (app: Express): void => {
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: usersToInclude } = await getUsersForReport(user);
+      const { users: usersToInclude } = await getUsersForReport(
+        user,
+        getEffectiveDistrictId(req, user)
+      );
 
       // Last 6 months data
       const now = new Date();
@@ -217,24 +193,24 @@ export const overviewRoutes = (app: Express): void => {
         const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
         const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
-        const newUsers = usersToInclude.filter(u => {
+        const newUsers = usersToInclude.filter((u) => {
           const createdAt = u.createdAt ? new Date(u.createdAt) : null;
           return createdAt && createdAt >= monthStart && createdAt <= monthEnd;
         }).length;
 
-        const newInterested = usersToInclude.filter(u => {
+        const newInterested = usersToInclude.filter((u) => {
           const createdAt = u.createdAt ? new Date(u.createdAt) : null;
           return (
             createdAt && createdAt >= monthStart && createdAt <= monthEnd && u.role === 'interested'
           );
         }).length;
 
-        const newBaptized = usersToInclude.filter(u => {
+        const newBaptized = usersToInclude.filter((u) => {
           const baptismDate = u.baptismDate ? new Date(u.baptismDate) : null;
           return baptismDate && baptismDate >= monthStart && baptismDate <= monthEnd;
         }).length;
 
-        const newMembers = usersToInclude.filter(u => {
+        const newMembers = usersToInclude.filter((u) => {
           const createdAt = u.createdAt ? new Date(u.createdAt) : null;
           return (
             createdAt && createdAt >= monthStart && createdAt <= monthEnd && u.role === 'member'
@@ -307,19 +283,22 @@ export const overviewRoutes = (app: Express): void => {
       }
 
       // PERFORMANCE FIX: Usar helper otimizado
-      const { users: usersToInclude } = await getUsersForReport(user);
+      const { users: usersToInclude } = await getUsersForReport(
+        user,
+        getEffectiveDistrictId(req, user)
+      );
 
       // Calculate current values
       const totalMembers = usersToInclude.filter(
-        u => u.role === 'member' || u.role === 'missionary'
+        (u) => u.role === 'member' || u.role === 'missionary'
       ).length;
-      const totalInterested = usersToInclude.filter(u => u.role === 'interested').length;
-      const baptizedThisYear = usersToInclude.filter(u => {
+      const totalInterested = usersToInclude.filter((u) => u.role === 'interested').length;
+      const baptizedThisYear = usersToInclude.filter((u) => {
         if (!u.baptismDate) return false;
         const date = new Date(u.baptismDate);
         return date.getFullYear() === new Date().getFullYear();
       }).length;
-      const tithers = usersToInclude.filter(u => u.isTither).length;
+      const tithers = usersToInclude.filter((u) => u.isTither).length;
       const avgEngagement =
         usersToInclude.length > 0
           ? Math.round(
@@ -385,8 +364,8 @@ export const overviewRoutes = (app: Express): void => {
         goals,
         summary: {
           totalGoals: goals.length,
-          achieved: goals.filter(g => g.progress >= 100).length,
-          inProgress: goals.filter(g => g.progress > 0 && g.progress < 100).length,
+          achieved: goals.filter((g) => g.progress >= 100).length,
+          inProgress: goals.filter((g) => g.progress > 0 && g.progress < 100).length,
           avgProgress: Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length),
         },
       });

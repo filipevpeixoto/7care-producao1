@@ -110,7 +110,15 @@ export const userCrudRoutes = (app: Express): void => {
 
       // === Missionary special path (needs in-memory processing for PII redaction) ===
       if (requestingUser && requestingUser.role === 'missionary') {
-        let users = await userRepo.getAllUsers();
+        // ISOLATION FIX: Filtrar por distrito do missionário ao invés de carregar todos
+        let users: User[];
+        if (requestingUser.districtId) {
+          users = await userRepo.getUsersByDistrictId(requestingUser.districtId);
+        } else if (requestingUser.church) {
+          users = await userRepo.getUsersByChurch(requestingUser.church);
+        } else {
+          users = [];
+        }
 
         if (role) users = users.filter((u) => u.role === role);
         if (status) users = users.filter((u) => u.status === status);
