@@ -124,20 +124,20 @@ function calculateMemberPoints(
   let points = 0;
 
   // 1. ENGAJAMENTO
-  const engajamento = (String(member.engajamento || '')).toLowerCase();
+  const engajamento = String(member.engajamento || '').toLowerCase();
   if (engajamento === 'alto') points += config.engajamento.alto;
   else if (engajamento === 'medio' || engajamento === 'médio') {
     points += config.engajamento.medio;
   } else points += config.engajamento.baixo;
 
   // 2. CLASSIFICAÇÃO
-  const classificacao = (String(member.classificacao || '')).toLowerCase();
+  const classificacao = String(member.classificacao || '').toLowerCase();
   if (classificacao === 'frequente') {
     points += config.classificacao.frequente;
   } else points += config.classificacao.naoFrequente;
 
   // 3. DIZIMISTA
-  const dizimista = (String(member.dizimistaType || '')).toLowerCase();
+  const dizimista = String(member.dizimistaType || '').toLowerCase();
   if (dizimista.includes('recorrente')) {
     points += config.dizimista.recorrente;
   } else if (dizimista.includes('sazonal')) {
@@ -147,7 +147,7 @@ function calculateMemberPoints(
   }
 
   // 4. OFERTANTE
-  const ofertante = (String(member.ofertanteType || '')).toLowerCase();
+  const ofertante = String(member.ofertanteType || '').toLowerCase();
   if (ofertante.includes('recorrente')) {
     points += config.ofertante.recorrente;
   } else if (ofertante.includes('sazonal')) {
@@ -165,7 +165,7 @@ function calculateMemberPoints(
   else if (tempoBatismo >= 2) points += config.tempoBatismo.doisAnos;
 
   // 6. CARGOS
-  const departamentosCargos = (String(member.departamentosCargos || '')).trim();
+  const departamentosCargos = String(member.departamentosCargos || '').trim();
   if (departamentosCargos.length > 0) {
     const numCargos = departamentosCargos.split(';').filter((c: string) => c.trim()).length;
     if (numCargos >= 3) points += config.cargos.tresOuMais;
@@ -174,7 +174,7 @@ function calculateMemberPoints(
   }
 
   // 7. NOME DA UNIDADE
-  const nomeUnidade = (String(member.nomeUnidade || '')).trim();
+  const nomeUnidade = String(member.nomeUnidade || '').trim();
   if (nomeUnidade.length > 0) points += config.nomeUnidade.comUnidade;
 
   // 8. TEM LIÇÃO
@@ -219,6 +219,34 @@ function calculateMemberPoints(
  * Create the pastor user account.
  */
 export async function createPastorUser(params: CreatePastorUserParams) {
+  const existingUsers = await db.select().from(users).where(eq(users.email, params.email)).limit(1);
+
+  const existingUser = existingUsers[0];
+
+  if (existingUser) {
+    if (existingUser.role === 'superadmin' || existingUser.role === 'admin') {
+      throw new Error('E-mail já está em uso por um usuário administrativo');
+    }
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        name: params.name,
+        password: params.passwordHash,
+        role: 'pastor',
+        church: '',
+        status: 'approved',
+        isApproved: true,
+        firstAccess: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, existingUser.id))
+      .returning();
+
+    logger.info(`♻️ Usuário pastor reutilizado: ${updatedUser.id} - ${updatedUser.email}`);
+    return updatedUser;
+  }
+
   const [user] = await db
     .insert(users)
     .values({
@@ -228,6 +256,7 @@ export async function createPastorUser(params: CreatePastorUserParams) {
       role: 'pastor',
       church: '',
       status: 'approved',
+      isApproved: true,
     })
     .returning();
 
@@ -281,6 +310,20 @@ export async function createChurches(
     churchIds[church.name] = createdChurch.id;
     churchesCreated++;
     logger.info(`✅ Igreja criada: ${createdChurch.id} - ${createdChurch.name}`);
+  }
+
+  // Atualizar district_id de usuários existentes que pertencem a essas igrejas
+  const churchNames = churchList.map((c) => c.name).filter(Boolean);
+  if (churchNames.length > 0) {
+    const { sql } = await import('../neonConfig');
+    await sql`
+      UPDATE users
+      SET district_id = ${districtId}, updated_at = NOW()
+      WHERE church = ANY(${churchNames})
+        AND (district_id IS NULL OR district_id != ${districtId})
+        AND role != 'superadmin'
+    `;
+    logger.info(`🔄 Usuários existentes das igrejas vinculados ao distrito ${districtId}`);
   }
 
   return { churchIds, churchesCreated };
@@ -345,15 +388,12 @@ export async function importMembers(
       member.endereco,
       member.dataNascimento,
     ];
-    const camposVazios = camposObrigatorios.some(
-      c => !c || c === '' || c === 'Sem informação'
-    );
+    const camposVazios = camposObrigatorios.some((c) => !c || c === '' || c === 'Sem informação');
 
     // Criar membro com todos os dados do Excel
     await db.insert(users).values({
       name: member.nome,
-      email:
-        member.email || `${Date.now()}-${Math.random().toString(36).substr(2, 6)}@temp.com`,
+      email: member.email || `${Date.now()}-${Math.random().toString(36).substr(2, 6)}@temp.com`,
       password: await bcrypt.hash(DEFAULT_RESET_PASSWORD, BCRYPT_SALT_ROUNDS),
       role: 'member',
       church: member.igreja,
@@ -390,6 +430,22 @@ export async function importMembers(
 
   if (membersImported > 0) {
     logger.info(`✅ ${membersImported} membros importados`);
+  }
+
+  // Sincronizar district_id de usuários existentes cujas igrejas foram vinculadas/criadas
+  const allChurchNames = Object.keys(churchIds);
+  if (allChurchNames.length > 0) {
+    const { sql } = await import('../neonConfig');
+    await sql`
+      UPDATE users
+      SET district_id = ${districtId}, updated_at = NOW()
+      WHERE church = ANY(${allChurchNames})
+        AND (district_id IS NULL OR district_id != ${districtId})
+        AND role != 'superadmin'
+    `;
+    logger.info(
+      `🔄 Usuários existentes das igrejas atualizados com distrito ${districtId} via importação`
+    );
   }
 
   return membersImported;
@@ -434,10 +490,7 @@ export async function configureGamification(
   if (gamificationConfig.calculateOnApproval) {
     logger.info(`Recalculando pontos para membros do distrito ${districtId}...`);
 
-    const districtUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.districtId, districtId));
+    const districtUsers = await db.select().from(users).where(eq(users.districtId, districtId));
 
     for (const member of districtUsers) {
       if (member.role === 'pastor') continue; // Não calcular pontos para pastor
@@ -478,10 +531,7 @@ export async function processOnboarding(data: OnboardingData): Promise<Onboardin
   });
 
   // 3. Create churches
-  const { churchIds, churchesCreated } = await createChurches(
-    data.churches || [],
-    district.id
-  );
+  const { churchIds, churchesCreated } = await createChurches(data.churches || [], district.id);
 
   // 4. Import members (if any)
   let membersImported = 0;

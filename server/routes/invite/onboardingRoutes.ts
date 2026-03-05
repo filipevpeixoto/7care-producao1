@@ -107,7 +107,7 @@ export const onboardingRoutes = (app: Express): void => {
             logger.debug(
               `🏛️ Pastor detectado em churches/registered, filtrando por distrito: ${requestingUser.districtId}`
             );
-            allChurches = allChurches.filter(c => c.districtId === requestingUser.districtId);
+            allChurches = allChurches.filter((c) => c.districtId === requestingUser.districtId);
           }
           // Para outros usuários (não-pastores e não-superadmins), não filtra
           // pois eles podem precisar ver todas as igrejas disponíveis
@@ -174,7 +174,7 @@ export const onboardingRoutes = (app: Express): void => {
           return;
         }
 
-        const formattedData: ExcelRow[] = excelData.map(row => ({
+        const formattedData: ExcelRow[] = excelData.map((row) => ({
           nome: String(row.nome || row.Nome || row.name || '').trim(),
           igreja: String(row.igreja || row.Igreja || row.church || '').trim(),
           telefone:
@@ -279,7 +279,7 @@ export const onboardingRoutes = (app: Express): void => {
         return;
       }
 
-      if (invite.status !== 'pending') {
+      if (invite.status !== 'pending' && invite.status !== 'submitted') {
         sendError(res, 'Convite já foi processado', 400);
         return;
       }
