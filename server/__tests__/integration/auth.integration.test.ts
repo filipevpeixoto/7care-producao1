@@ -312,7 +312,9 @@ describe('Auth Routes — Integration', () => {
     });
 
     it('should return church for valid user', async () => {
-      mockUserRepo.getUserById.mockResolvedValue(createMockUser({ church: 'Central Church' }));
+      mockUserRepo.getUserById.mockImplementation(async (id: number) =>
+        createMockUser({ id, church: 'Central Church' })
+      );
 
       const token = generateTestToken({ id: 1 });
       const res = await request(app)
@@ -334,6 +336,26 @@ describe('Auth Routes — Integration', () => {
 
       // requireJwtAuth rejects with 401 when JWT references a deleted user
       expect(res.status).toBe(401);
+    });
+
+    it('should deny pastor querying user from another district', async () => {
+      mockUserRepo.getUserById.mockImplementation(async (id: number) => {
+        if (id === 2) {
+          return createMockUser({ id: 2, role: 'pastor', districtId: 1, church: 'Central Church' });
+        }
+        if (id === 99) {
+          return createMockUser({ id: 99, role: 'member', districtId: 2, church: 'Other Church' });
+        }
+        return null;
+      });
+
+      const token = generateTestToken({ id: 2, role: 'pastor', email: 'pastor@7care.com' });
+      const res = await request(app)
+        .get('/api/user/church?userId=99')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toMatch(/próprio distrito/i);
     });
   });
 

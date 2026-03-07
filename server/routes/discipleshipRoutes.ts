@@ -70,24 +70,22 @@ export const discipleshipRoutes = (app: Express): void => {
       const userIdNum = userId ? parseInt(userId) : null;
       const currentUser = userIdNum ? await userRepo.getUserById(userIdNum) : null;
 
-      if (currentUser?.role === 'superadmin' && requestedDistrictScope) {
+      if (currentUser?.role === 'pastor' && currentUser.districtId) {
+        userDistrict = currentUser.districtId;
+        isPastor = true;
+        logger.debug(
+          `🏛️ Pastor detectado em discipleship-requests, filtrando por distrito: ${userDistrict}`
+        );
+      } else if (currentUser?.role === 'superadmin' && requestedDistrictScope) {
         userDistrict = requestedDistrictScope;
         isPastor = true;
         isScopedSuperadmin = true;
       }
 
-      // Se não for admin, filtrar por distrito (pastor) ou igreja (outros usuários)
+      // Se não for admin, filtrar por igreja do usuário
       if (!hasAdminAccess({ role: userRole }) && userId) {
         if (currentUser) {
-          // Se for pastor, usar filtro por distrito
-          if (currentUser.role === 'pastor' && currentUser.districtId) {
-            userDistrict = currentUser.districtId;
-            isPastor = true;
-            logger.debug(
-              `🏛️ Pastor detectado em discipleship-requests, filtrando por distrito: ${userDistrict}`
-            );
-          } else if (currentUser.church) {
-            // Senão, usar filtro por igreja
+          if (currentUser.church) {
             userChurch = currentUser.church;
           }
         }

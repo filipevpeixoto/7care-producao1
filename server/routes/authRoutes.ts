@@ -15,6 +15,7 @@ import { loginSchema, changePasswordSchema, resetPasswordSchema } from '../schem
 import { requireStrongPassword, getPasswordSuggestions } from '../utils/passwordValidator';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess, sendError, sendNotFound, sendUnauthorized } from '../utils/apiResponse';
+import { isPastor, isSuperAdmin } from '../utils/permissions';
 import { authService } from '../services/authService';
 import { tokenBlacklist } from '../services/tokenBlacklistService';
 import { clearRefreshTokenCookie, requireJwtAuth } from '../middleware/jwtAuth';
@@ -289,9 +290,34 @@ export const authRoutes = (app: Express): void => {
     requireJwtAuth,
     asyncHandler(async (req: Request, res: Response) => {
       const authReq = req as AuthenticatedRequest;
-      // Aceita userId da query para admin consultar outros, mas valida via JWT
+      const requestingUserId = authReq.userId;
+      const requestingUser = requestingUserId ? await userRepo.getUserById(requestingUserId) : null;
+
+      if (!requestingUserId || !requestingUser) {
+        return sendUnauthorized(res, 'Usuário não autenticado');
+      }
+
       const queryUserId = req.query.userId ? parseInt(req.query.userId as string) : null;
-      const id = queryUserId && !isNaN(queryUserId) ? queryUserId : authReq.userId;
+      let id = requestingUserId;
+
+      if (queryUserId && !isNaN(queryUserId) && queryUserId !== requestingUserId) {
+        const targetUser = await userRepo.getUserById(queryUserId);
+
+        if (!targetUser) {
+          return sendNotFound(res, 'User');
+        }
+
+        if (isSuperAdmin(requestingUser)) {
+          id = queryUserId;
+        } else if (isPastor(requestingUser)) {
+          if (!requestingUser.districtId || targetUser.districtId !== requestingUser.districtId) {
+            return sendError(res, 'Pastor só pode consultar usuários do próprio distrito', 403);
+          }
+          id = queryUserId;
+        } else {
+          return sendError(res, 'Sem permissão para consultar outros usuários', 403);
+        }
+      }
 
       if (!id) {
         return sendError(res, 'User ID is required');
