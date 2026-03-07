@@ -114,9 +114,16 @@ function hasAdminAccess(user) {
 }
 
 async function resolveCurrentUser(event, sql) {
+  const jwtUserId = event.user?.id;
+  const authHeader = event.headers['authorization'] || event.headers['Authorization'];
+  const bearerToken = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.substring(7)
+    : null;
+  const decodedToken = !jwtUserId && bearerToken ? verifyToken(bearerToken) : null;
   const headerUserId = event.headers['x-user-id'];
-  if (!headerUserId) return null;
-  const userId = parseInt(headerUserId);
+  const rawUserId = jwtUserId || decodedToken?.id || headerUserId;
+  if (!rawUserId) return null;
+  const userId = parseInt(rawUserId);
   if (Number.isNaN(userId)) return null;
   const users = await sql`SELECT id, name, email, role, church, district_id FROM users WHERE id = ${userId} LIMIT 1`;
   if (users.length === 0) return null;
@@ -128,6 +135,12 @@ async function resolveCurrentUser(event, sql) {
     }
   }
   return user;
+}
+
+function sanitizeUserForResponse(user) {
+  if (!user) return user;
+  const { password, ...safeUser } = user;
+  return safeUser;
 }
 
 async function getDistrictChurchNames(sql, districtId) {
@@ -1612,6 +1625,14 @@ exports.handler = async (event, context) => {
           district_id: currentUser.district_id
         } : null));
 
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
         const currentUserDistrictId = currentUser?.district_id || null;
         const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
         console.log('🏛️ District ID:', currentUserDistrictId, '| Igrejas:', districtChurchNames.length);
@@ -1724,7 +1745,7 @@ exports.handler = async (event, context) => {
         
         // Mapear para incluir campos camelCase que o frontend espera
         const finalUsers = processedUsers.map(u => ({
-          ...u,
+          ...sanitizeUserForResponse(u),
           interestedSituation: u.interested_situation,
           districtId: u.district_id,
           createdAt: u.created_at,
@@ -1754,9 +1775,18 @@ exports.handler = async (event, context) => {
       try {
         const userId = parseInt(path.split('/')[3]);
         console.log('🔍 User route hit - buscando usuário:', userId);
-        
+
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
         const users = await sql`SELECT *, extra_data as extraData FROM users WHERE id = ${userId} LIMIT 1`;
-        
+
         if (users.length === 0) {
           return {
             statusCode: 404,
@@ -1764,12 +1794,11 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ error: 'Usuário não encontrado' })
           };
         }
-        
-        const currentUser = await resolveCurrentUser(event, sql);
+
         const currentUserDistrictId = currentUser?.district_id || null;
         const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
         const user = users[0];
-        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+        if (currentUser.id !== user.id && currentUser && isPastor(currentUser) && currentUserDistrictId) {
           const isInDistrict = user.district_id === currentUserDistrictId;
           const isInDistrictChurch = user.church && districtChurchNames.includes(user.church);
           if (!isInDistrict && !isInDistrictChurch) {
@@ -1779,7 +1808,7 @@ exports.handler = async (event, context) => {
               body: JSON.stringify({ error: 'Acesso negado' })
             };
           }
-        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church && user.church !== currentUser.church) {
+        } else if (currentUser.id !== user.id && currentUser && !hasAdminAccess(currentUser) && currentUser.church && user.church !== currentUser.church) {
           return {
             statusCode: 403,
             headers,
@@ -1804,7 +1833,7 @@ exports.handler = async (event, context) => {
         }
         
         const processedUser = {
-          ...user,
+          ...sanitizeUserForResponse(user),
           extraData: extraData,
           interestedSituation: user.interested_situation,
           districtId: user.district_id,
@@ -3394,6 +3423,15 @@ exports.handler = async (event, context) => {
       console.log('🔍 Get user by ID:', userId);
       
       try {
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
         const user = await sql`SELECT *, extra_data as extraData FROM users WHERE id = ${parseInt(userId)} LIMIT 1`;
         
         if (user.length === 0) {
@@ -3403,12 +3441,11 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ error: 'Usuário não encontrado' })
           };
         }
-        
-        const currentUser = await resolveCurrentUser(event, sql);
+
         const currentUserDistrictId = currentUser?.district_id || null;
         const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
         const targetUser = user[0];
-        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+        if (currentUser.id !== targetUser.id && currentUser && isPastor(currentUser) && currentUserDistrictId) {
           const isInDistrict = targetUser.district_id === currentUserDistrictId;
           const isInDistrictChurch = targetUser.church && districtChurchNames.includes(targetUser.church);
           if (!isInDistrict && !isInDistrictChurch) {
@@ -3418,7 +3455,7 @@ exports.handler = async (event, context) => {
               body: JSON.stringify({ error: 'Acesso negado' })
             };
           }
-        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church && targetUser.church !== currentUser.church) {
+        } else if (currentUser.id !== targetUser.id && currentUser && !hasAdminAccess(currentUser) && currentUser.church && targetUser.church !== currentUser.church) {
           return {
             statusCode: 403,
             headers,
@@ -3429,7 +3466,7 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify(targetUser)
+          body: JSON.stringify(sanitizeUserForResponse(targetUser))
         };
       } catch (error) {
         console.error('❌ Get user error:', error);
