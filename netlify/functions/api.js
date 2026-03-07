@@ -120,7 +120,8 @@ async function resolveCurrentUser(event, sql) {
     ? authHeader.substring(7)
     : null;
   const decodedToken = !jwtUserId && bearerToken ? verifyToken(bearerToken) : null;
-  const headerUserId = event.headers['x-user-id'];
+  const allowHeaderFallback = process.env.NODE_ENV !== 'production';
+  const headerUserId = allowHeaderFallback ? event.headers['x-user-id'] : null;
   const rawUserId = jwtUserId || decodedToken?.id || headerUserId;
   if (!rawUserId) return null;
   const userId = parseInt(rawUserId);
@@ -615,31 +616,123 @@ async function handleDashboardStatsRoute({ path, method, event, sql, headers }) 
   if (path !== '/api/dashboard/stats' || method !== 'GET') {
     return null;
   }
+  let currentUserIdForLog = null;
   try {
     console.log('🔍 [DASHBOARD STATS] Iniciando...');
-    
-    const userId = event.headers['x-user-id'];
-    let userChurch = null;
-    let userData = null;
-    let userDistrictId = null;
-    
-    console.log(`🔍 [DASHBOARD STATS] userId: ${userId}`);
-    
-    if (userId) {
-      userData = await sql`SELECT church, role, district_id FROM users WHERE id = ${userId} LIMIT 1`;
-      console.log(`🔍 [DASHBOARD STATS] userData:`, userData);
-      if (userData.length > 0) {
-        userChurch = userData[0].church;
-        userDistrictId = userData[0].district_id;
-        const userRole = userData[0].role;
-        console.log(`🔍 Dashboard stats para usuário ${userId} (${userRole}) da igreja: ${userChurch}, distrito: ${userDistrictId}`);
-      }
+
+    const currentUser = await resolveCurrentUser(event, sql);
+    if (!currentUser) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Não autenticado' })
+      };
     }
 
-    if (userData && userData.length > 0 && hasAdminAccess(userData[0])) {
-      if (isSuperAdmin(userData[0]) || (isPastor(userData[0]) && userDistrictId)) {
-        console.log(`🔍 Dashboard stats do distrito ${userDistrictId} (${userData[0].role})`);
-        
+    const userChurch = currentUser.church || null;
+    const userDistrictId = currentUser.district_id || null;
+    currentUserIdForLog = currentUser.id;
+
+    console.log(
+      `🔍 Dashboard stats para usuário ${currentUser.id} (${currentUser.role}) da igreja: ${userChurch}, distrito: ${userDistrictId}`
+    );
+
+    if (hasAdminAccess(currentUser)) {
+      if (isSuperAdmin(currentUser)) {
+        console.log('🔍 Dashboard stats globais (superadmin)');
+        const users = await sql`SELECT COUNT(*) as count FROM users`;
+        const events = await sql`SELECT COUNT(*) as count FROM events`;
+        const interested = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested'`;
+        const members = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'member'`;
+        const admins = await sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor')`;
+        const missionaries = await sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%'`;
+
+        const today = new Date();
+        const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        const thisWeekEvents = await sql`
+          SELECT COUNT(*) as count FROM events 
+          WHERE date >= ${weekStart.toISOString().split('T')[0]}
+          AND date <= ${today.toISOString().split('T')[0]}
+        `;
+
+        const thisMonthEvents = await sql`
+          SELECT COUNT(*) as count FROM events 
+          WHERE date >= ${monthStart.toISOString().split('T')[0]}
+          AND date <= ${today.toISOString().split('T')[0]}
+        `;
+
+        const birthdaysToday = await sql`
+          SELECT COUNT(*) as count FROM users 
+          WHERE birth_date IS NOT NULL 
+          AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+          AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
+        `;
+
+        const birthdaysThisWeek = await sql`
+          SELECT COUNT(*) as count FROM users 
+          WHERE birth_date IS NOT NULL 
+          AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
+          AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')
+        `;
+
+        const pendingTasks = await sql`
+          SELECT COUNT(*) as count FROM tasks 
+          WHERE status = 'pending'
+        `;
+
+        const completedTasks = await sql`
+          SELECT COUNT(*) as count FROM tasks 
+          WHERE status = 'completed'
+        `;
+
+        let interestedBeingDiscipled = 0;
+        try {
+          const relationships = await sql`
+            SELECT * FROM relationships
+          `;
+
+          const activeRelationships = relationships.filter(rel => rel.status === 'active');
+          const uniqueInterested = new Set(
+            activeRelationships
+              .map(rel => rel.interested_id)
+              .filter(id => id != null)
+          );
+
+          interestedBeingDiscipled = uniqueInterested.size;
+        } catch (error) {
+          console.error('⚠️ Erro ao contar interessados sendo discipulados:', error);
+        }
+
+        const stats = {
+          totalUsers: parseInt(users[0].count),
+          totalEvents: parseInt(events[0].count),
+          totalInterested: parseInt(interested[0].count),
+          interestedBeingDiscipled: interestedBeingDiscipled,
+          totalMembers: parseInt(members[0].count),
+          totalAdmins: parseInt(admins[0].count),
+          totalMissionaries: parseInt(missionaries[0].count),
+          pendingApprovals: parseInt(pendingTasks[0].count),
+          completedTasks: parseInt(completedTasks[0].count),
+          thisWeekEvents: parseInt(thisWeekEvents[0].count),
+          thisMonthEvents: parseInt(thisMonthEvents[0].count),
+          birthdaysToday: parseInt(birthdaysToday[0].count),
+          birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
+          approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count) + parseInt(admins[0].count),
+          totalChurches: 6
+        };
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(stats)
+        };
+      }
+
+      if (isPastor(currentUser) && userDistrictId) {
+        console.log(`🔍 Dashboard stats do distrito ${userDistrictId} (${currentUser.role})`);
+
         const districtChurches = await sql`
           SELECT id, name FROM churches WHERE district_id = ${userDistrictId}
         `;
@@ -654,54 +747,73 @@ async function handleDashboardStatsRoute({ path, method, event, sql, headers }) 
         }
         
         const usersQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL}`;
-        const users = await sql(usersQuery);
+        const users = await sql.query(usersQuery);
         
-        const events = await sql`SELECT COUNT(*) as count FROM events`;
+        const eventsQuery = `SELECT COUNT(*) as count FROM events WHERE ${churchFilterSQL.replace(/district_id/g, 'district_id').replace(/church/g, 'church')}`;
+        const events = await sql.query(eventsQuery);
         
         const interestedQuery = `SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-        const interested = await sql(interestedQuery);
+        const interested = await sql.query(interestedQuery);
         
         const membersQuery = `SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-        const members = await sql(membersQuery);
+        const members = await sql.query(membersQuery);
         
         const adminsQuery = `SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-        const admins = await sql(adminsQuery);
+        const admins = await sql.query(adminsQuery);
         
         const missionariesQuery = `SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND email != 'admin@7care.com' AND ${churchFilterSQL}`;
-        const missionaries = await sql(missionariesQuery);
+        const missionaries = await sql.query(missionariesQuery);
         
         const today = new Date();
         const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
         
-        const thisWeekEvents = await sql`
-          SELECT COUNT(*) as count FROM events 
-          WHERE date >= ${weekStart.toISOString().split('T')[0]}
-          AND date <= ${today.toISOString().split('T')[0]}
-        `;
+        const thisWeekEventsQuery = `SELECT COUNT(*) as count FROM events 
+          WHERE date >= '${weekStart.toISOString().split('T')[0]}'
+          AND date <= '${today.toISOString().split('T')[0]}'
+          AND (${churchFilterSQL})`;
+        const thisWeekEvents = await sql.query(thisWeekEventsQuery);
         
-        const thisMonthEvents = await sql`
-          SELECT COUNT(*) as count FROM events 
-          WHERE date >= ${monthStart.toISOString().split('T')[0]}
-          AND date <= ${today.toISOString().split('T')[0]}
-        `;
+        const thisMonthEventsQuery = `SELECT COUNT(*) as count FROM events 
+          WHERE date >= '${monthStart.toISOString().split('T')[0]}'
+          AND date <= '${today.toISOString().split('T')[0]}'
+          AND (${churchFilterSQL})`;
+        const thisMonthEvents = await sql.query(thisMonthEventsQuery);
         
         const birthdaysTodayQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL} AND birth_date IS NOT NULL AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())`;
-        const birthdaysToday = await sql(birthdaysTodayQuery);
+        const birthdaysToday = await sql.query(birthdaysTodayQuery);
         
         const birthdaysThisWeekQuery = `SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND ${churchFilterSQL} AND birth_date IS NOT NULL AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')`;
-        const birthdaysThisWeek = await sql(birthdaysThisWeekQuery);
+        const birthdaysThisWeek = await sql.query(birthdaysThisWeekQuery);
         
-        const pendingTasks = await sql`
-          SELECT COUNT(*) as count FROM tasks 
-          WHERE status = 'pending'
-        `;
+        const pendingTasksQuery = districtChurchNames.length > 0
+          ? `SELECT COUNT(DISTINCT t.id) as count
+             FROM tasks t
+             LEFT JOIN users creator ON creator.id = t.created_by
+             LEFT JOIN users assigned ON assigned.id = t.assigned_to
+             WHERE t.status = 'pending'
+             AND (
+               creator.district_id = ${userDistrictId}
+               OR creator.church IN (${districtChurchNames.map(name => `'${name.replace(/'/g, "''")}'`).join(',')})
+               OR assigned.district_id = ${userDistrictId}
+               OR assigned.church IN (${districtChurchNames.map(name => `'${name.replace(/'/g, "''")}'`).join(',')})
+             )`
+          : `SELECT COUNT(DISTINCT t.id) as count
+             FROM tasks t
+             LEFT JOIN users creator ON creator.id = t.created_by
+             LEFT JOIN users assigned ON assigned.id = t.assigned_to
+             WHERE t.status = 'pending'
+             AND (
+               creator.district_id = ${userDistrictId}
+               OR assigned.district_id = ${userDistrictId}
+             )`;
+        const pendingTasks = await sql.query(pendingTasksQuery);
         
         let interestedBeingDiscipled = 0;
         try {
           let relationshipFilterSQL = churchFilterSQL.replace(/district_id/g, 'u.district_id').replace(/church/g, 'u.church');
           const relationshipsQuery = `SELECT r.* FROM relationships r INNER JOIN users u ON r.interested_id = u.id WHERE r.status = 'active' AND u.email != 'admin@7care.com' AND ${relationshipFilterSQL}`;
-          const relationships = await sql(relationshipsQuery);
+          const relationships = await sql.query(relationshipsQuery);
           
           const uniqueInterested = new Set(
             relationships.map(rel => rel.interested_id).filter(id => id != null)
@@ -736,108 +848,8 @@ async function handleDashboardStatsRoute({ path, method, event, sql, headers }) 
       }
     }
 
-    if (!userId || !userChurch || userChurch === 'Sistema' || (userData && userData.length > 0 && hasAdminAccess(userData[0]))) {
-      console.log('🔍 Dashboard stats globais (admin sem distrito ou sem userId)');
-      const users = await sql`SELECT COUNT(*) as count FROM users`;
-      const events = await sql`SELECT COUNT(*) as count FROM events`;
-      const interested = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested'`;
-      const members = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'member'`;
-      const admins = await sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor')`;
-      const missionaries = await sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%'`;
-      
-      const today = new Date();
-      const weekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      
-      const thisWeekEvents = await sql`
-        SELECT COUNT(*) as count FROM events 
-        WHERE date >= ${weekStart.toISOString().split('T')[0]}
-        AND date <= ${today.toISOString().split('T')[0]}
-      `;
-      
-      const thisMonthEvents = await sql`
-        SELECT COUNT(*) as count FROM events 
-        WHERE date >= ${monthStart.toISOString().split('T')[0]}
-        AND date <= ${today.toISOString().split('T')[0]}
-      `;
-      
-      const birthdaysToday = await sql`
-        SELECT COUNT(*) as count FROM users 
-        WHERE birth_date IS NOT NULL 
-        AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-        AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM NOW())
-      `;
-      
-      const birthdaysThisWeek = await sql`
-        SELECT COUNT(*) as count FROM users 
-        WHERE birth_date IS NOT NULL 
-        AND EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM NOW())
-        AND EXTRACT(DAY FROM birth_date) BETWEEN EXTRACT(DAY FROM NOW()) AND EXTRACT(DAY FROM NOW() + INTERVAL '7 days')
-      `;
-      
-      const pendingTasks = await sql`
-        SELECT COUNT(*) as count FROM tasks 
-        WHERE status = 'pending'
-      `;
-      
-      const completedTasks = await sql`
-        SELECT COUNT(*) as count FROM tasks 
-        WHERE status = 'completed'
-      `;
-      
-      console.log(`📋 Tarefas - Pendentes: ${parseInt(pendingTasks[0].count)}, Concluídas: ${parseInt(completedTasks[0].count)}`);
-      
-      let interestedBeingDiscipled = 0;
-      try {
-        const relationships = await sql`
-          SELECT * FROM relationships
-        `;
-        
-        console.log(`🔍 DEBUG - Total de relacionamentos: ${relationships.length}`);
-        
-        const activeRelationships = relationships.filter(rel => rel.status === 'active');
-        console.log(`✅ Relacionamentos ativos: ${activeRelationships.length}`);
-        
-        const uniqueInterested = new Set(
-          activeRelationships
-            .map(rel => rel.interested_id)
-            .filter(id => id != null)
-        );
-        
-        interestedBeingDiscipled = uniqueInterested.size;
-        console.log(`👥 Interessados únicos com discipulador: ${interestedBeingDiscipled}`);
-        console.log(`📋 IDs: [${Array.from(uniqueInterested).join(', ')}]`);
-      } catch (error) {
-        console.error('⚠️ Erro ao contar interessados sendo discipulados:', error);
-      }
-      
-      const stats = {
-        totalUsers: parseInt(users[0].count),
-        totalEvents: parseInt(events[0].count),
-        totalInterested: parseInt(interested[0].count),
-        interestedBeingDiscipled: interestedBeingDiscipled,
-        totalMembers: parseInt(members[0].count),
-        totalAdmins: parseInt(admins[0].count),
-        totalMissionaries: parseInt(missionaries[0].count),
-        pendingApprovals: parseInt(pendingTasks[0].count),
-        completedTasks: parseInt(completedTasks[0].count),
-        thisWeekEvents: parseInt(thisWeekEvents[0].count),
-        thisMonthEvents: parseInt(thisMonthEvents[0].count),
-        birthdaysToday: parseInt(birthdaysToday[0].count),
-        birthdaysThisWeek: parseInt(birthdaysThisWeek[0].count),
-        approvedUsers: parseInt(members[0].count) + parseInt(missionaries[0].count) + parseInt(admins[0].count),
-        totalChurches: 6
-      };
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(stats)
-      };
-    }
-
     const users = await sql`SELECT COUNT(*) as count FROM users WHERE church = ${userChurch}`;
-    const events = await sql`SELECT COUNT(*) as count FROM events`;
+    const events = await sql`SELECT COUNT(*) as count FROM events WHERE church = ${userChurch}`;
     const interested = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND church = ${userChurch}`;
     const members = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND church = ${userChurch}`;
     const missionaries = await sql`SELECT COUNT(*) as count FROM users WHERE role LIKE '%missionary%' AND church = ${userChurch}`;
@@ -850,12 +862,14 @@ async function handleDashboardStatsRoute({ path, method, event, sql, headers }) 
       SELECT COUNT(*) as count FROM events 
       WHERE date >= ${weekStart.toISOString().split('T')[0]}
       AND date <= ${today.toISOString().split('T')[0]}
+      AND church = ${userChurch}
     `;
     
     const thisMonthEvents = await sql`
       SELECT COUNT(*) as count FROM events 
       WHERE date >= ${monthStart.toISOString().split('T')[0]}
       AND date <= ${today.toISOString().split('T')[0]}
+      AND church = ${userChurch}
     `;
     
     const birthdaysToday = await sql`
@@ -875,8 +889,15 @@ async function handleDashboardStatsRoute({ path, method, event, sql, headers }) 
     `;
     
     const pendingTasks = await sql`
-      SELECT COUNT(*) as count FROM tasks 
-      WHERE status = 'pending'
+      SELECT COUNT(DISTINCT t.id) as count
+      FROM tasks t
+      LEFT JOIN users creator ON creator.id = t.created_by
+      LEFT JOIN users assigned ON assigned.id = t.assigned_to
+      WHERE t.status = 'pending'
+      AND (
+        creator.church = ${userChurch}
+        OR assigned.church = ${userChurch}
+      )
     `;
     
     const stats = {
@@ -909,7 +930,7 @@ async function handleDashboardStatsRoute({ path, method, event, sql, headers }) 
     console.error('❌ Dashboard stats error details:', {
       name: error.name,
       message: error.message,
-      userId: event.headers['x-user-id']
+      userId: currentUserIdForLog
     });
     return {
       statusCode: 500,
@@ -2946,27 +2967,23 @@ exports.handler = async (event, context) => {
       try {
         console.log('🚀 [DASHBOARD UNIFIED] Iniciando carregamento unificado...');
         const startTime = Date.now();
-        
-        const userId = event.headers['x-user-id'];
-        const userRole = event.headers['x-user-role'] || 'member';
-        
-        // Buscar dados do usuário para filtrar por distrito
-        let currentUser = null;
+
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
         let districtFilter = '';
         let districtChurchNames = [];
-        
-        if (userId) {
-          const userResult = await sql`SELECT id, role, district_id, church FROM users WHERE id = ${userId}`;
-          if (userResult.length > 0) {
-            currentUser = userResult[0];
-            
-            // Se for pastor, filtrar pelo distrito
-            if (currentUser.role === 'pastor' && currentUser.district_id) {
-              const districtChurches = await sql`SELECT name FROM churches WHERE district_id = ${currentUser.district_id}`;
-              districtChurchNames = districtChurches.map(c => c.name);
-              console.log(`🏛️ Pastor do distrito ${currentUser.district_id}, igrejas: ${districtChurchNames.join(', ')}`);
-            }
-          }
+
+        if (currentUser.role === 'pastor' && currentUser.district_id) {
+          const districtChurches = await sql`SELECT name FROM churches WHERE district_id = ${currentUser.district_id}`;
+          districtChurchNames = districtChurches.map(c => c.name);
+          console.log(`🏛️ Pastor do distrito ${currentUser.district_id}, igrejas: ${districtChurchNames.join(', ')}`);
         }
         
         // Função para criar filtro de distrito
@@ -2994,7 +3011,7 @@ exports.handler = async (event, context) => {
             relationshipsResult,
           ] = await Promise.all([
             sql`SELECT COUNT(*) as count FROM users WHERE email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
-            sql`SELECT COUNT(*) as count FROM events`,
+            sql`SELECT COUNT(*) as count FROM events WHERE district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames})`,
             sql`SELECT COUNT(*) as count FROM users WHERE role = 'interested' AND email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
             sql`SELECT COUNT(*) as count FROM users WHERE role = 'member' AND email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
             sql`SELECT COUNT(*) as count FROM users WHERE role IN ('superadmin', 'pastor') AND email != 'admin@7care.com' AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))`,
@@ -3015,9 +3032,10 @@ exports.handler = async (event, context) => {
                 AND email != 'admin@7care.com'
                 AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))
                 LIMIT 20`,
-            sql`SELECT id, title, date, end_date, location, visibility 
+            sql`SELECT id, title, date, end_date, location
                 FROM events 
-                WHERE date >= CURRENT_DATE 
+                WHERE date >= CURRENT_DATE
+                AND (district_id = ${currentUser.district_id} OR church = ANY(${districtChurchNames}))
                 ORDER BY date ASC 
                 LIMIT 5`,
             sql`SELECT r.interested_id FROM relationships r
