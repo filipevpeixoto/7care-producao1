@@ -20,6 +20,8 @@ import {
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useTheme } from '@/contexts/ThemeContext';
 import { V2PageStack, V2SectionCard } from '@/components/v2/V2Scaffold';
+import { StatCard } from '@/components/v2/StatCard';
+import { EmptyState } from '@/components/v2/EmptyState';
 import { PrototypeShell } from './v2/PrototypeShell';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -165,14 +167,11 @@ export default function ElectionResults() {
                   </Button>
                 }
               >
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <BarChart3 className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      {t('electionResults.noActiveNominationDesc')}
-                    </p>
-                  </CardContent>
-                </Card>
+                <EmptyState
+                  illustration={<BarChart3 className="h-7 w-7" />}
+                  title={t('electionResults.noActiveNomination')}
+                  copy={t('electionResults.noActiveNominationDesc')}
+                />
               </V2SectionCard>
             </V2PageStack>
           </div>
@@ -232,6 +231,29 @@ export default function ElectionResults() {
                 </div>
               }
             >
+              <div className="grid gap-3 md:grid-cols-4">
+                <StatCard
+                  value={dashboardData.totalVoters}
+                  label={t('electionResults.totalVoters')}
+                  tone="navy"
+                />
+                <StatCard
+                  value={dashboardData.votedVoters}
+                  label={t('electionResults.voted')}
+                  tone="gold"
+                />
+                <StatCard
+                  value={`${getVoterTurnout().toFixed(0)}%`}
+                  label={t('electionResults.turnout')}
+                  tone="soft"
+                />
+                <StatCard
+                  value={`${dashboardData.currentPosition + 1}/${dashboardData.totalPositions}`}
+                  label={t('electionResults.progress')}
+                  tone="red"
+                />
+              </div>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">

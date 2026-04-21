@@ -38,6 +38,8 @@ import {
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useTheme } from '@/contexts/ThemeContext';
 import { V2PageStack, V2SectionCard } from '@/components/v2/V2Scaffold';
+import { StatCard } from '@/components/v2/StatCard';
+import { EmptyState } from '@/components/v2/EmptyState';
 import { PrototypeShell } from './v2/PrototypeShell';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchWithAuth } from '@/lib/api';
@@ -351,23 +353,36 @@ export default function ElectionDashboard() {
               )}
             </V2SectionCard>
 
+            <div className="grid gap-3 md:grid-cols-4">
+              <StatCard value={configs.length} label={t('electionDashboard.title')} tone="navy" />
+              <StatCard
+                value={configs.filter((c) => c.status === 'active').length}
+                label={t('electionDashboard.activeCount')}
+                tone="gold"
+              />
+              <StatCard
+                value={configs.filter((c) => c.status === 'draft').length}
+                label={t('electionDashboard.draftCount')}
+                tone="soft"
+              />
+              <StatCard
+                value={configs.filter((c) => c.status === 'paused').length}
+                label={t('electionDashboard.pausedCount')}
+                tone="red"
+              />
+            </div>
+
             <V2SectionCard title={t('electionDashboard.multipleNominations')}>
               {configs.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <Vote className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
-                    <h3 className="mb-2 text-lg font-semibold">
-                      {t('electionDashboard.noConfigured')}
-                    </h3>
-                    <p className="mb-4 text-muted-foreground">
-                      {t('electionDashboard.noConfiguredDescription')}
-                    </p>
-                    <Button onClick={() => navigate('/election-config')}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      {t('electionDashboard.configureNomination')}
-                    </Button>
-                  </CardContent>
-                </Card>
+                <EmptyState
+                  illustration={<Vote className="h-7 w-7" />}
+                  title={t('electionDashboard.noConfigured')}
+                  copy={t('electionDashboard.noConfiguredDescription')}
+                  cta={{
+                    label: t('electionDashboard.configureNomination'),
+                    onClick: () => navigate('/election-config'),
+                  }}
+                />
               ) : (
                 <div className="grid gap-4">
                   {configs.map((config) => (

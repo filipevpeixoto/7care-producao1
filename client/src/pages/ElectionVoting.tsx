@@ -7,6 +7,8 @@ import { Vote, Users, ArrowRight, AlertCircle, Loader2, Church, Calendar } from 
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useTheme } from '@/contexts/ThemeContext';
 import { V2PageStack, V2SectionCard } from '@/components/v2/V2Scaffold';
+import { StatCard } from '@/components/v2/StatCard';
+import { EmptyState } from '@/components/v2/EmptyState';
 import { PrototypeShell } from './v2/PrototypeShell';
 import { fetchWithAuth } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -103,28 +105,48 @@ export default function ElectionVoting() {
               title={t('electionVoting.title')}
               subtitle={t('electionVoting.subtitle')}
             >
-              {activeElections.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <h2 className="text-xl font-semibold mb-2">
-                      {t('electionVoting.noNominations')}
-                    </h2>
-                    <p className="text-muted-foreground mb-4">
-                      {!user?.id
-                        ? t('electionVoting.loginRequired')
-                        : t('electionVoting.notIncluded')}
-                    </p>
-                    {!user?.id && (
-                      <Button
-                        onClick={() => window.location.assign('/login')}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        {t('electionVoting.login')}
-                      </Button>
+              {activeElections.length > 0 ? (
+                <div className="mb-4 grid gap-3 md:grid-cols-3">
+                  <StatCard
+                    value={activeElections.length}
+                    label={t('electionVoting.activeNomination')}
+                    tone="navy"
+                  />
+                  <StatCard
+                    value={activeElections.reduce(
+                      (sum, election) => sum + election.voters.length,
+                      0
                     )}
-                  </CardContent>
-                </Card>
+                    label={t('electionVoting.voters')}
+                    tone="gold"
+                  />
+                  <StatCard
+                    value={activeElections.reduce(
+                      (sum, election) => sum + election.positions.length,
+                      0
+                    )}
+                    label={t('electionVoting.positions')}
+                    tone="soft"
+                  />
+                </div>
+              ) : null}
+
+              {activeElections.length === 0 ? (
+                <EmptyState
+                  illustration={<AlertCircle className="h-7 w-7" />}
+                  title={t('electionVoting.noNominations')}
+                  copy={
+                    !user?.id ? t('electionVoting.loginRequired') : t('electionVoting.notIncluded')
+                  }
+                  cta={
+                    !user?.id
+                      ? {
+                          label: t('electionVoting.login'),
+                          onClick: () => window.location.assign('/login'),
+                        }
+                      : undefined
+                  }
+                />
               ) : (
                 <div className="space-y-4">
                   {activeElections.map((election) => (

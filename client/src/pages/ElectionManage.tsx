@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useTheme } from '@/contexts/ThemeContext';
 import { V2PageStack, V2SectionCard } from '@/components/v2/V2Scaffold';
+import { StatCard } from '@/components/v2/StatCard';
 import { PrototypeShell } from './v2/PrototypeShell';
 import { useAuth } from '@/hooks/useAuth';
 import { useElectionManageState } from './election-manage/useElectionManageState';
@@ -70,6 +71,21 @@ export default function ElectionManage() {
       >
         <div className="p7-section">
           <V2PageStack>
+            <div className="grid gap-3 md:grid-cols-4">
+              <StatCard value={electionData.totalPositions} label="Cargos" tone="navy" />
+              <StatCard
+                value={`${electionData.currentPosition + 1}/${electionData.totalPositions}`}
+                label="Andamento"
+                tone="gold"
+              />
+              <StatCard
+                value={`${Math.round(getVoterTurnout())}%`}
+                label="Participacao"
+                tone="soft"
+              />
+              <StatCard value={currentPhase} label="Fase atual" tone="red" />
+            </div>
+
             <V2SectionCard
               title="Gerenciar Eleição"
               subtitle={electionData.election.church_name ?? ''}
