@@ -16,6 +16,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface StepIndicatorProps {
   currentStep: number;
@@ -36,6 +37,132 @@ const steps = [
 ];
 
 export function StepIndicator({ currentStep, completedSteps, onStepClick }: StepIndicatorProps) {
+  const { skin } = useTheme();
+
+  if (skin === 'v2') {
+    const currentIndex = Math.max(
+      0,
+      steps.findIndex((step) => step.number === currentStep)
+    );
+
+    return (
+      <div className="px-4 py-5 sm:px-6 sm:py-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[var(--v2-gold)]">
+              Fluxo guiado
+            </div>
+            <div className="mt-1 text-sm text-[var(--p7-text-2)]">
+              Etapa {currentStep} de {steps.length}
+            </div>
+          </div>
+          <span className="rounded-full border border-[var(--p7-border)] bg-[var(--p7-surface-2)] px-3 py-1 text-[0.72rem] font-semibold text-[var(--p7-text)]">
+            {completedSteps.length}/{steps.length} concluídas
+          </span>
+        </div>
+
+        <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1">
+          {steps.map((step, index) => {
+            const isCompleted = completedSteps.includes(step.number);
+            const isCurrent = currentStep === step.number;
+            const isReached = index <= currentIndex;
+
+            return (
+              <React.Fragment key={`pip-${step.number}`}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    (step.number <= currentStep || isCompleted) && onStepClick?.(step.number)
+                  }
+                  disabled={!(step.number <= currentStep || isCompleted)}
+                  className={cn(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[0.72rem] font-bold transition',
+                    isCompleted &&
+                      'border-transparent bg-[var(--grad-gold)] text-[var(--v2-navy-strong)] shadow-[var(--shadow-card)]',
+                    isCurrent &&
+                      !isCompleted &&
+                      'border-[color-mix(in_oklab,var(--v2-blue)_28%,transparent)] bg-[color-mix(in_oklab,var(--v2-blue)_10%,white)] text-[var(--v2-blue)]',
+                    !isCurrent &&
+                      !isCompleted &&
+                      isReached &&
+                      'border-[var(--p7-border)] bg-[var(--p7-card)] text-[var(--p7-text)]',
+                    !isReached &&
+                      'border-[var(--p7-border)] bg-[var(--p7-surface-2)] text-[var(--p7-text-3)]'
+                  )}
+                >
+                  {isCompleted ? <Check className="h-4 w-4" strokeWidth={3} /> : step.number}
+                </button>
+                {index < steps.length - 1 ? (
+                  <div className="h-[2px] min-w-[22px] flex-1 rounded-full bg-[color-mix(in_oklab,var(--v2-blue)_10%,transparent)]">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-300',
+                        isReached ? 'bg-[var(--grad-gold)]' : 'bg-transparent'
+                      )}
+                    />
+                  </div>
+                ) : null}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step) => {
+            const isCompleted = completedSteps.includes(step.number);
+            const isCurrent = currentStep === step.number;
+            const isAccessible = step.number <= currentStep || isCompleted;
+            const Icon = step.icon;
+
+            return (
+              <button
+                key={step.number}
+                type="button"
+                onClick={() => isAccessible && onStepClick?.(step.number)}
+                disabled={!isAccessible}
+                className={cn(
+                  'flex items-center gap-3 rounded-[18px] border px-3 py-3 text-left transition',
+                  isCompleted &&
+                    'border-transparent bg-[var(--grad-gold)] text-[var(--v2-navy-strong)] shadow-[var(--shadow-card)]',
+                  isCurrent &&
+                    !isCompleted &&
+                    'border-[color-mix(in_oklab,var(--v2-blue)_28%,transparent)] bg-[color-mix(in_oklab,var(--v2-blue)_9%,white)] text-[var(--v2-blue)]',
+                  !isCurrent &&
+                    !isCompleted &&
+                    isAccessible &&
+                    'border-[var(--p7-border)] bg-[var(--p7-card)] text-[var(--p7-text)]',
+                  !isAccessible &&
+                    'border-[var(--p7-border)] bg-[var(--p7-surface-2)] text-[var(--p7-text-3)]'
+                )}
+              >
+                <div
+                  className={cn(
+                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px]',
+                    isCompleted && 'bg-white/72 text-[var(--v2-navy-strong)]',
+                    isCurrent && !isCompleted && 'bg-white text-[var(--v2-blue)]',
+                    !isCurrent && !isCompleted && 'bg-[var(--p7-surface-2)]'
+                  )}
+                >
+                  {isCompleted ? (
+                    <Check className="h-5 w-5" strokeWidth={3} />
+                  ) : (
+                    <Icon className="h-5 w-5" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] opacity-75">
+                    Etapa {step.number}
+                  </div>
+                  <div className="mt-0.5 truncate text-sm font-semibold">{step.label}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full py-6 px-4">
       <div className="flex items-center justify-between max-w-4xl mx-auto">

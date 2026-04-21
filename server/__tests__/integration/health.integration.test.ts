@@ -12,13 +12,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
-import { generateTestToken } from './setup';
+import { generateTestToken, toTestServer } from './setup';
 import { ValidationError, AuthenticationError, NotFoundError } from '../../errors';
-import type { Express, Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 // ── Build test app ──────────────────────────────────────────────
 
-function createTestApp(): Express {
+function createTestApp() {
   const app = createApp();
 
   // Add a route that throws different error types for testing error handler
@@ -46,7 +46,7 @@ function createTestApp(): Express {
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
 
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -108,17 +108,13 @@ describe('Health & Error Handling — Integration', () => {
 
   describe('CORS', () => {
     it('should allow configured origins', async () => {
-      const res = await request(app)
-        .get('/api/health')
-        .set('Origin', 'http://localhost:5173');
+      const res = await request(app).get('/api/health').set('Origin', 'http://localhost:5173');
 
       expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
     });
 
     it('should NOT set allow-origin for unconfigured origins', async () => {
-      const res = await request(app)
-        .get('/api/health')
-        .set('Origin', 'https://evil-site.com');
+      const res = await request(app).get('/api/health').set('Origin', 'https://evil-site.com');
 
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
     });
@@ -185,9 +181,7 @@ describe('Health & Error Handling — Integration', () => {
     });
 
     it('should return 404 for unknown POST routes', async () => {
-      const res = await request(app)
-        .post('/api/does-not-exist')
-        .send({ data: 'test' });
+      const res = await request(app).post('/api/does-not-exist').send({ data: 'test' });
 
       expect(res.status).toBe(404);
     });
@@ -213,9 +207,7 @@ describe('Health & Error Handling — Integration', () => {
 
   describe('Compression', () => {
     it('should support gzip encoding', async () => {
-      const res = await request(app)
-        .get('/api/health')
-        .set('Accept-Encoding', 'gzip');
+      const res = await request(app).get('/api/health').set('Accept-Encoding', 'gzip');
 
       // Response may or may not be compressed depending on size threshold
       expect(res.status).toBe(200);

@@ -81,6 +81,7 @@ const Pastors = lazyWithRetry(() => import('./pages/Pastors'));
 const PastorInvites = lazyWithRetry(() => import('./pages/PastorInvites'));
 const PastorOnboarding = lazyWithRetry(() => import('./pages/PastorOnboarding'));
 const Reports = lazyWithRetry(() => import('./pages/Reports'));
+const MyReports = lazyWithRetry(() => import('./pages/MyReports'));
 const Terms = lazyWithRetry(() => import('./pages/Terms'));
 const Privacy = lazyWithRetry(() => import('./pages/Privacy'));
 const NotFound = lazyWithRetry(() => import('./pages/NotFound'));
@@ -203,7 +204,7 @@ const protectedRoutes: RouteConfig[] = [
   { path: '/settings', element: <Settings /> },
   { path: '/tasks', element: <Tasks /> },
   { path: '/reports', element: <Reports /> },
-  { path: '/my-reports', element: <Tasks /> },
+  { path: '/my-reports', element: <MyReports /> },
   { path: '/contact', element: <Contact /> },
   { path: '/election-config', element: <ElectionConfig /> },
   { path: '/election-voting', element: <ElectionVoting /> },
@@ -226,11 +227,13 @@ const protectedRoutes: RouteConfig[] = [
  * startTransition (que mantinha conteúdo stale de rotas lazy-loaded).
  */
 const RoutesWrapper = () => {
+  const location = useLocation();
+
   return (
-    <RouteErrorBoundary>
+    <RouteErrorBoundary key={`${location.pathname}${location.search}`}>
       <Suspense fallback={<PageLoader />}>
-        <div className="route-transition-wrapper">
-          <Routes>
+        <div className="route-transition-wrapper" key={`${location.pathname}${location.search}`}>
+          <Routes location={location}>
             {publicRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={route.element} />
             ))}

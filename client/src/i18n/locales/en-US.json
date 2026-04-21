@@ -802,6 +802,7 @@
     "photoRemoveErrorTitle": "Error removing photo",
     "photoRemoveErrorDesc": "Could not remove your photo. Please try again.",
     "personalInfo": "Personal Information",
+    "personalInfoHint": "Review the details shown in your profile and change only what is necessary.",
     "edit": "Edit",
     "cancel": "Cancel",
     "save": "Save",
@@ -831,7 +832,8 @@
     "changePasswordFail": "Failed to change password",
     "tryAgain": "Please try again.",
     "passwordChangedTitle": "Password changed",
-    "passwordChangedDesc": "Your password was updated successfully."
+    "passwordChangedDesc": "Your password was updated successfully.",
+    "profileHubTitle": "Profile hub"
   },
   "greetings": {
     "morning": "Good morning",
@@ -1286,5 +1288,30 @@
     "statusActive": "Active",
     "statusPaused": "Paused",
     "statusDraft": "Draft"
+  },
+  "legalV2": {
+    "guidedReading": "Guided reading",
+    "terms": {
+      "badge": "Terms",
+      "subtitle": "Transparency, responsibility, and safe use of the platform.",
+      "intro": "These terms explain how to use 7care clearly for people who manage, follow up, and care for church life every day.",
+      "summaryUseValue": "Responsible use",
+      "summaryUseLabel": "Usage rules, responsibilities, and platform limits.",
+      "summarySafetyValue": "Operational protection",
+      "summarySafetyLabel": "Commitments that help protect the operation and the community.",
+      "summaryLegalValue": "Legal transparency",
+      "summaryLegalLabel": "Updates, governance, and legal support for the service."
+    },
+    "privacy": {
+      "badge": "Privacy",
+      "subtitle": "How we protect data, access, and sensitive information.",
+      "intro": "This summary explains how 7care collects, protects, and uses information to support pastoral care with safety, clarity, and responsibility.",
+      "summaryDataValue": "Collection and retention",
+      "summaryDataLabel": "What data may be collected and how long it can be kept.",
+      "summaryUsageValue": "Contextual use",
+      "summaryUsageLabel": "How information supports pastoral care and operations.",
+      "summaryRightsValue": "User control",
+      "summaryRightsLabel": "User rights, visibility, and channels to request changes."
+    }
   }
 }

@@ -16,11 +16,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
 import { type CalendarEvent, EVENT_TYPES } from '@/types/calendar';
 import { notificationService } from '@/lib/notificationService';
 import { fetchWithAuth } from '@/lib/api';
 import { toast as sonnerToast } from 'sonner';
 import { calendarLogger } from '@/lib/logger';
+import { CalendarV2 } from './v2/CalendarV2';
 
 /** Raw event shape from the API before normalization */
 interface RawApiEvent {
@@ -55,9 +57,11 @@ export default function Calendar() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { skin } = useTheme();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [newEventInitialDate, setNewEventInitialDate] = useState<string | undefined>();
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [showBirthdays, setShowBirthdays] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -116,20 +120,22 @@ export default function Calendar() {
   });
 
   // Normalizar eventos (converter date/end_date para startDate/endDate)
-  const allEvents = useMemo(() =>
-    rawEvents?.map((event) => ({
-      ...event,
-      startDate: event.date || event.startDate,
-      endDate: event.end_date || event.endDate || event.date,
-    })) || []
-  , [rawEvents]);
+  const allEvents = useMemo(
+    () =>
+      rawEvents?.map((event) => ({
+        ...event,
+        startDate: event.date || event.startDate,
+        endDate: event.end_date || event.endDate || event.date,
+      })) || [],
+    [rawEvents]
+  );
 
   // Extrair tipos de eventos dinâmicos dos eventos reais (incluindo novos do Google Sheets)
   const dynamicEventTypes = React.useMemo(() => {
     const uniqueTypes = new Map();
 
     // Primeiro adicionar os tipos predefinidos
-    EVENT_TYPES.forEach(type => {
+    EVENT_TYPES.forEach((type) => {
       uniqueTypes.set(type.id, type);
     });
 
@@ -210,7 +216,7 @@ export default function Calendar() {
 
     if (user?.role && permissions && !permissionsLoading && dynamicEventTypes.length > 0) {
       filtersInitialized.current = true;
-      const allTypes = dynamicEventTypes.map(t => t.id);
+      const allTypes = dynamicEventTypes.map((t) => t.id);
       setActiveFilters(allTypes);
       calendarLogger.debug('Filtros inicializados com TODAS as categorias:', allTypes);
     }
@@ -261,12 +267,14 @@ export default function Calendar() {
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setIsCreatingEvent(false);
+    setNewEventInitialDate(undefined);
     setShowEventModal(true);
   };
 
-  const handleNewEvent = () => {
+  const handleNewEvent = (date?: Date) => {
     setSelectedEvent(null);
     setIsCreatingEvent(true);
+    setNewEventInitialDate(date ? date.toISOString().split('T')[0] : undefined);
     setShowEventModal(true);
   };
 
@@ -331,7 +339,11 @@ export default function Calendar() {
       setShowEventModal(false);
     } catch (error: unknown) {
       calendarLogger.error('Erro ao salvar evento:', error);
-      sonnerToast.error(t('calendar.errorWithMessage', { message: error instanceof Error ? error.message : t('calendar.unknownError') }));
+      sonnerToast.error(
+        t('calendar.errorWithMessage', {
+          message: error instanceof Error ? error.message : t('calendar.unknownError'),
+        })
+      );
     }
   };
 
@@ -469,9 +481,9 @@ export default function Calendar() {
     }
 
     if (checked) {
-      setActiveFilters(prev => [...prev, filterId]);
+      setActiveFilters((prev) => [...prev, filterId]);
     } else {
-      setActiveFilters(prev => prev.filter(id => id !== filterId));
+      setActiveFilters((prev) => prev.filter((id) => id !== filterId));
     }
   };
 
@@ -479,13 +491,41 @@ export default function Calendar() {
     setActiveFilters([]);
   };
 
+  if (skin === 'v2') {
+    return (
+      <>
+        <MobileLayout variant="prototype">
+          <CalendarV2
+            events={allEvents as CalendarEvent[]}
+            onEventClick={handleEventClick}
+            onCreateEvent={handleNewEvent}
+          />
+        </MobileLayout>
+
+        <EventModal
+          event={selectedEvent ?? undefined}
+          isOpen={showEventModal}
+          onClose={() => setShowEventModal(false)}
+          onSave={handleSaveEvent}
+          onDelete={handleDeleteEvent}
+          isEditing={isCreatingEvent}
+          eventTypes={dynamicEventTypes}
+          initialDate={newEventInitialDate}
+          variant="v2"
+        />
+      </>
+    );
+  }
+
   return (
     <MobileLayout>
       <div className="p-4 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('calendar.agenda')}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {t('calendar.agenda')}
+            </h1>
             <p className="text-muted-foreground">{t('calendar.syncedWithGoogleSheets')}</p>
           </div>
         </div>
@@ -518,12 +558,12 @@ export default function Calendar() {
                   </Button>
                 </div>
                 {dynamicEventTypes
-                  .filter(type => !user?.role || canFilterEventType(user.role, type.id))
-                  .map(type => (
+                  .filter((type) => !user?.role || canFilterEventType(user.role, type.id))
+                  .map((type) => (
                     <DropdownMenuCheckboxItem
                       key={type.id}
                       checked={activeFilters.includes(type.id)}
-                      onCheckedChange={checked => handleFilterChange(type.id, checked)}
+                      onCheckedChange={(checked) => handleFilterChange(type.id, checked)}
                       className="cursor-pointer"
                     >
                       <div className="flex items-center space-x-2">
@@ -582,8 +622,8 @@ export default function Calendar() {
         {activeFilters.length > 0 && activeFilters.length < EVENT_TYPES.length && (
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-sm text-muted-foreground">{t('calendar.activeFilters')}</span>
-            {activeFilters.map(filterId => {
-              const type = EVENT_TYPES.find(t => t.id === filterId);
+            {activeFilters.map((filterId) => {
+              const type = EVENT_TYPES.find((t) => t.id === filterId);
               return type ? (
                 <Badge
                   key={filterId}

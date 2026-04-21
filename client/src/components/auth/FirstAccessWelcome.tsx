@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface TutorialStep {
   id: number;
@@ -90,11 +91,13 @@ type WelcomeScreenProps = {
   progressPercentage: number;
   onStart: () => void;
   onSkip: () => void;
+  isV2: boolean;
 };
 
 type StepHeaderProps = {
   currentStep: number;
   stepsCount: number;
+  isV2: boolean;
 };
 
 type PasswordChangeFormProps = {
@@ -196,10 +199,19 @@ const WelcomeScreen = ({
   progressPercentage,
   onStart,
   onSkip,
+  isV2,
 }: WelcomeScreenProps) => (
   <MobileLayout>
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-divine">
+    <div
+      className={
+        isV2
+          ? 'mx-auto flex min-h-[calc(100vh-11rem)] w-full max-w-2xl items-center justify-center p-1'
+          : 'min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4'
+      }
+    >
+      <Card
+        className={`w-full max-w-md ${isV2 ? 'border-border/70 shadow-[0_18px_40px_rgba(13,34,72,.10)]' : 'shadow-divine'}`}
+      >
         <CardHeader className="text-center space-y-4">
           <div className="w-20 h-20 mx-auto bg-gradient-primary rounded-full flex items-center justify-center">
             <Star className="w-10 h-10 text-white" />
@@ -244,12 +256,12 @@ const WelcomeScreen = ({
   </MobileLayout>
 );
 
-const StepHeader = ({ currentStep, stepsCount }: StepHeaderProps) => (
-  <div className="text-center text-white space-y-2">
+const StepHeader = ({ currentStep, stepsCount, isV2 }: StepHeaderProps) => (
+  <div className={`text-center space-y-2 ${isV2 ? 'text-[var(--p7-text)]' : 'text-white'}`}>
     <h1 className="text-2xl font-bold">Tutorial - Etapa {currentStep + 1}</h1>
     <div className="space-y-2">
       <Progress value={((currentStep + 1) / stepsCount) * 100} className="h-2" />
-      <p className="text-sm opacity-90">
+      <p className={`text-sm ${isV2 ? 'text-[var(--p7-text-2)]' : 'opacity-90'}`}>
         {currentStep + 1} de {stepsCount} etapas
       </p>
     </div>
@@ -525,6 +537,8 @@ const StepList = ({ steps, currentStep, onGoToStep }: StepListProps) => (
 export const FirstAccessWelcome = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { skin } = useTheme();
+  const isV2 = skin === 'v2';
 
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState(TUTORIAL_STEPS);
@@ -710,6 +724,7 @@ export const FirstAccessWelcome = () => {
         progressPercentage={getProgressPercentage()}
         onStart={() => setShowWelcome(false)}
         onSkip={skipTutorial}
+        isV2={isV2}
       />
     );
   }
@@ -719,12 +734,22 @@ export const FirstAccessWelcome = () => {
 
   return (
     <MobileLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-4">
-        <div className="max-w-md mx-auto space-y-6">
-          <StepHeader currentStep={currentStep} stepsCount={steps.length} />
+      <div
+        className={
+          isV2
+            ? 'mx-auto w-full max-w-3xl p-1'
+            : 'min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-4'
+        }
+      >
+        <div className={`${isV2 ? 'space-y-6' : 'max-w-md mx-auto space-y-6'}`}>
+          <StepHeader currentStep={currentStep} stepsCount={steps.length} isV2={isV2} />
 
           {/* Current Step Card */}
-          <Card className="shadow-divine">
+          <Card
+            className={
+              isV2 ? 'border-border/70 shadow-[0_18px_40px_rgba(13,34,72,.10)]' : 'shadow-divine'
+            }
+          >
             <CardHeader className="text-center space-y-4">
               <div
                 className={`w-16 h-16 mx-auto ${currentStepData.color} rounded-full flex items-center justify-center`}
@@ -775,7 +800,11 @@ export const FirstAccessWelcome = () => {
             <Button
               variant="ghost"
               onClick={skipTutorial}
-              className="text-white/80 hover:text-white hover:bg-white/10"
+              className={
+                isV2
+                  ? 'text-[var(--p7-text-2)] hover:bg-[rgba(13,34,72,.05)] hover:text-[var(--p7-text)]'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }
               data-testid="button-skip-tutorial-bottom"
             >
               Pular Tutorial e Ir para o Dashboard

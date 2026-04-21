@@ -1,0 +1,3608 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>7care — Wireframes</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style id="font-override"></style>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --ink: #1a1a2e;
+        --paper: #f7f5f0;
+        --rule: #d0cbc0;
+        --accent-a: #1c3b6b;
+        --accent-b: #b5843a;
+        --sketch: #2d2d2d;
+      }
+
+      body {
+        font-family: 'Caveat', cursive;
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ─── TOP NAV ─── */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--ink);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.6rem 1.2rem;
+        border-bottom: 2px solid #000;
+        flex-wrap: wrap;
+      }
+      .topbar-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        margin-right: auto;
+      }
+      .var-tabs {
+        display: flex;
+        gap: 4px;
+      }
+      .var-tab {
+        padding: 0.3rem 1rem;
+        border: 1.5px solid #fff;
+        border-radius: 4px;
+        font-family: 'Caveat', cursive;
+        font-size: 1rem;
+        cursor: pointer;
+        background: transparent;
+        color: #fff;
+        transition: all 0.15s;
+      }
+      .var-tab.active {
+        background: #fff;
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .device-toggle {
+        display: flex;
+        gap: 4px;
+      }
+      .dev-btn {
+        padding: 0.3rem 0.8rem;
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        border-radius: 4px;
+        font-family: 'Caveat', cursive;
+        font-size: 0.9rem;
+        cursor: pointer;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.7);
+        transition: all 0.15s;
+      }
+      .dev-btn.active {
+        border-color: #fff;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      /* ─── SCREEN TABS ─── */
+      .screen-tabs {
+        display: flex;
+        gap: 0;
+        padding: 0.8rem 1.2rem 0;
+        border-bottom: 2px solid var(--rule);
+        overflow-x: auto;
+        background: #ede9e1;
+      }
+      .screen-tab {
+        padding: 0.4rem 1.1rem 0.6rem;
+        font-family: 'Caveat', cursive;
+        font-size: 1.05rem;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        color: #777;
+        white-space: nowrap;
+        position: relative;
+        transition: color 0.15s;
+      }
+      .screen-tab.active {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .screen-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2.5px;
+        background: var(--ink);
+      }
+
+      /* ─── CANVAS ─── */
+      .canvas {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 2rem 1rem 3rem;
+        gap: 2rem;
+        flex-wrap: wrap;
+        min-height: calc(100vh - 120px);
+      }
+
+      /* ─── PHONE FRAME ─── */
+      .phone {
+        width: 280px;
+        height: 580px;
+        border: 3px solid var(--ink);
+        border-radius: 32px;
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 4px 6px 0 var(--ink);
+        flex-shrink: 0;
+      }
+      .phone::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 8px;
+        background: var(--ink);
+        border-radius: 4px;
+        z-index: 10;
+      }
+      .phone-screen {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        border-radius: 30px;
+      }
+
+      /* ─── DESKTOP FRAME ─── */
+      .desktop {
+        width: 700px;
+        height: 420px;
+        border: 3px solid var(--ink);
+        border-radius: 8px;
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 4px 6px 0 var(--ink);
+      }
+      .desktop-bar {
+        height: 28px;
+        background: var(--ink);
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        gap: 6px;
+      }
+      .desktop-bar span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        display: inline-block;
+      }
+      .desktop-content {
+        height: calc(100% - 28px);
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* ─── ANNOTATION PANEL ─── */
+      .anno {
+        width: 220px;
+        flex-shrink: 0;
+        align-self: center;
+      }
+      .anno-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 2px solid var(--ink);
+      }
+      .anno-list {
+        list-style: none;
+      }
+      .anno-list li {
+        font-size: 1.05rem;
+        padding: 0.35rem 0;
+        border-bottom: 1px dashed var(--rule);
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+      }
+      .anno-list li::before {
+        content: '→';
+        flex-shrink: 0;
+      }
+      .anno-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border: 1.5px solid var(--ink);
+        border-radius: 4px;
+        font-size: 0.85rem;
+        margin-top: 0.8rem;
+      }
+
+      /* ─── WIREFRAME PRIMITIVES ─── */
+      .wf-box {
+        background: #f0ede8;
+        border: 1.5px solid var(--rule);
+        border-radius: 4px;
+      }
+      .wf-box.dark {
+        background: var(--ink);
+      }
+      .wf-box.accent-a {
+        background: var(--accent-a);
+      }
+      .wf-box.accent-b {
+        background: var(--accent-b);
+      }
+      .wf-box.light {
+        background: #fafaf8;
+      }
+
+      .wf-label {
+        font-family: 'Caveat', cursive;
+        color: var(--sketch);
+        line-height: 1.2;
+      }
+      .wf-label.inv {
+        color: #fff;
+      }
+      .wf-label.muted {
+        color: #999;
+      }
+      .wf-label.small {
+        font-size: 0.75rem;
+      }
+      .wf-label.large {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .wf-label.xl {
+        font-size: 2.2rem;
+        font-weight: 700;
+      }
+
+      .wf-divider {
+        height: 1px;
+        background: var(--rule);
+        margin: 4px 0;
+      }
+      .wf-img {
+        background: repeating-linear-gradient(
+          45deg,
+          #e8e4db 0px,
+          #e8e4db 2px,
+          #f0ede8 2px,
+          #f0ede8 10px
+        );
+        border: 1.5px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        color: #aaa;
+        font-family: 'Space Mono', monospace;
+        text-align: center;
+        padding: 4px;
+      }
+      .wf-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .wf-col {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .wf-grid {
+        display: grid;
+      }
+      .wf-circle {
+        border-radius: 50%;
+      }
+      .pill {
+        border-radius: 999px;
+      }
+
+      /* ─── STAT CARD VARIANTS ─── */
+      .stat-clean {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .stat-bordered {
+        padding: 8px 10px;
+        border: 1.5px solid var(--rule);
+        border-left: 3px solid var(--accent-a);
+        border-radius: 3px;
+        margin-bottom: 6px;
+      }
+
+      /* ─── NAV BARS ─── */
+      .bottom-nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 52px;
+        background: #fff;
+        border-top: 1.5px solid var(--rule);
+        display: flex;
+        align-items: center;
+      }
+      .nav-item {
+        flex: 1;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+      }
+      .nav-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        background: #ddd;
+      }
+      .nav-icon.active {
+        background: var(--accent-a);
+      }
+      .nav-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent-a);
+      }
+      .nav-fab {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--accent-a);
+        margin-top: -22px;
+        border: 3px solid #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: 160px;
+        height: 100%;
+        background: var(--ink);
+        flex-shrink: 0;
+        padding: 12px 0;
+        overflow: hidden;
+      }
+      .sidebar-logo {
+        padding: 4px 12px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        margin-bottom: 8px;
+      }
+      .sidebar-item {
+        padding: 7px 12px;
+        font-family: 'Caveat', cursive;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: default;
+      }
+      .sidebar-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .sidebar-item .s-icon {
+        width: 14px;
+        height: 14px;
+        background: currentColor;
+        border-radius: 3px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+
+      /* ─── VARIATION PANELS ─── */
+      .variation-panel {
+        display: none;
+        width: 100%;
+      }
+      .variation-panel.active {
+        display: block;
+      }
+
+      /* ─── SCREEN PANELS ─── */
+      .screen-panel {
+        display: none;
+      }
+      .screen-panel.active {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 2rem;
+        padding: 2rem 1rem 3rem;
+      }
+
+      /* Desktop panel */
+      .desktop-panel {
+        display: none;
+      }
+      .desktop-panel.active {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 2rem;
+        padding: 2rem 1rem 3rem;
+      }
+
+      /* ─── TWEAKS PANEL ─── */
+      #tweaks-panel {
+        display: none;
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        width: 200px;
+        background: #fff;
+        border: 2px solid var(--ink);
+        border-radius: 6px;
+        box-shadow: 3px 4px 0 var(--ink);
+        z-index: 200;
+        padding: 12px;
+        font-family: 'Caveat', cursive;
+      }
+      #tweaks-panel h4 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 6px;
+      }
+      .tweak-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        font-size: 0.95rem;
+      }
+      .tweak-row input[type='range'] {
+        width: 90px;
+      }
+      .tweak-row select {
+        font-family: 'Caveat', cursive;
+        font-size: 0.9rem;
+        border: 1px solid var(--rule);
+        border-radius: 3px;
+      }
+
+      @media (max-width: 600px) {
+        .phone {
+          transform: scale(0.85);
+          transform-origin: top center;
+        }
+        .anno {
+          width: 100%;
+        }
+        .desktop {
+          transform: scale(0.5);
+          transform-origin: top center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-title">
+        7care — Wireframes
+        <span id="font-label" style="font-weight: 400; opacity: 0.5; font-size: 0.85rem"></span>
+      </div>
+      <div class="var-tabs">
+        <button class="var-tab active" onclick="switchVar('a')">A · Sereno</button>
+        <button class="var-tab" onclick="switchVar('b')">B · Editorial</button>
+      </div>
+      <div class="device-toggle">
+        <button class="dev-btn active" onclick="switchDevice('mobile')">📱</button>
+        <button class="dev-btn" onclick="switchDevice('desktop')">🖥️</button>
+      </div>
+    </div>
+
+    <!-- ══════════════════ VARIATION A ══════════════════ -->
+    <div id="var-a" class="variation-panel active">
+      <!-- SCREEN TABS -->
+      <div class="screen-tabs" id="tabs-a">
+        <button class="screen-tab active" onclick="switchScreen('a', 'login')">Login</button>
+        <button class="screen-tab" onclick="switchScreen('a', 'dash-admin')">
+          Dashboard Admin
+        </button>
+        <button class="screen-tab" onclick="switchScreen('a', 'dash-membro')">
+          Dashboard Membro
+        </button>
+        <button class="screen-tab" onclick="switchScreen('a', 'tasks')">Tarefas</button>
+        <button class="screen-tab" onclick="switchScreen('a', 'prayers')">Orações</button>
+      </div>
+
+      <!-- MOBILE SCREENS -->
+      <div id="mobile-a" style="display: block">
+        <!-- A: LOGIN -->
+        <div id="a-login" class="screen-panel active">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #1c3b6b;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 60px 24px 24px;
+              "
+            >
+              <div
+                class="wf-img wf-circle"
+                style="
+                  width: 72px;
+                  height: 72px;
+                  background: rgba(255, 255, 255, 0.12);
+                  border: none;
+                  margin-bottom: 12px;
+                  font-size: 0.6rem;
+                  color: rgba(255, 255, 255, 0.5);
+                "
+              >
+                logo
+              </div>
+              <div
+                style="
+                  font-family: Caveat;
+                  color: rgba(255, 255, 255, 0.9);
+                  font-size: 1.4rem;
+                  font-weight: 700;
+                  margin-bottom: 4px;
+                "
+              >
+                7care
+              </div>
+              <div
+                style="
+                  font-family: Caveat;
+                  color: rgba(255, 255, 255, 0.5);
+                  font-size: 0.85rem;
+                  margin-bottom: 32px;
+                "
+              >
+                Sistema de Gestão
+              </div>
+
+              <div style="width: 100%; display: flex; flex-direction: column; gap: 10px">
+                <div
+                  style="
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 8px;
+                    padding: 12px;
+                    color: rgba(255, 255, 255, 0.5);
+                    font-family: Caveat;
+                    font-size: 0.9rem;
+                  "
+                >
+                  Email
+                </div>
+                <div
+                  style="
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 8px;
+                    padding: 12px;
+                    color: rgba(255, 255, 255, 0.5);
+                    font-family: Caveat;
+                    font-size: 0.9rem;
+                  "
+                >
+                  Senha
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 12px;
+                    text-align: center;
+                    font-family: Caveat;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    color: #1c3b6b;
+                    margin-top: 4px;
+                  "
+                >
+                  Entrar
+                </div>
+                <div
+                  style="
+                    text-align: center;
+                    font-family: Caveat;
+                    color: rgba(255, 255, 255, 0.4);
+                    font-size: 0.8rem;
+                  "
+                >
+                  Esqueci minha senha
+                </div>
+              </div>
+
+              <div
+                style="
+                  position: absolute;
+                  bottom: 20px;
+                  font-family: Caveat;
+                  color: rgba(255, 255, 255, 0.25);
+                  font-size: 0.7rem;
+                  text-align: center;
+                  padding: 0 20px;
+                "
+              >
+                Sem arco-íris · Fundo sólido escuro<br />Formulário limpo com contraste alto
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">A · Login</div>
+            <ul class="anno-list">
+              <li>Fundo navy sólido — sem gradiente slate/blue/slate</li>
+              <li>Logo centralizada, sem círculo branco com glow exagerado</li>
+              <li>Campos simples com borda sutil, sem sombra extra</li>
+              <li>CTA branco único — hierarquia clara</li>
+              <li>Tipografia Caveat substituída por fonte legível na produção</li>
+            </ul>
+            <div class="anno-badge">📐 Menos é mais</div>
+          </div>
+        </div>
+
+        <!-- A: DASHBOARD ADMIN -->
+        <div id="a-dash-admin" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #fafaf8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <!-- Header -->
+              <div
+                style="
+                  padding: 8px 16px 8px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  border-bottom: 1px solid #e8e4db;
+                "
+              >
+                <div>
+                  <div style="font-family: Caveat; font-size: 0.75rem; color: #999">Bom dia,</div>
+                  <div
+                    style="font-family: Caveat; font-size: 1.1rem; font-weight: 700; color: #1a1a2e"
+                  >
+                    Pastor João
+                  </div>
+                </div>
+                <div
+                  class="wf-circle"
+                  style="
+                    width: 32px;
+                    height: 32px;
+                    background: #1c3b6b;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #fff;
+                    font-family: Caveat;
+                    font-size: 0.9rem;
+                  "
+                >
+                  PJ
+                </div>
+              </div>
+
+              <!-- Stats — TEXT ROWS, sem cards coloridos -->
+              <div style="padding: 12px 16px 0">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: #999;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Resumo geral
+                </div>
+                <div class="stat-clean">
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.8rem;
+                      font-weight: 700;
+                      color: #1c3b6b;
+                      line-height: 1;
+                    "
+                  >
+                    248
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.85rem; color: #666">
+                    Usuários · 195 aprovados
+                  </div>
+                </div>
+                <div class="stat-clean">
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.8rem;
+                      font-weight: 700;
+                      color: #1c3b6b;
+                      line-height: 1;
+                    "
+                  >
+                    84
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.85rem; color: #666">
+                    Amigos da Igreja · 12 discipulados
+                  </div>
+                </div>
+                <div class="stat-clean">
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.8rem;
+                      font-weight: 700;
+                      color: #1c3b6b;
+                      line-height: 1;
+                    "
+                  >
+                    17
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.85rem; color: #666">
+                    Tarefas pendentes · 43 feitas
+                  </div>
+                </div>
+                <div class="stat-clean">
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.8rem;
+                      font-weight: 700;
+                      color: #b5843a;
+                      line-height: 1;
+                    "
+                  >
+                    5
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.85rem; color: #666">
+                    Check-ins espirituais hoje
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick actions -->
+              <div style="padding: 10px 16px 0">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: #999;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Ações rápidas
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
+                  <div
+                    style="
+                      padding: 8px;
+                      border: 1.5px solid #e8e4db;
+                      border-radius: 6px;
+                      background: #fff;
+                    "
+                  >
+                    <div
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        background: #1c3b6b;
+                        border-radius: 3px;
+                        margin-bottom: 4px;
+                      "
+                    ></div>
+                    <div style="font-family: Caveat; font-size: 0.8rem; color: #333">
+                      Gerir Usuários
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      padding: 8px;
+                      border: 1.5px solid #e8e4db;
+                      border-radius: 6px;
+                      background: #fff;
+                    "
+                  >
+                    <div
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        background: #1c3b6b;
+                        border-radius: 3px;
+                        margin-bottom: 4px;
+                      "
+                    ></div>
+                    <div style="font-family: Caveat; font-size: 0.8rem; color: #333">
+                      Ver Tarefas
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      padding: 8px;
+                      border: 1.5px solid #e8e4db;
+                      border-radius: 6px;
+                      background: #fff;
+                    "
+                  >
+                    <div
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        background: #1c3b6b;
+                        border-radius: 3px;
+                        margin-bottom: 4px;
+                      "
+                    ></div>
+                    <div style="font-family: Caveat; font-size: 0.8rem; color: #333">
+                      Relatórios
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      padding: 8px;
+                      border: 1.5px solid #e8e4db;
+                      border-radius: 6px;
+                      background: #fff;
+                    "
+                  >
+                    <div
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        background: #b5843a;
+                        border-radius: 3px;
+                        margin-bottom: 4px;
+                      "
+                    ></div>
+                    <div style="font-family: Caveat; font-size: 0.8rem; color: #333">Check-in</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Aniversariantes -->
+              <div style="padding: 10px 16px 0">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: #999;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Aniversariantes hoje
+                </div>
+                <div style="display: flex; gap: 8px; overflow-x: auto">
+                  <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap">
+                    <div
+                      class="wf-circle"
+                      style="width: 28px; height: 28px; background: #e8e4db"
+                    ></div>
+                    <div style="font-family: Caveat; font-size: 0.8rem; color: #333">Maria S.</div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap">
+                    <div
+                      class="wf-circle"
+                      style="width: 28px; height: 28px; background: #e8e4db"
+                    ></div>
+                    <div style="font-family: Caveat; font-size: 0.8rem; color: #333">Carlos P.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Bottom nav -->
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Início</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Agenda</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Tarefas</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Chat</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Menu</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">A · Dashboard Admin</div>
+            <ul class="anno-list">
+              <li>Stats como linhas tipográficas — sem 6 cards coloridos</li>
+              <li>Números grandes em navy, contexto em cinza claro</li>
+              <li>Fundo off-white neutro — respira</li>
+              <li>Ações rápidas em grid 2×2 neutro, sem cores por item</li>
+              <li>Só 1 cor de destaque (dourado) para o check-in</li>
+              <li>Navbar bottom flat — sem blur/glass</li>
+            </ul>
+            <div class="anno-badge">🎯 1 cor de destaque</div>
+          </div>
+        </div>
+
+        <!-- A: DASHBOARD MEMBRO -->
+        <div id="a-dash-membro" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #fafaf8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <div
+                style="
+                  padding: 8px 16px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  border-bottom: 1px solid #e8e4db;
+                "
+              >
+                <div>
+                  <div style="font-family: Caveat; font-size: 0.75rem; color: #999">Olá,</div>
+                  <div
+                    style="font-family: Caveat; font-size: 1.1rem; font-weight: 700; color: #1a1a2e"
+                  >
+                    Ana Silva
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <div
+                    style="
+                      background: #1c3b6b;
+                      color: #fff;
+                      font-family: Caveat;
+                      font-size: 0.7rem;
+                      padding: 2px 8px;
+                      border-radius: 12px;
+                    "
+                  >
+                    🏆 248 pts
+                  </div>
+                  <div
+                    class="wf-circle"
+                    style="width: 32px; height: 32px; background: #e8e4db"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Check-in rápido -->
+              <div
+                style="
+                  margin: 10px 16px;
+                  padding: 10px 12px;
+                  background: #1c3b6b;
+                  border-radius: 8px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                "
+              >
+                <div>
+                  <div
+                    style="font-family: Caveat; font-size: 0.75rem; color: rgba(255, 255, 255, 0.6)"
+                  >
+                    Check-in espiritual
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.9rem; color: #fff">
+                    Como está sua semana?
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: rgba(255, 255, 255, 0.15);
+                    border-radius: 6px;
+                    padding: 4px 10px;
+                    font-family: Caveat;
+                    font-size: 0.8rem;
+                    color: #fff;
+                  "
+                >
+                  Responder
+                </div>
+              </div>
+
+              <!-- Próximo evento -->
+              <div style="padding: 0 16px 8px">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: #999;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Próximo evento
+                </div>
+                <div
+                  style="
+                    border: 1px solid #e8e4db;
+                    border-radius: 6px;
+                    background: #fff;
+                    padding: 10px 12px;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                  "
+                >
+                  <div
+                    style="
+                      background: #1c3b6b;
+                      color: #fff;
+                      font-family: Caveat;
+                      font-size: 0.75rem;
+                      padding: 4px 8px;
+                      border-radius: 4px;
+                      text-align: center;
+                      line-height: 1.2;
+                      min-width: 36px;
+                    "
+                  >
+                    25<br />ABR
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        font-weight: 700;
+                        color: #1a1a2e;
+                      "
+                    >
+                      Reunião de Célula
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      19h · Igreja Central
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Meus interessados -->
+              <div style="padding: 0 16px 8px">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: #999;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Meus interessados
+                </div>
+                <div
+                  class="stat-clean"
+                  style="
+                    border-radius: 6px;
+                    border: 1px solid #e8e4db;
+                    background: #fff;
+                    border-bottom: none;
+                  "
+                >
+                  <div
+                    style="font-family: Caveat; font-size: 1.8rem; font-weight: 700; color: #1c3b6b"
+                  >
+                    3
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.85rem; color: #666">
+                    Vinculados a você · 84 na igreja
+                  </div>
+                </div>
+                <div style="height: 4px; background: #f0ede8; border-radius: 2px; margin: 4px 0">
+                  <div
+                    style="height: 4px; width: 20%; background: #1c3b6b; border-radius: 2px"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Orações -->
+              <div style="padding: 0 16px 8px">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: #999;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Pedidos de oração
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <div
+                    style="
+                      padding: 6px 10px;
+                      border: 1px solid #e8e4db;
+                      border-left: 3px solid #b5843a;
+                      border-radius: 3px;
+                      background: #fff;
+                      font-family: Caveat;
+                      font-size: 0.8rem;
+                      color: #333;
+                    "
+                  >
+                    Saúde da família – Maria
+                  </div>
+                  <div
+                    style="
+                      padding: 6px 10px;
+                      border: 1px solid #e8e4db;
+                      border-left: 3px solid #b5843a;
+                      border-radius: 3px;
+                      background: #fff;
+                      font-family: Caveat;
+                      font-size: 0.8rem;
+                      color: #333;
+                    "
+                  >
+                    Emprego – Pedro
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Início</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Agenda</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Amigos</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Orações</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Mais</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">A · Dashboard Membro</div>
+            <ul class="anno-list">
+              <li>Check-in em destaque no topo — ação principal visível</li>
+              <li>Próximo evento como card compacto com data visual</li>
+              <li>Interessados com barra de progresso sutil</li>
+              <li>Pedidos de oração com acento gold na borda — única cor quente</li>
+              <li>Nav adaptada por perfil (sem Usuários/Relatórios)</li>
+            </ul>
+            <div class="anno-badge">💛 Gold = espiritual</div>
+          </div>
+        </div>
+
+        <!-- A: TASKS -->
+        <div id="a-tasks" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #fafaf8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <div style="padding: 8px 16px 12px; border-bottom: 1px solid #e8e4db">
+                <div
+                  style="font-family: Caveat; font-size: 1.2rem; font-weight: 700; color: #1a1a2e"
+                >
+                  Tarefas
+                </div>
+                <div style="display: flex; gap: 6px; margin-top: 8px">
+                  <div
+                    style="
+                      padding: 3px 10px;
+                      background: #1c3b6b;
+                      color: #fff;
+                      border-radius: 12px;
+                      font-family: Caveat;
+                      font-size: 0.8rem;
+                    "
+                  >
+                    Pendentes (17)
+                  </div>
+                  <div
+                    style="
+                      padding: 3px 10px;
+                      background: #f0ede8;
+                      border-radius: 12px;
+                      font-family: Caveat;
+                      font-size: 0.8rem;
+                      color: #666;
+                    "
+                  >
+                    Concluídas
+                  </div>
+                  <div
+                    style="
+                      padding: 3px 10px;
+                      background: #f0ede8;
+                      border-radius: 12px;
+                      font-family: Caveat;
+                      font-size: 0.8rem;
+                      color: #666;
+                    "
+                  >
+                    Todas
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 6px">
+                <!-- Task items -->
+                <div
+                  style="
+                    background: #fff;
+                    border: 1px solid #e8e4db;
+                    border-radius: 6px;
+                    padding: 10px 12px;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 16px;
+                      height: 16px;
+                      border: 1.5px solid #ddd;
+                      border-radius: 3px;
+                      flex-shrink: 0;
+                      margin-top: 2px;
+                    "
+                  ></div>
+                  <div style="flex: 1">
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        font-weight: 700;
+                        color: #1a1a2e;
+                      "
+                    >
+                      Visitar Maria nos dias 27/04
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      Discipulado · Vence em 2 dias
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 0.7rem;
+                      color: #c44;
+                      padding: 2px 6px;
+                      border: 1px solid #f8cccc;
+                      border-radius: 3px;
+                      background: #fff5f5;
+                    "
+                  >
+                    Urgente
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border: 1px solid #e8e4db;
+                    border-radius: 6px;
+                    padding: 10px 12px;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 16px;
+                      height: 16px;
+                      border: 1.5px solid #ddd;
+                      border-radius: 3px;
+                      flex-shrink: 0;
+                      margin-top: 2px;
+                    "
+                  ></div>
+                  <div style="flex: 1">
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        font-weight: 700;
+                        color: #1a1a2e;
+                      "
+                    >
+                      Enviar relatório mensal
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      Admin · Vence em 30/04
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border: 1px solid #e8e4db;
+                    border-radius: 6px;
+                    padding: 10px 12px;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 16px;
+                      height: 16px;
+                      border: 1.5px solid #ddd;
+                      border-radius: 3px;
+                      flex-shrink: 0;
+                      margin-top: 2px;
+                    "
+                  ></div>
+                  <div style="flex: 1">
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        font-weight: 700;
+                        color: #1a1a2e;
+                      "
+                    >
+                      Ligar para Carlos — boas-vindas
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      Integração · Sem prazo
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: #f8f8f8;
+                    border: 1px solid #e8e4db;
+                    border-radius: 6px;
+                    padding: 10px 12px;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                    opacity: 0.6;
+                  "
+                >
+                  <div
+                    style="
+                      width: 16px;
+                      height: 16px;
+                      border: 1.5px solid #1c3b6b;
+                      border-radius: 3px;
+                      flex-shrink: 0;
+                      margin-top: 2px;
+                      background: #1c3b6b;
+                    "
+                  ></div>
+                  <div style="flex: 1">
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        color: #999;
+                        text-decoration: line-through;
+                      "
+                    >
+                      Oração intercessória — grupo
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- FAB -->
+              <div
+                style="
+                  position: absolute;
+                  bottom: 64px;
+                  right: 16px;
+                  width: 40px;
+                  height: 40px;
+                  background: #1c3b6b;
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: #fff;
+                  font-size: 1.4rem;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                "
+              >
+                +
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Início</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Agenda</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Tarefas</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Chat</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Menu</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">A · Tarefas</div>
+            <ul class="anno-list">
+              <li>Chips de filtro limpos — sem abas pesadas</li>
+              <li>Cada tarefa: checkbox + título + contexto em cinza</li>
+              <li>Urgência em badge minimalista, não em fundo colorido</li>
+              <li>Concluídas com opacity/strikethrough — economiza espaço</li>
+              <li>FAB para nova tarefa — sem botão "Criar" no header</li>
+            </ul>
+            <div class="anno-badge">☑️ Minimalismo funcional</div>
+          </div>
+        </div>
+
+        <!-- A: PRAYERS -->
+        <div id="a-prayers" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #fafaf8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <div
+                style="
+                  padding: 8px 16px 10px;
+                  border-bottom: 1px solid #e8e4db;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                "
+              >
+                <div
+                  style="font-family: Caveat; font-size: 1.2rem; font-weight: 700; color: #1a1a2e"
+                >
+                  Orações
+                </div>
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.8rem;
+                    color: #b5843a;
+                    border-bottom: 1px solid #b5843a;
+                  "
+                >
+                  + Pedir oração
+                </div>
+              </div>
+
+              <div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 8px">
+                <div
+                  style="
+                    background: #fff;
+                    border: 1px solid #e8e4db;
+                    border-radius: 6px;
+                    overflow: hidden;
+                  "
+                >
+                  <div style="height: 2px; background: #b5843a"></div>
+                  <div style="padding: 10px 12px">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px">
+                      <div
+                        class="wf-circle"
+                        style="width: 24px; height: 24px; background: #e8e4db"
+                      ></div>
+                      <div style="font-family: Caveat; font-size: 0.8rem; color: #666">
+                        Maria Souza · há 2 dias
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        color: #1a1a2e;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      Peço oração pela saúde da minha mãe que está hospitalizada.
+                    </div>
+                    <div style="display: flex; gap: 8px">
+                      <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                        🙏 12 orando
+                      </div>
+                      <div
+                        style="
+                          font-family: Caveat;
+                          font-size: 0.75rem;
+                          color: #1c3b6b;
+                          border-bottom: 1px solid #1c3b6b;
+                        "
+                      >
+                        Orar por este pedido
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border: 1px solid #e8e4db;
+                    border-radius: 6px;
+                    overflow: hidden;
+                  "
+                >
+                  <div style="height: 2px; background: #b5843a"></div>
+                  <div style="padding: 10px 12px">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px">
+                      <div
+                        class="wf-circle"
+                        style="width: 24px; height: 24px; background: #e8e4db"
+                      ></div>
+                      <div style="font-family: Caveat; font-size: 0.8rem; color: #666">
+                        Carlos P. · há 4 dias
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        color: #1a1a2e;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      Orações para conseguir um novo emprego.
+                    </div>
+                    <div style="display: flex; gap: 8px">
+                      <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                        🙏 8 orando
+                      </div>
+                      <div
+                        style="
+                          font-family: Caveat;
+                          font-size: 0.75rem;
+                          color: #1c3b6b;
+                          border-bottom: 1px solid #1c3b6b;
+                        "
+                      >
+                        Orar por este pedido
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Início</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Agenda</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Tarefas</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Orações</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Mais</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">A · Orações</div>
+            <ul class="anno-list">
+              <li>Acento gold no topo do card — cor espiritual reservada</li>
+              <li>Avatar + timestamp discreto acima do texto</li>
+              <li>Contagem "X orando" + CTA inline</li>
+              <li>Sem fundo colorido nos cards — branco neutro</li>
+            </ul>
+            <div class="anno-badge">🙏 Gold = fé</div>
+          </div>
+        </div>
+      </div>
+      <!-- /mobile-a -->
+
+      <!-- DESKTOP A -->
+      <div id="desktop-a" style="display: none">
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+            gap: 2rem;
+            flex-wrap: wrap;
+            align-items: flex-start;
+          "
+        >
+          <div class="desktop">
+            <div class="desktop-bar"><span></span><span></span><span></span></div>
+            <div class="desktop-content">
+              <!-- Sidebar -->
+              <div class="sidebar">
+                <div class="sidebar-logo">
+                  <div
+                    style="font-family: Caveat; color: #fff; font-size: 1.1rem; font-weight: 700"
+                  >
+                    7care
+                  </div>
+                  <div
+                    style="font-family: Caveat; color: rgba(255, 255, 255, 0.4); font-size: 0.7rem"
+                  >
+                    Pastor João
+                  </div>
+                </div>
+                <div class="sidebar-item active">
+                  <div class="s-icon"></div>
+                  Dashboard
+                </div>
+                <div class="sidebar-item">
+                  <div class="s-icon"></div>
+                  Usuários
+                </div>
+                <div class="sidebar-item">
+                  <div class="s-icon"></div>
+                  Interessados
+                </div>
+                <div class="sidebar-item">
+                  <div class="s-icon"></div>
+                  Tarefas
+                </div>
+                <div class="sidebar-item">
+                  <div class="s-icon"></div>
+                  Orações
+                </div>
+                <div class="sidebar-item">
+                  <div class="s-icon"></div>
+                  Agenda
+                </div>
+                <div class="sidebar-item">
+                  <div class="s-icon"></div>
+                  Relatórios
+                </div>
+                <div class="sidebar-item">
+                  <div class="s-icon"></div>
+                  Chat
+                </div>
+                <div
+                  style="
+                    margin-top: auto;
+                    padding: 8px 12px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    margin-top: 40px;
+                  "
+                >
+                  <div class="sidebar-item" style="padding: 4px 0">
+                    <div class="s-icon"></div>
+                    Configurações
+                  </div>
+                </div>
+              </div>
+              <!-- Main content -->
+              <div
+                style="
+                  flex: 1;
+                  background: #fafaf8;
+                  padding: 16px;
+                  overflow-y: auto;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 12px;
+                "
+              >
+                <div style="display: flex; align-items: baseline; justify-content: space-between">
+                  <div
+                    style="font-family: Caveat; font-size: 1.2rem; font-weight: 700; color: #1a1a2e"
+                  >
+                    Bom dia, Pastor João
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                    Domingo, 20 de Abril 2026
+                  </div>
+                </div>
+                <!-- Stats row -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px">
+                  <div
+                    style="
+                      background: #fff;
+                      border: 1px solid #e8e4db;
+                      border-radius: 6px;
+                      padding: 10px 12px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 1.6rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      248
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.7rem; color: #999">Usuários</div>
+                  </div>
+                  <div
+                    style="
+                      background: #fff;
+                      border: 1px solid #e8e4db;
+                      border-radius: 6px;
+                      padding: 10px 12px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 1.6rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      84
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.7rem; color: #999">
+                      Amigos da Igreja
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      background: #fff;
+                      border: 1px solid #e8e4db;
+                      border-radius: 6px;
+                      padding: 10px 12px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 1.6rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      17
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.7rem; color: #999">
+                      Tarefas pendentes
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      background: #fff;
+                      border: 1px solid #e8e4db;
+                      border-radius: 6px;
+                      padding: 10px 12px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 1.6rem;
+                        font-weight: 700;
+                        color: #b5843a;
+                      "
+                    >
+                      5
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.7rem; color: #999">
+                      Check-ins hoje
+                    </div>
+                  </div>
+                </div>
+                <!-- Two columns -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1">
+                  <div
+                    style="
+                      background: #fff;
+                      border: 1px solid #e8e4db;
+                      border-radius: 6px;
+                      padding: 12px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.75rem;
+                        color: #999;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        margin-bottom: 8px;
+                      "
+                    >
+                      Tarefas urgentes
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px">
+                      <div
+                        style="
+                          font-family: Caveat;
+                          font-size: 0.8rem;
+                          color: #1a1a2e;
+                          padding: 5px;
+                          border-left: 2px solid #1c3b6b;
+                          padding-left: 8px;
+                        "
+                      >
+                        Visitar Maria — 27/04
+                      </div>
+                      <div
+                        style="
+                          font-family: Caveat;
+                          font-size: 0.8rem;
+                          color: #1a1a2e;
+                          padding: 5px;
+                          border-left: 2px solid #1c3b6b;
+                          padding-left: 8px;
+                        "
+                      >
+                        Relatório mensal
+                      </div>
+                      <div
+                        style="
+                          font-family: Caveat;
+                          font-size: 0.8rem;
+                          color: #1a1a2e;
+                          padding: 5px;
+                          border-left: 2px solid #ddd;
+                          padding-left: 8px;
+                          color: #aaa;
+                        "
+                      >
+                        Ligar para Carlos
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      background: #fff;
+                      border: 1px solid #e8e4db;
+                      border-radius: 6px;
+                      padding: 12px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.75rem;
+                        color: #999;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        margin-bottom: 8px;
+                      "
+                    >
+                      Aniversariantes
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px">
+                      <div style="display: flex; align-items: center; gap: 8px">
+                        <div
+                          class="wf-circle"
+                          style="width: 24px; height: 24px; background: #e8e4db"
+                        ></div>
+                        <div style="font-family: Caveat; font-size: 0.8rem; color: #333">
+                          Maria Souza · hoje
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 8px">
+                        <div
+                          class="wf-circle"
+                          style="width: 24px; height: 24px; background: #e8e4db"
+                        ></div>
+                        <div style="font-family: Caveat; font-size: 0.8rem; color: #333">
+                          Carlos P. · amanhã
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">A · Desktop</div>
+            <ul class="anno-list">
+              <li>Sidebar fixa escura com itens de menu — sem hambúrguer</li>
+              <li>4 stat cards em linha — compactos, sem gradiente</li>
+              <li>Grid 2 colunas abaixo para widgets</li>
+              <li>Muito mais espaço respirando no desktop</li>
+            </ul>
+            <div class="anno-badge">🖥️ Sidebar sempre visível</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /var-a -->
+
+    <!-- ══════════════════ VARIATION B ══════════════════ -->
+    <div id="var-b" class="variation-panel">
+      <div class="screen-tabs" id="tabs-b">
+        <button class="screen-tab active" onclick="switchScreen('b', 'login')">Login</button>
+        <button class="screen-tab" onclick="switchScreen('b', 'dash-admin')">
+          Dashboard Admin
+        </button>
+        <button class="screen-tab" onclick="switchScreen('b', 'dash-membro')">
+          Dashboard Membro
+        </button>
+        <button class="screen-tab" onclick="switchScreen('b', 'tasks')">Tarefas</button>
+        <button class="screen-tab" onclick="switchScreen('b', 'calendar')">Calendário</button>
+      </div>
+
+      <div id="mobile-b" style="display: block">
+        <!-- B: LOGIN -->
+        <div id="b-login" class="screen-panel active">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #f5f0e8;
+                display: flex;
+                flex-direction: column;
+                padding-top: 60px;
+                padding: 60px 24px 24px;
+              "
+            >
+              <div style="margin-bottom: 32px">
+                <div
+                  class="wf-img wf-circle"
+                  style="
+                    width: 64px;
+                    height: 64px;
+                    border: none;
+                    background: #e8e0d0;
+                    margin-bottom: 16px;
+                  "
+                ></div>
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: #1c3b6b;
+                    line-height: 1;
+                  "
+                >
+                  7care
+                </div>
+                <div style="font-family: Caveat; font-size: 1rem; color: #b5843a; margin-top: 2px">
+                  Gestão Eclesiástica
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 12px">
+                <div>
+                  <div
+                    style="font-family: Caveat; font-size: 0.75rem; color: #888; margin-bottom: 3px"
+                  >
+                    Email
+                  </div>
+                  <div
+                    style="
+                      border-bottom: 2px solid #1c3b6b;
+                      padding: 6px 0;
+                      font-family: Caveat;
+                      font-size: 0.9rem;
+                      color: #ccc;
+                    "
+                  >
+                    nome@igreja.org
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="font-family: Caveat; font-size: 0.75rem; color: #888; margin-bottom: 3px"
+                  >
+                    Senha
+                  </div>
+                  <div
+                    style="
+                      border-bottom: 2px solid #ddd;
+                      padding: 6px 0;
+                      font-family: Caveat;
+                      font-size: 0.9rem;
+                      color: #ccc;
+                    "
+                  >
+                    ••••••••
+                  </div>
+                </div>
+                <div
+                  style="
+                    margin-top: 8px;
+                    background: #1c3b6b;
+                    border-radius: 6px;
+                    padding: 12px;
+                    text-align: center;
+                    font-family: Caveat;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    color: #fff;
+                  "
+                >
+                  Entrar
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #999">
+                    Esqueci a senha
+                  </div>
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 0.8rem;
+                      color: #b5843a;
+                      border-bottom: 1px solid #b5843a;
+                    "
+                  >
+                    Criar conta
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style="
+                  position: absolute;
+                  bottom: 20px;
+                  left: 0;
+                  right: 0;
+                  text-align: center;
+                  font-family: Caveat;
+                  font-size: 0.65rem;
+                  color: #c8c0b0;
+                "
+              >
+                Fundo parchment quente · Inputs underline · Logo grande
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">B · Login</div>
+            <ul class="anno-list">
+              <li>Fundo parchment quente — personalidade editorial</li>
+              <li>Logo grande no topo esquerdo — sem círculo decorativo</li>
+              <li>Inputs com underline apenas — menos visual noise</li>
+              <li>Gold no subtítulo e link secundário — tom consistente</li>
+              <li>Sem background escuro — sensação mais acolhedora</li>
+            </ul>
+            <div class="anno-badge">📜 Parchment Editorial</div>
+          </div>
+        </div>
+
+        <!-- B: DASH ADMIN -->
+        <div id="b-dash-admin" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #f5f0e8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <!-- Header -->
+              <div
+                style="
+                  padding: 10px 16px 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                "
+              >
+                <div>
+                  <div
+                    style="font-family: Caveat; font-size: 0.8rem; color: #b5843a; font-weight: 600"
+                  >
+                    Domingo, 20 abr
+                  </div>
+                  <div
+                    style="font-family: Caveat; font-size: 1.2rem; font-weight: 700; color: #1c3b6b"
+                  >
+                    Painel do Pastor
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <div
+                    style="width: 20px; height: 20px; background: #e8e0d0; border-radius: 3px"
+                  ></div>
+                  <div
+                    class="wf-circle"
+                    style="
+                      width: 32px;
+                      height: 32px;
+                      background: #1c3b6b;
+                      color: #fff;
+                      font-family: Caveat;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 0.9rem;
+                    "
+                  >
+                    PJ
+                  </div>
+                </div>
+              </div>
+
+              <!-- Horizontal scroll stats strip -->
+              <div
+                style="margin: 10px 0; padding: 0 16px; display: flex; gap: 8px; overflow-x: auto"
+              >
+                <div
+                  style="
+                    background: #1c3b6b;
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    flex-shrink: 0;
+                    min-width: 90px;
+                  "
+                >
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.6rem;
+                      font-weight: 700;
+                      color: #fff;
+                      line-height: 1;
+                    "
+                  >
+                    248
+                  </div>
+                  <div
+                    style="font-family: Caveat; font-size: 0.7rem; color: rgba(255, 255, 255, 0.6)"
+                  >
+                    Usuários
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border: 1px solid #e8e0d0;
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    flex-shrink: 0;
+                    min-width: 90px;
+                  "
+                >
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.6rem;
+                      font-weight: 700;
+                      color: #1c3b6b;
+                      line-height: 1;
+                    "
+                  >
+                    84
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.7rem; color: #999">Amigos</div>
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border: 1px solid #e8e0d0;
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    flex-shrink: 0;
+                    min-width: 90px;
+                  "
+                >
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.6rem;
+                      font-weight: 700;
+                      color: #1c3b6b;
+                      line-height: 1;
+                    "
+                  >
+                    17
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.7rem; color: #999">Tarefas</div>
+                </div>
+                <div
+                  style="
+                    background: #b5843a;
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    flex-shrink: 0;
+                    min-width: 90px;
+                  "
+                >
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.6rem;
+                      font-weight: 700;
+                      color: #fff;
+                      line-height: 1;
+                    "
+                  >
+                    5
+                  </div>
+                  <div
+                    style="font-family: Caveat; font-size: 0.7rem; color: rgba(255, 255, 255, 0.7)"
+                  >
+                    Check-ins
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sections -->
+              <div style="padding: 0 16px; display: flex; flex-direction: column; gap: 10px">
+                <div style="background: #fff; border-radius: 8px; overflow: hidden">
+                  <div
+                    style="
+                      padding: 10px 12px;
+                      border-bottom: 1px solid #f0ebe0;
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.85rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      Tarefas urgentes
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #b5843a">
+                      Ver todas
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      padding: 8px 12px;
+                      font-family: Caveat;
+                      font-size: 0.85rem;
+                      color: #1a1a2e;
+                      border-bottom: 1px solid #f8f4ee;
+                    "
+                  >
+                    Visitar Maria — 27/04
+                  </div>
+                  <div
+                    style="
+                      padding: 8px 12px;
+                      font-family: Caveat;
+                      font-size: 0.85rem;
+                      color: #1a1a2e;
+                    "
+                  >
+                    Relatório mensal
+                  </div>
+                </div>
+
+                <div style="background: #fff; border-radius: 8px; overflow: hidden">
+                  <div
+                    style="
+                      padding: 10px 12px;
+                      border-bottom: 1px solid #f0ebe0;
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.85rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      Aniversariantes
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">hoje</div>
+                  </div>
+                  <div
+                    style="
+                      padding: 8px 12px;
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      border-bottom: 1px solid #f8f4ee;
+                    "
+                  >
+                    <div
+                      class="wf-circle"
+                      style="width: 28px; height: 28px; background: #e8e0d0"
+                    ></div>
+                    <div>
+                      <div style="font-family: Caveat; font-size: 0.85rem; color: #1a1a2e">
+                        Maria Souza
+                      </div>
+                      <div style="font-family: Caveat; font-size: 0.7rem; color: #999">
+                        Missionária · 35 anos
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                  "
+                >
+                  <div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.85rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      Visitômetro
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      14/20 visitas este mês
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      width: 60px;
+                      height: 8px;
+                      background: #f0ebe0;
+                      border-radius: 4px;
+                      overflow: hidden;
+                    "
+                  >
+                    <div
+                      style="width: 70%; height: 100%; background: #1c3b6b; border-radius: 4px"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Bottom nav with FAB -->
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Início</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Pessoas</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-fab" style="background: #1c3b6b"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Agenda</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Menu</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">B · Dashboard Admin</div>
+            <ul class="anno-list">
+              <li>Strip horizontal de stats — scroll lateral para mais</li>
+              <li>Primeiro card navy = destaque principal</li>
+              <li>Seções em cards brancos sobre fundo parchment</li>
+              <li>FAB central no nav — ação principal sempre acessível</li>
+              <li>Visual mais quente / editorial — menos "SaaS"</li>
+            </ul>
+            <div class="anno-badge">📊 Scroll horizontal</div>
+          </div>
+        </div>
+
+        <!-- B: DASH MEMBRO -->
+        <div id="b-dash-membro" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #f5f0e8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <div style="padding: 10px 16px 0">
+                <div style="font-family: Caveat; font-size: 0.8rem; color: #b5843a">
+                  Domingo, 20 abr
+                </div>
+                <div
+                  style="font-family: Caveat; font-size: 1.3rem; font-weight: 700; color: #1c3b6b"
+                >
+                  Olá, Ana! 👋
+                </div>
+              </div>
+
+              <!-- Big CTA card -->
+              <div
+                style="
+                  margin: 10px 16px;
+                  background: #1c3b6b;
+                  border-radius: 10px;
+                  padding: 14px 16px;
+                  position: relative;
+                  overflow: hidden;
+                "
+              >
+                <div
+                  style="
+                    position: absolute;
+                    right: -10px;
+                    top: -10px;
+                    width: 60px;
+                    height: 60px;
+                    background: rgba(255, 255, 255, 0.06);
+                    border-radius: 50%;
+                  "
+                ></div>
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: rgba(255, 255, 255, 0.6);
+                    margin-bottom: 2px;
+                  "
+                >
+                  Check-in semanal
+                </div>
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    color: #fff;
+                    margin-bottom: 8px;
+                  "
+                >
+                  Como está sua caminhada?
+                </div>
+                <div
+                  style="
+                    display: inline-block;
+                    background: #b5843a;
+                    border-radius: 6px;
+                    padding: 5px 14px;
+                    font-family: Caveat;
+                    font-size: 0.85rem;
+                    color: #fff;
+                  "
+                >
+                  Responder agora
+                </div>
+              </div>
+
+              <!-- Stats 2-up -->
+              <div
+                style="
+                  padding: 0 16px;
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 8px;
+                  margin-bottom: 10px;
+                "
+              >
+                <div style="background: #fff; border-radius: 8px; padding: 10px 12px">
+                  <div
+                    style="font-family: Caveat; font-size: 1.6rem; font-weight: 700; color: #1c3b6b"
+                  >
+                    3
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.7rem; color: #999">
+                    Meus interessados
+                  </div>
+                </div>
+                <div style="background: #fff; border-radius: 8px; padding: 10px 12px">
+                  <div
+                    style="font-family: Caveat; font-size: 1.6rem; font-weight: 700; color: #b5843a"
+                  >
+                    248
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.7rem; color: #999">Pontos 🏆</div>
+                </div>
+              </div>
+
+              <!-- Próximo evento -->
+              <div style="padding: 0 16px">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.75rem;
+                    color: #b5843a;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.06em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Próximo
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 10px 12px;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                  "
+                >
+                  <div
+                    style="
+                      font-family: Caveat;
+                      font-size: 1.4rem;
+                      font-weight: 700;
+                      color: #1c3b6b;
+                      line-height: 1;
+                      text-align: center;
+                      min-width: 36px;
+                    "
+                  >
+                    25<br /><span style="font-size: 0.6rem; color: #999">ABR</span>
+                  </div>
+                  <div style="width: 1px; height: 30px; background: #e8e0d0"></div>
+                  <div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        font-weight: 700;
+                        color: #1a1a2e;
+                      "
+                    >
+                      Reunião de Célula
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      19h · Igreja Central
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Início</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Amigos</div>
+              </div>
+              <div class="nav-item"><div class="nav-fab" style="background: #1c3b6b"></div></div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Orações</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Mais</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">B · Membro</div>
+            <ul class="anno-list">
+              <li>CTA de check-in como hero card — ação semanal em destaque</li>
+              <li>Grid 2×1 de stats pessoais — sem dados da igreja toda</li>
+              <li>Seção "Próximo" com separador visual data | info</li>
+              <li>FAB = criar novo pedido de oração / post</li>
+            </ul>
+            <div class="anno-badge">👋 Personalizado por perfil</div>
+          </div>
+        </div>
+
+        <!-- B: TASKS -->
+        <div id="b-tasks" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #f5f0e8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <div style="padding: 10px 16px 12px">
+                <div
+                  style="font-family: Caveat; font-size: 1.3rem; font-weight: 700; color: #1c3b6b"
+                >
+                  Tarefas
+                </div>
+                <div style="font-family: Caveat; font-size: 0.8rem; color: #999">
+                  17 pendentes · 43 concluídas
+                </div>
+              </div>
+
+              <!-- Filter row -->
+              <div style="padding: 0 16px 10px; display: flex; gap: 6px; overflow-x: auto">
+                <div
+                  style="
+                    padding: 4px 12px;
+                    background: #1c3b6b;
+                    color: #fff;
+                    border-radius: 999px;
+                    font-family: Caveat;
+                    font-size: 0.8rem;
+                    white-space: nowrap;
+                  "
+                >
+                  Todas
+                </div>
+                <div
+                  style="
+                    padding: 4px 12px;
+                    border: 1px solid #d0c8b8;
+                    border-radius: 999px;
+                    font-family: Caveat;
+                    font-size: 0.8rem;
+                    color: #666;
+                    white-space: nowrap;
+                  "
+                >
+                  Discipulado
+                </div>
+                <div
+                  style="
+                    padding: 4px 12px;
+                    border: 1px solid #d0c8b8;
+                    border-radius: 999px;
+                    font-family: Caveat;
+                    font-size: 0.8rem;
+                    color: #666;
+                    white-space: nowrap;
+                  "
+                >
+                  Admin
+                </div>
+                <div
+                  style="
+                    padding: 4px 12px;
+                    border: 1px solid #d0c8b8;
+                    border-radius: 999px;
+                    font-family: Caveat;
+                    font-size: 0.8rem;
+                    color: #666;
+                    white-space: nowrap;
+                  "
+                >
+                  Integração
+                </div>
+              </div>
+
+              <!-- Task list -->
+              <div style="padding: 0 16px; display: flex; flex-direction: column; gap: 6px">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.7rem;
+                    color: #b5843a;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-top: 2px;
+                  "
+                >
+                  Urgente
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 10px 12px;
+                    display: flex;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 18px;
+                      height: 18px;
+                      border: 2px solid #1c3b6b;
+                      border-radius: 4px;
+                      flex-shrink: 0;
+                      margin-top: 2px;
+                    "
+                  ></div>
+                  <div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.9rem;
+                        font-weight: 700;
+                        color: #1a1a2e;
+                      "
+                    >
+                      Visitar Maria — 27/04
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      Discipulado · 2 dias
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.7rem;
+                    color: #999;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-top: 4px;
+                  "
+                >
+                  Esta semana
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 10px 12px;
+                    display: flex;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 18px;
+                      height: 18px;
+                      border: 2px solid #ddd;
+                      border-radius: 4px;
+                      flex-shrink: 0;
+                      margin-top: 2px;
+                    "
+                  ></div>
+                  <div>
+                    <div style="font-family: Caveat; font-size: 0.9rem; color: #1a1a2e">
+                      Enviar relatório mensal
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      Admin · 30/04
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 10px 12px;
+                    display: flex;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 18px;
+                      height: 18px;
+                      border: 2px solid #ddd;
+                      border-radius: 4px;
+                      flex-shrink: 0;
+                      margin-top: 2px;
+                    "
+                  ></div>
+                  <div>
+                    <div style="font-family: Caveat; font-size: 0.9rem; color: #1a1a2e">
+                      Ligar para Carlos
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.75rem; color: #999">
+                      Integração · Sem prazo
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Início</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Pessoas</div>
+              </div>
+              <div class="nav-item"><div class="nav-fab" style="background: #1c3b6b"></div></div>
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Tarefas</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Menu</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">B · Tarefas</div>
+            <ul class="anno-list">
+              <li>Agrupamento por urgência com label gold</li>
+              <li>Cards brancos sobre fundo parchment — mais profundidade</li>
+              <li>Filtros por categoria — pills horizontais</li>
+              <li>FAB central para nova tarefa — sem botão no header</li>
+            </ul>
+            <div class="anno-badge">📂 Agrupado por prazo</div>
+          </div>
+        </div>
+
+        <!-- B: CALENDAR -->
+        <div id="b-calendar" class="screen-panel">
+          <div class="phone">
+            <div
+              class="phone-screen"
+              style="
+                background: #f5f0e8;
+                padding-top: 24px;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 52px;
+                overflow-y: auto;
+              "
+            >
+              <div
+                style="
+                  padding: 10px 16px 8px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                "
+              >
+                <div
+                  style="font-family: Caveat; font-size: 1.2rem; font-weight: 700; color: #1c3b6b"
+                >
+                  Abril 2026
+                </div>
+                <div style="display: flex; gap: 8px">
+                  <div style="font-family: Caveat; font-size: 0.85rem; color: #b5843a">◀</div>
+                  <div style="font-family: Caveat; font-size: 0.85rem; color: #b5843a">▶</div>
+                </div>
+              </div>
+
+              <!-- Mini calendar -->
+              <div style="padding: 0 16px 10px">
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 2px;
+                    text-align: center;
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 8px;
+                  "
+                >
+                  <div style="font-family: Caveat; font-size: 0.65rem; color: #999">D</div>
+                  <div style="font-family: Caveat; font-size: 0.65rem; color: #999">S</div>
+                  <div style="font-family: Caveat; font-size: 0.65rem; color: #999">T</div>
+                  <div style="font-family: Caveat; font-size: 0.65rem; color: #999">Q</div>
+                  <div style="font-family: Caveat; font-size: 0.65rem; color: #999">Q</div>
+                  <div style="font-family: Caveat; font-size: 0.65rem; color: #999">S</div>
+                  <div style="font-family: Caveat; font-size: 0.65rem; color: #999">S</div>
+                  <!-- week 1 -->
+                  <div></div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">1</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">2</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">3</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">4</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">5</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">6</div>
+                  <!-- week 2 -->
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">7</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">8</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">9</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">10</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">11</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">12</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">13</div>
+                  <!-- week 3 -->
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">14</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">15</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">16</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">17</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">18</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #ccc">19</div>
+                  <div
+                    style="
+                      background: #1c3b6b;
+                      border-radius: 50%;
+                      width: 22px;
+                      height: 22px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      margin: 0 auto;
+                    "
+                  >
+                    <span style="font-family: Caveat; font-size: 0.8rem; color: #fff">20</span>
+                  </div>
+                  <!-- week 4 -->
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">21</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">22</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">23</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">24</div>
+                  <div style="position: relative">
+                    <div style="font-family: Caveat; font-size: 0.8rem; color: #333">25</div>
+                    <div
+                      style="
+                        width: 4px;
+                        height: 4px;
+                        background: #b5843a;
+                        border-radius: 50%;
+                        margin: 0 auto;
+                      "
+                    ></div>
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">26</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">27</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">28</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">29</div>
+                  <div style="font-family: Caveat; font-size: 0.8rem; color: #333">30</div>
+                </div>
+              </div>
+
+              <!-- Upcoming events list -->
+              <div style="padding: 0 16px">
+                <div
+                  style="
+                    font-family: Caveat;
+                    font-size: 0.7rem;
+                    color: #b5843a;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Próximos eventos
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <div
+                    style="
+                      background: #fff;
+                      border-radius: 8px;
+                      padding: 10px 12px;
+                      display: flex;
+                      gap: 10px;
+                      align-items: center;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        text-align: center;
+                        color: #1c3b6b;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        min-width: 30px;
+                      "
+                    >
+                      25
+                    </div>
+                    <div style="width: 1px; height: 28px; background: #e8e0d0"></div>
+                    <div>
+                      <div
+                        style="
+                          font-family: Caveat;
+                          font-size: 0.85rem;
+                          font-weight: 700;
+                          color: #1a1a2e;
+                        "
+                      >
+                        Reunião de Célula
+                      </div>
+                      <div style="font-family: Caveat; font-size: 0.7rem; color: #999">
+                        19h · Igreja Central
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        margin-left: auto;
+                        width: 8px;
+                        height: 8px;
+                        background: #b5843a;
+                        border-radius: 50%;
+                      "
+                    ></div>
+                  </div>
+                  <div
+                    style="
+                      background: #fff;
+                      border-radius: 8px;
+                      padding: 10px 12px;
+                      display: flex;
+                      gap: 10px;
+                      align-items: center;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        text-align: center;
+                        color: #1c3b6b;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        min-width: 30px;
+                      "
+                    >
+                      28
+                    </div>
+                    <div style="width: 1px; height: 28px; background: #e8e0d0"></div>
+                    <div>
+                      <div
+                        style="
+                          font-family: Caveat;
+                          font-size: 0.85rem;
+                          font-weight: 700;
+                          color: #1a1a2e;
+                        "
+                      >
+                        Culto de Domingo
+                      </div>
+                      <div style="font-family: Caveat; font-size: 0.7rem; color: #999">
+                        10h · Auditório Principal
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Início</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon active"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #1c3b6b">Agenda</div>
+                <div class="nav-dot"></div>
+              </div>
+              <div class="nav-item"><div class="nav-fab" style="background: #1c3b6b"></div></div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Tarefas</div>
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"></div>
+                <div style="font-family: Caveat; font-size: 0.6rem; color: #bbb">Menu</div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">B · Calendário</div>
+            <ul class="anno-list">
+              <li>Mini calendário compacto no topo — visão geral</li>
+              <li>Hoje = circle navy, eventos = dot gold</li>
+              <li>Lista de próximos eventos abaixo — mais útil no dia a dia</li>
+              <li>Separador visual data | título — leitura rápida</li>
+            </ul>
+            <div class="anno-badge">📅 Grid + Lista</div>
+          </div>
+        </div>
+      </div>
+      <!-- /mobile-b -->
+
+      <!-- DESKTOP B -->
+      <div id="desktop-b" style="display: none">
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+            gap: 2rem;
+            flex-wrap: wrap;
+            align-items: flex-start;
+          "
+        >
+          <div class="desktop">
+            <div class="desktop-bar"><span></span><span></span><span></span></div>
+            <div class="desktop-content">
+              <div class="sidebar" style="background: #f5f0e8; border-right: 1px solid #e0d8cc">
+                <div style="background: #1c3b6b; padding: 12px 14px; margin-bottom: 8px">
+                  <div
+                    style="font-family: Caveat; color: #fff; font-size: 1.1rem; font-weight: 700"
+                  >
+                    7care
+                  </div>
+                  <div
+                    style="font-family: Caveat; color: rgba(255, 255, 255, 0.5); font-size: 0.7rem"
+                  >
+                    Pastor João
+                  </div>
+                </div>
+                <div style="padding: 0 8px; display: flex; flex-direction: column; gap: 1px">
+                  <div
+                    style="
+                      padding: 7px 10px;
+                      font-family: Caveat;
+                      font-size: 0.85rem;
+                      color: #1c3b6b;
+                      font-weight: 700;
+                      background: #e8e0d0;
+                      border-radius: 4px;
+                    "
+                  >
+                    🏠 Dashboard
+                  </div>
+                  <div
+                    style="padding: 7px 10px; font-family: Caveat; font-size: 0.85rem; color: #666"
+                  >
+                    👥 Usuários
+                  </div>
+                  <div
+                    style="padding: 7px 10px; font-family: Caveat; font-size: 0.85rem; color: #666"
+                  >
+                    ❤️ Interessados
+                  </div>
+                  <div
+                    style="padding: 7px 10px; font-family: Caveat; font-size: 0.85rem; color: #666"
+                  >
+                    ☑️ Tarefas
+                  </div>
+                  <div
+                    style="padding: 7px 10px; font-family: Caveat; font-size: 0.85rem; color: #666"
+                  >
+                    🙏 Orações
+                  </div>
+                  <div
+                    style="padding: 7px 10px; font-family: Caveat; font-size: 0.85rem; color: #666"
+                  >
+                    📅 Agenda
+                  </div>
+                  <div
+                    style="padding: 7px 10px; font-family: Caveat; font-size: 0.85rem; color: #666"
+                  >
+                    📊 Relatórios
+                  </div>
+                </div>
+              </div>
+              <div style="flex: 1; background: #f5f0e8; padding: 16px; overflow-y: auto">
+                <div
+                  style="
+                    display: flex;
+                    align-items: baseline;
+                    justify-content: space-between;
+                    margin-bottom: 12px;
+                  "
+                >
+                  <div
+                    style="font-family: Caveat; font-size: 1.3rem; font-weight: 700; color: #1c3b6b"
+                  >
+                    Painel do Pastor
+                  </div>
+                  <div style="font-family: Caveat; font-size: 0.75rem; color: #b5843a">
+                    Domingo, 20 de Abril 2026
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto">
+                  <div
+                    style="
+                      background: #1c3b6b;
+                      border-radius: 6px;
+                      padding: 10px 16px;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <div
+                      style="font-family: Caveat; font-size: 1.4rem; font-weight: 700; color: #fff"
+                    >
+                      248
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.7rem;
+                        color: rgba(255, 255, 255, 0.6);
+                      "
+                    >
+                      Usuários
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      background: #fff;
+                      border-radius: 6px;
+                      padding: 10px 16px;
+                      flex-shrink: 0;
+                      border: 1px solid #e0d8cc;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 1.4rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      84
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.7rem; color: #999">Amigos</div>
+                  </div>
+                  <div
+                    style="
+                      background: #fff;
+                      border-radius: 6px;
+                      padding: 10px 16px;
+                      flex-shrink: 0;
+                      border: 1px solid #e0d8cc;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 1.4rem;
+                        font-weight: 700;
+                        color: #1c3b6b;
+                      "
+                    >
+                      17
+                    </div>
+                    <div style="font-family: Caveat; font-size: 0.7rem; color: #999">Tarefas</div>
+                  </div>
+                  <div
+                    style="
+                      background: #b5843a;
+                      border-radius: 6px;
+                      padding: 10px 16px;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <div
+                      style="font-family: Caveat; font-size: 1.4rem; font-weight: 700; color: #fff"
+                    >
+                      5
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.7rem;
+                        color: rgba(255, 255, 255, 0.7);
+                      "
+                    >
+                      Check-ins
+                    </div>
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+                  <div style="background: #fff; border-radius: 8px; padding: 12px">
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.75rem;
+                        color: #b5843a;
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.06em;
+                      "
+                    >
+                      Tarefas urgentes
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.85rem;
+                        color: #1a1a2e;
+                        padding: 5px 0;
+                        border-bottom: 1px solid #f0ebe0;
+                      "
+                    >
+                      Visitar Maria — 27/04
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.85rem;
+                        color: #1a1a2e;
+                        padding: 5px 0;
+                      "
+                    >
+                      Relatório mensal
+                    </div>
+                  </div>
+                  <div style="background: #fff; border-radius: 8px; padding: 12px">
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.75rem;
+                        color: #b5843a;
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.06em;
+                      "
+                    >
+                      Próximos eventos
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.85rem;
+                        color: #1a1a2e;
+                        padding: 5px 0;
+                        border-bottom: 1px solid #f0ebe0;
+                      "
+                    >
+                      25/04 · Reunião de Célula
+                    </div>
+                    <div
+                      style="
+                        font-family: Caveat;
+                        font-size: 0.85rem;
+                        color: #1a1a2e;
+                        padding: 5px 0;
+                      "
+                    >
+                      28/04 · Culto de Domingo
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="anno">
+            <div class="anno-title">B · Desktop</div>
+            <ul class="anno-list">
+              <li>Sidebar clara (parchment) com topo navy — marca presente</li>
+              <li>Ícones de emoji em vez de caixas cinzas</li>
+              <li>Stat strip horizontal = padrão consistente com mobile</li>
+              <li>Conteúdo na mesma tonalidade — sem contraste brusco</li>
+            </ul>
+            <div class="anno-badge">🌿 Sidebar warm</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /var-b -->
+
+    <!-- TWEAKS -->
+    <div id="tweaks-panel">
+      <h4>Tweaks</h4>
+      <div class="tweak-row">
+        <span>Variação</span>
+        <select onchange="switchVar(this.value)">
+          <option value="a">A · Sereno</option>
+          <option value="b">B · Editorial</option>
+        </select>
+      </div>
+      <div class="tweak-row">
+        <span>Dispositivo</span>
+        <select onchange="switchDevice(this.value)">
+          <option value="mobile">📱 Mobile</option>
+          <option value="desktop">🖥️ Desktop</option>
+        </select>
+      </div>
+      <div class="tweak-row">
+        <span>Fonte UI</span>
+        <select onchange="switchFont(this.value)">
+          <option value="sketch">Caveat (wireframe)</option>
+          <option value="jakarta">Plus Jakarta Sans</option>
+          <option value="dm">DM Sans</option>
+          <option value="inter">Inter</option>
+        </select>
+      </div>
+      <div class="tweak-row">
+        <span>Zoom</span>
+        <input
+          type="range"
+          min="70"
+          max="110"
+          value="100"
+          oninput="document.body.style.zoom = this.value / 100"
+        />
+      </div>
+    </div>
+
+    <script>
+      let currentVar = 'a';
+      let currentDevice = 'mobile';
+      const screenState = { a: 'login', b: 'login' };
+
+      function switchVar(v) {
+        currentVar = v;
+        document.querySelectorAll('.variation-panel').forEach((p) => p.classList.remove('active'));
+        document.getElementById('var-' + v).classList.add('active');
+        document.querySelectorAll('.var-tab').forEach((t) => t.classList.remove('active'));
+        document.querySelectorAll('.var-tab')[v === 'a' ? 0 : 1].classList.add('active');
+        // sync device
+        switchDevice(currentDevice);
+      }
+
+      function switchDevice(d) {
+        currentDevice = d;
+        document.querySelectorAll('.dev-btn').forEach((b) => b.classList.remove('active'));
+        document.querySelectorAll('.dev-btn')[d === 'mobile' ? 0 : 1].classList.add('active');
+
+        ['a', 'b'].forEach((v) => {
+          const mob = document.getElementById('mobile-' + v);
+          const desk = document.getElementById('desktop-' + v);
+          if (mob) mob.style.display = 'none';
+          if (desk) desk.style.display = 'none';
+        });
+
+        const mob = document.getElementById('mobile-' + currentVar);
+        const desk = document.getElementById('desktop-' + currentVar);
+        if (d === 'mobile' && mob) {
+          mob.style.display = 'block';
+          // restore screen
+          showScreen(currentVar, screenState[currentVar]);
+        } else if (d === 'desktop' && desk) {
+          desk.style.display = 'block';
+        }
+      }
+
+      function switchScreen(v, screen) {
+        screenState[v] = screen;
+        // update tabs
+        const tabs = document.querySelectorAll('#tabs-' + v + ' .screen-tab');
+        tabs.forEach((t) => t.classList.remove('active'));
+        event && event.target && event.target.classList.add('active');
+        if (!event || !event.target) {
+          // programmatic — find right tab
+          tabs.forEach((t) => {
+            if (t.getAttribute('onclick').includes("'" + screen + "'")) t.classList.add('active');
+          });
+        }
+        showScreen(v, screen);
+      }
+
+      function showScreen(v, screen) {
+        // hide all panels in var v mobile
+        const mob = document.getElementById('mobile-' + v);
+        if (!mob) return;
+        mob.querySelectorAll('.screen-panel').forEach((p) => p.classList.remove('active'));
+        const target = document.getElementById(v + '-' + screen);
+        if (target) target.classList.add('active');
+      }
+
+      const fonts = {
+        sketch: "'Caveat', cursive",
+        jakarta: "'Plus Jakarta Sans', sans-serif",
+        dm: "'DM Sans', sans-serif",
+        inter: "'Inter', sans-serif",
+      };
+
+      function switchFont(key) {
+        const f = fonts[key] || fonts.sketch;
+        const isSketch = key === 'sketch';
+        document.getElementById('font-override').textContent = `
+    body, body * {
+      font-family: ${f} !important;
+    }
+    /* Scale up non-sketch fonts slightly for readability */
+    .phone-screen, .desktop-content {
+      font-size: ${isSketch ? '1' : '0.82'}em;
+    }
+    /* Tighten letter-spacing for sans-serif */
+    .phone-screen *, .desktop-content * {
+      letter-spacing: ${isSketch ? 'inherit' : '-0.01em'};
+    }
+  `;
+        // Update topbar label
+        const labels = {
+          sketch: 'Caveat (wireframe)',
+          jakarta: 'Plus Jakarta Sans',
+          dm: 'DM Sans',
+          inter: 'Inter',
+        };
+        document.getElementById('font-label').textContent = '· ' + labels[key];
+      }
+
+      // Tweaks
+      window.addEventListener('message', (e) => {
+        if (e.data?.type === '__activate_edit_mode')
+          document.getElementById('tweaks-panel').style.display = 'block';
+        if (e.data?.type === '__deactivate_edit_mode')
+          document.getElementById('tweaks-panel').style.display = 'none';
+      });
+      window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    </script>
+  </body>
+</html>

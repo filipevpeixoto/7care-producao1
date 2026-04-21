@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
-const baseURL = process.env.BASE_URL || 'http://localhost:3065';
+const port = process.env.PORT || '3064';
+const baseURL = process.env.BASE_URL || `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -24,8 +25,8 @@ export default defineConfig({
   webServer: process.env.CI
     ? undefined // CI inicia o servidor separadamente
     : {
-        command: 'npm run dev',
-        url: 'http://localhost:3065/api/health',
+        command: `PORT=${port} npm run dev`,
+        url: `${baseURL}/api/health`,
         reuseExistingServer: true,
         timeout: 30000,
       },

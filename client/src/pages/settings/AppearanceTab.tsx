@@ -10,9 +10,77 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Palette, RefreshCw } from 'lucide-react';
+import { Palette, RefreshCw, Sparkles, Check } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { MobileHeaderLayoutEditor } from '@/components/settings/MobileHeaderLayoutEditor';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { SettingsData, UpdateSetting, AuthUser } from './types';
+
+const SkinPicker = () => {
+  const { skin, setSkin } = useTheme();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5" />
+          Design do app
+        </CardTitle>
+        <CardDescription>
+          Escolha entre o design clássico atual ou o novo layout (beta).
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setSkin('classic')}
+            className={`relative text-left rounded-lg border-2 p-4 transition ${
+              skin === 'classic'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/40'
+            }`}
+          >
+            {skin === 'classic' && (
+              <Check className="absolute top-3 right-3 h-4 w-4 text-primary" />
+            )}
+            <div className="flex gap-1.5 mb-3">
+              <span className="h-6 w-6 rounded-md bg-[hsl(220,70%,25%)]" />
+              <span className="h-6 w-6 rounded-md bg-[hsl(45,90%,60%)]" />
+              <span className="h-6 w-6 rounded-md bg-[hsl(210,25%,98%)] border" />
+            </div>
+            <div className="font-semibold">Clássico</div>
+            <div className="text-xs text-muted-foreground">Design atual do 7care</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSkin('v2')}
+            className={`relative text-left rounded-lg border-2 p-4 transition ${
+              skin === 'v2'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/40'
+            }`}
+          >
+            {skin === 'v2' && <Check className="absolute top-3 right-3 h-4 w-4 text-primary" />}
+            <div className="flex gap-1.5 mb-3">
+              <span className="h-6 w-6 rounded-md bg-[#0D2248]" />
+              <span className="h-6 w-6 rounded-md bg-[#1B50D4]" />
+              <span className="h-6 w-6 rounded-md bg-[#F0C040]" />
+            </div>
+            <div className="font-semibold flex items-center gap-2">
+              Novo layout{' '}
+              <Badge variant="secondary" className="text-[10px]">
+                Beta
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Navy + gold, Manrope + Source Sans 3
+            </div>
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const AppearanceTab = ({
   settings,
@@ -26,6 +94,7 @@ export const AppearanceTab = ({
   isAdmin: boolean;
 }) => (
   <TabsContent value="appearance" className="space-y-4">
+    <SkinPicker />
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">

@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { isSuperAdmin, isPastor } from '@/lib/permissions';
 import { useState, useRef, useMemo, useCallback, useEffect, memo } from 'react';
 import { usePrefetch } from '@/hooks/usePrefetch';
+import { useTransitionNavigate } from '@/hooks/useTransitionNavigate';
 
 import { useModal } from '@/contexts/ModalContext';
 
@@ -44,6 +45,7 @@ export const MobileBottomNav = memo(() => {
   const adminMenuRef = useRef<HTMLDivElement>(null);
   const adminButtonRef = useRef<HTMLButtonElement>(null);
   const { prefetchRoute } = usePrefetch();
+  const navigate = useTransitionNavigate();
 
   // Fechar menu admin ao clicar fora
   useEffect(() => {
@@ -202,22 +204,9 @@ export const MobileBottomNav = memo(() => {
         return;
       }
 
-      // Usar navegação direta (window.location.href) para máxima confiabilidade
-      // React Router v7 navigate() tem bug com lazy routes + startTransition
-      // que mantém conteúdo stale (URL muda mas componente não desmonta)
-      // Fade-out suave antes de navegar para manter UX agradável
-      const wrapper = document.querySelector('.route-transition-wrapper');
-      if (wrapper) {
-        (wrapper as HTMLElement).style.opacity = '0';
-        (wrapper as HTMLElement).style.transition = 'opacity 150ms ease-out';
-        setTimeout(() => {
-          window.location.href = path;
-        }, 150);
-      } else {
-        window.location.href = path;
-      }
+      navigate(path);
     },
-    [location.pathname]
+    [location.pathname, navigate]
   );
 
   // Se não há itens permitidos, usar itens básicos como fallback

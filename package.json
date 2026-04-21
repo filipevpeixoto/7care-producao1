@@ -39,7 +39,7 @@
     "test:client:coverage": "vitest run --coverage",
     "test:server": "vitest run --config vitest.config.server.ts --reporter=verbose",
     "test:server:coverage": "vitest run --config vitest.config.server.ts --coverage",
-    "test:e2e": "playwright test",
+    "test:e2e": "bash scripts/test-e2e.sh",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test:client && npm run test:server && npm run test:e2e",
     "prepare": "husky",

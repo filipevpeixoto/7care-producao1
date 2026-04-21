@@ -6,6 +6,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { PrototypeAvatar, PrototypeStatusBar } from './v2/prototypeShared';
+import { ThemeToggle } from '@/components/v2/ThemeToggle';
 import { createLogger } from '@/lib/logger';
 import { useTranslation } from 'react-i18next';
 
@@ -35,8 +38,19 @@ interface RawNotification {
   isRead?: boolean;
 }
 
+const normalizeNotificationsResponse = (payload: unknown): RawNotification[] => {
+  if (Array.isArray(payload)) return payload as RawNotification[];
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as { data?: unknown; notifications?: unknown };
+    if (Array.isArray(candidate.data)) return candidate.data as RawNotification[];
+    if (Array.isArray(candidate.notifications)) return candidate.notifications as RawNotification[];
+  }
+  return [];
+};
+
 export default function NotificationsHistory() {
   const { user } = useAuth();
+  const { skin } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -52,7 +66,7 @@ export default function NotificationsHistory() {
       try {
         const res = await fetch(`/api/notifications/${user.id}?limit=50`);
         if (res.ok) {
-          const dbNotifications: RawNotification[] = await res.json();
+          const dbNotifications = normalizeNotificationsResponse(await res.json());
           notificationsLogger.debug('Notificações do banco:', dbNotifications.length);
 
           return dbNotifications.map((notif) => ({
@@ -88,6 +102,50 @@ export default function NotificationsHistory() {
     refetchInterval: 30_000,
     staleTime: 15_000,
   });
+  const unreadCount = useMemo(
+    () => notifications.filter((notification) => !notification.read).length,
+    [notifications]
+  );
+  const groupedNotifications = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+    const sections = [
+      { key: 'today', label: t('dates.today'), items: [] as Notification[] },
+      { key: 'yesterday', label: t('dates.yesterday'), items: [] as Notification[] },
+      { key: 'earlier', label: 'Antes', items: [] as Notification[] },
+    ];
+
+    const sortedNotifications = [...notifications].sort(
+      (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
+    );
+
+    sortedNotifications.forEach((notification) => {
+      const notificationDate = new Date(notification.timestamp);
+
+      if (Number.isNaN(notificationDate.getTime())) {
+        sections[2].items.push(notification);
+        return;
+      }
+
+      if (notificationDate >= startOfToday) {
+        sections[0].items.push(notification);
+        return;
+      }
+
+      if (notificationDate >= startOfYesterday) {
+        sections[1].items.push(notification);
+        return;
+      }
+
+      sections[2].items.push(notification);
+    });
+
+    return sections.filter((section) => section.items.length > 0);
+  }, [notifications, t]);
 
   // Listener para novas notificações (local)
   useEffect(() => {
@@ -227,11 +285,181 @@ export default function NotificationsHistory() {
     }
   };
 
+  if (skin === 'v2') {
+    return (
+      <MobileLayout variant="prototype">
+        <div className="p7-shell">
+          <div className="p7-screen">
+            <PrototypeStatusBar />
+            <div className="p7-grad-header">
+              <div className="p7-header-row">
+                <div>
+                  <div className="p7-header-label">{t('notificationsHistory.title')}</div>
+                  <div className="p7-header-title">Histórico</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                </div>
+              </div>
+            </div>
+
+            <div className="p7-scroll">
+              <div className="p7-section">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{notifications.length}</div>
+                    <div className="p7-stat-label">Total</div>
+                  </div>
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{unreadCount}</div>
+                    <div className="p7-stat-label">Não lidas</div>
+                  </div>
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{notifications.length - unreadCount}</div>
+                    <div className="p7-stat-label">Lidas</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p7-section pb-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="max-w-[58ch]">
+                    <div className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--v2-gold)]">
+                      Central de avisos
+                    </div>
+                    <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--p7-text-2)]">
+                      Acompanhe o que chegou agora, recupere o que passou ontem e mantenha o
+                      histórico da equipe em ordem.
+                    </p>
+                  </div>
+                  {notifications.length > 0 ? (
+                    <Button variant="outline" size="sm" onClick={clearAll}>
+                      {t('notificationsHistory.clearAll')}
+                    </Button>
+                  ) : null}
+                </div>
+
+                {notifications.length === 0 ? (
+                  <div className="p7-card p7-card-p">
+                    <div className="flex flex-col items-center gap-3 py-8 text-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--p7-surface-2)] text-[var(--p7-text-3)]">
+                        <Bell className="h-6 w-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold text-[var(--p7-text)]">
+                          {t('notificationsHistory.noNotifications')}
+                        </div>
+                        <div className="max-w-[34ch] text-xs leading-[1.55] text-[var(--p7-text-3)]">
+                          {t('notificationsHistory.noNotificationsDesc')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {groupedNotifications.map((section) => (
+                      <section key={section.key} className="space-y-2">
+                        <div className="flex items-center justify-between gap-3 px-1">
+                          <div className="flex items-center gap-2">
+                            <h2 className="v2-heading text-[0.9rem] text-[var(--p7-text)]">
+                              {section.label}
+                            </h2>
+                            <span className="p7-pill soft">{section.items.length}</span>
+                          </div>
+                          <span className="text-[0.7rem] uppercase tracking-[0.12em] text-[var(--p7-text-3)]">
+                            Notificações
+                          </span>
+                        </div>
+
+                        <div className="p7-card">
+                          {section.items.map((notification) => (
+                            <div
+                              key={notification.id}
+                              className="group border-b border-[var(--p7-border)] p-3 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--p7-surface-2)] text-xl">
+                                  {getTypeIcon(notification.type)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="mb-1 flex items-start justify-between gap-2">
+                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                      <h3 className="text-[0.88rem] font-semibold leading-tight text-[var(--p7-text)]">
+                                        {notification.title}
+                                      </h3>
+                                      {!notification.read ? (
+                                        <span className="p7-pill warn">Novo</span>
+                                      ) : null}
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-1 text-[0.68rem] text-[var(--p7-text-3)]">
+                                      <Clock className="h-3 w-3" />
+                                      {formatDate(notification.timestamp)}
+                                    </div>
+                                  </div>
+                                  <p className="mb-2 whitespace-pre-wrap text-[0.82rem] leading-[1.5] text-[var(--p7-text-2)]">
+                                    {notification.message}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {notification.hasAudio && notification.audioData && (
+                                      <Button
+                                        size="sm"
+                                        variant={
+                                          playingAudioId === notification.id ? 'default' : 'outline'
+                                        }
+                                        onClick={() => playAudio(notification)}
+                                        className="gap-2"
+                                      >
+                                        <Volume2 className="h-4 w-4" />
+                                        {playingAudioId === notification.id
+                                          ? t('notificationsHistory.playing')
+                                          : t('notificationsHistory.listenAudio')}
+                                      </Button>
+                                    )}
+                                    {notification.hasImage && notification.imageData && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          window.open(notification.imageData, '_blank')
+                                        }
+                                        className="gap-2"
+                                      >
+                                        <ImageIcon className="h-4 w-4" />
+                                        {t('notificationsHistory.viewImage')}
+                                      </Button>
+                                    )}
+                                    <div className="flex-1" />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => deleteNotification(notification.id)}
+                                      className="opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
   return (
     <MobileLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 pb-24 md:pb-4">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
@@ -260,7 +488,6 @@ export default function NotificationsHistory() {
             </div>
           </div>
 
-          {/* Lista de Notificações */}
           {notifications.length === 0 ? (
             <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -292,12 +519,9 @@ export default function NotificationsHistory() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      {/* Ícone do tipo */}
                       <div className="text-2xl mt-1 flex-shrink-0">
                         {getTypeIcon(notification.type)}
                       </div>
-
-                      {/* Conteúdo */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <h3 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">
@@ -313,7 +537,6 @@ export default function NotificationsHistory() {
                           {notification.message}
                         </p>
 
-                        {/* Mídia */}
                         <div className="flex items-center gap-2 flex-wrap">
                           {notification.hasAudio && notification.audioData && (
                             <Button
@@ -334,7 +557,6 @@ export default function NotificationsHistory() {
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                // Abrir imagem em modal ou nova aba
                                 window.open(notification.imageData, '_blank');
                               }}
                               className="gap-2"

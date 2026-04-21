@@ -36,6 +36,10 @@ import {
   FileText,
 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { V2PageStack, V2SectionCard } from '@/components/v2/V2Scaffold';
+import { PrototypeShell } from './v2/PrototypeShell';
+import { useAuth } from '@/hooks/useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -75,6 +79,8 @@ interface VoteLogEntry {
 }
 
 export default function ElectionDashboard() {
+  const { skin } = useTheme();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -266,6 +272,22 @@ export default function ElectionDashboard() {
   };
 
   if (loading) {
+    if (skin === 'v2') {
+      return (
+        <PrototypeShell
+          label={t('electionDashboard.title')}
+          title={t('electionDashboard.loadingConfigs')}
+          userName={user?.name}
+        >
+          <div className="p7-section">
+            <div className="p7-card p7-card-p flex min-h-[220px] items-center justify-center gap-2 text-sm text-[var(--p7-muted)]">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span>{t('electionDashboard.loadingConfigs')}</span>
+            </div>
+          </div>
+        </PrototypeShell>
+      );
+    }
     return (
       <MobileLayout>
         <div className="p-4 flex items-center justify-center min-h-[50vh]">
@@ -273,6 +295,250 @@ export default function ElectionDashboard() {
           <span className="ml-2">{t('electionDashboard.loadingConfigs')}</span>
         </div>
       </MobileLayout>
+    );
+  }
+
+  if (skin === 'v2') {
+    return (
+      <PrototypeShell
+        label={t('electionDashboard.title')}
+        title={t('electionDashboard.subtitle')}
+        userName={user?.name}
+      >
+        <div className="p7-section">
+          <V2PageStack>
+            <V2SectionCard
+              title={t('electionDashboard.title')}
+              subtitle={t('electionDashboard.subtitle')}
+              action={
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAutoRefresh(!autoRefresh)}
+                    aria-label={
+                      autoRefresh ? t('electionDashboard.pause') : t('electionDashboard.refresh')
+                    }
+                  >
+                    <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/election-config')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="ml-2">{t('electionDashboard.newNomination')}</span>
+                  </Button>
+                </div>
+              }
+            >
+              {configs.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="default" className="bg-green-600">
+                    {configs.filter((c) => c.status === 'active').length}{' '}
+                    {t('electionDashboard.activeCount')}
+                  </Badge>
+                  <Badge variant="outline" className="border-orange-400 text-orange-600">
+                    {configs.filter((c) => c.status === 'paused').length}{' '}
+                    {t('electionDashboard.pausedCount')}
+                  </Badge>
+                  <Badge variant="secondary">
+                    {configs.filter((c) => c.status === 'draft').length}{' '}
+                    {t('electionDashboard.draftCount')}
+                  </Badge>
+                </div>
+              )}
+            </V2SectionCard>
+
+            <V2SectionCard title={t('electionDashboard.multipleNominations')}>
+              {configs.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Vote className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-semibold">
+                      {t('electionDashboard.noConfigured')}
+                    </h3>
+                    <p className="mb-4 text-muted-foreground">
+                      {t('electionDashboard.noConfiguredDescription')}
+                    </p>
+                    <Button onClick={() => navigate('/election-config')}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      {t('electionDashboard.configureNomination')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {configs.map((config) => (
+                    <Card key={config.id} className="transition-shadow hover:shadow-md">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg">
+                              {config.title || config.church_name}
+                            </CardTitle>
+                            <CardDescription className="text-sm text-muted-foreground">
+                              {config.church_name} • {config.positions.length}{' '}
+                              {t('electionDashboard.positions')} • {config.voters.length}{' '}
+                              {t('electionDashboard.voters')}
+                            </CardDescription>
+                          </div>
+                          {getStatusBadge(config)}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              <Users className="mr-1 h-3 w-3" />
+                              {config.voters.length} {t('electionDashboard.voters')}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              <Vote className="mr-1 h-3 w-3" />
+                              {config.positions.length} {t('electionDashboard.positions')}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              <Clock className="mr-1 h-3 w-3" />
+                              {new Date(config.created_at).toLocaleDateString('pt-BR')}
+                            </Badge>
+                          </div>
+
+                          {config.status === 'active' && getPhaseProgress(config)}
+
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {config.status === 'active' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => navigate(`/election-manage/${config.id}`)}
+                                  className="bg-purple-600 hover:bg-purple-700"
+                                >
+                                  <Settings className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.manage')}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch(
+                                        `/api/elections/dashboard/${config.id}`
+                                      );
+                                      if (response.ok) {
+                                        const data = await response.json();
+                                        if (data.election?.id) {
+                                          loadVoteLog(data.election.id);
+                                        } else {
+                                          toast({
+                                            title: t('electionDashboard.error'),
+                                            description: t('electionDashboard.electionNotFound'),
+                                            variant: 'destructive',
+                                          });
+                                        }
+                                      }
+                                    } catch {
+                                      toast({
+                                        title: t('electionDashboard.error'),
+                                        description: t('electionDashboard.loadLogError'),
+                                        variant: 'destructive',
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.viewVoteLog')}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/election-dashboard/${config.id}`)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.follow')}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/election-config?id=${config.id}`)}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.edit')}
+                                </Button>
+                              </>
+                            )}
+
+                            {config.status === 'paused' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/election-manage/${config.id}`)}
+                                >
+                                  <Settings className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.manage')}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/election-config?id=${config.id}`)}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.edit')}
+                                </Button>
+                              </>
+                            )}
+
+                            {config.status === 'draft' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleStartElection(config.id)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <Play className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.start')}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/election-config?id=${config.id}`)}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  {t('electionDashboard.edit')}
+                                </Button>
+                              </>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteConfig(config.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              {t('electionDashboard.delete')}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {configs.length > 0 && (
+                <Alert className="mt-4">
+                  <BarChart3 className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>{t('electionDashboard.multipleNominations')}</strong>{' '}
+                    {t('electionDashboard.multipleNominationsDescription')}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </V2SectionCard>
+          </V2PageStack>
+        </div>
+      </PrototypeShell>
     );
   }
 
@@ -310,7 +576,14 @@ export default function ElectionDashboard() {
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
-            <Button variant="outline" size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              aria-label={
+                autoRefresh ? t('electionDashboard.pause') : t('electionDashboard.refresh')
+              }
+            >
               <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline ml-2">
                 {autoRefresh ? t('electionDashboard.pause') : t('electionDashboard.refresh')}

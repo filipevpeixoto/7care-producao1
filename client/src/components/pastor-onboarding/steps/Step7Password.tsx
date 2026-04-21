@@ -42,7 +42,7 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
     match: password === confirmPassword && password.length > 0,
   };
 
-  const isPasswordValid = Object.values(validations).every(v => v);
+  const isPasswordValid = Object.values(validations).every((v) => v);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -84,10 +84,10 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
             Passo 7 de 7 - Final
           </span>
         </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent dark:bg-none dark:text-[var(--p7-text)]">
           Criar Senha
         </h2>
-        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+        <p className="mt-2 text-sm text-gray-500 dark:text-[var(--p7-text-2)] sm:mt-3 sm:text-base md:text-lg">
           Defina uma senha segura para sua conta
         </p>
       </div>
@@ -102,23 +102,26 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
       <div className="space-y-6 max-w-lg mx-auto">
         {/* Password */}
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="password"
+            className="text-base font-semibold text-gray-700 dark:text-[var(--p7-text)]"
+          >
             Senha <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400 dark:text-[var(--p7-text-3)]" />
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-green-500 focus:ring-green-500 transition-all"
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-14 rounded-xl border-2 border-blue-400 !bg-white pl-12 pr-12 text-lg !text-gray-800 placeholder:text-blue-300 transition-all focus:border-green-500 focus:ring-green-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-green-400 dark:focus:ring-green-400"
               placeholder="Crie uma senha segura"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 transform text-gray-400 transition-colors hover:text-gray-600 dark:text-[var(--p7-text-3)] dark:hover:text-[var(--p7-text)]"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -132,23 +135,25 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
         </div>
 
         {/* Password validations */}
-        <div className="space-y-3 bg-gradient-to-r from-gray-50 to-white p-5 rounded-2xl border border-gray-100">
-          <p className="text-sm font-semibold text-gray-700 mb-3">Sua senha deve conter:</p>
+        <div className="space-y-3 rounded-2xl border border-gray-100 bg-gradient-to-r from-gray-50 to-white p-5 dark:border-[var(--p7-border)] dark:from-[var(--p7-surface-2)] dark:to-[var(--p7-card)]">
+          <p className="mb-3 text-sm font-semibold text-gray-700 dark:text-[var(--p7-text)]">
+            Sua senha deve conter:
+          </p>
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                  validations.minLength ? 'bg-green-500' : 'bg-gray-200'
+                  validations.minLength ? 'bg-green-500' : 'bg-gray-200 dark:bg-[var(--p7-border)]'
                 }`}
               >
                 {validations.minLength ? (
                   <Check className="w-4 h-4 text-white" strokeWidth={3} />
                 ) : (
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="h-4 w-4 text-gray-400 dark:text-[var(--p7-text-3)]" />
                 )}
               </div>
               <span
-                className={`text-sm font-medium ${validations.minLength ? 'text-green-700' : 'text-gray-500'}`}
+                className={`text-sm font-medium ${validations.minLength ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-[var(--p7-text-2)]'}`}
               >
                 Mínimo 8 caracteres
               </span>
@@ -156,17 +161,17 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
             <div className="flex items-center gap-3">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                  validations.hasUpper ? 'bg-green-500' : 'bg-gray-200'
+                  validations.hasUpper ? 'bg-green-500' : 'bg-gray-200 dark:bg-[var(--p7-border)]'
                 }`}
               >
                 {validations.hasUpper ? (
                   <Check className="w-4 h-4 text-white" strokeWidth={3} />
                 ) : (
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="h-4 w-4 text-gray-400 dark:text-[var(--p7-text-3)]" />
                 )}
               </div>
               <span
-                className={`text-sm font-medium ${validations.hasUpper ? 'text-green-700' : 'text-gray-500'}`}
+                className={`text-sm font-medium ${validations.hasUpper ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-[var(--p7-text-2)]'}`}
               >
                 Pelo menos 1 letra maiúscula
               </span>
@@ -174,17 +179,17 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
             <div className="flex items-center gap-3">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                  validations.hasNumber ? 'bg-green-500' : 'bg-gray-200'
+                  validations.hasNumber ? 'bg-green-500' : 'bg-gray-200 dark:bg-[var(--p7-border)]'
                 }`}
               >
                 {validations.hasNumber ? (
                   <Check className="w-4 h-4 text-white" strokeWidth={3} />
                 ) : (
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="h-4 w-4 text-gray-400 dark:text-[var(--p7-text-3)]" />
                 )}
               </div>
               <span
-                className={`text-sm font-medium ${validations.hasNumber ? 'text-green-700' : 'text-gray-500'}`}
+                className={`text-sm font-medium ${validations.hasNumber ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-[var(--p7-text-2)]'}`}
               >
                 Pelo menos 1 número
               </span>
@@ -194,23 +199,26 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
 
         {/* Confirm Password */}
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="confirmPassword"
+            className="text-base font-semibold text-gray-700 dark:text-[var(--p7-text)]"
+          >
             Confirmar Senha <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400 dark:text-[var(--p7-text-3)]" />
             <Input
               id="confirmPassword"
               type={showConfirm ? 'text' : 'password'}
               value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              className="pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-green-500 focus:ring-green-500 transition-all"
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="h-14 rounded-xl border-2 border-blue-400 !bg-white pl-12 pr-12 text-lg !text-gray-800 placeholder:text-blue-300 transition-all focus:border-green-500 focus:ring-green-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-green-400 dark:focus:ring-green-400"
               placeholder="Digite a senha novamente"
             />
             <button
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 transform text-gray-400 transition-colors hover:text-gray-600 dark:text-[var(--p7-text-3)] dark:hover:text-[var(--p7-text)]"
             >
               {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -222,7 +230,7 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
             </p>
           )}
           {validations.match && (
-            <p className="text-sm text-green-600 flex items-center gap-1">
+            <p className="flex items-center gap-1 text-sm text-green-600 dark:text-green-300">
               <CheckCircle2 className="w-4 h-4" />
               Senhas coincidem!
             </p>
@@ -232,26 +240,31 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
         {/* Terms */}
         <div
           className={`flex items-start gap-4 p-5 border-2 rounded-2xl transition-all cursor-pointer ${
-            acceptedTerms ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+            acceptedTerms
+              ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+              : 'border-gray-200 hover:border-gray-300 dark:border-[var(--p7-border)] dark:hover:border-[var(--v2-gold)]'
           }`}
-          onClick={() => setAcceptedTerms(prev => !prev)}
+          onClick={() => setAcceptedTerms((prev) => !prev)}
         >
           <input
             type="checkbox"
             id="terms"
             checked={acceptedTerms}
-            onChange={e => setAcceptedTerms(e.target.checked)}
-            onClick={e => e.stopPropagation()}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-[var(--p7-border)] dark:bg-[var(--p7-card)]"
           />
-          <label htmlFor="terms" className="text-sm cursor-pointer leading-relaxed">
+          <label
+            htmlFor="terms"
+            className="cursor-pointer text-sm leading-relaxed dark:text-[var(--p7-text-2)]"
+          >
             Li e aceito os{' '}
             <a
               href="/termos"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline font-medium"
-              onClick={e => e.stopPropagation()}
+              className="font-medium text-blue-600 hover:underline dark:text-blue-300"
+              onClick={(e) => e.stopPropagation()}
             >
               Termos de Uso
             </a>{' '}
@@ -260,8 +273,8 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
               href="/privacidade"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline font-medium"
-              onClick={e => e.stopPropagation()}
+              className="font-medium text-blue-600 hover:underline dark:text-blue-300"
+              onClick={(e) => e.stopPropagation()}
             >
               Política de Privacidade
             </a>
@@ -287,7 +300,7 @@ export function Step7Password({ onSubmit, onBack, isLoading }: Step7PasswordProp
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
+      <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-4 dark:border-[var(--p7-border)] sm:mt-10 sm:flex-row sm:justify-between sm:gap-3 sm:pt-6">
         <Button
           type="button"
           onClick={onBack}

@@ -50,9 +50,11 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
           <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg">
             <Trophy className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">Gamificação</h2>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-[var(--p7-text)]">
+            Gamificação
+          </h2>
         </div>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-[var(--p7-text-2)]">
           Configure o sistema de pontuação para engajar seus membros na jornada espiritual
         </p>
       </div>
@@ -73,17 +75,20 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
       </div>
 
       {/* Enable Gamification */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
+      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-[var(--p7-border)] dark:bg-[var(--p7-card)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-xl">
               <Sparkles className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <Label htmlFor="enable-gamification" className="text-lg font-semibold text-gray-800">
+              <Label
+                htmlFor="enable-gamification"
+                className="text-lg font-semibold text-gray-800 dark:text-[var(--p7-text)]"
+              >
                 Ativar Gamificação
               </Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-[var(--p7-text-2)]">
                 Habilita o sistema de pontos e níveis para seus membros
               </p>
             </div>
@@ -162,7 +167,7 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
                   points: '1000+',
                   color: 'from-amber-400/30 to-yellow-500/30',
                 },
-              ].map(level => (
+              ].map((level) => (
                 <div
                   key={level.name}
                   className={`bg-gradient-to-br ${level.color} backdrop-blur rounded-lg p-2 sm:p-3 text-center border border-white/10`}
@@ -181,16 +186,19 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
           </div>
 
           {/* Target Average */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-[var(--p7-border)] dark:bg-[var(--p7-card)]">
             <div className="flex items-start gap-4 mb-4">
               <div className="p-3 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl">
                 <Calculator className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <Label htmlFor="target-average" className="text-lg font-semibold text-gray-800">
+                <Label
+                  htmlFor="target-average"
+                  className="text-lg font-semibold text-gray-800 dark:text-[var(--p7-text)]"
+                >
                   Média de Pontos Desejada
                 </Label>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="mb-4 text-sm text-gray-500 dark:text-[var(--p7-text-2)]">
                   Define o valor base para calibrar a pontuação. Membros ativos terão pontuação
                   próxima a esse valor.
                 </p>
@@ -201,18 +209,18 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
                     min="100"
                     max="5000"
                     value={targetAverage}
-                    onChange={e => setTargetAverage(e.target.value)}
+                    onChange={(e) => setTargetAverage(e.target.value)}
                     className="w-32 text-center text-lg font-bold"
                   />
-                  <span className="text-gray-500">pontos</span>
+                  <span className="text-gray-500 dark:text-[var(--p7-text-2)]">pontos</span>
                 </div>
               </div>
             </div>
 
             {/* Quick Presets */}
             <div className="flex flex-wrap gap-2 mt-4">
-              <span className="text-sm text-gray-500">Sugestões:</span>
-              {[300, 500, 595, 800, 1000].map(value => (
+              <span className="text-sm text-gray-500 dark:text-[var(--p7-text-2)]">Sugestões:</span>
+              {[300, 500, 595, 800, 1000].map((value) => (
                 <button
                   key={value}
                   type="button"
@@ -221,7 +229,7 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                     targetAverage === value.toString()
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[var(--p7-surface-2)] dark:text-[var(--p7-text-2)] dark:hover:bg-[var(--p7-border)]'
                   }`}
                 >
                   {value}
@@ -231,7 +239,7 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
           </div>
 
           {/* Calculate on Approval */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-[var(--p7-border)] dark:bg-[var(--p7-card)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl">
@@ -240,11 +248,11 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
                 <div>
                   <Label
                     htmlFor="calculate-approval"
-                    className="text-lg font-semibold text-gray-800"
+                    className="text-lg font-semibold text-gray-800 dark:text-[var(--p7-text)]"
                   >
                     Calcular Pontos na Aprovação
                   </Label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-[var(--p7-text-2)]">
                     Calcular automaticamente os pontos de todos os membros importados quando seu
                     cadastro for aprovado
                   </p>
@@ -285,11 +293,11 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
 
       {/* Disabled State Info */}
       {!enableGamification && (
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
-          <div className="text-gray-400 mb-2">
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center dark:border-[var(--p7-border)] dark:bg-[var(--p7-surface-2)]">
+          <div className="mb-2 text-gray-400 dark:text-[var(--p7-text-3)]">
             <Trophy className="w-12 h-12 mx-auto opacity-50" />
           </div>
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-[var(--p7-text-2)]">
             A gamificação está desativada. Você pode ativar a qualquer momento nas configurações do
             sistema após acessar sua conta.
           </p>
@@ -297,7 +305,7 @@ export function Step8GamificationConfig({ data, onNext, onBack }: Step8Gamificat
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
+      <div className="mt-8 flex justify-between border-t border-gray-100 pt-6 dark:border-[var(--p7-border)]">
         <Button type="button" variant="outline" onClick={onBack} className="gap-2">
           <ArrowLeft className="w-4 h-4" />
           Voltar

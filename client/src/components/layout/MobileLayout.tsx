@@ -5,6 +5,8 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { Breadcrumbs } from './Breadcrumbs';
 import { useAuth } from '@/hooks/useAuth';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useTheme } from '@/contexts/ThemeContext';
+import { MobileLayoutV2 } from './v2/MobileLayoutV2';
 import { RefreshCw } from 'lucide-react';
 
 interface MobileLayoutProps {
@@ -13,17 +15,20 @@ interface MobileLayoutProps {
   showBottomNav?: boolean;
   fullscreen?: boolean;
   showBreadcrumbs?: boolean;
+  variant?: 'bridge' | 'prototype';
 }
 
 export const MobileLayout = ({
   children,
+  title,
   showBottomNav = true,
   fullscreen = false,
   showBreadcrumbs = true,
+  variant = 'bridge',
 }: MobileLayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { skin } = useTheme();
 
-  // Pull to Refresh
   const { containerRef, pullDistance, isRefreshing, progress } = usePullToRefresh({
     onRefresh: async () => {
       window.location.reload();
@@ -31,6 +36,20 @@ export const MobileLayout = ({
     threshold: 80,
     enabled: true,
   });
+
+  if (skin === 'v2') {
+    return (
+      <MobileLayoutV2
+        title={title}
+        showBottomNav={showBottomNav}
+        fullscreen={fullscreen}
+        showBreadcrumbs={showBreadcrumbs}
+        variant={variant}
+      >
+        {children}
+      </MobileLayoutV2>
+    );
+  }
 
   if (isLoading) {
     return (

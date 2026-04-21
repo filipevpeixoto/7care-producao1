@@ -11,17 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Vote,
-  Save,
-  Plus,
-  Edit,
-  Trash2,
-  X,
-  FileText,
-  ChevronUp,
-  ChevronDown,
-} from 'lucide-react';
+import { Vote, Save, Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown } from 'lucide-react';
 import { ariaLabels } from '@/lib/accessibility';
 import type { ElectionMember, ElectionConfigData } from './types';
 
@@ -98,8 +88,8 @@ export function StepPositions({
           Cargos para Eleição
         </CardTitle>
         <CardDescription>
-          Gerencie todos os cargos disponíveis para eleição. Você pode adicionar, editar e
-          excluir cargos conforme necessário.
+          Gerencie todos os cargos disponíveis para eleição. Você pode adicionar, editar e excluir
+          cargos conforme necessário.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -128,9 +118,9 @@ export function StepPositions({
                 <Input
                   placeholder="Nome do cargo"
                   value={newPositionName}
-                  onChange={e => setNewPositionName(e.target.value)}
+                  onChange={(e) => setNewPositionName(e.target.value)}
                   className="flex-1"
-                  onKeyPress={e => e.key === 'Enter' && handleAddCustomPosition()}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddCustomPosition()}
                 />
                 <Button
                   size="sm"
@@ -175,17 +165,12 @@ export function StepPositions({
                       <th className="text-left p-2 text-xs font-medium text-orange-700">
                         Líder Atual
                       </th>
-                      <th className="text-left p-2 text-xs font-medium text-orange-700">
-                        Ações
-                      </th>
+                      <th className="text-left p-2 text-xs font-medium text-orange-700">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {customPositions.map((position, index) => (
-                      <tr
-                        key={position}
-                        className="border-b border-orange-100 hover:bg-orange-25"
-                      >
+                      <tr key={position} className="border-b border-orange-100 hover:bg-orange-25">
                         <td className="p-2">
                           <Checkbox
                             id={`custom-position-${position}`}
@@ -198,11 +183,9 @@ export function StepPositions({
                             <div className="flex items-center gap-2">
                               <Input
                                 value={editingPositionName}
-                                onChange={e => setEditingPositionName(e.target.value)}
+                                onChange={(e) => setEditingPositionName(e.target.value)}
                                 className="flex-1 text-sm"
-                                onKeyPress={e =>
-                                  e.key === 'Enter' && handleSaveEditPosition()
-                                }
+                                onKeyPress={(e) => e.key === 'Enter' && handleSaveEditPosition()}
                               />
                               <Button
                                 size="sm"
@@ -237,7 +220,7 @@ export function StepPositions({
                             <div className="space-y-2">
                               <textarea
                                 value={editingDescriptionText}
-                                onChange={e => setEditingDescriptionText(e.target.value)}
+                                onChange={(e) => setEditingDescriptionText(e.target.value)}
                                 className="w-full min-h-[60px] p-2 text-xs border rounded-md resize-none"
                                 placeholder="Digite as atribuições e responsabilidades deste cargo..."
                               />
@@ -278,29 +261,32 @@ export function StepPositions({
                         <td className="p-2">
                           <Select
                             value={currentLeaders[position]?.toString() || undefined}
-                            onValueChange={value => {
+                            onValueChange={(value) => {
                               if (value === 'none') {
-                                setCurrentLeaders(prev => ({
+                                setCurrentLeaders((prev) => ({
                                   ...prev,
                                   [position]: null,
                                 }));
                               } else {
-                                setCurrentLeaders(prev => ({
+                                setCurrentLeaders((prev) => ({
                                   ...prev,
                                   [position]: value ? parseInt(value) : null,
                                 }));
                               }
                             }}
                           >
-                            <SelectTrigger className="h-8 text-xs w-full">
+                            <SelectTrigger
+                              className="h-8 text-xs w-full"
+                              aria-label={`Selecionar líder atual para ${position}`}
+                            >
                               <SelectValue placeholder="Selecione o líder atual" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Nenhum</SelectItem>
                               {members
-                                .filter(member => member.church === config.churchName)
+                                .filter((member) => member.church === config.churchName)
                                 .sort((a, b) => a.name.localeCompare(b.name))
-                                .map(member => (
+                                .map((member) => (
                                   <SelectItem key={member.id} value={member.id.toString()}>
                                     {member.name}
                                   </SelectItem>

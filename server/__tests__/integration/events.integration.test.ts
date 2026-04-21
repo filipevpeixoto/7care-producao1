@@ -12,16 +12,22 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { eventRoutes } from '../../routes/eventRoutes';
-import { createMockUser } from './setup';
+import { createMockUser, toTestServer } from './setup';
 import { getAuthUserId } from '../../utils/authHelpers';
 
 // Mock auth helpers so we control userId without depending on JWT middleware
-vi.mock('../../utils/authHelpers', () => ({
-  getAuthUserId: vi.fn().mockReturnValue(0),
-  getAuthUser: vi.fn().mockReturnValue(null),
-  getAuthUserRole: vi.fn().mockReturnValue(undefined),
-  getAuthUserDistrictId: vi.fn().mockReturnValue(undefined),
-}));
+vi.mock('../../utils/authHelpers', async () => {
+  const actual =
+    await vi.importActual<typeof import('../../utils/authHelpers')>('../../utils/authHelpers');
+
+  return {
+    ...actual,
+    getAuthUserId: vi.fn().mockReturnValue(0),
+    getAuthUser: vi.fn().mockReturnValue(null),
+    getAuthUserRole: vi.fn().mockReturnValue(undefined),
+    getAuthUserDistrictId: vi.fn().mockReturnValue(undefined),
+  };
+});
 
 // Mock cache middleware to prevent stale cached responses between tests
 vi.mock('../../middleware/cache', () => ({
@@ -66,7 +72,7 @@ function createTestApp() {
   eventRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -132,9 +138,7 @@ describe('Event Routes — Integration', () => {
       ];
       mockEventRepo.getAllEvents.mockResolvedValue(events);
 
-      const res = await request(app).get(
-        '/api/events?startDate=2024-01-12&endDate=2024-01-18'
-      );
+      const res = await request(app).get('/api/events?startDate=2024-01-12&endDate=2024-01-18');
 
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(1);
@@ -149,8 +153,7 @@ describe('Event Routes — Integration', () => {
         { id: 1, title: 'District Event', date: '2024-01-15' },
       ]);
 
-      const res = await request(app)
-        .get('/api/events');
+      const res = await request(app).get('/api/events');
 
       expect(res.status).toBe(200);
       expect(mockEventRepo.getEventsByDistrict).toHaveBeenCalledWith(3);
@@ -170,12 +173,10 @@ describe('Event Routes — Integration', () => {
       };
       mockEventRepo.createEvent.mockResolvedValue(createdEvent);
 
-      const res = await request(app)
-        .post('/api/events')
-        .send({
-          title: 'New Event',
-          date: '2024-01-15',
-        });
+      const res = await request(app).post('/api/events').send({
+        title: 'New Event',
+        date: '2024-01-15',
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -184,27 +185,21 @@ describe('Event Routes — Integration', () => {
     });
 
     it('should return 400 for missing title', async () => {
-      const res = await request(app)
-        .post('/api/events')
-        .send({ date: '2024-01-15' });
+      const res = await request(app).post('/api/events').send({ date: '2024-01-15' });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for missing date', async () => {
-      const res = await request(app)
-        .post('/api/events')
-        .send({ title: 'Event Without Date' });
+      const res = await request(app).post('/api/events').send({ title: 'Event Without Date' });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for empty body', async () => {
-      const res = await request(app)
-        .post('/api/events')
-        .send({});
+      const res = await request(app).post('/api/events').send({});
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -240,18 +235,14 @@ describe('Event Routes — Integration', () => {
     });
 
     it('should return 400 when ids is not provided', async () => {
-      const res = await request(app)
-        .delete('/api/events')
-        .send({});
+      const res = await request(app).delete('/api/events').send({});
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 when ids is not an array', async () => {
-      const res = await request(app)
-        .delete('/api/events')
-        .send({ ids: 'not-an-array' });
+      const res = await request(app).delete('/api/events').send({ ids: 'not-an-array' });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -288,9 +279,7 @@ describe('Event Routes — Integration', () => {
 
   describe('GET /api/calendar/events', () => {
     it('should return calendar events', async () => {
-      const events = [
-        { id: 1, title: 'Calendar Event', date: '2024-01-15' },
-      ];
+      const events = [{ id: 1, title: 'Calendar Event', date: '2024-01-15' }];
       mockEventRepo.getAllEvents.mockResolvedValue(events);
 
       const res = await request(app).get('/api/calendar/events');
@@ -308,8 +297,7 @@ describe('Event Routes — Integration', () => {
         { id: 1, title: 'District Calendar Event', date: '2024-01-15' },
       ]);
 
-      const res = await request(app)
-        .get('/api/calendar/events');
+      const res = await request(app).get('/api/calendar/events');
 
       expect(res.status).toBe(200);
       expect(mockEventRepo.getEventsByDistrict).toHaveBeenCalledWith(2);

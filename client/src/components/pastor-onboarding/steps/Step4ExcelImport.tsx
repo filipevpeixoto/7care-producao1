@@ -2,7 +2,7 @@
  * Step 4: Importação de Planilha Excel
  * Upload e preview de membros existentes
  * Design elegante e moderno com etapas de mapeamento e validação
- * 
+ *
  * IMPORTANTE: Passa os dados BRUTOS da planilha para o backend processar
  * O backend usa exatamente a mesma lógica do Gestão de Dados (Settings.tsx)
  * Isso garante consistência entre os dois métodos de importação
@@ -86,11 +86,12 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
   // ============================================================
   const processRawData = useCallback((raw: Record<string, unknown>[]): ExcelRow[] => {
     return raw
-      .map(row => {
+      .map((row) => {
         // Pegar o nome - obrigatório
-        const rawNome = row.Nome || row.nome || row.name || row['Nome Completo'] || row['nome completo'];
+        const rawNome =
+          row.Nome || row.nome || row.name || row['Nome Completo'] || row['nome completo'];
         const nome = rawNome ? String(rawNome).trim() : '';
-        
+
         // Pular linhas sem nome válido
         if (!nome || nome.length < 2 || nome.includes('@') || /^\d+$/.test(nome)) {
           return null;
@@ -110,7 +111,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
           // Campos obrigatórios
           nome,
           igreja,
-          
+
           // Campos básicos - valores diretos da planilha
           telefone: row.Celular || row.celular || row.telefone || row.Telefone || row.phone,
           email: row.Email || row.email || row['E-mail'] || row['e-mail'],
@@ -118,12 +119,24 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
           codigo: row.Código || row.codigo || row.code,
           tipo: row.Tipo || row.tipo || row.role,
           distrital: row.Distrital || row.distrital,
-          
+
           // Dados pessoais - valores diretos
-          dataNascimento: row.Nascimento || row.nascimento || row.birthDate || row['Data de Nascimento'] || row['data de nascimento'],
-          estadoCivil: row['Estado civil'] || row.estadoCivil || row.civilStatus || row['Estado Civil'],
-          profissao: row.Ocupação || row.ocupacao || row.profissao || row.Profissão || row.occupation,
-          escolaridade: row['Grau de educação'] || row.educacao || row.education || row.Escolaridade || row.escolaridade,
+          dataNascimento:
+            row.Nascimento ||
+            row.nascimento ||
+            row.birthDate ||
+            row['Data de Nascimento'] ||
+            row['data de nascimento'],
+          estadoCivil:
+            row['Estado civil'] || row.estadoCivil || row.civilStatus || row['Estado Civil'],
+          profissao:
+            row.Ocupação || row.ocupacao || row.profissao || row.Profissão || row.occupation,
+          escolaridade:
+            row['Grau de educação'] ||
+            row.educacao ||
+            row.education ||
+            row.Escolaridade ||
+            row.escolaridade,
           endereco: row.Endereço || row.endereco || row.address || row.Address,
           sexo: row.Sexo || row.sexo,
           cpf: row.CPF || row.cpf,
@@ -132,24 +145,31 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
           cidadeEstado: row['Cidade e Estado'] || row.cidadeEstado,
           cidadeNascimento: row['Cidade de nascimento'] || row.cidadeNascimento,
           estadoNascimento: row['Estado de nascimento'] || row.estadoNascimento,
-          
+
           // Dados religiosos - VALORES ORIGINAIS (SEM TRANSFORMAÇÃO)
-          dataBatismo: row.Batismo || row.batismo || row.baptismDate || row['Data de Batismo'] || row['data de batismo'],
+          dataBatismo:
+            row.Batismo ||
+            row.batismo ||
+            row.baptismDate ||
+            row['Data de Batismo'] ||
+            row['data de batismo'],
           dizimista: dizimistaOriginal, // Valor ORIGINAL da planilha
           ofertante: ofertanteOriginal, // Valor ORIGINAL da planilha
           religiaoAnterior: row['Religião anterior'] || row.religiaoAnterior,
           instrutorBiblico: row['Instrutor bíblico'] || row.instrutorBiblico,
-          
+
           // Engajamento e Classificação - valores diretos
           engajamento: row.Engajamento || row.engajamento,
           classificacao: row.Classificação || row.classificacao,
-          
+
           // Campos de pontuação - valores diretos
           tempoBatismoAnos: row['Tempo de batismo - anos'] || row.tempoBatismoAnos,
-          departamentosCargos: row['Departamentos e cargos'] || row.departamentosCargos || row.departamentos,
+          departamentosCargos:
+            row['Departamentos e cargos'] || row.departamentosCargos || row.departamentos,
           nomeUnidade: row['Nome da unidade'] || row.nomeUnidade || row.Unidade,
           temLicao: row['Tem lição'] || row.temLicao,
-          totalPresenca: row['Total de presença'] || row.totalPresenca || row.presencaTotal || row.Presença,
+          totalPresenca:
+            row['Total de presença'] || row.totalPresenca || row.presencaTotal || row.Presença,
           comunhao: row.Comunhão || row.comunhao,
           missao: row.Missão || row.missao,
           estudoBiblico: row['Estudo bíblico'] || row.estudoBiblico,
@@ -157,81 +177,87 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
           discPosBatismal: row['Disc. pós batismal'] || row.discPosBatismal,
           cpfValido: row['CPF válido'] || row.cpfValido,
           camposVazios: row['Campos vazios/inválidos'] || row.camposVazios,
-          
+
           // Escola Sabatina
           matriculadoES: row['Matriculado na ES'] || row.matriculadoES,
           periodoES: row['Período ES'] || row.periodoES,
-          
+
           // Dízimos (12 meses) - valores diretos
           dizimos12m: row['Dízimos - 12m'] || row.dizimos12m,
           ultimoDizimo: row['Último dízimo - 12m'] || row.ultimoDizimo,
           valorDizimo: row['Valor dízimo - 12m'] || row.valorDizimo,
           numeroMesesSemDizimar: row['Número de meses s/ dizimar'] || row.numeroMesesSemDizimar,
-          dizimistaAntesUltimoDizimo: row['Dizimista antes do últ. dízimo'] || row.dizimistaAntesUltimoDizimo,
-          
+          dizimistaAntesUltimoDizimo:
+            row['Dizimista antes do últ. dízimo'] || row.dizimistaAntesUltimoDizimo,
+
           // Ofertas (12 meses) - valores diretos
           ofertas12m: row['Ofertas - 12m'] || row.ofertas12m,
           ultimaOferta: row['Última oferta - 12m'] || row.ultimaOferta,
           valorOferta: row['Valor oferta - 12m'] || row.valorOferta,
           numeroMesesSemOfertar: row['Número de meses s/ ofertar'] || row.numeroMesesSemOfertar,
-          ofertanteAntesUltimaOferta: row['Ofertante antes da últ. oferta'] || row.ofertanteAntesUltimaOferta,
-          
+          ofertanteAntesUltimaOferta:
+            row['Ofertante antes da últ. oferta'] || row.ofertanteAntesUltimaOferta,
+
           // Movimentos
           ultimoMovimento: row['Último movimento'] || row.ultimoMovimento,
           dataUltimoMovimento: row['Data do último movimento'] || row.dataUltimoMovimento,
           tipoEntrada: row['Tipo de entrada'] || row.tipoEntrada,
-          
+
           // Batismo detalhado
           tempoBatismo: row['Tempo de batismo'] || row.tempoBatismo,
           localidadeBatismo: row['Localidade do batismo'] || row.localidadeBatismo,
           batizadoPor: row['Batizado por'] || row.batizadoPor,
           idadeBatismo: row['Idade no Batismo'] || row.idadeBatismo,
-          
+
           // Conversão
           comoConheceu: row['Como conheceu a IASD'] || row.comoConheceu,
           fatorDecisivo: row['Fator decisivo'] || row.fatorDecisivo,
           comoEstudou: row['Como estudou a Bíblia'] || row.comoEstudou,
           instrutorBiblico2: row['Instrutor bíblico 2'] || row.instrutorBiblico2,
-          
+
           // Cargos
           temCargo: row['Tem cargo'] || row.temCargo,
           teen: row.Teen || row.teen,
-          
+
           // Família
           nomeMae: row['Nome da mãe'] || row.nomeMae,
           nomePai: row['Nome do pai'] || row.nomePai,
           dataCasamento: row['Data de casamento'] || row.dataCasamento,
-          
+
           // Presença detalhada
           presencaCartao: row['Total presença no cartão'] || row.presencaCartao,
           presencaQuizLocal: row['Presença no quiz local'] || row.presencaQuizLocal,
           presencaQuizOutra: row['Presença no quiz outra unidade'] || row.presencaQuizOutraUnidade,
           presencaQuizOnline: row['Presença no quiz online'] || row.presencaQuizOnline,
           teveParticipacao: row['Teve participação'] || row.teveParticipacao,
-          
+
           // Colaboração
           campoColaborador: row['Campo - colaborador'] || row.campoColaborador,
           areaColaborador: row['Área - colaborador'] || row.areaColaborador,
-          estabelecimentoColaborador: row['Estabelecimento - colaborador'] || row.estabelecimentoColaborador,
+          estabelecimentoColaborador:
+            row['Estabelecimento - colaborador'] || row.estabelecimentoColaborador,
           funcaoColaborador: row['Função - colaborador'] || row.funcaoColaborador,
-          
+
           // Educação
           alunoEducacao: row['Aluno educação Adv.'] || row.alunoEducacao,
           parentesco: row['Parentesco p/ c/ aluno'] || row.parentesco,
-          
+
           // Validação
           nomeCamposVazios: row['Nome dos campos vazios no ACMS'] || row.nomeCamposVazios,
-          
+
           // Observações - construir a partir dos campos originais
-          observacoes: [
-            row['Como estudou a Bíblia'] && `Como estudou: ${row['Como estudou a Bíblia']}`,
-            row['Teve participação'] && `Participação: ${row['Teve participação']}`,
-            row['Campos vazios/inválidos'] && `Campos vazios: ${row['Campos vazios/inválidos']}`,
-            row['Tempo de batismo'] && `Tempo de batismo: ${row['Tempo de batismo']}`,
-            row['Engajamento'] && `Engajamento: ${row['Engajamento']}`,
-            row['Classificação'] && `Classificação: ${row['Classificação']}`,
-          ].filter(Boolean).join(' | ') || undefined,
-          
+          observacoes:
+            [
+              row['Como estudou a Bíblia'] && `Como estudou: ${row['Como estudou a Bíblia']}`,
+              row['Teve participação'] && `Participação: ${row['Teve participação']}`,
+              row['Campos vazios/inválidos'] && `Campos vazios: ${row['Campos vazios/inválidos']}`,
+              row['Tempo de batismo'] && `Tempo de batismo: ${row['Tempo de batismo']}`,
+              row['Engajamento'] && `Engajamento: ${row['Engajamento']}`,
+              row['Classificação'] && `Classificação: ${row['Classificação']}`,
+            ]
+              .filter(Boolean)
+              .join(' | ') || undefined,
+
           // Flag de validação interna
           valid: true,
         } as ExcelRow;
@@ -364,35 +390,35 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
 
   // Contar igrejas únicas
   const uniqueChurches = new Set(
-    previewData.map(row => row.igreja?.toLowerCase().trim()).filter(Boolean)
+    previewData.map((row) => row.igreja?.toLowerCase().trim()).filter(Boolean)
   );
 
   // Contar registros válidos
-  const validCount = previewData.filter(r => r.valid !== false).length;
+  const validCount = previewData.filter((r) => r.valid !== false).length;
 
   // Contar campos detectados (campos com pelo menos 1 valor em QUALQUER linha)
   const detectedFieldsCount = useMemo(() => {
     if (previewData.length === 0) return 0;
-    
+
     // Pegar todas as chaves do ExcelRow
     const allKeys = new Set<string>();
-    previewData.forEach(row => {
-      Object.keys(row).forEach(key => allKeys.add(key));
+    previewData.forEach((row) => {
+      Object.keys(row).forEach((key) => allKeys.add(key));
     });
-    
+
     // Verificar quais campos têm pelo menos um valor preenchido
     let count = 0;
-    allKeys.forEach(key => {
+    allKeys.forEach((key) => {
       if (key === 'valid' || key === 'validationError') return;
-      
-      const hasValue = previewData.some(row => {
+
+      const hasValue = previewData.some((row) => {
         const val = row[key as keyof typeof row];
         return val !== undefined && val !== null && val !== '' && val !== false;
       });
-      
+
       if (hasValue) count++;
     });
-    
+
     return count;
   }, [previewData]);
 
@@ -404,10 +430,10 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
           <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 4 de 6</span>
         </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent dark:bg-none dark:text-[var(--p7-text)]">
           Importar Membros
         </h2>
-        <p className="text-blue-600 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+        <p className="mt-2 text-sm text-blue-600 dark:text-[var(--p7-text-2)] sm:mt-3 sm:text-base md:text-lg">
           Importe uma planilha com os membros existentes. Este passo é opcional.
         </p>
       </div>
@@ -442,7 +468,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
 
       {/* Upload Step */}
       {importStep === 'upload' && (
-        <div className="border-2 border-dashed border-blue-200 rounded-2xl hover:border-blue-400 transition-all bg-gradient-to-br from-blue-50/50 to-white">
+        <div className="rounded-2xl border-2 border-dashed border-blue-200 bg-gradient-to-br from-blue-50/50 to-white transition-all hover:border-blue-400 dark:border-[var(--p7-border)] dark:from-[rgba(27,80,212,.10)] dark:to-[var(--p7-card)] dark:hover:border-[var(--v2-gold)]">
           <div className="p-10">
             <div className="flex flex-col items-center justify-center text-center">
               <input
@@ -458,10 +484,10 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 <FileSpreadsheet className="w-10 h-10 text-blue-500" />
               </div>
 
-              <h3 className="text-xl font-semibold mb-2 text-blue-900">
+              <h3 className="mb-2 text-xl font-semibold text-blue-900 dark:text-[var(--p7-text)]">
                 Arraste sua planilha aqui
               </h3>
-              <p className="text-blue-500 text-sm mb-6">ou</p>
+              <p className="mb-6 text-sm text-blue-500 dark:text-[var(--p7-text-3)]">ou</p>
 
               <Button
                 onClick={() => fileInputRef.current?.click()}
@@ -472,7 +498,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                 {isUploading ? 'Processando...' : 'Selecionar Arquivo'}
               </Button>
 
-              <p className="text-xs text-blue-500 mt-4">
+              <p className="mt-4 text-xs text-blue-500 dark:text-[var(--p7-text-3)]">
                 Formatos aceitos: Excel (.xlsx, .xls) ou CSV. Máximo 10MB.
               </p>
             </div>
@@ -491,8 +517,10 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                     <CheckCircle className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-blue-900">{fileName}</h3>
-                    <p className="text-sm text-blue-600">
+                    <h3 className="text-lg font-semibold text-blue-900 dark:text-[var(--p7-text)]">
+                      {fileName}
+                    </h3>
+                    <p className="text-sm text-blue-600 dark:text-[var(--p7-text-2)]">
                       {previewData.length} membros • {uniqueChurches.size} igrejas •{' '}
                       {detectedColumns.length} colunas detectadas
                     </p>
@@ -502,7 +530,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
                   variant="ghost"
                   size="sm"
                   onClick={handleRemoveFile}
-                  className="rounded-xl hover:bg-red-50 hover:text-red-600"
+                  className="rounded-xl hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                 >
                   <X className="w-5 h-5" />
                 </Button>
@@ -632,14 +660,14 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {DISPLAY_FIELDS.map(mapping => (
+              {DISPLAY_FIELDS.map((mapping) => (
                 <div key={mapping.field} className="space-y-2">
                   <Label className="text-sm text-blue-800">
                     {mapping.label}
                     {mapping.required && <span className="text-red-500 ml-1">*</span>}
                   </Label>
                   <Select defaultValue={mapping.field}>
-                    <SelectTrigger className="rounded-xl !bg-white !border-blue-200 focus:!border-blue-400">
+                    <SelectTrigger className="rounded-xl !border-blue-200 !bg-white focus:!border-blue-400 dark:!border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:text-[var(--p7-text)] dark:focus:!border-[var(--v2-gold)]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -821,7 +849,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
             <CheckCircle className="w-10 h-10 text-white" />
           </div>
           <h3 className="text-2xl font-bold text-blue-700 mb-2">Dados Salvos!</h3>
-          <p className="text-gray-500 mb-6">
+          <p className="mb-6 text-gray-500 dark:text-[var(--p7-text-2)]">
             {previewData.length} membros preparados para importação.
           </p>
 
@@ -839,8 +867,8 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
-              <p className="text-sm text-gray-600">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[var(--p7-border)] dark:bg-[var(--p7-surface-2)]">
+              <p className="text-sm text-gray-600 dark:text-[var(--p7-text-2)]">
                 Continue preenchendo os próximos passos para finalizar seu cadastro.
               </p>
             </div>
@@ -858,9 +886,11 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
 
       {/* Instrução sobre formato (apenas na tela de upload) */}
       {importStep === 'upload' && (
-        <div className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-2xl p-6 mt-6">
-          <h4 className="font-semibold text-gray-800 mb-3">Colunas reconhecidas:</h4>
-          <p className="text-sm text-gray-600 mb-3">
+        <div className="mt-6 rounded-2xl border border-gray-200 bg-gradient-to-r from-gray-50 to-white p-6 dark:border-[var(--p7-border)] dark:from-[var(--p7-surface-2)] dark:to-[var(--p7-card)]">
+          <h4 className="mb-3 font-semibold text-gray-800 dark:text-[var(--p7-text)]">
+            Colunas reconhecidas:
+          </h4>
+          <p className="mb-3 text-sm text-gray-600 dark:text-[var(--p7-text-2)]">
             O sistema reconhece automaticamente diversas colunas do ACMS e outros sistemas:
           </p>
           <div className="flex flex-wrap gap-2 text-sm">
@@ -883,12 +913,15 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
               'Comunhão',
               'Missão',
               'ES',
-            ].map(col => (
-              <span key={col} className="bg-white px-3 py-1 rounded-full border border-gray-200">
+            ].map((col) => (
+              <span
+                key={col}
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 dark:border-[var(--p7-border)] dark:bg-[var(--p7-card)] dark:text-[var(--p7-text-2)]"
+              >
                 {col}
               </span>
             ))}
-            <span className="bg-white px-3 py-1 rounded-full border border-gray-200">
+            <span className="rounded-full border border-gray-200 bg-white px-3 py-1 dark:border-[var(--p7-border)] dark:bg-[var(--p7-card)] dark:text-[var(--p7-text-2)]">
               + muitos outros
             </span>
           </div>
@@ -903,7 +936,7 @@ export function Step4ExcelImport({ data, onUpdate, onNext, onBack }: Step4ExcelI
       )}
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-blue-100">
+      <div className="mt-6 flex flex-col gap-2 border-t border-blue-100 pt-4 dark:border-[var(--p7-border)] sm:mt-10 sm:flex-row sm:justify-between sm:gap-3 sm:pt-6">
         <Button
           onClick={onBack}
           size="lg"

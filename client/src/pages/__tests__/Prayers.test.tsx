@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const mockPrayers = [
   {
@@ -75,7 +76,9 @@ const createWrapper = () => {
   });
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{children}</MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>{children}</MemoryRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
@@ -103,9 +106,7 @@ describe('Prayers', () => {
     render(<Prayers />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText('prayers.searchPlaceholder')
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('prayers.searchPlaceholder')).toBeInTheDocument();
     });
     expect(screen.getAllByText(/prayers\.pendingFilter/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/prayers\.answered/).length).toBeGreaterThan(0);

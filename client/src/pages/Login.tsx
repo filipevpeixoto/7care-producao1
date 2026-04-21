@@ -1,24 +1,17 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { LoginForm } from '@/components/auth/LoginForm';
-import { RegisterForm } from '@/components/auth/RegisterForm';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { X, Download, Smartphone } from 'lucide-react';
-import { ariaLabels } from '@/lib/accessibility';
-
-import { useSystemLogo } from '@/hooks/useSystemLogo';
+import { useTheme } from '@/contexts/ThemeContext';
+import { LoginClassic } from './login/LoginClassic';
+import { LoginV2 } from './login/LoginV2';
 
 export const Login = () => {
-  const { t } = useTranslation();
   const [isRegistering, setIsRegistering] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(true);
-  const { systemLogo } = useSystemLogo();
   const { isAuthenticated, isLoading, user } = useAuth();
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
+  const { skin } = useTheme();
 
   const handleInstall = async () => {
     const success = await installApp();
@@ -28,14 +21,7 @@ export const Login = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-white">{t('common.loading')}</p>
-        </div>
-      </div>
-    );
+    return skin === 'v2' ? <LoginV2 isLoading /> : <LoginClassic isLoading />;
   }
 
   if (isAuthenticated && user?.id) {
@@ -60,74 +46,15 @@ export const Login = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4 relative">
-      {/* PWA Install Notification */}
-      {!isInstalled && showInstallPrompt && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-xs">
-          <Alert className="bg-white/95 backdrop-blur-sm border-primary/20 shadow-lg">
-            <Smartphone className="h-4 w-4" />
-            <AlertDescription className="pr-6">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex-1">
-                  <p className="font-medium text-primary text-sm">{t('login.installApp')}</p>
-                  {isInstallable && (
-                    <Button
-                      onClick={handleInstall}
-                      size="sm"
-                      className="mt-1 bg-primary hover:bg-primary/90 text-white text-xs h-7 px-3"
-                    >
-                      <Download className="w-3 h-3 mr-1" />
-                      {t('login.installNow')}
-                    </Button>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 hover:bg-primary/10 shrink-0"
-                  onClick={() => setShowInstallPrompt(false)}
-                  aria-label={ariaLabels.closeInstallPrompt}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
+  const shellProps = {
+    isRegistering,
+    showInstallPrompt,
+    isInstallable,
+    isInstalled,
+    onInstall: handleInstall,
+    onToggleRegistering: () => setIsRegistering((current) => !current),
+    onDismissInstallPrompt: () => setShowInstallPrompt(false),
+  };
 
-      <div className="w-full max-w-md space-y-8">
-        {/* Logo and Title */}
-        <div className="text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="w-40 h-40 bg-background backdrop-blur-sm rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-              {systemLogo && (
-                <img
-                  src={systemLogo}
-                  alt="7Care — Sistema de Gestão Eclesiástica"
-                  className="w-24 h-24 object-contain"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Auth Forms */}
-        <div className="space-y-4">
-          {isRegistering ? <RegisterForm /> : <LoginForm />}
-
-          <div className="text-center">
-            <Button
-              variant="ghost"
-              onClick={() => setIsRegistering(!isRegistering)}
-              className="text-white hover:bg-white/10 hover:text-white"
-            >
-              {isRegistering ? t('login.hasAccount') : t('login.noAccount')}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return skin === 'v2' ? <LoginV2 {...shellProps} /> : <LoginClassic {...shellProps} />;
 };

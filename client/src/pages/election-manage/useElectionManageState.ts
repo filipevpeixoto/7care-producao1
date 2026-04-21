@@ -5,6 +5,60 @@ import { fetchWithAuth } from '@/lib/api';
 import type { ElectionData, ElectionPhase } from './electionManageTypes';
 import { electionLogger } from '@/lib/logger';
 
+const normalizeElectionData = (raw: unknown): ElectionData | null => {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const data = raw as Partial<ElectionData> & {
+    election?: Partial<ElectionData['election']>;
+    positions?: unknown;
+  };
+
+  const positions = Array.isArray(data.positions) ? data.positions : [];
+  const safeCurrentPosition =
+    typeof data.currentPosition === 'number' && Number.isFinite(data.currentPosition)
+      ? data.currentPosition
+      : 0;
+  const safeTotalPositions =
+    typeof data.totalPositions === 'number' && Number.isFinite(data.totalPositions)
+      ? data.totalPositions
+      : positions.length;
+
+  return {
+    election: {
+      id: typeof data.election?.id === 'number' ? data.election.id : 0,
+      config_id: typeof data.election?.config_id === 'number' ? data.election.config_id : 0,
+      church_name: data.election?.church_name,
+      status: data.election?.status || 'draft',
+      current_position:
+        typeof data.election?.current_position === 'number' ? data.election.current_position : 0,
+      positions: Array.isArray(data.election?.positions) ? data.election.positions : [],
+      voters: Array.isArray(data.election?.voters) ? data.election.voters : [],
+      created_at: data.election?.created_at,
+    },
+    totalVoters: typeof data.totalVoters === 'number' ? data.totalVoters : 0,
+    votedVoters: typeof data.votedVoters === 'number' ? data.votedVoters : 0,
+    currentPosition: safeCurrentPosition,
+    totalPositions: safeTotalPositions,
+    positions: positions.map((position) => {
+      const item = (position && typeof position === 'object' ? position : {}) as Record<
+        string,
+        unknown
+      >;
+      return {
+        position: typeof item.position === 'string' ? item.position : 'Cargo',
+        totalNominations: typeof item.totalNominations === 'number' ? item.totalNominations : 0,
+        winner:
+          item.winner && typeof item.winner === 'object'
+            ? (item.winner as ElectionData['positions'][number]['winner'])
+            : null,
+        results: Array.isArray(item.results)
+          ? (item.results as ElectionData['positions'][number]['results'])
+          : [],
+      };
+    }),
+  };
+};
+
 export const useElectionManageState = (configId?: string) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -41,21 +95,31 @@ export const useElectionManageState = (configId?: string) => {
         });
 
         if (response.ok) {
-          const data = await response.json();
+          const rawData = await response.json();
+          const data = normalizeElectionData(rawData);
+          if (!data) {
+            throw new Error('Invalid election data');
+          }
           setElectionData(data);
           setCache({ data, timestamp: now });
           setLastUpdate(now);
 
+          const electionPhase = (
+            data.election as typeof data.election & {
+              current_phase?: ElectionPhase;
+            }
+          ).current_phase;
+
           if (data.currentPosition >= data.totalPositions) {
             setCurrentPhase('completed');
           } else {
-            if (data.election?.current_phase) {
-              setCurrentPhase(data.election.current_phase);
+            if (electionPhase) {
+              setCurrentPhase(electionPhase);
             } else {
               const currentPosData = data.positions[data.currentPosition];
               if (
                 currentPosData &&
-                currentPosData.results.some((r: { votes: number }) => r.votes > 0)
+                currentPosData.results.some((r: { votes?: number }) => (r?.votes || 0) > 0)
               ) {
                 setCurrentPhase('voting');
               } else if (currentPosData && currentPosData.totalNominations > 0) {
@@ -271,7 +335,10 @@ export const useElectionManageState = (configId?: string) => {
   };
 
   const getCurrentPositionData = () => {
-    if (!electionData || electionData.currentPosition >= electionData.positions.length) {
+    if (!electionData || !Array.isArray(electionData.positions)) {
+      return null;
+    }
+    if (electionData.currentPosition >= electionData.positions.length) {
       return null;
     }
     return electionData.positions[electionData.currentPosition];
@@ -279,11 +346,13 @@ export const useElectionManageState = (configId?: string) => {
 
   const getPhaseProgress = () => {
     if (!electionData) return 0;
+    if (!electionData.totalPositions) return 0;
     return ((electionData.currentPosition + 1) / electionData.totalPositions) * 100;
   };
 
   const getVoterTurnout = () => {
     if (!electionData) return 0;
+    if (!electionData.totalVoters) return 0;
     return (electionData.votedVoters / electionData.totalVoters) * 100;
   };
 

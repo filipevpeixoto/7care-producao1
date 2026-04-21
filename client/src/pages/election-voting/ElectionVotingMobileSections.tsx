@@ -21,7 +21,11 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import type { ElectionData } from './electionVotingTypes';
 import { ariaLabels } from '@/lib/accessibility';
 
-type ToastFn = (props: { title?: string; description?: string; variant?: 'default' | 'destructive' }) => void;
+type ToastFn = (props: {
+  title?: string;
+  description?: string;
+  variant?: 'default' | 'destructive';
+}) => void;
 
 export const LoadingState = () => (
   <MobileLayout>
@@ -120,25 +124,25 @@ export const NominationWaitingCard = ({
   nominationCount,
   maxNominations,
 }: NominationWaitingCardProps) => (
-  <Card className="border-blue-300 bg-blue-50">
+  <Card className="border-blue-300 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40">
     <CardContent className="p-8 text-center space-y-4">
       <div className="flex justify-center">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-          <CheckCircle className="h-8 w-8 text-blue-600" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">
+          <CheckCircle className="h-8 w-8 text-blue-600 dark:text-blue-300" />
         </div>
       </div>
-      <h2 className="text-xl font-bold text-blue-900">
+      <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">
         {nominationCount === 1 ? 'Indicação Registrada!' : 'Indicações Registradas!'}
       </h2>
-      <p className="text-blue-800">
+      <p className="text-blue-800 dark:text-blue-200">
         Você fez <strong>{nominationCount || 0}</strong> de <strong>{maxNominations || 1}</strong>{' '}
         indicações permitidas.
       </p>
-      <p className="text-blue-800">Visualize na tela principal os indicados.</p>
-      <p className="text-sm text-blue-700">
+      <p className="text-blue-800 dark:text-blue-200">Visualize na tela principal os indicados.</p>
+      <p className="text-sm text-blue-700 dark:text-blue-300">
         Aguarde o administrador iniciar a votação para continuar.
       </p>
-      <div className="flex items-center justify-center gap-2 text-xs text-blue-600 pt-2">
+      <div className="flex items-center justify-center gap-2 pt-2 text-xs text-blue-600 dark:text-blue-300">
         <RefreshCw className="h-3 w-3 animate-spin" />
         <span>Atualizando automaticamente...</span>
       </div>
@@ -155,20 +159,20 @@ export const VoteWaitingCard = ({
   votedCandidateName,
   currentPositionName,
 }: VoteWaitingCardProps) => (
-  <Card className="border-green-300 bg-green-50">
+  <Card className="border-green-300 bg-green-50 dark:border-green-900 dark:bg-green-950/40">
     <CardContent className="p-8 text-center space-y-4">
       <div className="flex justify-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-          <CheckCircle className="h-8 w-8 text-green-600" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+          <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-300" />
         </div>
       </div>
-      <h2 className="text-xl font-bold text-green-900">Voto Registrado!</h2>
-      <p className="text-green-800 text-lg">
+      <h2 className="text-xl font-bold text-green-900 dark:text-green-100">Voto Registrado!</h2>
+      <p className="text-lg text-green-800 dark:text-green-200">
         Você votou em <strong>{votedCandidateName}</strong> para{' '}
         <strong>{currentPositionName}</strong>.
       </p>
-      <p className="text-sm text-green-700">Aguarde a contagem de votos.</p>
-      <div className="flex items-center justify-center gap-2 text-xs text-green-600 pt-2">
+      <p className="text-sm text-green-700 dark:text-green-300">Aguarde a contagem de votos.</p>
+      <div className="flex items-center justify-center gap-2 pt-2 text-xs text-green-600 dark:text-green-300">
         <RefreshCw className="h-3 w-3 animate-spin" />
         <span>Atualizando automaticamente...</span>
       </div>
@@ -202,9 +206,9 @@ export const FinalCardWinner = ({
       </div>
       <h2 className="text-xl font-bold text-purple-900">Votação Finalizada!</h2>
       <p className="text-purple-800 text-lg leading-relaxed">
-        O membro <strong>{winner.name}</strong> foi eleito para <strong>{currentPositionName}</strong>{' '}
-        com <strong>{winner.percentage.toFixed(1)}%</strong> dos votos ({winner.votes} de{' '}
-        {expectedVoters || winner.votes}).
+        O membro <strong>{winner.name}</strong> foi eleito para{' '}
+        <strong>{currentPositionName}</strong> com <strong>{winner.percentage.toFixed(1)}%</strong>{' '}
+        dos votos ({winner.votes} de {expectedVoters || winner.votes}).
       </p>
       <p className="text-sm text-purple-700">
         Aguarde o próximo cargo. O processo avançará automaticamente assim que o administrador
@@ -253,12 +257,12 @@ export const PhaseStatusCard = ({ phase, title, description }: PhaseStatusCardPr
   <Card
     className={`${
       phase === 'nomination'
-        ? 'border-blue-200 bg-blue-50'
+        ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30'
         : phase === 'voting'
-          ? 'border-green-200 bg-green-50'
+          ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30'
           : phase === 'oral_observations'
-            ? 'border-yellow-200 bg-yellow-50'
-            : 'border-gray-200 bg-gray-50'
+            ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30'
+            : 'border-gray-200 bg-gray-50 dark:border-[var(--p7-border)] dark:bg-[var(--p7-surface-2)]'
     }`}
   >
     <CardContent className="p-4">
@@ -307,7 +311,10 @@ export const PositionInfoCard = ({
         </div>
         {isNominationPhase && (
           <div className="flex items-center gap-2 text-sm">
-            <Badge variant="outline" className="bg-blue-50 border-blue-300 text-blue-800">
+            <Badge
+              variant="outline"
+              className="border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
+            >
               {nominationCount || 0} / {maxNominations || 1} indicações
             </Badge>
           </div>
@@ -344,18 +351,20 @@ export const CandidatesSection = ({
 }: CandidatesSectionProps) => {
   if (electionData.candidates.length === 0) {
     return (
-      <Card>
+      <Card className="border-border/70 bg-card/95 shadow-sm">
         <CardContent className="p-6 text-center">
-          <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="font-semibold mb-2">Nenhum candidato elegível</h3>
-          <p className="text-sm text-muted-foreground mb-4">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-primary/10 text-primary">
+            <Users className="h-7 w-7" />
+          </div>
+          <h3 className="mb-2 font-semibold">Nenhum candidato elegível</h3>
+          <p className="mb-4 text-sm leading-6 text-muted-foreground">
             {electionData.phase === 'nomination'
-              ? 'Não há membros elegíveis para indicação neste momento.'
-              : 'Não há candidatos para votação neste momento.'}
+              ? 'Ainda não há membros aptos para indicação neste cargo. Atualize a lista em instantes ou confirme as regras com a administração.'
+              : 'Ainda não há candidatos liberados para votação neste cargo. Atualize a lista ou aguarde a próxima liberação.'}
           </p>
           <Button variant="outline" size="sm" onClick={handleRetry}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Recarregar
+            Recarregar lista
           </Button>
         </CardContent>
       </Card>
@@ -364,7 +373,7 @@ export const CandidatesSection = ({
 
   const filteredCandidates = electionData.candidates
     .filter(
-      candidate =>
+      (candidate) =>
         candidate &&
         candidate.name &&
         candidate.id &&
@@ -391,7 +400,7 @@ export const CandidatesSection = ({
             type="text"
             placeholder="Buscar candidato pelo nome..."
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -399,7 +408,7 @@ export const CandidatesSection = ({
           <p className="text-xs text-muted-foreground mt-2">
             {
               electionData.candidates.filter(
-                c => c.name && c.name.toLowerCase().includes(searchTerm.toLowerCase())
+                (c) => c.name && c.name.toLowerCase().includes(searchTerm.toLowerCase())
               ).length
             }{' '}
             candidato(s) encontrado(s)
@@ -408,15 +417,14 @@ export const CandidatesSection = ({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {filteredCandidates.map(candidate => {
+        {filteredCandidates.map((candidate) => {
           const userNominations = Array.isArray(electionData.userNominations)
             ? electionData.userNominations
             : [];
           const maxNominations = electionData.maxNominationsPerVoter || 1;
           const nominationLimitReached = userNominations.length >= maxNominations;
           const isVotingPhase = electionData.phase === 'voting';
-          const alreadyIndicated =
-            isNominationPhase && userNominations.includes(candidate.id);
+          const alreadyIndicated = isNominationPhase && userNominations.includes(candidate.id);
           const isNominationSelected = isNominationPhase && selectedCandidate === candidate.id;
           const cardActive = isNominationPhase
             ? alreadyIndicated || isNominationSelected
@@ -429,9 +437,15 @@ export const CandidatesSection = ({
             <div
               key={candidate.id}
               className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                cardActive ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                cardActive
+                  ? 'border-blue-500 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30'
+                  : 'border-gray-200 hover:border-gray-300 dark:border-[var(--p7-border)] dark:hover:border-[var(--v2-gold)]'
               } ${
-                submitting ? 'opacity-50 pointer-events-none' : cardClickable ? 'cursor-pointer' : 'cursor-default'
+                submitting
+                  ? 'opacity-50 pointer-events-none'
+                  : cardClickable
+                    ? 'cursor-pointer'
+                    : 'cursor-default'
               }`}
               onClick={() => {
                 if (isNominationPhase) {
@@ -449,7 +463,7 @@ export const CandidatesSection = ({
                     return;
                   }
 
-                  setSelectedCandidate(prev => (prev === candidate.id ? null : candidate.id));
+                  setSelectedCandidate((prev) => (prev === candidate.id ? null : candidate.id));
                 } else if (cardClickable) {
                   setSelectedCandidate(candidate.id);
                 }
@@ -459,9 +473,7 @@ export const CandidatesSection = ({
                 <div className="flex flex-col items-center gap-2 mb-3">
                   <div className="flex items-center gap-2 w-full justify-center">
                     {(cardActive ||
-                      (isVotingPhase
-                        ? candidate.votes > 0
-                        : candidate.nominations > 0)) && (
+                      (isVotingPhase ? candidate.votes > 0 : candidate.nominations > 0)) && (
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${
                           cardActive
@@ -479,7 +491,7 @@ export const CandidatesSection = ({
                       </div>
                     )}
                     <div className="flex-1 min-w-0 text-center">
-                      <p className="font-bold text-base sm:text-lg text-gray-900 dark:text-gray-100 break-words tracking-tight leading-tight">
+                      <p className="font-bold text-base tracking-tight leading-tight break-words text-gray-900 dark:text-gray-100 sm:text-lg">
                         {candidate.name}
                       </p>
                     </div>
@@ -488,17 +500,15 @@ export const CandidatesSection = ({
                     {isNominationPhase && candidate.points > 0 && (
                       <Badge
                         variant="outline"
-                        className="text-[11px] font-bold border-2 border-amber-300 text-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-1 shadow-sm hover:shadow-md transition-shadow"
+                        className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-1 text-[11px] font-bold text-amber-700 shadow-sm transition-shadow hover:shadow-md dark:border-amber-900 dark:from-amber-950/40 dark:to-yellow-950/30 dark:text-amber-300"
                       >
-                        <span className="bg-gradient-to-r from-amber-600 to-amber-700 bg-clip-text text-transparent">
-                          ⭐ {candidate.points.toLocaleString('pt-BR')} pts
-                        </span>
+                        <span>⭐ {candidate.points.toLocaleString('pt-BR')} pts</span>
                       </Badge>
                     )}
                     {isNominationPhase && alreadyIndicated && (
                       <Badge
                         variant="outline"
-                        className="text-[10px] uppercase tracking-wide border-2 border-blue-400 text-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 px-2.5 py-1 shadow-sm"
+                        className="border-2 border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 px-2.5 py-1 text-[10px] uppercase tracking-wide text-blue-700 shadow-sm dark:border-blue-900 dark:from-blue-950/40 dark:to-indigo-950/30 dark:text-blue-300"
                       >
                         ✓ Você indicou
                       </Badge>
@@ -508,12 +518,14 @@ export const CandidatesSection = ({
 
                 <div className="space-y-2 mb-3">
                   {isVotingPhase && candidate.votes > 0 && (
-                    <p className="text-xs text-green-600 font-medium">
+                    <p className="text-xs font-medium text-green-600 dark:text-green-300">
                       {candidate.votes} votos ({candidate.percentage.toFixed(1)}%)
                     </p>
                   )}
                   {isNominationPhase && alreadyIndicated && (
-                    <p className="text-xs text-blue-600 font-medium">Você indicou este membro.</p>
+                    <p className="text-xs font-medium text-blue-600 dark:text-blue-300">
+                      Você indicou este membro.
+                    </p>
                   )}
                   {isNominationPhase && !alreadyIndicated && nominationLimitReached && (
                     <p className="text-xs text-amber-600">Limite de indicações atingido.</p>
@@ -524,7 +536,7 @@ export const CandidatesSection = ({
                   <div className="mt-auto space-y-2">
                     <Button
                       size="sm"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleNominateCandidate(candidate.id);
                       }}
@@ -536,10 +548,10 @@ export const CandidatesSection = ({
                       }
                       className={`w-full text-xs ${
                         alreadyIndicated
-                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                          ? 'border border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300'
                           : isNominationSelected
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-gray-100 text-gray-500'
+                            : 'bg-gray-100 text-gray-500 dark:bg-[var(--p7-surface-2)] dark:text-[var(--p7-text-3)]'
                       }`}
                     >
                       {alreadyIndicated
@@ -559,7 +571,7 @@ export const CandidatesSection = ({
                   <div className="mt-auto">
                     <Button
                       size="sm"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleVote(candidate.id, 'voting');
                       }}
@@ -567,7 +579,7 @@ export const CandidatesSection = ({
                       className={`w-full text-xs ${
                         selectedCandidate === candidate.id
                           ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[var(--p7-surface-2)] dark:text-[var(--p7-text-2)] dark:hover:bg-[var(--p7-border)]'
                       }`}
                     >
                       Votar
@@ -597,15 +609,17 @@ export const PositionDescriptionModal = ({
   description,
 }: PositionDescriptionModalProps) => (
   <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-md mx-auto bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+    <DialogContent className="mx-auto max-w-md border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:border-blue-900 dark:from-blue-950/40 dark:to-indigo-950/30">
       <DialogHeader className="space-y-3">
         <div className="flex items-center justify-between">
-          <DialogTitle className="text-lg font-semibold text-blue-900">{title}</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+            {title}
+          </DialogTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+            className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-100 hover:text-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/50 dark:hover:text-blue-100"
             aria-label={ariaLabels.close}
           >
             <X className="h-4 w-4" />
@@ -613,9 +627,13 @@ export const PositionDescriptionModal = ({
         </div>
       </DialogHeader>
       <div className="space-y-4">
-        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-blue-200">
-          <h3 className="font-medium text-blue-900 mb-2">Atribuições e Responsabilidades:</h3>
-          <div className="text-blue-800 leading-relaxed whitespace-pre-line">{description}</div>
+        <div className="rounded-lg border border-blue-200 bg-white/70 p-4 backdrop-blur-sm dark:border-blue-900 dark:bg-[var(--p7-card)]/90">
+          <h3 className="mb-2 font-medium text-blue-900 dark:text-blue-100">
+            Atribuições e Responsabilidades:
+          </h3>
+          <div className="leading-relaxed whitespace-pre-line text-blue-800 dark:text-blue-200">
+            {description}
+          </div>
         </div>
         <div className="flex justify-end">
           <Button

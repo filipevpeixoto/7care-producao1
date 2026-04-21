@@ -802,6 +802,7 @@
     "photoRemoveErrorTitle": "Erro ao remover foto",
     "photoRemoveErrorDesc": "Não foi possível remover sua foto. Tente novamente.",
     "personalInfo": "Informações Pessoais",
+    "personalInfoHint": "Revise os dados que aparecem no seu cadastro e ajuste só o necessário.",
     "edit": "Editar",
     "cancel": "Cancelar",
     "save": "Salvar",
@@ -831,7 +832,8 @@
     "changePasswordFail": "Falha ao alterar a senha",
     "tryAgain": "Tente novamente.",
     "passwordChangedTitle": "Senha alterada",
-    "passwordChangedDesc": "Sua senha foi atualizada com sucesso."
+    "passwordChangedDesc": "Sua senha foi atualizada com sucesso.",
+    "profileHubTitle": "Central do perfil"
   },
   "greetings": {
     "morning": "Bom dia",
@@ -1286,5 +1288,30 @@
     "statusActive": "Ativa",
     "statusPaused": "Pausada",
     "statusDraft": "Rascunho"
+  },
+  "legalV2": {
+    "guidedReading": "Leitura guiada",
+    "terms": {
+      "badge": "Termos",
+      "subtitle": "Transparência, responsabilidade e uso seguro da plataforma.",
+      "intro": "Estes termos organizam o uso do 7care de forma clara para quem administra, acompanha e cuida da vida da igreja no dia a dia.",
+      "summaryUseValue": "Uso responsável",
+      "summaryUseLabel": "Regras de uso, responsabilidades e limites da plataforma.",
+      "summarySafetyValue": "Proteção da rotina",
+      "summarySafetyLabel": "Compromissos que ajudam a proteger a operação e a comunidade.",
+      "summaryLegalValue": "Transparência legal",
+      "summaryLegalLabel": "Atualizações, governança e respaldo jurídico do serviço."
+    },
+    "privacy": {
+      "badge": "Privacidade",
+      "subtitle": "Como protegemos dados, acessos e informações sensíveis.",
+      "intro": "Este resumo mostra como o 7care coleta, protege e usa informações para apoiar o cuidado pastoral com segurança, clareza e responsabilidade.",
+      "summaryDataValue": "Coleta e retenção",
+      "summaryDataLabel": "Quais dados podem ser coletados e por quanto tempo são mantidos.",
+      "summaryUsageValue": "Uso com contexto",
+      "summaryUsageLabel": "Como as informações ajudam no cuidado pastoral e na operação.",
+      "summaryRightsValue": "Controle do titular",
+      "summaryRightsLabel": "Direitos do usuário, visibilidade e canais para solicitar mudanças."
+    }
   }
 }

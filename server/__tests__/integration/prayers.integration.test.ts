@@ -13,7 +13,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { prayerRoutes } from '../../routes/prayerRoutes';
-import { createMockUser } from './setup';
+import { createMockUser, toTestServer } from './setup';
 import { getAuthUserId } from '../../utils/authHelpers';
 
 // Mock auth helpers so we control userId without depending on JWT middleware
@@ -62,7 +62,7 @@ function createTestApp() {
   prayerRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -142,8 +142,7 @@ describe('Prayer Routes — Integration', () => {
       ];
       mockPrayerRepo.getByDistrict.mockResolvedValue(districtPrayers);
 
-      const res = await request(app)
-        .get('/api/prayers');
+      const res = await request(app).get('/api/prayers');
 
       expect(res.status).toBe(200);
       expect(mockPrayerRepo.getByDistrict).toHaveBeenCalledWith(3);
@@ -151,12 +150,15 @@ describe('Prayer Routes — Integration', () => {
     });
 
     it('should enrich prayers with requester name', async () => {
-      const prayers = [
-        { id: 1, userId: 5, title: 'My Prayer', isPublic: true, isAnswered: false },
-      ];
+      const prayers = [{ id: 1, userId: 5, title: 'My Prayer', isPublic: true, isAnswered: false }];
       mockPrayerRepo.getAll.mockResolvedValue(prayers);
 
-      const requesterUser = createMockUser({ id: 5, name: 'Maria', church: 'Church A', profilePhoto: 'photo.jpg' });
+      const requesterUser = createMockUser({
+        id: 5,
+        name: 'Maria',
+        church: 'Church A',
+        profilePhoto: 'photo.jpg',
+      });
       mockUserRepo.getUserById.mockResolvedValue(requesterUser);
 
       const res = await request(app).get('/api/prayers');
@@ -180,12 +182,10 @@ describe('Prayer Routes — Integration', () => {
       };
       mockPrayerRepo.create.mockResolvedValue(createdPrayer);
 
-      const res = await request(app)
-        .post('/api/prayers')
-        .send({
-          userId: 1,
-          title: 'Please pray for me',
-        });
+      const res = await request(app).post('/api/prayers').send({
+        userId: 1,
+        title: 'Please pray for me',
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -194,27 +194,21 @@ describe('Prayer Routes — Integration', () => {
     });
 
     it('should return 400 for missing userId', async () => {
-      const res = await request(app)
-        .post('/api/prayers')
-        .send({ title: 'Prayer' });
+      const res = await request(app).post('/api/prayers').send({ title: 'Prayer' });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for missing title', async () => {
-      const res = await request(app)
-        .post('/api/prayers')
-        .send({ userId: 1 });
+      const res = await request(app).post('/api/prayers').send({ userId: 1 });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for empty body', async () => {
-      const res = await request(app)
-        .post('/api/prayers')
-        .send({});
+      const res = await request(app).post('/api/prayers').send({});
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -231,14 +225,12 @@ describe('Prayer Routes — Integration', () => {
       };
       mockPrayerRepo.create.mockResolvedValue(createdPrayer);
 
-      const res = await request(app)
-        .post('/api/prayers')
-        .send({
-          userId: 1,
-          title: 'Prayer with desc',
-          description: 'Detailed prayer request',
-          isPublic: true,
-        });
+      const res = await request(app).post('/api/prayers').send({
+        userId: 1,
+        title: 'Prayer with desc',
+        description: 'Detailed prayer request',
+        isPublic: true,
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.data).toHaveProperty('description', 'Detailed prayer request');
@@ -251,9 +243,7 @@ describe('Prayer Routes — Integration', () => {
       const createdPrayer = { id: 12, userId: 1, title: 'Test', districtId: 5 };
       mockPrayerRepo.create.mockResolvedValue(createdPrayer);
 
-      const res = await request(app)
-        .post('/api/prayers')
-        .send({ userId: 1, title: 'Test' });
+      const res = await request(app).post('/api/prayers').send({ userId: 1, title: 'Test' });
 
       expect(res.status).toBe(201);
       expect(mockPrayerRepo.create).toHaveBeenCalledWith(
@@ -287,9 +277,7 @@ describe('Prayer Routes — Integration', () => {
     it('should return 404 for non-existent prayer', async () => {
       mockPrayerRepo.markAsAnswered.mockResolvedValue(null);
 
-      const res = await request(app)
-        .post('/api/prayers/999/answer')
-        .send({});
+      const res = await request(app).post('/api/prayers/999/answer').send({});
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
@@ -299,9 +287,7 @@ describe('Prayer Routes — Integration', () => {
       const answeredPrayer = { id: 1, isAnswered: true };
       mockPrayerRepo.markAsAnswered.mockResolvedValue(answeredPrayer);
 
-      const res = await request(app)
-        .post('/api/prayers/1/answer')
-        .send({});
+      const res = await request(app).post('/api/prayers/1/answer').send({});
 
       expect(res.status).toBe(200);
       expect(mockPrayerRepo.markAsAnswered).toHaveBeenCalledWith(1, undefined);
@@ -320,8 +306,7 @@ describe('Prayer Routes — Integration', () => {
       const ownerUser = createMockUser({ id: 1 });
       mockUserRepo.getUserById.mockResolvedValue(ownerUser);
 
-      const res = await request(app)
-        .delete('/api/prayers/1');
+      const res = await request(app).delete('/api/prayers/1');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -337,8 +322,7 @@ describe('Prayer Routes — Integration', () => {
       const adminUser = createMockUser({ id: 1, role: 'superadmin' });
       mockUserRepo.getUserById.mockResolvedValue(adminUser);
 
-      const res = await request(app)
-        .delete('/api/prayers/1');
+      const res = await request(app).delete('/api/prayers/1');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -348,8 +332,7 @@ describe('Prayer Routes — Integration', () => {
       mockPrayerRepo.getById.mockResolvedValue(null);
 
       vi.mocked(getAuthUserId).mockReturnValue(1);
-      const res = await request(app)
-        .delete('/api/prayers/999');
+      const res = await request(app).delete('/api/prayers/999');
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
@@ -363,8 +346,7 @@ describe('Prayer Routes — Integration', () => {
       const regularUser = createMockUser({ id: 1, role: 'member' });
       mockUserRepo.getUserById.mockResolvedValue(regularUser);
 
-      const res = await request(app)
-        .delete('/api/prayers/1');
+      const res = await request(app).delete('/api/prayers/1');
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
@@ -378,9 +360,7 @@ describe('Prayer Routes — Integration', () => {
       const result = { prayerId: 1, intercessorId: 5 };
       mockPrayerRepo.addIntercessor.mockResolvedValue(result);
 
-      const res = await request(app)
-        .post('/api/prayers/1/intercessor')
-        .send({ intercessorId: 5 });
+      const res = await request(app).post('/api/prayers/1/intercessor').send({ intercessorId: 5 });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -388,9 +368,7 @@ describe('Prayer Routes — Integration', () => {
     });
 
     it('should return 400 when intercessorId is missing', async () => {
-      const res = await request(app)
-        .post('/api/prayers/1/intercessor')
-        .send({});
+      const res = await request(app).post('/api/prayers/1/intercessor').send({});
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -442,9 +420,7 @@ describe('Prayer Routes — Integration', () => {
 
   describe('GET /api/prayers/user/:userId/interceding', () => {
     it('should return prayers the user is praying for', async () => {
-      const prayers = [
-        { id: 1, title: 'Prayer I intercede' },
-      ];
+      const prayers = [{ id: 1, title: 'Prayer I intercede' }];
       mockPrayerRepo.getPrayersUserIsPrayingFor.mockResolvedValue(prayers);
 
       const res = await request(app).get('/api/prayers/user/5/interceding');

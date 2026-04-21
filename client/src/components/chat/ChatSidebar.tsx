@@ -67,6 +67,42 @@ export const ChatSidebar = ({
     Array<{ id: number; name: string; email?: string; profilePhoto?: string; church?: string }>
   >([]);
 
+  const normalizeUsers = (
+    payload: unknown
+  ): Array<{
+    id: number;
+    name: string;
+    email?: string;
+    profilePhoto?: string;
+    church?: string;
+  }> => {
+    if (Array.isArray(payload)) return payload;
+    if (payload && typeof payload === 'object') {
+      const candidate = payload as {
+        users?: unknown;
+        data?: unknown;
+        members?: unknown;
+      };
+      if (Array.isArray(candidate.users)) return candidate.users;
+      if (Array.isArray(candidate.data)) return candidate.data;
+      if (Array.isArray(candidate.members)) return candidate.members;
+    }
+    return [];
+  };
+
+  const normalizeConversations = (payload: unknown): Conversation[] => {
+    if (Array.isArray(payload)) return payload;
+    if (payload && typeof payload === 'object') {
+      const candidate = payload as {
+        conversations?: unknown;
+        data?: unknown;
+      };
+      if (Array.isArray(candidate.conversations)) return candidate.conversations as Conversation[];
+      if (Array.isArray(candidate.data)) return candidate.data as Conversation[];
+    }
+    return [];
+  };
+
   // Carregar conversas reais do backend
   useEffect(() => {
     const loadConversations = async () => {
@@ -77,7 +113,7 @@ export const ChatSidebar = ({
         const response = await fetch(`/api/conversations/${user.id}`);
         if (response.ok) {
           const data = await response.json();
-          setConversations(data);
+          setConversations(normalizeConversations(data));
         } else {
           chatLogger.error('Erro ao carregar conversas');
           setConversations([]);
@@ -102,19 +138,19 @@ export const ChatSidebar = ({
   useEffect(() => {
     if (mode === 'users') {
       fetchWithAuth('/api/users/chat-list')
-        .then(r => r.json())
-        .then((list: ChatUser[]) => setAllUsers(list))
+        .then((r) => r.json())
+        .then((list: unknown) => setAllUsers(normalizeUsers(list)))
         .catch(() => {
           // Fallback para API de usuários normal
           fetchWithAuth('/api/users')
-            .then(r => r.json())
-            .then((list: ChatUser[]) => setAllUsers(list))
+            .then((r) => r.json())
+            .then((list: unknown) => setAllUsers(normalizeUsers(list)))
             .catch(() => setAllUsers([]));
         });
     }
   }, [mode, user?.id, user?.role]);
 
-  const filteredConversations = conversations.filter(conversation => {
+  const filteredConversations = conversations.filter((conversation) => {
     const conversationName = conversation.name || conversation.title || '';
     const lastMessageContent = conversation.lastMessage?.content || '';
     const matchesSearch =
@@ -124,8 +160,8 @@ export const ChatSidebar = ({
     return matchesSearch && matchesArchived;
   });
 
-  const pinnedConversations = filteredConversations.filter(c => c.isPinned);
-  const unpinnedConversations = filteredConversations.filter(c => !c.isPinned);
+  const pinnedConversations = filteredConversations.filter((c) => c.isPinned);
+  const unpinnedConversations = filteredConversations.filter((c) => !c.isPinned);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -161,8 +197,8 @@ export const ChatSidebar = ({
   const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return allUsers
-      .filter(u => u.id !== currentUserId)
-      .filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term))
+      .filter((u) => u.id !== currentUserId)
+      .filter((u) => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term))
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
   }, [allUsers, currentUserId, searchTerm]);
 
@@ -184,11 +220,20 @@ export const ChatSidebar = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowArchived(!showArchived)}
+              aria-label={
+                showArchived ? 'Mostrar conversas ativas' : 'Mostrar conversas arquivadas'
+              }
               data-testid="button-toggle-archived"
             >
               <Archive className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={onNewChat} data-testid="button-new-chat">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onNewChat}
+              aria-label="Iniciar nova conversa"
+              data-testid="button-new-chat"
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -197,9 +242,10 @@ export const ChatSidebar = ({
         <div className="relative mt-3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
+            aria-label={mode === 'users' ? 'Buscar usuários do chat' : 'Buscar conversas'}
             placeholder={mode === 'users' ? 'Buscar usuários...' : 'Buscar conversas...'}
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
             data-testid="input-search-conversations"
           />
@@ -211,7 +257,7 @@ export const ChatSidebar = ({
           <div className="p-2 space-y-1">
             {mode === 'users' ? (
               <div className="space-y-1">
-                {filteredUsers.map(u => (
+                {filteredUsers.map((u) => (
                   <div
                     key={u.id}
                     className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
@@ -262,7 +308,7 @@ export const ChatSidebar = ({
                       <Pin className="h-3 w-3" />
                       Fixadas
                     </div>
-                    {pinnedConversations.map(conversation => (
+                    {pinnedConversations.map((conversation) => (
                       <ConversationItem
                         key={conversation.id}
                         conversation={conversation}
@@ -285,7 +331,7 @@ export const ChatSidebar = ({
                         Todas as conversas
                       </div>
                     )}
-                    {unpinnedConversations.map(conversation => (
+                    {unpinnedConversations.map((conversation) => (
                       <ConversationItem
                         key={conversation.id}
                         conversation={conversation}
@@ -367,7 +413,10 @@ const ConversationItem = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
           <h3
-            className={cn('font-medium truncate', (conversation.unreadCount || 0) > 0 && 'font-semibold')}
+            className={cn(
+              'font-medium truncate',
+              (conversation.unreadCount || 0) > 0 && 'font-semibold'
+            )}
             data-testid={`conversation-name-${conversation.id}`}
           >
             {conversation.name || 'Conversa'}
@@ -386,7 +435,9 @@ const ConversationItem = ({
           <p
             className={cn(
               'text-sm text-muted-foreground truncate',
-              conversation.unreadCount && conversation.unreadCount > 0 && 'font-medium text-foreground'
+              conversation.unreadCount &&
+                conversation.unreadCount > 0 &&
+                'font-medium text-foreground'
             )}
             data-testid={`conversation-preview-${conversation.id}`}
           >

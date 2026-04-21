@@ -1,12 +1,12 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Skeleton para cards de estatísticas do Dashboard
  */
 export function StatCardSkeleton() {
   return (
-    <Card className="animate-pulse">
+    <Card className="skeleton-panel">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-8 rounded-full" />
@@ -37,21 +37,21 @@ export function StatsGridSkeleton({ count = 4 }: { count?: number }) {
  */
 export function GamificationCardSkeleton() {
   return (
-    <Card className="bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse">
+    <Card className="skeleton-panel overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <Skeleton className="h-4 w-32 bg-white/30" />
-        <Skeleton className="h-8 w-8 rounded-full bg-white/30" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-8 w-8 rounded-full" />
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-4 w-24 bg-white/30" />
-          <Skeleton className="h-8 w-16 bg-white/30" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-16" />
         </div>
         <div className="flex items-center justify-between">
-          <Skeleton className="h-4 w-28 bg-white/30" />
-          <Skeleton className="h-6 w-20 bg-white/30" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-6 w-20" />
         </div>
-        <Skeleton className="h-2 w-full rounded-full bg-white/30" />
+        <Skeleton className="h-2 w-full rounded-full" />
       </CardContent>
     </Card>
   );
@@ -62,7 +62,7 @@ export function GamificationCardSkeleton() {
  */
 export function BirthdayCardSkeleton() {
   return (
-    <Card className="animate-pulse">
+    <Card className="skeleton-panel">
       <CardHeader>
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-40" />
@@ -89,7 +89,7 @@ export function BirthdayCardSkeleton() {
  */
 export function VisitometerSkeleton() {
   return (
-    <Card className="animate-pulse">
+    <Card className="skeleton-panel">
       <CardHeader>
         <Skeleton className="h-5 w-32" />
       </CardHeader>
@@ -116,7 +116,7 @@ export function VisitometerSkeleton() {
 export function ChartCardSkeleton() {
   const heights = [40, 55, 70, 60, 50, 65, 75];
   return (
-    <Card className="animate-pulse">
+    <Card className="skeleton-panel">
       <CardHeader>
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-4 w-64 mt-1" />
@@ -124,9 +124,9 @@ export function ChartCardSkeleton() {
       <CardContent>
         <div className="h-[300px] flex items-end justify-around gap-2 px-4">
           {Array.from({ length: 7 }).map((_, i) => (
-            <Skeleton 
-              key={i} 
-              className="w-full rounded-t-md" 
+            <Skeleton
+              key={i}
+              className="w-full rounded-t-md"
               style={{ height: `${heights[i % heights.length]}%` }}
             />
           ))}
@@ -150,10 +150,10 @@ export function DashboardSkeleton() {
         </div>
         <Skeleton className="h-10 w-32" />
       </div>
-      
+
       {/* Stats Grid */}
       <StatsGridSkeleton count={4} />
-      
+
       {/* Main Content */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -161,12 +161,12 @@ export function DashboardSkeleton() {
         </div>
         <GamificationCardSkeleton />
       </div>
-      
+
       {/* Secondary Row */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <BirthdayCardSkeleton />
         <VisitometerSkeleton />
-        <Card className="animate-pulse">
+        <Card className="skeleton-panel">
           <CardHeader>
             <Skeleton className="h-5 w-36" />
           </CardHeader>

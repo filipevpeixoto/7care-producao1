@@ -28,6 +28,7 @@ export const PrivacyTab = ({
             <div className="text-xs text-muted-foreground">Outros membros podem ver seu perfil</div>
           </div>
           <Switch
+            aria-label="Tornar perfil visível"
             checked={settings.privacy.profileVisible}
             onCheckedChange={(checked) => updateSetting('privacy', 'profileVisible', checked)}
             data-testid="switch-profile-visible"
@@ -42,6 +43,7 @@ export const PrivacyTab = ({
             <div className="text-xs text-muted-foreground">Mostrar telefone e email no perfil</div>
           </div>
           <Switch
+            aria-label="Mostrar informações de contato"
             checked={settings.privacy.contactInfoVisible}
             onCheckedChange={(checked) => updateSetting('privacy', 'contactInfoVisible', checked)}
             data-testid="switch-contact-visible"
@@ -56,6 +58,7 @@ export const PrivacyTab = ({
             <div className="text-xs text-muted-foreground">Mostrar sua frequência nos eventos</div>
           </div>
           <Switch
+            aria-label="Mostrar frequência nos eventos"
             checked={settings.privacy.attendanceVisible}
             onCheckedChange={(checked) => updateSetting('privacy', 'attendanceVisible', checked)}
             data-testid="switch-attendance-visible"

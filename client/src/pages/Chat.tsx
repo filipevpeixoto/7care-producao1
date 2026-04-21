@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageCircle } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { EmptyState } from '@/components/v2/EmptyState';
+import { ThemeToggle } from '@/components/v2/ThemeToggle';
+import { PrototypeAvatar, PrototypeStatusBar } from './v2/prototypeShared';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,6 +42,7 @@ interface Conversation {
 
 export default function Chat() {
   const { t } = useTranslation();
+  const { skin } = useTheme();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isAdmin = useMemo(() => hasAdminAccess(user), [user]);
@@ -140,6 +145,131 @@ export default function Chat() {
     setShowNewChat(false);
   };
 
+  if (skin === 'v2') {
+    return (
+      <MobileLayout variant="prototype">
+        <div className="p7-shell">
+          <div className="p7-screen">
+            <PrototypeStatusBar />
+            <div className="p7-grad-header">
+              <div className="p7-header-row">
+                <div>
+                  <div className="p7-header-label">{t('chat.title', { defaultValue: 'Chat' })}</div>
+                  <div className="p7-header-title">
+                    {t('chat.title', { defaultValue: 'Chat pastoral' })}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                </div>
+              </div>
+            </div>
+            <div className="p7-scroll">
+              <div className="p7-section pb-4">
+                <div className="grid h-[calc(100vh-220px)] grid-cols-1 gap-3 md:grid-cols-[minmax(260px,_320px)_1fr] md:gap-4">
+                  <aside
+                    className={`flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[var(--p7-border)] bg-[var(--p7-card)] ${activeConversation ? 'hidden md:flex' : 'flex'}`}
+                    style={{ boxShadow: 'var(--shadow-card)' }}
+                  >
+                    <ChatSidebar
+                      mode={isAdmin ? 'users' : 'conversations'}
+                      currentUserId={user?.id}
+                      selectedConversationId={activeConversation?.id}
+                      onConversationSelect={handleConversationSelect}
+                      onSelectUser={handleSelectUserToChat}
+                      onNewChat={handleNewChat}
+                    />
+                  </aside>
+
+                  <section
+                    className={`flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[var(--p7-border)] bg-[var(--p7-card)] ${!activeConversation && !showNewChat ? 'hidden md:flex' : 'flex'}`}
+                    style={{ boxShadow: 'var(--shadow-card)' }}
+                  >
+                    {activeConversation ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedConversation(null)}
+                          className="mx-3 mt-3 flex items-center gap-2 self-start rounded-full border border-[var(--p7-border)] bg-[var(--p7-surface-2)] px-3 py-1.5 text-sm text-[var(--p7-muted)] transition-colors hover:text-[var(--p7-text)] md:hidden"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 19l-7-7 7-7"
+                            />
+                          </svg>
+                          {t('chat.back')}
+                        </button>
+                        <div className="min-h-0 flex-1">
+                          <ChatInterface
+                            chatUser={getChatUser(activeConversation)}
+                            conversationId={activeConversation.id}
+                            isGroup={activeConversation.type === 'group'}
+                            groupName={
+                              activeConversation.type === 'group'
+                                ? activeConversation.name
+                                : undefined
+                            }
+                            groupMembers={
+                              activeConversation.type === 'group'
+                                ? activeConversation.participants
+                                : undefined
+                            }
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+                        <EmptyState
+                          illustration={<MessageCircle className="h-7 w-7" />}
+                          title={
+                            showNewChat
+                              ? t('chat.newConversation', { defaultValue: 'Começar uma conversa' })
+                              : t('chat.selectConversation', {
+                                  defaultValue: 'Escolha alguém para conversar',
+                                })
+                          }
+                          copy={
+                            showNewChat
+                              ? t('chat.newConversationDescription', {
+                                  defaultValue:
+                                    'Encontre alguém na lista ao lado e envie a primeira mensagem para iniciar o cuidado.',
+                                })
+                              : t('chat.selectConversationDescription', {
+                                  defaultValue:
+                                    'Abra uma conversa na lateral e acompanhe a troca sem sair do fluxo da rotina pastoral.',
+                                })
+                          }
+                          cta={
+                            isAdmin && !showNewChat
+                              ? {
+                                  label: t('chat.startNew', { defaultValue: 'Nova conversa' }),
+                                  onClick: handleNewChat,
+                                }
+                              : undefined
+                          }
+                        />
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
   return (
     <MobileLayout>
       <div className="p-2 sm:p-4 h-[calc(100vh-120px)] overflow-hidden">
@@ -205,10 +335,10 @@ export default function Chat() {
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">{t('chat.newConversation')}</h3>
-                  <p className="text-muted-foreground">
-                    {t('chat.newConversationDescription')}
-                  </p>
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    {t('chat.newConversation')}
+                  </h3>
+                  <p className="text-muted-foreground">{t('chat.newConversationDescription')}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -218,9 +348,7 @@ export default function Chat() {
                   <h3 className="text-lg font-medium text-foreground mb-2">
                     {t('chat.selectConversation')}
                   </h3>
-                  <p className="text-muted-foreground">
-                    {t('chat.selectConversationDescription')}
-                  </p>
+                  <p className="text-muted-foreground">{t('chat.selectConversationDescription')}</p>
                 </CardContent>
               </Card>
             )}

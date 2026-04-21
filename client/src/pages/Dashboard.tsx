@@ -11,14 +11,17 @@ import { Visitometer } from '@/components/dashboard/Visitometer';
 import { QuickGamificationCard } from '@/components/dashboard/QuickGamificationCard';
 import { SpiritualCheckInModal } from '@/components/dashboard/SpiritualCheckInModal';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { Relationship } from '@/types/domain';
 import { useDashboardData } from './dashboard/useDashboardData';
 import { NextEventDisplay } from './dashboard/NextEventDisplay';
 import { BirthdayDisplay } from './dashboard/BirthdayDisplay';
+import { DashboardV2 } from './v2/DashboardV2';
 
 const Dashboard = () => {
   const { t } = useTranslation();
   const navigate = useTransitionNavigate();
+  const { skin } = useTheme();
   const {
     user,
     showCheckIn,
@@ -614,6 +617,28 @@ const Dashboard = () => {
     );
   }
 
+  if (skin === 'v2') {
+    return (
+      <MobileLayout variant="prototype">
+        <DashboardV2
+          user={user}
+          isAdmin={hasAdminAccess(user)}
+          stats={stats}
+          birthdayData={birthdayData}
+          userEvents={userEvents}
+          churchInterested={churchInterested}
+          eventsThisMonthCount={eventsThisMonthCount}
+          districtsCount={districtsCount}
+          pastorsCount={pastorsCount}
+          spiritualCheckIns={spiritualCheckIns}
+          showCheckIn={showCheckIn}
+          setShowCheckIn={setShowCheckIn}
+          markCheckInComplete={markCheckInComplete}
+        />
+      </MobileLayout>
+    );
+  }
+
   // Definir fundo baseado no role do usuário
   const isAdmin = hasAdminAccess(user);
   const backgroundClasses = isAdmin
@@ -635,7 +660,7 @@ const Dashboard = () => {
         <div className={patternClasses}></div>
         <div className={radialClasses}></div>
 
-        <div className="relative space-y-4 lg:space-y-8 p-3 lg:p-6 max-w-7xl mx-auto">
+        <div className="relative mx-auto max-w-7xl space-y-4 p-3 lg:space-y-8 lg:p-6">
           {/* Page heading - visually hidden but accessible */}
           <h1 className="sr-only">{t('dashboard.pageTitle', 'Painel de Controle')}</h1>
 

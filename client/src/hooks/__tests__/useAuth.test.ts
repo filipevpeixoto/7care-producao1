@@ -38,10 +38,13 @@ vi.mock('@/lib/offline', () => ({
   saveUsersOffline: vi.fn(),
   canAccessFullOfflineData: vi.fn(() => true),
   clearEncryptionKey: vi.fn(() => Promise.resolve()),
+  clearAllOfflineData: vi.fn(() => Promise.resolve()),
+  clearCacheTimestamps: vi.fn(),
 }));
 
 // Import após os mocks
 import { useAuth } from '../useAuth';
+import { clearAllOfflineData, clearCacheTimestamps } from '@/lib/offline';
 
 describe('useAuth', () => {
   beforeEach(() => {
@@ -137,6 +140,8 @@ describe('useAuth', () => {
       expect(result.current.isAuthenticated).toBe(true);
       expect(localStorageMock.setItem).toHaveBeenCalledWith('7care_auth', JSON.stringify(mockUser));
       expect(localStorageMock.setItem).toHaveBeenCalledWith('7care_token', 'test-token-123');
+      expect(clearAllOfflineData).toHaveBeenCalled();
+      expect(clearCacheTimestamps).toHaveBeenCalled();
     }, 15000);
 
     it('deve falhar login com credenciais inválidas', async () => {
@@ -208,6 +213,8 @@ describe('useAuth', () => {
       expect(result.current.isAuthenticated).toBe(false);
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('7care_auth');
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('7care_token');
+      expect(clearAllOfflineData).toHaveBeenCalled();
+      expect(clearCacheTimestamps).toHaveBeenCalled();
     });
   });
 

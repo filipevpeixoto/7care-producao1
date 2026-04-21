@@ -33,9 +33,7 @@ export function StepChurchSelection({
           <ChurchIcon className="h-5 w-5" />
           Seleção da Igreja
         </CardTitle>
-        <CardDescription>
-          Selecione qual igreja será feita a eleição de liderança
-        </CardDescription>
+        <CardDescription>Selecione qual igreja será feita a eleição de liderança</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -45,25 +43,22 @@ export function StepChurchSelection({
             type="text"
             placeholder="Ex.: Nomeação 2025 - Comissão de Nomeações"
             value={config.title || ''}
-            onChange={e => setConfig(prev => ({ ...prev, title: e.target.value }))}
+            onChange={(e) => setConfig((prev) => ({ ...prev, title: e.target.value }))}
           />
           <p className="text-xs text-muted-foreground">
-            Defina um nome para identificar esta nomeação. Útil quando houver várias
-            nomeações para a mesma igreja.
+            Defina um nome para identificar esta nomeação. Útil quando houver várias nomeações para
+            a mesma igreja.
           </p>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="church">Igreja</Label>
-          <Select
-            value={config.churchId?.toString() || ''}
-            onValueChange={handleChurchChange}
-          >
-            <SelectTrigger>
+          <Select value={config.churchId?.toString() || ''} onValueChange={handleChurchChange}>
+            <SelectTrigger aria-label="Selecionar igreja para a nomeação">
               <SelectValue placeholder="Selecione uma igreja" />
             </SelectTrigger>
             <SelectContent>
-              {churches.map(church => (
+              {churches.map((church) => (
                 <SelectItem key={church.id} value={church.id?.toString() || ''}>
                   {church.name}
                 </SelectItem>

@@ -11,14 +11,16 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3065';
+const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || '3064'}`;
 
 test.describe('Navigation', () => {
   test.describe('Public Routes', () => {
     test('should render login page at root', async ({ page }) => {
       await page.goto(BASE_URL, { waitUntil: 'networkidle' });
       // Should show login form or auth UI
-      const authElement = page.locator('input[type="password"], button:has-text("Entrar"), button:has-text("Login"), form');
+      const authElement = page.locator(
+        'input[type="password"], button:has-text("Entrar"), button:has-text("Login"), form'
+      );
       await expect(authElement.first()).toBeVisible({ timeout: 15000 });
     });
 
@@ -52,7 +54,11 @@ test.describe('Navigation', () => {
 
         // Should either redirect to login or show auth UI
         const isOnLogin = page.url().includes('/login') || page.url() === `${BASE_URL}/`;
-        const hasAuthUI = await page.locator('input[type="password"], button:has-text("Entrar"), button:has-text("Login")').first().isVisible({ timeout: 10000 }).catch(() => false);
+        const hasAuthUI = await page
+          .locator('input[type="password"], button:has-text("Entrar"), button:has-text("Login")')
+          .first()
+          .isVisible({ timeout: 10000 })
+          .catch(() => false);
 
         expect(isOnLogin || hasAuthUI).toBeTruthy();
       });
@@ -64,13 +70,22 @@ test.describe('Navigation', () => {
       await page.goto(`${BASE_URL}/this-route-does-not-exist-12345`, { waitUntil: 'networkidle' });
 
       // Should show 404 content or redirect to login
-      const notFoundContent = page.locator('text=404, text="Página não encontrada", text="Not Found", text="not found"');
+      const notFoundHeading = page.getByRole('heading', {
+        name: /página não encontrada|page not found|not found/i,
+      });
+      const notFoundCode = page.getByText('404', { exact: true });
       const loginForm = page.locator('input[type="password"]');
 
-      const hasNotFound = await notFoundContent.first().isVisible({ timeout: 10000 }).catch(() => false);
-      const hasLogin = await loginForm.first().isVisible({ timeout: 5000 }).catch(() => false);
+      const hasNotFoundHeading = await notFoundHeading
+        .isVisible({ timeout: 10000 })
+        .catch(() => false);
+      const hasNotFoundCode = await notFoundCode.isVisible({ timeout: 10000 }).catch(() => false);
+      const hasLogin = await loginForm
+        .first()
+        .isVisible({ timeout: 5000 })
+        .catch(() => false);
 
-      expect(hasNotFound || hasLogin).toBeTruthy();
+      expect(hasNotFoundHeading || hasNotFoundCode || hasLogin).toBeTruthy();
     });
   });
 

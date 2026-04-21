@@ -25,12 +25,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import type {
-  Candidate,
-  ElectionData,
-  ElectionPhase,
-  Position,
-} from './electionManageTypes';
+import type { Candidate, ElectionData, ElectionPhase, Position } from './electionManageTypes';
 
 export type GetZoomedSize = (size: string) => string;
 
@@ -102,6 +97,7 @@ export const ElectionManageHeader = ({
             onClick={decreaseZoom}
             className="h-8 px-2"
             disabled={zoomLevel <= 70}
+            aria-label="Diminuir zoom"
           >
             <ZoomOut className="h-4 w-4" />
           </Button>
@@ -111,6 +107,7 @@ export const ElectionManageHeader = ({
             onClick={increaseZoom}
             className="h-8 px-2"
             disabled={zoomLevel >= 150}
+            aria-label="Aumentar zoom"
           >
             <ZoomIn className="h-4 w-4" />
           </Button>
@@ -122,6 +119,7 @@ export const ElectionManageHeader = ({
         size={isFullscreen ? 'sm' : 'sm'}
         onClick={toggleFullscreen}
         className={isFullscreen ? 'h-8 px-2' : ''}
+        aria-label={isFullscreen ? 'Sair da tela cheia' : 'Abrir em tela cheia'}
       >
         {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
         <span className={isFullscreen ? 'hidden' : 'ml-2'}>
@@ -134,13 +132,12 @@ export const ElectionManageHeader = ({
         size="sm"
         onClick={() => setAutoRefresh(!autoRefresh)}
         className={isFullscreen ? 'h-8 px-2' : ''}
+        aria-label={autoRefresh ? 'Pausar atualização automática' : 'Ativar atualização automática'}
       >
         <Loader2
           className={`h-4 w-4 ${isFullscreen ? '' : 'mr-2'} ${autoRefresh ? 'animate-spin' : ''}`}
         />
-        <span className={isFullscreen ? 'hidden' : ''}>
-          {autoRefresh ? 'Pausar' : 'Atualizar'}
-        </span>
+        <span className={isFullscreen ? 'hidden' : ''}>{autoRefresh ? 'Pausar' : 'Atualizar'}</span>
       </Button>
     </div>
   </div>
@@ -208,10 +205,7 @@ export const ProgressOverview = ({
               >
                 {Math.round(getPhaseProgress())}%
               </div>
-              <div
-                className="text-muted-foreground"
-                style={{ fontSize: getZoomedSize('text-sm') }}
-              >
+              <div className="text-muted-foreground" style={{ fontSize: getZoomedSize('text-sm') }}>
                 Progresso
               </div>
             </div>
@@ -222,10 +216,7 @@ export const ProgressOverview = ({
               >
                 {Math.round(getVoterTurnout())}%
               </div>
-              <div
-                className="text-muted-foreground"
-                style={{ fontSize: getZoomedSize('text-sm') }}
-              >
+              <div className="text-muted-foreground" style={{ fontSize: getZoomedSize('text-sm') }}>
                 Participação
               </div>
             </div>
@@ -311,7 +302,7 @@ export const NominationConfig = ({
                 type="number"
                 min="1"
                 value={tempMaxNominations}
-                onChange={e => setTempMaxNominations(e.target.value)}
+                onChange={(e) => setTempMaxNominations(e.target.value)}
                 className={`${isFullscreen ? 'w-16 h-6 text-xs' : 'w-20 h-8'} text-center`}
                 autoFocus
               />
@@ -378,7 +369,7 @@ export const VerticalResults = ({
 }) => (
   <div className="space-y-4">
     {(() => {
-      const maxVotes = Math.max(...results.map(c => c.votes), 1);
+      const maxVotes = Math.max(...results.map((c) => c.votes), 1);
       const maxBarHeight = maxVotes > 0 ? (maxVotes / maxVotes) * 300 + 20 : 20;
       const containerHeight = Math.max(400, maxBarHeight + 160);
 
@@ -546,14 +537,9 @@ export const HorizontalResults = ({
         }
         return a.name.localeCompare(b.name);
       })
-      .map(candidate => (
-        <div
-          key={candidate.id}
-          className={`${isFullscreen ? 'p-2' : 'p-4'} bg-gray-50 rounded-lg`}
-        >
-          <div
-            className={`flex items-center justify-between ${isFullscreen ? 'mb-1' : 'mb-2'}`}
-          >
+      .map((candidate) => (
+        <div key={candidate.id} className={`${isFullscreen ? 'p-2' : 'p-4'} bg-gray-50 rounded-lg`}>
+          <div className={`flex items-center justify-between ${isFullscreen ? 'mb-1' : 'mb-2'}`}>
             <div className="flex items-center gap-3">
               <div
                 className={`${isFullscreen ? 'w-7 h-7' : 'w-8 h-8'} bg-blue-100 rounded-full flex items-center justify-center`}
@@ -600,9 +586,7 @@ export const HorizontalResults = ({
                   {candidate.votes} / {electionData.totalVoters}
                 </span>
               </div>
-              <div
-                className={`w-full bg-gray-200 rounded-full ${isFullscreen ? 'h-2' : 'h-4'}`}
-              >
+              <div className={`w-full bg-gray-200 rounded-full ${isFullscreen ? 'h-2' : 'h-4'}`}>
                 <div
                   className={`bg-green-500 ${isFullscreen ? 'h-2' : 'h-4'} rounded-full transition-all duration-500`}
                   style={{ width: `${candidate.percentage}%` }}
@@ -675,9 +659,7 @@ export const CurrentPositionCard = ({
       </CardHeader>
       <CardContent className={`${isFullscreen ? 'space-y-2 flex-1 overflow-auto' : 'space-y-4'}`}>
         <div className="space-y-3">
-          <div
-            className={`flex items-center justify-between ${isFullscreen ? 'mb-2' : 'mb-4'}`}
-          >
+          <div className={`flex items-center justify-between ${isFullscreen ? 'mb-2' : 'mb-4'}`}>
             <h4
               className="font-semibold"
               style={{ fontSize: isFullscreen ? getZoomedSize('text-base') : undefined }}
@@ -771,9 +753,7 @@ export const CurrentPositionCard = ({
                     onClick={handleAdvancePosition}
                     className={`bg-blue-600 hover:bg-blue-700 ${isFullscreen ? 'h-9 px-4 text-base' : ''}`}
                   >
-                    <ArrowRight
-                      className={`${isFullscreen ? 'h-4 w-4 mr-1' : 'h-4 w-4 mr-2'}`}
-                    />
+                    <ArrowRight className={`${isFullscreen ? 'h-4 w-4 mr-1' : 'h-4 w-4 mr-2'}`} />
                     {isFullscreen
                       ? isLastPosition
                         ? 'Finalizar'
@@ -788,9 +768,7 @@ export const CurrentPositionCard = ({
                     variant="outline"
                     className={`border-orange-300 text-orange-700 hover:bg-orange-50 ${isFullscreen ? 'h-9 px-4 text-base' : ''}`}
                   >
-                    <RefreshCw
-                      className={`${isFullscreen ? 'h-4 w-4 mr-1' : 'h-4 w-4 mr-2'}`}
-                    />
+                    <RefreshCw className={`${isFullscreen ? 'h-4 w-4 mr-1' : 'h-4 w-4 mr-2'}`} />
                     {isFullscreen ? 'Repetir' : 'Repetir Votação'}
                   </Button>
                 </div>
@@ -847,8 +825,7 @@ export const CurrentPositionCard = ({
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
               <strong>Eleito:</strong> {currentPosData.winner.name} com{' '}
-              {currentPosData.winner.votes} votos (
-              {Math.round(currentPosData.winner.percentage)}%)
+              {currentPosData.winner.votes} votos ({Math.round(currentPosData.winner.percentage)}%)
             </AlertDescription>
           </Alert>
         )}

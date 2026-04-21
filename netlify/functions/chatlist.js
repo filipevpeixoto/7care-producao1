@@ -1,4 +1,5 @@
 const { neon } = require('@neondatabase/serverless');
+const { requireAuth } = require('./modules/auth.cjs');
 
 exports.handler = async (event) => {
   const defaultOrigins = 'https://7care.vercel.app,https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
@@ -50,7 +51,16 @@ exports.handler = async (event) => {
 
     const sql = neon(dbUrl);
 
-    const headerUserId = event.headers['x-user-id'];
+    const auth = await requireAuth(event, sql);
+    if (!auth.isValid || !auth.user?.id) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Não autenticado' })
+      };
+    }
+
+    const headerUserId = auth.user.id;
     let currentUser = null;
     if (headerUserId) {
       const userId = parseInt(headerUserId);
@@ -89,6 +99,8 @@ exports.handler = async (event) => {
           LIMIT 5000
         `;
       }
+    } else if (currentUser && currentUser.role === 'pastor' && !currentUser.district_id) {
+      users = [];
     } else if (currentUser && currentUser.role !== 'superadmin' && currentUser.church) {
       users = await sql`
         SELECT id, name, email, church, extra_data 
@@ -97,13 +109,15 @@ exports.handler = async (event) => {
           AND church = ${currentUser.church}
         LIMIT 5000
       `;
-    } else {
+    } else if (currentUser && currentUser.role === 'superadmin') {
       users = await sql`
         SELECT id, name, email, church, extra_data 
         FROM users 
         WHERE status IN ('approved', 'active')
         LIMIT 5000
       `;
+    } else {
+      users = [];
     }
 
     console.log('✅ Chat list: Found', users.length, 'users');

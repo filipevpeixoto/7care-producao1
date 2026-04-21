@@ -9,7 +9,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { inviteRoutes } from '../../routes/inviteRoutes';
-import { createMockUser, generateTestToken } from './setup';
+import { createMockUser, generateTestToken, toTestServer } from './setup';
 
 // Mock multer
 vi.mock('multer', () => {
@@ -51,7 +51,7 @@ function createTestApp() {
   inviteRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -114,7 +114,9 @@ describe('Invite Routes — Integration', () => {
     });
 
     it('should respond to authenticated admin', async () => {
-      const res = await request(app).get('/api/invites').set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app)
+        .get('/api/invites')
+        .set('Authorization', `Bearer ${adminToken}`);
       // May fail auth if requireAuth uses container-resolved user lookup
       expect(res.status).toBeDefined();
     });

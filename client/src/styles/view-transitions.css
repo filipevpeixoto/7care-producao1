@@ -1,9 +1,16 @@
 /**
  * Estilos para transições suaves entre páginas
- * 
+ *
  * Usa CSS puro para animações de entrada suaves nas páginas.
  * Compatível com React Router v7 + React.lazy() + Suspense.
  */
+
+:root {
+  --route-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --route-enter-duration: 320ms;
+  --route-copy-duration: 360ms;
+  --route-exit-duration: 220ms;
+}
 
 /* ============================================
    Suspense Fallback - Aparição com delay
@@ -16,8 +23,12 @@
 }
 
 @keyframes delayed-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ============================================
@@ -25,17 +36,102 @@
    ============================================ */
 
 .route-transition-wrapper {
-  animation: route-fade-in 200ms ease-out;
+  opacity: 0;
+  animation: route-fade-in var(--route-enter-duration) var(--route-ease-out) both;
+  isolation: isolate;
+  will-change: opacity;
+  view-transition-name: route-content;
 }
 
 @keyframes route-fade-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.route-transition-wrapper
+  :is(
+    h1,
+    h2,
+    h3,
+    p,
+    .p7-header-title,
+    .p7-bridge-subtitle,
+    .v2-section-title,
+    .v2-section-subtitle
+  ) {
+  opacity: 0;
+  animation: route-copy-in var(--route-copy-duration) var(--route-ease-out) 70ms both;
+}
+
+.route-transition-wrapper
+  :is(.v2-section-card, [data-slot='card'], .p7-card, .p7-checkin-banner, [role='tablist']) {
+  opacity: 0;
+  animation: route-surface-in calc(var(--route-enter-duration) + 40ms) var(--route-ease-out) both;
+}
+
+@keyframes route-copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes route-surface-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@supports (view-transition-name: route-content) {
+  ::view-transition-old(route-content),
+  ::view-transition-new(route-content) {
+    animation-duration: var(--route-enter-duration);
+    animation-timing-function: var(--route-ease-out);
+  }
+
+  ::view-transition-old(route-content) {
+    animation-name: route-view-old;
+  }
+
+  ::view-transition-new(route-content) {
+    animation-name: route-view-new;
+  }
+}
+
+@keyframes route-view-old {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+@keyframes route-view-new {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
 }
 
@@ -46,8 +142,33 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .route-transition-wrapper,
-  .page-loading-fallback {
+  .page-loading-fallback,
+  .route-transition-wrapper
+    :is(
+      h1,
+      h2,
+      h3,
+      p,
+      .p7-header-title,
+      .p7-bridge-subtitle,
+      .v2-section-title,
+      .v2-section-subtitle,
+      .v2-section-card,
+      [data-slot='card'],
+      .p7-card,
+      .p7-checkin-banner,
+      [role='tablist']
+    ) {
     animation: none !important;
     opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  @supports (view-transition-name: route-content) {
+    ::view-transition-old(route-content),
+    ::view-transition-new(route-content) {
+      animation: none !important;
+    }
   }
 }

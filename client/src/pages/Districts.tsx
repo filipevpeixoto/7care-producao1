@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/v2/ThemeToggle';
+import {
+  PrototypeAvatar,
+  PrototypeHeaderIconButton,
+  PrototypeStatusBar,
+} from './v2/prototypeShared';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { isSuperAdmin } from '@/lib/permissions';
@@ -55,8 +62,21 @@ type ApiSuccessResponse<T> = {
   data?: T;
 };
 
+function unwrapApiArray<T>(payload: T[] | ApiSuccessResponse<T[]> | null | undefined): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === 'object' && 'success' in payload) {
+    return Array.isArray(payload.data) ? payload.data : [];
+  }
+
+  return [];
+}
+
 export default function Districts() {
   const { user } = useAuth();
+  const { skin } = useTheme();
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -103,13 +123,9 @@ export default function Districts() {
         throw new Error(`Erro ao buscar distritos: ${response.status} - ${errorText}`);
       }
 
-      const data = (await response.json()) as District[];
-      districtsLogger.debug('Distritos recebidos:', data);
-
-      if (!Array.isArray(data)) {
-        districtsLogger.error('Resposta não é um array:', data);
-        return [];
-      }
+      const payload = (await response.json()) as District[] | ApiSuccessResponse<District[]>;
+      districtsLogger.debug('Distritos recebidos:', payload);
+      const data = unwrapApiArray(payload);
 
       // Log detalhado de cada distrito para debug
       data.forEach((district: District) => {
@@ -128,7 +144,10 @@ export default function Districts() {
           try {
             const churchesResponse = await fetchWithAuth(`/api/districts/${district.id}/churches`);
             if (churchesResponse.ok) {
-              const churches = await churchesResponse.json();
+              const churchesPayload = (await churchesResponse.json()) as
+                | Church[]
+                | ApiSuccessResponse<Church[]>;
+              const churches = unwrapApiArray(churchesPayload);
               districtsLogger.debug(`Distrito ${district.name} tem ${churches.length} igrejas`);
               return { ...district, churchesCount: churches.length, churches };
             }
@@ -157,7 +176,10 @@ export default function Districts() {
     queryFn: async () => {
       const response = await fetchWithAuth('/api/pastors');
       if (!response.ok) return [];
-      return response.json();
+      const payload = (await response.json()) as
+        | PastorOption[]
+        | ApiSuccessResponse<PastorOption[]>;
+      return unwrapApiArray(payload);
     },
     enabled: !!user?.id && isSuperAdmin(user),
     staleTime: 0,
@@ -172,7 +194,8 @@ export default function Districts() {
       queryFn: async () => {
         const response = await fetchWithAuth('/api/churches/unassigned');
         if (!response.ok) return [];
-        return response.json();
+        const payload = (await response.json()) as Church[] | ApiSuccessResponse<Church[]>;
+        return unwrapApiArray(payload);
       },
       enabled: !!user?.id && isSuperAdmin(user),
       staleTime: 0,
@@ -575,13 +598,168 @@ export default function Districts() {
       </div>
     );
   }
+  const dialogs = (
+    <>
+      <CreateDistrictDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        formData={formData}
+        setFormData={setFormData}
+        pastors={pastors}
+        onCreate={handleCreate}
+      />
+      <EditDistrictDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        formData={formData}
+        setFormData={setFormData}
+        pastors={pastors}
+        onUpdate={handleUpdate}
+      />
+      <DeleteDistrictDialog
+        isOpen={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        districtToDelete={districtToDelete}
+        onConfirm={confirmDelete}
+      />
+      <LinkChurchesDialog
+        isOpen={linkChurchesDialogOpen}
+        onOpenChange={setLinkChurchesDialogOpen}
+        selectedDistrictForLink={selectedDistrictForLink}
+        setSelectedDistrictForLink={setSelectedDistrictForLink}
+        selectedChurchIds={selectedChurchIds}
+        setSelectedChurchIds={setSelectedChurchIds}
+        districts={districts}
+        unassignedChurches={unassignedChurches}
+        toChurchId={toChurchId}
+        handleToggleChurch={handleToggleChurch}
+        onLinkChurches={handleLinkChurches}
+        isLinking={linkChurchesMutation.isPending}
+      />
+    </>
+  );
+
   if (!isSuperAdmin(user)) {
+    if (skin === 'v2') {
+      return (
+        <MobileLayout variant="prototype">
+          <div className="p7-shell">
+            <div className="p7-screen">
+              <PrototypeStatusBar />
+              <div className="p7-grad-header">
+                <div className="p7-header-row">
+                  <div>
+                    <div className="p7-header-label">{t('districts.title')}</div>
+                    <div className="p7-header-title">{t('districts.restrictedAccess')}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                  </div>
+                </div>
+              </div>
+              <div className="p7-scroll">
+                <div className="p7-section">
+                  <div className="p7-card p7-card-p">
+                    <p className="text-sm text-[var(--p7-muted)]">
+                      {t('districts.restrictedMessage')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </MobileLayout>
+      );
+    }
     return (
       <MobileLayout>
         <div className="p-4 text-center">
           <h2 className="text-xl font-semibold mb-2">{t('districts.restrictedAccess')}</h2>
           <p className="text-muted-foreground">{t('districts.restrictedMessage')}</p>
         </div>
+      </MobileLayout>
+    );
+  }
+
+  if (skin === 'v2') {
+    return (
+      <MobileLayout variant="prototype">
+        <div className="p7-shell">
+          <div className="p7-screen">
+            <PrototypeStatusBar />
+            <div className="p7-grad-header">
+              <div className="p7-header-row">
+                <div>
+                  <div className="p7-header-label">{t('districts.title')}</div>
+                  <div className="p7-header-title">{t('districts.subtitle')}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  {unassignedChurches.length > 0 && (
+                    <PrototypeHeaderIconButton
+                      icon={Link2}
+                      onClick={() => setLinkChurchesDialogOpen(true)}
+                      label="Vincular igrejas sem distrito"
+                    />
+                  )}
+                  <PrototypeHeaderIconButton
+                    icon={Plus}
+                    onClick={() => setIsCreateDialogOpen(true)}
+                    label="Criar distrito"
+                  />
+                  <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                </div>
+              </div>
+            </div>
+            <div className="p7-scroll">
+              <div className="p7-section">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{districts.length}</div>
+                    <div className="p7-stat-label">{t('districts.title')}</div>
+                  </div>
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{filteredDistricts.length}</div>
+                    <div className="p7-stat-label">
+                      {t('common.filtered', { defaultValue: 'Filtrados' })}
+                    </div>
+                  </div>
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">
+                      {districts.filter((district) => !!district.pastor_name).length}
+                    </div>
+                    <div className="p7-stat-label">
+                      {t('districts.pastorLabel', { defaultValue: 'Pastores' })}
+                    </div>
+                  </div>
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{unassignedChurches.length}</div>
+                    <div className="p7-stat-label">{t('districts.unassignedChurches')}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p7-section">
+                <div className="p7-card p7-card-p">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--p7-muted)]" />
+                    <Input
+                      aria-label={t('districts.searchPlaceholder')}
+                      placeholder={t('districts.searchPlaceholder')}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p7-section pb-4">{districtsContent}</div>
+            </div>
+          </div>
+        </div>
+        {dialogs}
       </MobileLayout>
     );
   }
@@ -619,6 +797,7 @@ export default function Districts() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            aria-label={t('districts.searchPlaceholder')}
             placeholder={t('districts.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -627,44 +806,8 @@ export default function Districts() {
         </div>
 
         {districtsContent}
-
-        <CreateDistrictDialog
-          isOpen={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-          formData={formData}
-          setFormData={setFormData}
-          pastors={pastors}
-          onCreate={handleCreate}
-        />
-        <EditDistrictDialog
-          isOpen={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          formData={formData}
-          setFormData={setFormData}
-          pastors={pastors}
-          onUpdate={handleUpdate}
-        />
-        <DeleteDistrictDialog
-          isOpen={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          districtToDelete={districtToDelete}
-          onConfirm={confirmDelete}
-        />
-        <LinkChurchesDialog
-          isOpen={linkChurchesDialogOpen}
-          onOpenChange={setLinkChurchesDialogOpen}
-          selectedDistrictForLink={selectedDistrictForLink}
-          setSelectedDistrictForLink={setSelectedDistrictForLink}
-          selectedChurchIds={selectedChurchIds}
-          setSelectedChurchIds={setSelectedChurchIds}
-          districts={districts}
-          unassignedChurches={unassignedChurches}
-          toChurchId={toChurchId}
-          handleToggleChurch={handleToggleChurch}
-          onLinkChurches={handleLinkChurches}
-          isLinking={linkChurchesMutation.isPending}
-        />
       </div>
+      {dialogs}
     </MobileLayout>
   );
 }

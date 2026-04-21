@@ -84,19 +84,22 @@ export const useUsersQueries = (user: AuthUser | null, isAuthReady: boolean) => 
     refetchOnMount: 'always',
   });
 
-  const { data: churches = [] } = useQuery<Church[]>({
+  const { data: churchesData = [] } = useQuery<Church[]>({
     queryKey: ['churches', user?.id],
     queryFn: async () => {
       const response = await fetchWithAuth('/api/churches');
       if (!response.ok) throw new Error('Erro ao buscar igrejas');
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : data?.data || [];
     },
     enabled: isAuthReady,
     staleTime: 0,
     refetchOnMount: 'always',
   });
 
-  const { data: discipleshipRequests = [] } = useQuery<DiscipleshipRequestWithAdminNotes[]>({
+  const churches = Array.isArray(churchesData) ? churchesData : [];
+
+  const { data: discipleshipRequestsData = [] } = useQuery<DiscipleshipRequestWithAdminNotes[]>({
     queryKey: ['discipleship-requests', user?.id, districtScope],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -112,6 +115,10 @@ export const useUsersQueries = (user: AuthUser | null, isAuthReady: boolean) => 
     staleTime: 0,
     refetchOnMount: 'always',
   });
+
+  const discipleshipRequests = Array.isArray(discipleshipRequestsData)
+    ? discipleshipRequestsData
+    : [];
 
   return {
     users,

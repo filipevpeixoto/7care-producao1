@@ -150,6 +150,62 @@ async function getDistrictChurchNames(sql, districtId) {
   return churches.map(church => church.name);
 }
 
+function canAccessChurchScope(currentUser, churchName, districtChurchNames = []) {
+  if (!currentUser || !churchName) return false;
+  if (isSuperAdmin(currentUser)) return true;
+  if (isPastor(currentUser)) {
+    return !!currentUser.district_id && districtChurchNames.includes(churchName);
+  }
+  return currentUser.church === churchName;
+}
+
+function canAccessUserRecord(currentUser, targetUser, districtChurchNames = []) {
+  if (!currentUser || !targetUser) return false;
+  if (isSuperAdmin(currentUser)) return true;
+  if (currentUser.id === targetUser.id) return true;
+
+  if (isPastor(currentUser)) {
+    if (!currentUser.district_id) return false;
+    return (
+      targetUser.district_id === currentUser.district_id ||
+      (targetUser.church && canAccessChurchScope(currentUser, targetUser.church, districtChurchNames))
+    );
+  }
+
+  if (currentUser.church) {
+    return targetUser.church === currentUser.church;
+  }
+
+  return false;
+}
+
+function canAccessTaskRecord(currentUser, task, districtChurchNames = []) {
+  if (!currentUser || !task) return false;
+  if (currentUser.role === 'superadmin') return true;
+
+  if (isPastor(currentUser)) {
+    if (!currentUser.district_id) return false;
+    return (
+      task.district_id === currentUser.district_id ||
+      task.creator_district_id === currentUser.district_id ||
+      task.assignee_district_id === currentUser.district_id ||
+      (task.church && districtChurchNames.includes(task.church)) ||
+      (task.creator_church && districtChurchNames.includes(task.creator_church)) ||
+      (task.assignee_church && districtChurchNames.includes(task.assignee_church))
+    );
+  }
+
+  if (currentUser.church) {
+    return (
+      task.church === currentUser.church ||
+      task.creator_church === currentUser.church ||
+      task.assignee_church === currentUser.church
+    );
+  }
+
+  return false;
+}
+
 // Função para verificar acesso read-only
 async function checkReadOnlyAccess(userId, sql) {
   if (!userId) return false;
@@ -1353,6 +1409,13 @@ exports.handler = async (event, context) => {
         
         // Buscar usuários diretamente do banco (já com pontos calculados)
         const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
         const currentUserDistrictId = currentUser?.district_id || null;
         const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
         let users;
@@ -1362,10 +1425,14 @@ exports.handler = async (event, context) => {
           } else {
             users = await sql`SELECT *, extra_data as extraData FROM users WHERE district_id = ${currentUserDistrictId} ORDER BY points DESC`;
           }
+        } else if (currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          users = [];
         } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
           users = await sql`SELECT *, extra_data as extraData FROM users WHERE church = ${currentUser.church} ORDER BY points DESC`;
-        } else {
+        } else if (currentUser && currentUser.role === 'superadmin') {
           users = await sql`SELECT *, extra_data as extraData FROM users ORDER BY points DESC`;
+        } else {
+          users = [];
         }
         console.log(`📊 Usuários carregados: ${users.length}`);
         
@@ -1994,11 +2061,55 @@ exports.handler = async (event, context) => {
     // Rota para buscar eventos
     if (path === '/api/calendar/events' && method === 'GET') {
       try {
-        const events = await sql`
-          SELECT id, title, description, date, end_date, type, color, location, capacity, created_at, updated_at
-          FROM events 
-          ORDER BY date ASC
-        `;
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
+
+        let events;
+        if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            events = await sql`
+              SELECT id, title, description, date, end_date, type, color, location, capacity, created_at, updated_at, district_id, church
+              FROM events
+              WHERE district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames})
+              ORDER BY date ASC
+            `;
+          } else {
+            events = await sql`
+              SELECT id, title, description, date, end_date, type, color, location, capacity, created_at, updated_at, district_id, church
+              FROM events
+              WHERE district_id = ${currentUserDistrictId}
+              ORDER BY date ASC
+            `;
+          }
+        } else if (currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          events = [];
+        } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
+          events = await sql`
+            SELECT id, title, description, date, end_date, type, color, location, capacity, created_at, updated_at, district_id, church
+            FROM events
+            WHERE church = ${currentUser.church}
+            ORDER BY date ASC
+          `;
+        } else if (currentUser && currentUser.role === 'superadmin') {
+          events = await sql`
+            SELECT id, title, description, date, end_date, type, color, location, capacity, created_at, updated_at, district_id, church
+            FROM events
+            ORDER BY date ASC
+          `;
+        } else {
+          events = [];
+        }
         
         return {
           statusCode: 200,
@@ -2019,6 +2130,28 @@ exports.handler = async (event, context) => {
     if (path === '/api/calendar/events' && method === 'POST') {
       try {
         const body = JSON.parse(event.body || '{}');
+        const currentUser = await resolveCurrentUser(event, sql);
+
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
+
+        if (isPastor(currentUser) && !currentUserDistrictId) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Pastor sem distrito não pode criar eventos' })
+          };
+        }
         
         // Detectar se é um único evento ou um array de eventos
         let eventsArray = [];
@@ -2114,6 +2247,26 @@ exports.handler = async (event, context) => {
           // Usar date/end_date OU startDate/endDate
           const eventStartDate = eventData.date || eventData.startDate;
           const eventEndDate = eventData.end_date || eventData.endDate || eventStartDate;
+          const requestedChurch = typeof eventData.church === 'string' ? eventData.church.trim() : '';
+
+          if (
+            requestedChurch &&
+            currentUser.role !== 'superadmin' &&
+            !canAccessChurchScope(currentUser, requestedChurch, districtChurchNames)
+          ) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Acesso negado para criar evento nesta igreja' })
+            };
+          }
+
+          const scopedChurch =
+            requestedChurch || (currentUser.role === 'superadmin' ? '' : currentUser.church || '');
+          const scopedDistrictId =
+            currentUser.role === 'superadmin'
+              ? (eventData.district_id || eventData.districtId || null)
+              : currentUserDistrictId;
           
           // Preparar dados para inserção (apenas colunas que existem na tabela)
           const insertData = {
@@ -2125,14 +2278,16 @@ exports.handler = async (event, context) => {
             color: categoryMapping.color,
             location: eventData.location || '',
             capacity: eventData.maxAttendees || 50,
-            created_by: eventData.created_by || 1
+            church: scopedChurch,
+            district_id: scopedDistrictId,
+            created_by: currentUser.id
           };
 
           // Inserir evento no banco
           const result = await sql`
-            INSERT INTO events (title, description, date, end_date, type, color, location, capacity, created_by, created_at, updated_at)
-            VALUES (${insertData.title}, ${insertData.description}, ${insertData.date}::date, ${insertData.end_date}::date, ${insertData.type}, ${insertData.color}, ${insertData.location}, ${insertData.capacity}, ${insertData.created_by}, NOW(), NOW())
-            RETURNING id, title, date, end_date, type, color, location, description, capacity, created_by
+            INSERT INTO events (title, description, date, end_date, type, color, location, capacity, created_by, district_id, church, created_at, updated_at)
+            VALUES (${insertData.title}, ${insertData.description}, ${insertData.date}::date, ${insertData.end_date}::date, ${insertData.type}, ${insertData.color}, ${insertData.location}, ${insertData.capacity}, ${insertData.created_by}, ${insertData.district_id}, ${insertData.church}, NOW(), NOW())
+            RETURNING id, title, date, end_date, type, color, location, description, capacity, created_by, district_id, church
           `;
 
           if (result.length > 0) {
@@ -2212,6 +2367,13 @@ exports.handler = async (event, context) => {
       try {
         // Resolver usuário atual para aplicar filtro de distrito se for pastor
         const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
         const currentUserDistrictId = currentUser?.district_id || null;
         const isPastorUser = currentUser && isPastor(currentUser);
         const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
@@ -2243,9 +2405,11 @@ exports.handler = async (event, context) => {
               LIMIT 50
             `;
           }
-        } else {
-          // Para admin/superadmin, mostrar todos
-          console.log('📊 Check-ins: Sem filtro - mostrando todos');
+        } else if (isPastorUser && !currentUserDistrictId) {
+          console.log('⚠️ Check-ins: Pastor sem distrito - retornando vazio');
+          checkIns = [];
+        } else if (currentUser && currentUser.role === 'superadmin') {
+          console.log('📊 Check-ins: Superadmin - mostrando todos');
           
           checkIns = await sql`
             SELECT ec.*, u.name as user_name, u.email 
@@ -2254,6 +2418,20 @@ exports.handler = async (event, context) => {
             ORDER BY ec.created_at DESC
             LIMIT 50
           `;
+        } else if (currentUser && currentUser.church) {
+          console.log('📊 Check-ins: Filtrando por igreja do usuário');
+          
+          checkIns = await sql`
+            SELECT ec.*, u.name as user_name, u.email 
+            FROM emotional_checkins ec
+            JOIN users u ON ec.user_id = u.id
+            WHERE u.church = ${currentUser.church}
+            ORDER BY ec.created_at DESC
+            LIMIT 50
+          `;
+        } else {
+          console.log('❌ Check-ins: Sem permissão adequada - retornando vazio');
+          checkIns = [];
         }
         
         console.log(`📊 Check-ins encontrados: ${checkIns.length}`);
@@ -2277,12 +2455,47 @@ exports.handler = async (event, context) => {
     if (path.startsWith('/api/emotional-checkins/user/') && method === 'GET') {
       try {
         const userId = parseInt(path.split('/')[4]);
+        const currentUser = await resolveCurrentUser(event, sql);
         
         if (isNaN(userId)) {
           return {
             statusCode: 400,
             headers,
             body: JSON.stringify({ error: 'ID de usuário inválido' })
+          };
+        }
+
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const targetUsers = await sql`
+          SELECT id, church, district_id
+          FROM users
+          WHERE id = ${userId}
+          LIMIT 1
+        `;
+
+        if (targetUsers.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Usuário não encontrado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+
+        if (!canAccessUserRecord(currentUser, targetUsers[0], districtChurchNames)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
           };
         }
 
@@ -2792,37 +3005,25 @@ exports.handler = async (event, context) => {
     // Rota para dados do usuário logado
     if (path === '/api/auth/me' && method === 'GET') {
       try {
-        const userId = event.headers['x-user-id'] || event.queryStringParameters?.userId;
-        
-        if (!userId) {
+        const currentUser = await resolveCurrentUser(event, sql);
+
+        if (!currentUser) {
           return {
             statusCode: 401,
             headers,
             body: JSON.stringify({ error: 'Usuário não autenticado' })
           };
         }
-
-        const users = await sql`SELECT * FROM users WHERE id = ${parseInt(userId)} LIMIT 1`;
-        
-        if (users.length === 0) {
-          return {
-            statusCode: 404,
-            headers,
-            body: JSON.stringify({ error: 'Usuário não encontrado' })
-          };
-        }
-
-        const user = users[0];
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            church: user.church,
-            is_approved: user.is_approved
+            id: currentUser.id,
+            name: currentUser.name,
+            email: currentUser.email,
+            role: currentUser.role,
+            church: currentUser.church,
+            district_id: currentUser.district_id
           })
         };
       } catch (error) {
@@ -3303,6 +3504,15 @@ exports.handler = async (event, context) => {
       console.log('🔍 Points details for user:', userId);
       
       try {
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
         const user = await sql`SELECT * FROM users WHERE id = ${parseInt(userId)} LIMIT 1`;
         
         if (user.length === 0) {
@@ -3314,6 +3524,40 @@ exports.handler = async (event, context) => {
         }
 
         const userData = user[0];
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
+
+        if (currentUser.id !== userData.id && currentUser && isPastor(currentUser) && currentUserDistrictId) {
+          const isInDistrict = userData.district_id === currentUserDistrictId;
+          const isInDistrictChurch = userData.church && districtChurchNames.includes(userData.church);
+          if (!isInDistrict && !isInDistrictChurch) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Acesso negado' })
+            };
+          }
+        } else if (currentUser.id !== userData.id && currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        } else if (
+          currentUser.id !== userData.id &&
+          currentUser &&
+          !hasAdminAccess(currentUser) &&
+          currentUser.church &&
+          userData.church !== currentUser.church
+        ) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
         
         // USAR PONTOS REAIS DO BANCO (calculados pela função calculateUserPoints)
         const points = userData.points || 0;
@@ -3473,6 +3717,12 @@ exports.handler = async (event, context) => {
               body: JSON.stringify({ error: 'Acesso negado' })
             };
           }
+        } else if (currentUser.id !== targetUser.id && currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
         } else if (currentUser.id !== targetUser.id && currentUser && !hasAdminAccess(currentUser) && currentUser.church && targetUser.church !== currentUser.church) {
           return {
             statusCode: 403,
@@ -3512,12 +3762,28 @@ exports.handler = async (event, context) => {
         `;
         
         const currentUser = await resolveCurrentUser(event, sql);
-        if (currentUser && isPastor(currentUser) && currentUser.district_id) {
-          events = events.filter(eventItem => eventItem.district_id === currentUser.district_id || eventItem.district_id == null);
+        if (currentUser?.role === 'superadmin') {
+          // superadmin mantém visão completa
+        } else if (currentUser && isPastor(currentUser) && currentUser.district_id) {
+          const districtChurchNames = await getDistrictChurchNames(sql, currentUser.district_id);
+          events = events.filter(
+            eventItem =>
+              eventItem.district_id === currentUser.district_id ||
+              eventItem.district_id == null ||
+              (eventItem.church && districtChurchNames.includes(eventItem.church))
+          );
+        } else if (currentUser && currentUser.church) {
+          events = events.filter(
+            eventItem =>
+              eventItem.church === currentUser.church ||
+              (eventItem.district_id == null && !eventItem.church)
+          );
+        } else {
+          events = events.filter(eventItem => eventItem.district_id == null && !eventItem.church);
         }
         
         // Aplicar filtros baseados no role
-        if (role && role !== 'admin') {
+        if (!currentUser || currentUser.role !== 'superadmin' || (role && role !== 'admin')) {
           // Para não-admins, EXCLUIR eventos administrativos ou internos
           // Manter apenas eventos que NÃO sejam administrativos E NÃO sejam internos
           events = events.filter(event => {
@@ -3552,6 +3818,23 @@ exports.handler = async (event, context) => {
     // Rota para limpar todos os eventos (DELETE /api/events)
     if (path === '/api/events' && method === 'DELETE') {
       try {
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        if (!isSuperAdmin(currentUser)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Apenas superadmin pode limpar todos os eventos' })
+          };
+        }
+
         console.log('🗑️ Limpando todos os eventos...');
         
         // Deletar todos os eventos da tabela events
@@ -3581,14 +3864,25 @@ exports.handler = async (event, context) => {
     if (path === '/api/churches' && method === 'GET') {
       try {
         const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
         const currentUserDistrictId = currentUser?.district_id || null;
         let churches;
         if (currentUser && isPastor(currentUser) && currentUserDistrictId) {
           churches = await sql`SELECT * FROM churches WHERE district_id = ${currentUserDistrictId} ORDER BY name`;
+        } else if (currentUser && isPastor(currentUser) && !currentUserDistrictId) {
+          churches = [];
         } else if (currentUser && !hasAdminAccess(currentUser) && currentUser.church) {
           churches = await sql`SELECT * FROM churches WHERE name = ${currentUser.church} ORDER BY name`;
-        } else {
+        } else if (currentUser && currentUser.role === 'superadmin') {
           churches = await sql`SELECT * FROM churches ORDER BY name`;
+        } else {
+          churches = [];
         }
         
         // Converter para camelCase para compatibilidade com frontend
@@ -3623,6 +3917,24 @@ exports.handler = async (event, context) => {
 
     if (path === '/api/churches' && method === 'POST') {
       try {
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        if (!isSuperAdmin(currentUser) && !(isPastor(currentUser) && currentUserDistrictId)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
+
         const { name, address, phone, email, pastor } = JSON.parse(event.body);
         
         if (!name) {
@@ -3666,8 +3978,8 @@ exports.handler = async (event, context) => {
 
         // Criar nova igreja
         const newChurch = await sql`
-          INSERT INTO churches (name, code, address, phone, email, pastor, created_at, updated_at)
-          VALUES (${name}, ${code}, ${address || ''}, ${phone || ''}, ${email || ''}, ${pastor || ''}, NOW(), NOW())
+          INSERT INTO churches (name, code, address, phone, email, pastor, district_id, created_at, updated_at)
+          VALUES (${name}, ${code}, ${address || ''}, ${phone || ''}, ${email || ''}, ${pastor || ''}, ${isSuperAdmin(currentUser) ? null : currentUserDistrictId}, NOW(), NOW())
           RETURNING *
         `;
 
@@ -5834,7 +6146,24 @@ exports.handler = async (event, context) => {
     // DELETE /api/elections/clear-all - Limpar todas as eleições e configurações
     if (path === '/api/elections/clear-all' && method === 'DELETE') {
       try {
-        // Limpar todas as tabelas de eleição (sem autenticação para facilitar testes)
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        if (!isSuperAdmin(currentUser)) {
+          return {
+            statusCode: 403,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Apenas superadmin pode limpar eleições' })
+          };
+        }
+
+        // Limpar todas as tabelas de eleição
         await sql`DELETE FROM election_votes`;
         await sql`DELETE FROM election_candidates`;
         await sql`DELETE FROM elections`;
@@ -8417,6 +8746,13 @@ exports.handler = async (event, context) => {
       try {
         // Resolver usuário atual para aplicar filtro de distrito se for pastor
         const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
         const currentUserDistrictId = currentUser?.district_id || null;
         const isPastorUser = currentUser && isPastor(currentUser);
         const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
@@ -8461,11 +8797,26 @@ exports.handler = async (event, context) => {
               LIMIT 50
             `;
           }
-        } else {
-          // Para admin/superadmin, mostrar todos
-          console.log('📊 Meetings: Sem filtro - mostrando todas');
-          
+        } else if (isPastorUser && !currentUserDistrictId) {
+          console.log('⚠️ Meetings: Pastor sem distrito - retornando vazio');
+          meetings = [];
+        } else if (currentUser && currentUser.role === 'superadmin') {
+          console.log('📊 Meetings: Superadmin - mostrando todas');
           meetings = await sql`SELECT * FROM meetings ORDER BY date DESC LIMIT 50`;
+        } else if (currentUser && currentUser.church) {
+          console.log('📊 Meetings: Aplicando filtro de igreja do usuário');
+          meetings = await sql`
+            SELECT m.*
+            FROM meetings m
+            LEFT JOIN users req ON m.requester_id = req.id
+            LEFT JOIN users assigned ON m.assigned_to_id = assigned.id
+            WHERE req.church = ${currentUser.church}
+               OR assigned.church = ${currentUser.church}
+            ORDER BY m.date DESC
+            LIMIT 50
+          `;
+        } else {
+          meetings = [];
         }
         
         console.log(`📊 Reuniões encontradas: ${meetings.length}`);
@@ -9269,6 +9620,15 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ error: 'ID de usuário inválido' })
           };
         }
+
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
         
         // Verificar se usuário existe
         const existingUser = await sql`SELECT * FROM users WHERE id = ${userId} LIMIT 1`;
@@ -9278,6 +9638,64 @@ exports.handler = async (event, context) => {
             headers,
             body: JSON.stringify({ error: 'Usuário não encontrado' })
           };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId ? await getDistrictChurchNames(sql, currentUserDistrictId) : [];
+        const targetUser = existingUser[0];
+
+        if (!canAccessUserRecord(currentUser, targetUser, districtChurchNames)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
+
+        if (!isSuperAdmin(currentUser)) {
+          const requestedDistrictId = body.districtId ?? body.district_id;
+          if (requestedDistrictId !== undefined && String(requestedDistrictId || '') !== String(currentUserDistrictId || '')) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Você não pode mover usuários para outro distrito' })
+            };
+          }
+        }
+
+        if (isPastor(currentUser)) {
+          const requestedChurch = typeof body.church === 'string' ? body.church.trim() : body.church;
+          if (requestedChurch && !canAccessChurchScope(currentUser, requestedChurch, districtChurchNames)) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Você não pode vincular usuários a outra igreja' })
+            };
+          }
+          if (body.role === 'superadmin' || body.role === 'pastor') {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Você não pode elevar este usuário para esse papel' })
+            };
+          }
+        } else if (!isSuperAdmin(currentUser)) {
+          const protectedFields = ['points', 'role', 'status', 'districtId', 'district_id', 'level', 'attendance'];
+          const attemptedProtectedField = protectedFields.find((field) => body[field] !== undefined);
+          if (currentUser.id !== userId || attemptedProtectedField) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Acesso negado' })
+            };
+          }
+          if (typeof body.church === 'string' && body.church.trim() && body.church.trim() !== currentUser.church) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Você não pode alterar para outra igreja' })
+            };
+          }
         }
         
         // Atualizar campos permitidos usando tagged templates (neon HTTP driver)
@@ -15756,8 +16174,21 @@ exports.handler = async (event, context) => {
     // Rota para listar tarefas
     if (path === '/api/tasks' && method === 'GET') {
       try {
-        const userId = event.headers['x-user-id'];
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const userId = currentUser.id;
         const { status, priority, assigned_to } = event.queryStringParameters || {};
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
         
         console.log('📋 [TASKS] Listando tarefas para usuário:', userId);
         
@@ -15786,19 +16217,55 @@ exports.handler = async (event, context) => {
         const tasks = await sql`
           SELECT t.*, 
                  creator.name as created_by_name,
-                 assignee.name as assigned_to_name
+                 creator.district_id as creator_district_id,
+                 creator.church as creator_church,
+                 assignee.name as assigned_to_name,
+                 assignee.district_id as assignee_district_id,
+                 assignee.church as assignee_church
           FROM tasks t
           LEFT JOIN users creator ON t.created_by = creator.id
           LEFT JOIN users assignee ON t.assigned_to = assignee.id
           ORDER BY t.created_at DESC
         `;
+
+        const filteredTasks = tasks.filter((task) => {
+          if (currentUser.role === 'superadmin') return true;
+
+          if (isPastor(currentUser) && currentUserDistrictId) {
+            return (
+              task.district_id === currentUserDistrictId ||
+              task.creator_district_id === currentUserDistrictId ||
+              task.assignee_district_id === currentUserDistrictId ||
+              (task.church && districtChurchNames.includes(task.church)) ||
+              (task.creator_church && districtChurchNames.includes(task.creator_church)) ||
+              (task.assignee_church && districtChurchNames.includes(task.assignee_church))
+            );
+          }
+
+          if (isPastor(currentUser) && !currentUserDistrictId) return false;
+
+          if (currentUser.church) {
+            return (
+              task.church === currentUser.church ||
+              task.creator_church === currentUser.church ||
+              task.assignee_church === currentUser.church
+            );
+          }
+
+          return false;
+        }).filter((task) => {
+          if (status && task.status !== status) return false;
+          if (priority && task.priority !== priority) return false;
+          if (assigned_to && String(task.assigned_to) !== String(assigned_to)) return false;
+          return true;
+        });
         
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             success: true,
-            tasks: tasks.map(task => ({
+            tasks: filteredTasks.map(task => ({
               ...task,
               due_date: task.due_date ? new Date(task.due_date).toISOString() : null,
               created_at: new Date(task.created_at).toISOString(),
@@ -15821,9 +16288,40 @@ exports.handler = async (event, context) => {
     // Rota para criar tarefa
     if (path === '/api/tasks' && method === 'POST') {
       try {
-        const userId = event.headers['x-user-id'];
+        const currentUser = await resolveCurrentUser(event, sql);
         const body = JSON.parse(event.body || '{}');
-        const { title, description, priority = 'medium', due_date, assigned_to, tags = [] } = body;
+        const {
+          title,
+          description,
+          priority = 'medium',
+          due_date,
+          dueDate,
+          assigned_to,
+          assignedTo,
+          church,
+          tags = []
+        } = body;
+
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
+
+        if (isPastor(currentUser) && !currentUserDistrictId) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Pastor sem distrito não pode criar tarefas' })
+          };
+        }
         
         if (!title) {
           return {
@@ -15833,11 +16331,56 @@ exports.handler = async (event, context) => {
           };
         }
         
-        console.log('📋 [TASKS] Criando tarefa:', { title, priority, assigned_to });
+        const requestedAssignedTo = assigned_to ?? assignedTo;
+        let assignedUser = null;
+        if (requestedAssignedTo !== undefined && requestedAssignedTo !== null && requestedAssignedTo !== '') {
+          const assignedUsers = await sql`
+            SELECT id, church, district_id
+            FROM users
+            WHERE id = ${parseInt(requestedAssignedTo)}
+            LIMIT 1
+          `;
+          if (assignedUsers.length === 0) {
+            return {
+              statusCode: 404,
+              headers,
+              body: JSON.stringify({ error: 'Usuário atribuído não encontrado' })
+            };
+          }
+          assignedUser = assignedUsers[0];
+          if (!canAccessUserRecord(currentUser, assignedUser, districtChurchNames)) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Acesso negado para atribuir tarefa a este usuário' })
+            };
+          }
+        }
+
+        const requestedChurch = typeof church === 'string' ? church.trim() : '';
+        if (
+          requestedChurch &&
+          currentUser.role !== 'superadmin' &&
+          !canAccessChurchScope(currentUser, requestedChurch, districtChurchNames)
+        ) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado para criar tarefa nesta igreja' })
+          };
+        }
+
+        const taskChurch = requestedChurch || assignedUser?.church || currentUser.church || null;
+        const taskDistrictId =
+          currentUser.role === 'superadmin'
+            ? (assignedUser?.district_id || null)
+            : (currentUserDistrictId || assignedUser?.district_id || null);
+
+        console.log('📋 [TASKS] Criando tarefa:', { title, priority, assigned_to: requestedAssignedTo });
         
         const result = await sql`
-          INSERT INTO tasks (title, description, priority, due_date, created_by, assigned_to, tags)
-          VALUES (${title}, ${description || null}, ${priority}, ${due_date ? new Date(due_date).toISOString() : null}, ${userId}, ${assigned_to || null}, ${tags})
+          INSERT INTO tasks (title, description, priority, due_date, created_by, assigned_to, district_id, church, tags)
+          VALUES (${title}, ${description || null}, ${priority}, ${(due_date || dueDate) ? new Date(due_date || dueDate).toISOString() : null}, ${currentUser.id}, ${requestedAssignedTo || null}, ${taskDistrictId}, ${taskChurch}, ${tags})
           RETURNING *
         `;
         
@@ -15871,6 +16414,7 @@ exports.handler = async (event, context) => {
     if (path.startsWith('/api/tasks/') && method === 'GET' && !path.includes('/users')) {
       try {
         const taskId = path.split('/')[3];
+        const currentUser = await resolveCurrentUser(event, sql);
         
         if (!taskId || isNaN(parseInt(taskId))) {
           return {
@@ -15879,10 +16423,27 @@ exports.handler = async (event, context) => {
           };
         }
 
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
+
         const task = await sql`
           SELECT t.*, 
                  uc.name as created_by_name,
-                 ua.name as assigned_to_name
+                 uc.district_id as creator_district_id,
+                 uc.church as creator_church,
+                 ua.name as assigned_to_name,
+                 ua.district_id as assignee_district_id,
+                 ua.church as assignee_church
           FROM tasks t
           LEFT JOIN users uc ON t.created_by = uc.id
           LEFT JOIN users ua ON t.assigned_to = ua.id
@@ -15896,9 +16457,39 @@ exports.handler = async (event, context) => {
           };
         }
 
+        const currentTask = task[0];
+        const canAccessTask =
+          currentUser.role === 'superadmin' ||
+          (isPastor(currentUser) &&
+            currentUserDistrictId &&
+            (
+              currentTask.district_id === currentUserDistrictId ||
+              currentTask.creator_district_id === currentUserDistrictId ||
+              currentTask.assignee_district_id === currentUserDistrictId ||
+              (currentTask.church && districtChurchNames.includes(currentTask.church)) ||
+              (currentTask.creator_church && districtChurchNames.includes(currentTask.creator_church)) ||
+              (currentTask.assignee_church && districtChurchNames.includes(currentTask.assignee_church))
+            )) ||
+          (!isPastor(currentUser) &&
+            currentUser.church &&
+            (
+              currentTask.church === currentUser.church ||
+              currentTask.creator_church === currentUser.church ||
+              currentTask.assignee_church === currentUser.church
+            ));
+
+        if (!canAccessTask) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
+
         return {
           statusCode: 200,
-          body: JSON.stringify({ success: true, task: task[0] })
+          headers,
+          body: JSON.stringify({ success: true, task: currentTask })
         };
       } catch (error) {
         console.error('❌ Erro ao buscar tarefa:', error);
@@ -15912,12 +16503,95 @@ exports.handler = async (event, context) => {
     // Rota para atualizar tarefa
     if (path.startsWith('/api/tasks/') && method === 'PUT') {
       try {
-        const userId = event.headers['x-user-id'];
         const taskId = path.split('/')[3];
+        const currentUser = await resolveCurrentUser(event, sql);
         const body = JSON.parse(event.body || '{}');
-        const { title, description, status, priority, due_date, assigned_to, tags } = body;
+        const { title, description, status, priority, due_date, dueDate, assigned_to, assignedTo, church, tags } = body;
+
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
         
         console.log('📋 [TASKS] Atualizando tarefa:', taskId, body);
+
+        const existingTasks = await sql`
+          SELECT t.*, 
+                 uc.district_id as creator_district_id,
+                 uc.church as creator_church,
+                 ua.district_id as assignee_district_id,
+                 ua.church as assignee_church
+          FROM tasks t
+          LEFT JOIN users uc ON t.created_by = uc.id
+          LEFT JOIN users ua ON t.assigned_to = ua.id
+          WHERE t.id = ${parseInt(taskId)}
+          LIMIT 1
+        `;
+
+        if (existingTasks.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Tarefa não encontrada' })
+          };
+        }
+
+        const existingTask = existingTasks[0];
+        if (!canAccessTaskRecord(currentUser, existingTask, districtChurchNames)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
+
+        const requestedAssignedTo = assigned_to ?? assignedTo;
+        let assignedUser = null;
+        if (requestedAssignedTo !== undefined && requestedAssignedTo !== null && requestedAssignedTo !== '') {
+          const assignedUsers = await sql`
+            SELECT id, church, district_id
+            FROM users
+            WHERE id = ${parseInt(requestedAssignedTo)}
+            LIMIT 1
+          `;
+          if (assignedUsers.length === 0) {
+            return {
+              statusCode: 404,
+              headers,
+              body: JSON.stringify({ error: 'Usuário atribuído não encontrado' })
+            };
+          }
+          assignedUser = assignedUsers[0];
+          if (!canAccessUserRecord(currentUser, assignedUser, districtChurchNames)) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ error: 'Acesso negado para atribuir tarefa a este usuário' })
+            };
+          }
+        }
+
+        const requestedChurch = typeof church === 'string' ? church.trim() : church;
+        if (
+          typeof requestedChurch === 'string' &&
+          requestedChurch &&
+          currentUser.role !== 'superadmin' &&
+          !canAccessChurchScope(currentUser, requestedChurch, districtChurchNames)
+        ) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado para mover tarefa para esta igreja' })
+          };
+        }
         
         // Construir objeto de atualização
         const updateData = {
@@ -15927,9 +16601,16 @@ exports.handler = async (event, context) => {
         if (title !== undefined) updateData.title = title;
         if (description !== undefined) updateData.description = description;
         if (priority !== undefined) updateData.priority = priority;
-        if (due_date !== undefined) updateData.due_date = due_date ? new Date(due_date).toISOString() : null;
-        if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
+        const resolvedDueDate = dueDate !== undefined ? dueDate : due_date;
+        if (resolvedDueDate !== undefined) updateData.due_date = resolvedDueDate ? new Date(resolvedDueDate).toISOString() : null;
+        if (requestedAssignedTo !== undefined) updateData.assigned_to = requestedAssignedTo ? parseInt(requestedAssignedTo) : null;
+        if (church !== undefined) updateData.church = requestedChurch || null;
         if (tags !== undefined) updateData.tags = tags;
+        if (currentUser.role !== 'superadmin') {
+          updateData.district_id = currentUserDistrictId || existingTask.district_id || null;
+        } else if (assignedUser) {
+          updateData.district_id = assignedUser.district_id || existingTask.district_id || null;
+        }
         
         if (status !== undefined) {
           updateData.status = status;
@@ -15951,8 +16632,11 @@ exports.handler = async (event, context) => {
             description = COALESCE(${updateData.description}, description),
             status = COALESCE(${updateData.status}, status),
             priority = COALESCE(${updateData.priority}, priority),
-            due_date = COALESCE(${updateData.due_date}, due_date),
-            assigned_to = COALESCE(${updateData.assigned_to}, assigned_to),
+            due_date = ${updateData.due_date !== undefined ? updateData.due_date : sql`due_date`},
+            assigned_to = ${updateData.assigned_to !== undefined ? updateData.assigned_to : sql`assigned_to`},
+            district_id = ${updateData.district_id !== undefined ? updateData.district_id : sql`district_id`},
+            church = ${updateData.church !== undefined ? updateData.church : sql`church`},
+            tags = ${updateData.tags !== undefined ? updateData.tags : sql`tags`},
             completed_at = ${updateData.completed_at !== undefined ? updateData.completed_at : sql`completed_at`},
             updated_at = ${updateData.updated_at}
           WHERE id = ${parseInt(taskId)}
@@ -15998,8 +16682,51 @@ exports.handler = async (event, context) => {
     if (path.startsWith('/api/tasks/') && method === 'DELETE') {
       try {
         const taskId = path.split('/')[3];
+        const currentUser = await resolveCurrentUser(event, sql);
+
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
         
         console.log('📋 [TASKS] Deletando tarefa:', taskId);
+
+        const taskRows = await sql`
+          SELECT t.*, 
+                 uc.district_id as creator_district_id,
+                 uc.church as creator_church,
+                 ua.district_id as assignee_district_id,
+                 ua.church as assignee_church
+          FROM tasks t
+          LEFT JOIN users uc ON t.created_by = uc.id
+          LEFT JOIN users ua ON t.assigned_to = ua.id
+          WHERE t.id = ${parseInt(taskId)}
+          LIMIT 1
+        `;
+
+        if (taskRows.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Tarefa não encontrada' })
+          };
+        }
+
+        if (!canAccessTaskRecord(currentUser, taskRows[0], districtChurchNames)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Acesso negado' })
+          };
+        }
         
         const result = await sql`
           DELETE FROM tasks WHERE id = ${taskId} RETURNING id
@@ -16032,12 +16759,59 @@ exports.handler = async (event, context) => {
     // Rota para buscar usuários para atribuição de tarefas
     if (path === '/api/tasks/users' && method === 'GET') {
       try {
-        const users = await sql`
-          SELECT id, name, email, role, church
-          FROM users 
-          WHERE role IN ('admin', 'member', 'missionary')
-          ORDER BY name ASC
-        `;
+        const currentUser = await resolveCurrentUser(event, sql);
+        if (!currentUser) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
+        }
+
+        const currentUserDistrictId = currentUser?.district_id || null;
+        const districtChurchNames = currentUserDistrictId
+          ? await getDistrictChurchNames(sql, currentUserDistrictId)
+          : [];
+        let users;
+
+        if (currentUser.role === 'superadmin') {
+          users = await sql`
+            SELECT id, name, email, role, church
+            FROM users 
+            WHERE role IN ('admin', 'member', 'missionary')
+            ORDER BY name ASC
+          `;
+        } else if (isPastor(currentUser) && currentUserDistrictId) {
+          if (districtChurchNames.length > 0) {
+            users = await sql`
+              SELECT id, name, email, role, church
+              FROM users
+              WHERE role IN ('admin', 'member', 'missionary')
+                AND (district_id = ${currentUserDistrictId} OR church = ANY(${districtChurchNames}))
+              ORDER BY name ASC
+            `;
+          } else {
+            users = await sql`
+              SELECT id, name, email, role, church
+              FROM users
+              WHERE role IN ('admin', 'member', 'missionary')
+                AND district_id = ${currentUserDistrictId}
+              ORDER BY name ASC
+            `;
+          }
+        } else if (isPastor(currentUser) && !currentUserDistrictId) {
+          users = [];
+        } else if (currentUser.church) {
+          users = await sql`
+            SELECT id, name, email, role, church
+            FROM users
+            WHERE role IN ('admin', 'member', 'missionary')
+              AND church = ${currentUser.church}
+            ORDER BY name ASC
+          `;
+        } else {
+          users = [];
+        }
         
         return {
           statusCode: 200,
@@ -17029,26 +17803,21 @@ exports.handler = async (event, context) => {
     // GET /api/districts - Listar distritos
     if (path === '/api/districts' && method === 'GET') {
       try {
-        const userId = parseInt(event.headers['x-user-id'] || '0');
-        console.log('🔍 [GET /api/districts] userId recebido:', userId);
-        let user = null;
-        
-        if (userId) {
-          const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
-          if (userResult.length > 0) {
-            user = userResult[0];
-            console.log('🔍 [GET /api/districts] Usuário encontrado:', {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              district_id: user.district_id
-            });
-          } else {
-            console.warn('⚠️ [GET /api/districts] Usuário não encontrado para ID:', userId);
-          }
-        } else {
-          console.warn('⚠️ [GET /api/districts] userId não fornecido ou inválido');
+        const user = await resolveCurrentUser(event, sql);
+        console.log('🔍 [GET /api/districts] Usuário resolvido:', user ? {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          district_id: user.district_id
+        } : null);
+
+        if (!user) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
         }
 
         const isSuperAdminUser = isSuperAdmin(user);
@@ -17130,14 +17899,14 @@ exports.handler = async (event, context) => {
     if (path.match(/^\/api\/districts\/\d+$/) && method === 'GET') {
       try {
         const districtId = parseInt(path.split('/')[3]);
-        const userId = parseInt(event.headers['x-user-id'] || '0');
-        let user = null;
-        
-        if (userId) {
-          const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
-          if (userResult.length > 0) {
-            user = userResult[0];
-          }
+        const user = await resolveCurrentUser(event, sql);
+
+        if (!user) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
         }
 
         const district = await sql`
@@ -17717,14 +18486,14 @@ exports.handler = async (event, context) => {
     if (path.match(/^\/api\/districts\/\d+\/churches$/) && method === 'GET') {
       try {
         const districtId = parseInt(path.split('/')[3]);
-        const userId = parseInt(event.headers['x-user-id'] || '0');
-        let user = null;
-        
-        if (userId) {
-          const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
-          if (userResult.length > 0) {
-            user = userResult[0];
-          }
+        const user = await resolveCurrentUser(event, sql);
+
+        if (!user) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
         }
 
         // Verificar permissão
@@ -17760,14 +18529,14 @@ exports.handler = async (event, context) => {
     // GET /api/pastors - Listar pastores
     if (path === '/api/pastors' && method === 'GET') {
       try {
-        const userId = parseInt(event.headers['x-user-id'] || '0');
-        let user = null;
-        
-        if (userId) {
-          const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
-          if (userResult.length > 0) {
-            user = userResult[0];
-          }
+        const user = await resolveCurrentUser(event, sql);
+
+        if (!user) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
         }
 
         if (isSuperAdmin(user)) {
@@ -17805,14 +18574,14 @@ exports.handler = async (event, context) => {
     if (path.match(/^\/api\/pastors\/\d+$/) && method === 'GET') {
       try {
         const pastorId = parseInt(path.split('/')[3]);
-        const userId = parseInt(event.headers['x-user-id'] || '0');
-        let user = null;
-        
-        if (userId) {
-          const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
-          if (userResult.length > 0) {
-            user = userResult[0];
-          }
+        const user = await resolveCurrentUser(event, sql);
+
+        if (!user) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Não autenticado' })
+          };
         }
 
         const pastor = await sql`

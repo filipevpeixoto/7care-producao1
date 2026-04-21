@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { fetchWithAuth } from '@/lib/api';
 import { STALE_TIME, GC_TIME } from '@/lib/queryConstants';
@@ -25,7 +25,11 @@ interface Task {
 }
 
 // Chave para localStorage
-const TASKS_CACHE_KEY = '7care_tasks_cache';
+const LEGACY_TASKS_CACHE_KEY = '7care_tasks_cache';
+
+function getTasksCacheKey(userId?: number | null): string | null {
+  return userId ? `7care_tasks_cache_${userId}` : null;
+}
 
 /**
  * Hook simplificado para gerenciar tarefas
@@ -37,6 +41,7 @@ export function useTasks() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const tasksCacheKey = useMemo(() => getTasksCacheKey(user?.id), [user?.id]);
 
   // ========================================
   // MONITORAR CONEXÃO
@@ -61,14 +66,19 @@ export function useTasks() {
   // ========================================
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', user?.id],
     queryFn: async () => {
       tasksLogger.debug('Carregando tarefas...');
-      
+
+      if (!user?.id) {
+        tasksLogger.debug('Sem usuário autenticado - retornando lista vazia');
+        return [];
+      }
+
       // 1. SEMPRE tentar carregar do localStorage primeiro (rápido)
       let cachedTasks: Task[] = [];
       try {
-        const cached = localStorage.getItem(TASKS_CACHE_KEY);
+        const cached = tasksCacheKey ? localStorage.getItem(tasksCacheKey) : null;
         if (cached) {
           cachedTasks = JSON.parse(cached);
           tasksLogger.debug(`${cachedTasks.length} tarefas do cache local`);
@@ -76,26 +86,29 @@ export function useTasks() {
       } catch (error) {
         tasksLogger.warn('Erro ao ler cache:', error);
       }
-      
+
       // 2. Se conectado e autenticado, buscar do servidor
       if (navigator.onLine && user?.id) {
         try {
           const response = await fetchWithAuth('/api/tasks');
-          
+
           if (response.ok) {
             const result = await response.json();
             const serverTasks = result.tasks || [];
-            
+
             tasksLogger.debug(`${serverTasks.length} tarefas do servidor`);
-            
+
             // Salvar no localStorage para cache
             try {
-              localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(serverTasks));
+              if (tasksCacheKey) {
+                localStorage.setItem(tasksCacheKey, JSON.stringify(serverTasks));
+              }
+              localStorage.removeItem(LEGACY_TASKS_CACHE_KEY);
               tasksLogger.debug('Cache atualizado no localStorage');
             } catch (error) {
               tasksLogger.warn('Erro ao salvar cache:', error);
             }
-            
+
             return serverTasks;
           } else {
             tasksLogger.warn(`Servidor retornou ${response.status}, usando cache`);
@@ -106,14 +119,14 @@ export function useTasks() {
       } else {
         tasksLogger.debug('Sem conexão - usando cache local');
       }
-      
+
       // 3. Retornar cache (se sem conexão ou erro)
       return cachedTasks;
     },
     staleTime: STALE_TIME.SHORT, // 30 seconds
     gcTime: GC_TIME.SHORT, // 5 minutos
     refetchOnWindowFocus: true, // Recarrega ao focar na janela
-    refetchOnReconnect: true // Recarrega ao voltar online
+    refetchOnReconnect: true, // Recarrega ao voltar online
   });
 
   // ========================================
@@ -128,33 +141,35 @@ export function useTasks() {
       if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
-      
+
       const response = await fetchWithAuth('/api/tasks', {
         method: 'POST',
-        body: JSON.stringify(newTask)
+        body: JSON.stringify(newTask),
       });
-      
+
       if (!response.ok) {
         throw new Error('Erro ao criar tarefa');
       }
-      
+
       const result = await response.json();
       return result.task || result;
     },
     onSuccess: (newTask) => {
       // Atualizar cache do localStorage
       try {
-        const cached = localStorage.getItem(TASKS_CACHE_KEY);
+        const cached = tasksCacheKey ? localStorage.getItem(tasksCacheKey) : null;
         const tasks = cached ? JSON.parse(cached) : [];
         tasks.push(newTask);
-        localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(tasks));
+        if (tasksCacheKey) {
+          localStorage.setItem(tasksCacheKey, JSON.stringify(tasks));
+        }
         tasksLogger.debug('Cache atualizado após criação');
       } catch (error) {
         tasksLogger.warn('Erro ao atualizar cache:', error);
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    }
+
+      queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
+    },
   });
 
   // ========================================
@@ -169,36 +184,38 @@ export function useTasks() {
       if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
-      
+
       const response = await fetchWithAuth(`/api/tasks/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
       });
-      
+
       if (!response.ok) {
         throw new Error('Erro ao atualizar tarefa');
       }
-      
+
       const result = await response.json();
       return result.task || result;
     },
     onSuccess: (updatedTask) => {
       // Atualizar cache do localStorage
       try {
-        const cached = localStorage.getItem(TASKS_CACHE_KEY);
+        const cached = tasksCacheKey ? localStorage.getItem(tasksCacheKey) : null;
         const tasks = cached ? JSON.parse(cached) : [];
         const index = tasks.findIndex((t: Task) => t.id === updatedTask.id);
         if (index !== -1) {
           tasks[index] = updatedTask;
-          localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(tasks));
+          if (tasksCacheKey) {
+            localStorage.setItem(tasksCacheKey, JSON.stringify(tasks));
+          }
           tasksLogger.debug('Cache atualizado após edição');
         }
       } catch (error) {
         tasksLogger.warn('Erro ao atualizar cache:', error);
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    }
+
+      queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
+    },
   });
 
   // ========================================
@@ -213,33 +230,37 @@ export function useTasks() {
       if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
-      
+
       const response = await fetchWithAuth(`/api/tasks/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Erro ao deletar tarefa');
       }
-      
+
       return { success: true, id };
     },
     onSuccess: (result) => {
       // Remover do cache do localStorage
       try {
-        const cached = localStorage.getItem(TASKS_CACHE_KEY);
+        const cached = tasksCacheKey ? localStorage.getItem(tasksCacheKey) : null;
         const tasks = cached ? JSON.parse(cached) : [];
         const filteredTasks = tasks.filter((t: Task) => t.id !== result.id);
-        localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(filteredTasks));
-        tasksLogger.debug(`Cache atualizado após deleção (${tasks.length} -> ${filteredTasks.length})`);
+        if (tasksCacheKey) {
+          localStorage.setItem(tasksCacheKey, JSON.stringify(filteredTasks));
+        }
+        tasksLogger.debug(
+          `Cache atualizado após deleção (${tasks.length} -> ${filteredTasks.length})`
+        );
       } catch (error) {
         tasksLogger.warn('Erro ao atualizar cache:', error);
       }
-      
+
       // Invalidar e refazer a query imediatamente
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['tasks', user?.id] });
+    },
   });
 
   // ========================================
@@ -252,22 +273,21 @@ export function useTasks() {
     loading: isLoading,
     error,
     isOnline,
-    
+
     // Mutations
     create: createMutation.mutateAsync,
     update: (id: number, updates: Partial<Task>) => updateMutation.mutateAsync({ id, updates }),
     remove: deleteMutation.mutateAsync,
-    
+
     // Status
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
-    
+
     // Sincronização manual
     sync: async () => {
-      await queryClient.refetchQueries({ queryKey: ['tasks'] });
+      await queryClient.refetchQueries({ queryKey: ['tasks', user?.id] });
       return { success: true };
-    }
+    },
   };
 }
-

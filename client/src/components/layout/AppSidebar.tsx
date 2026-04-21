@@ -118,13 +118,6 @@ const navigationItems = [
     tourId: 'settings',
   },
   {
-    title: 'Aparência',
-    url: '/appearance',
-    icon: Settings,
-    roles: ['superadmin', 'pastor'] as UserRole[],
-    tourId: 'appearance',
-  },
-  {
     title: 'Notificações Push',
     url: '/push',
     icon: Bell,

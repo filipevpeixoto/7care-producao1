@@ -13,7 +13,7 @@ import { createApp, createNotFoundHandler, createErrorHandler } from '../../app'
 import { container } from '../../container';
 import { authRoutes } from '../../routes/authRoutes';
 import { authService } from '../../services/authService';
-import { createMockUser, generateTestToken } from './setup';
+import { createMockUser, generateTestToken, toTestServer } from './setup';
 
 // ── Build test app ──────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ function createTestApp() {
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
 
-  return app;
+  return toTestServer(app);
 }
 
 // ── Mock repositories ───────────────────────────────────────────

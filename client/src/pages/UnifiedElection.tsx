@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Loader2, Play, Pause, BarChart3, Vote } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/v2/ThemeToggle';
+import { PrototypeAvatar, PrototypeStatusBar } from './v2/prototypeShared';
 import { useNavigate } from 'react-router-dom';
 import { fetchWithAuth } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -43,6 +46,7 @@ interface ActiveElection {
 
 export default function UnifiedElection() {
   const { user } = useAuth();
+  const { skin } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -59,7 +63,14 @@ export default function UnifiedElection() {
       });
       if (!response.ok) return [];
       const data = await response.json();
-      return data;
+      const configs = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.configs)
+          ? data.configs
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+      return configs;
     },
     refetchInterval: autoRefresh ? 5000 : false,
     staleTime: 3000,
@@ -219,11 +230,137 @@ export default function UnifiedElection() {
   };
 
   if (loading) {
+    if (skin === 'v2') {
+      return (
+        <MobileLayout variant="prototype">
+          <div className="p7-shell">
+            <div className="p7-screen">
+              <PrototypeStatusBar />
+              <div className="p7-grad-header">
+                <div className="p7-header-row">
+                  <div>
+                    <div className="p7-header-label">{t('unifiedElection.tabDashboard')}</div>
+                    <div className="p7-header-title">{t('unifiedElection.loading')}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                  </div>
+                </div>
+              </div>
+              <div className="p7-scroll">
+                <div className="p7-section">
+                  <div className="p7-card p7-card-p flex min-h-[240px] items-center justify-center gap-2 text-sm text-[var(--p7-muted)]">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span>{t('unifiedElection.loading')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </MobileLayout>
+      );
+    }
     return (
       <MobileLayout>
         <div className="p-4 flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">{t('unifiedElection.loading')}</span>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (skin === 'v2') {
+    return (
+      <MobileLayout variant="prototype">
+        <div className="p7-shell">
+          <div className="p7-screen">
+            <PrototypeStatusBar />
+            <div className="p7-grad-header">
+              <div className="p7-header-row">
+                <div>
+                  <div className="p7-header-label">{t('unifiedElection.tabDashboard')}</div>
+                  <div className="p7-header-title">{t('unifiedElection.tabDashboard')}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                </div>
+              </div>
+            </div>
+            <div className="p7-scroll">
+              <div className="p7-section">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{configs.length}</div>
+                    <div className="p7-stat-label">{t('unifiedElection.tabConfig')}</div>
+                  </div>
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{activeElections.length}</div>
+                    <div className="p7-stat-label">{t('unifiedElection.tabVoting')}</div>
+                  </div>
+                  <div className="p7-stat-card">
+                    <div className="p7-stat-num">{autoRefresh ? 'On' : 'Off'}</div>
+                    <div className="p7-stat-label">Auto refresh</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p7-section">
+                <div className="p7-card p7-card-p">
+                  <ElectionHeader
+                    autoRefresh={autoRefresh}
+                    onToggleRefresh={() => setAutoRefresh(!autoRefresh)}
+                  />
+                </div>
+              </div>
+
+              <div className="p7-section pb-4">
+                <div className="p7-card p7-card-p">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 rounded-[1rem] bg-[var(--p7-surface-2)] p-1.5">
+                      <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        {t('unifiedElection.tabDashboard')}
+                      </TabsTrigger>
+                      <TabsTrigger value="voting" className="flex items-center gap-2">
+                        <Vote className="h-4 w-4" />
+                        {t('unifiedElection.tabVoting')}
+                      </TabsTrigger>
+                      <TabsTrigger value="config" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        {t('unifiedElection.tabConfig')}
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="dashboard" className="space-y-4">
+                      <DashboardTab
+                        configs={configs}
+                        navigate={navigate}
+                        getStatusBadge={getStatusBadge}
+                        handleStartElection={handleStartElection}
+                        handleDeleteConfig={handleDeleteConfig}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="voting" className="space-y-4">
+                      <VotingTab
+                        activeElections={activeElections}
+                        user={user}
+                        formatDate={formatDate}
+                        handleAccessElection={handleAccessElection}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="config" className="space-y-4">
+                      <ConfigTab navigate={navigate} />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </MobileLayout>
     );
@@ -237,7 +374,6 @@ export default function UnifiedElection() {
           onToggleRefresh={() => setAutoRefresh(!autoRefresh)}
         />
 
-        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">

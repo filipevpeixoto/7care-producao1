@@ -60,7 +60,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
       return true;
     }
 
-    const hasEmpty = churches.some(c => !c.name.trim());
+    const hasEmpty = churches.some((c) => !c.name.trim());
     if (hasEmpty) {
       setErrors('Todas as igrejas devem ter um nome');
       return false;
@@ -88,16 +88,16 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
           <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 3 de 6</span>
         </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent dark:bg-none dark:text-[var(--p7-text)]">
           Suas Igrejas
         </h2>
-        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+        <p className="mt-2 text-sm text-gray-500 dark:text-[var(--p7-text-2)] sm:mt-3 sm:text-base md:text-lg">
           Adicione as igrejas do seu distrito
         </p>
       </div>
 
       {errors && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center gap-2">
+        <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
           <span className="w-2 h-2 rounded-full bg-red-500" />
           {errors}
         </div>
@@ -108,7 +108,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
         className={`border-2 rounded-2xl p-5 cursor-pointer transition-all mb-6 ${
           willImportFromPowerBI
             ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-purple-50 shadow-lg'
-            : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/50'
+            : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/50 dark:border-[var(--p7-border)] dark:hover:border-[var(--v2-gold)] dark:hover:bg-[rgba(27,80,212,.16)]'
         }`}
         onClick={() => setWillImportFromPowerBI(!willImportFromPowerBI)}
       >
@@ -117,7 +117,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
             className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
               willImportFromPowerBI
                 ? 'bg-gradient-to-r from-blue-500 to-purple-500 border-transparent'
-                : 'border-gray-300'
+                : 'border-gray-300 dark:border-[var(--p7-border)]'
             }`}
           >
             {willImportFromPowerBI && (
@@ -140,8 +140,12 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
             <Database className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <p className="font-semibold text-blue-900">Irei importar a base de dados do PowerBI</p>
-            <p className="text-sm text-blue-600">As igrejas serão cadastradas automaticamente</p>
+            <p className="font-semibold text-blue-900 dark:text-blue-100">
+              Irei importar a base de dados do PowerBI
+            </p>
+            <p className="text-sm text-blue-600 dark:text-blue-200">
+              As igrejas serão cadastradas automaticamente
+            </p>
           </div>
         </div>
       </div>
@@ -153,7 +157,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
             {churches.map((church, index) => (
               <div
                 key={index}
-                className="border-2 border-blue-100 rounded-2xl p-5 bg-gradient-to-r from-blue-50/50 to-white relative shadow-sm hover:shadow-md transition-shadow"
+                className="relative rounded-2xl border-2 border-blue-100 bg-gradient-to-r from-blue-50/50 to-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-[var(--p7-border)] dark:from-[rgba(27,80,212,.12)] dark:to-[var(--p7-card)]"
               >
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="font-semibold text-blue-800 flex items-center gap-2">
@@ -162,7 +166,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                     </div>
                     {church.type === 'igreja' ? 'Igreja' : 'Grupo Organizado'} {index + 1}
                     {church.name && (
-                      <span className="text-sm font-normal text-blue-600 ml-2 px-2 py-0.5 bg-blue-50 rounded-full">
+                      <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-sm font-normal text-blue-600 dark:bg-blue-950/40 dark:text-blue-200">
                         → {getDisplayName(church)}
                       </span>
                     )}
@@ -173,7 +177,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeChurch(index)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl"
+                      className="rounded-xl text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -226,13 +230,13 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                     <Input
                       id={`name-${index}`}
                       value={church.name}
-                      onChange={e => updateChurch(index, 'name', e.target.value)}
+                      onChange={(e) => updateChurch(index, 'name', e.target.value)}
                       placeholder={
                         church.type === 'igreja'
                           ? 'Ex: Igreja Central'
                           : 'Ex: Grupo Jardim das Flores'
                       }
-                      className="h-12 rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 mt-1"
+                      className="mt-1 h-12 rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-[var(--v2-gold)] dark:focus:ring-[var(--v2-gold)]"
                     />
                   </div>
 
@@ -248,9 +252,9 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
                       <Input
                         id={`address-${index}`}
                         value={church.address}
-                        onChange={e => updateChurch(index, 'address', e.target.value)}
+                        onChange={(e) => updateChurch(index, 'address', e.target.value)}
                         placeholder="Rua, número, bairro"
-                        className="pl-11 h-12 rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="h-12 rounded-xl border-2 border-blue-400 !bg-white pl-11 !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-[var(--v2-gold)] dark:focus:ring-[var(--v2-gold)]"
                       />
                     </div>
                   </div>
@@ -296,7 +300,7 @@ export function Step3Churches({ data, onNext, onBack }: Step3ChurchesProps) {
       )}
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
+      <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-4 dark:border-[var(--p7-border)] sm:mt-10 sm:flex-row sm:justify-between sm:gap-3 sm:pt-6">
         <Button
           type="button"
           onClick={onBack}

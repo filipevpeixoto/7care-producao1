@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/v2/ThemeToggle';
+import { PrototypeAvatar, PrototypeStatusBar } from './v2/prototypeShared';
 import { PhotoSelector } from '@/components/ui/photo-selector';
 import { useAuth } from '@/hooks/useAuth';
 import { getRoleDisplayName } from '@/lib/permissions';
@@ -25,6 +28,7 @@ const meuCadastroLogger = createLogger('MeuCadastro');
 
 const MeuCadastro = () => {
   const { user, refreshUserData } = useAuth();
+  const { skin } = useTheme();
   const { toast } = useToast();
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
@@ -294,6 +298,348 @@ const MeuCadastro = () => {
     }
     return null;
   };
+  const roleLabel = getRoleDisplayName(user?.role);
+  const initial = user?.name?.charAt(0).toUpperCase() || 'U';
+  const summaryTiles = [
+    { label: t('common.role'), value: roleLabel || t('common.notInformed'), tone: 'navy' },
+    { label: t('common.email'), value: user?.email || t('common.notInformed'), tone: 'glass' },
+    { label: t('common.phone'), value: formData.phone || t('common.notInformed'), tone: 'gold' },
+  ];
+
+  if (skin === 'v2') {
+    return (
+      <MobileLayout variant="prototype">
+        <div className="p7-shell">
+          <div className="p7-screen">
+            <PrototypeStatusBar />
+            <div className="p7-grad-header">
+              <div className="p7-header-row">
+                <div>
+                  <div className="p7-header-label">{t('myProfile.title')}</div>
+                  <div className="p7-header-title">{user?.name || t('myProfile.title')}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                </div>
+              </div>
+            </div>
+            <div className="p7-scroll">
+              <div className="p7-stats-row" tabIndex={-1} aria-label="Resumo do perfil">
+                {summaryTiles.map((tile) => (
+                  <div key={tile.label} className={`p7-stat-card ${tile.tone}`}>
+                    <div
+                      className={`truncate text-[0.95rem] font-bold ${tile.tone === 'glass' ? 'text-[var(--p7-text)]' : 'text-white'}`}
+                    >
+                      {tile.value}
+                    </div>
+                    <div
+                      className={`mt-2 text-[0.72rem] ${tile.tone === 'glass' ? 'text-[var(--p7-text-3)]' : 'text-white/72'}`}
+                    >
+                      {tile.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p7-section">
+                <div className="p7-card p7-card-p">
+                  <div className="p7-profile-hero">
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-24 w-24">
+                        {user?.profilePhoto ? (
+                          <>
+                            <img
+                              src={getProfilePhotoUrl() || ''}
+                              alt={t('myProfile.photoAlt', { name: user.name })}
+                              className="h-24 w-24 rounded-full border border-[var(--p7-border)] object-cover shadow-[var(--shadow-card)]"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                            <div className="p7-profile-avatar-fallback" style={{ display: 'none' }}>
+                              {initial}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="p7-profile-avatar-fallback">{initial}</div>
+                        )}
+
+                        <PhotoSelector
+                          currentPhoto={getProfilePhotoUrl()}
+                          onPhotoSelect={handlePhotoSelect}
+                          onPhotoRemove={handlePhotoRemove}
+                          isLoading={isUploadingPhoto}
+                          trigger={
+                            <Button
+                              size="sm"
+                              className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-0 shadow-[var(--shadow-card)]"
+                              disabled={isUploadingPhoto}
+                              aria-label={
+                                isUploadingPhoto
+                                  ? t('myProfile.loadingPhoto')
+                                  : t('myProfile.changeProfilePhoto')
+                              }
+                            >
+                              {isUploadingPhoto ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Camera className="h-4 w-4" />
+                              )}
+                            </Button>
+                          }
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <h2 className="truncate text-[1.18rem] font-bold text-[var(--p7-text)]">
+                          {user?.name}
+                        </h2>
+                        <p className="mt-1 text-sm capitalize text-[var(--p7-text-3)]">
+                          {roleLabel}
+                        </p>
+                        <div className="mt-3 inline-flex rounded-full border border-[var(--p7-border)] bg-[var(--p7-surface-2)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--p7-text-2)]">
+                          {user?.email || t('common.notInformed')}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p7-panel-note">
+                      <div className="mb-1 text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[var(--v2-gold)]">
+                        {t('myProfile.profileHubTitle', { defaultValue: 'Central do perfil' })}
+                      </div>
+                      <p className="text-[0.82rem] leading-[1.6] text-[var(--p7-text-2)]">
+                        {t('myProfile.subtitle')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p7-section">
+                <div className="p7-card p7-card-p">
+                  <div className="p7-card-header">
+                    <div>
+                      <div className="p7-card-title">{t('myProfile.personalInfo')}</div>
+                      <p className="mt-1 text-[0.8rem] leading-[1.55] text-[var(--p7-text-3)]">
+                        {t('myProfile.personalInfoHint', {
+                          defaultValue:
+                            'Revise os dados que aparecem no seu cadastro e ajuste só o necessário.',
+                        })}
+                      </p>
+                    </div>
+                    {!isEditing ? (
+                      <Button onClick={() => setIsEditing(true)} size="sm">
+                        {t('myProfile.edit')}
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button onClick={handleCancel} variant="outline" size="sm">
+                          {t('myProfile.cancel')}
+                        </Button>
+                        <Button onClick={handleSave} size="sm">
+                          <Save className="mr-2 h-4 w-4" />
+                          {t('myProfile.save')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="p7-profile-field">
+                      <Label htmlFor="name">{t('myProfile.fullName')}</Label>
+                      <div className="p7-profile-input-wrap">
+                        <User className="p7-profile-input-icon" />
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, name: e.target.value }))
+                          }
+                          className="p7-profile-input"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p7-profile-field">
+                      <Label htmlFor="email">{t('myProfile.email')}</Label>
+                      <div className="p7-profile-input-wrap">
+                        <Mail className="p7-profile-input-icon" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, email: e.target.value }))
+                          }
+                          className="p7-profile-input"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p7-profile-field">
+                      <Label htmlFor="phone">{t('myProfile.phone')}</Label>
+                      <div className="p7-profile-input-wrap">
+                        <Phone className="p7-profile-input-icon" />
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              phone: formatPhoneBR(e.target.value),
+                            }))
+                          }
+                          className="p7-profile-input"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p7-profile-field">
+                      <Label htmlFor="birthDate">{t('myProfile.birthDate')}</Label>
+                      <div className="p7-profile-input-wrap">
+                        <Calendar className="p7-profile-input-icon" />
+                        <Input
+                          id="birthDate"
+                          type="date"
+                          value={formData.birthDate}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, birthDate: e.target.value }))
+                          }
+                          className="p7-profile-input"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p7-section pb-4">
+                <div className="p7-card p7-card-p">
+                  <div className="p7-card-header">
+                    <div>
+                      <div className="p7-card-title">{t('myProfile.security')}</div>
+                      <div className="text-sm text-[var(--p7-text-3)]">
+                        {t('myProfile.changePasswordDesc')}
+                      </div>
+                    </div>
+                  </div>
+                  <DialogWithModalTracking
+                    modalId="change-password-modal"
+                    open={isChangePwdOpen}
+                    onOpenChange={setIsChangePwdOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full md:w-auto">
+                        <Lock className="mr-2 h-4 w-4" />
+                        {t('myProfile.changePassword')}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="p7-modal-card">
+                      <DialogHeader>
+                        <DialogTitle>{t('myProfile.changePasswordDialogTitle')}</DialogTitle>
+                        <DialogDescription>{t('myProfile.changePasswordDesc')}</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3">
+                        <div className="p7-profile-field">
+                          <Label htmlFor="currentPassword">{t('myProfile.currentPassword')}</Label>
+                          <div className="p7-profile-input-wrap">
+                            <Lock className="p7-profile-input-icon" />
+                            <Input
+                              id="currentPassword"
+                              type="password"
+                              value={pwdForm.currentPassword}
+                              onChange={(e) =>
+                                setPwdForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+                              }
+                              className="p7-profile-input"
+                              aria-required="true"
+                            />
+                          </div>
+                        </div>
+                        <div className="p7-profile-field">
+                          <Label htmlFor="newPassword">{t('myProfile.newPassword')}</Label>
+                          <div className="p7-profile-input-wrap">
+                            <Lock className="p7-profile-input-icon" />
+                            <Input
+                              id="newPassword"
+                              type="password"
+                              value={pwdForm.newPassword}
+                              onChange={(e) =>
+                                setPwdForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                              }
+                              className="p7-profile-input"
+                              aria-invalid={
+                                pwdForm.newPassword.length > 0 && pwdForm.newPassword.length < 6
+                              }
+                              aria-required="true"
+                            />
+                          </div>
+                          {pwdForm.newPassword.length > 0 && pwdForm.newPassword.length < 6 && (
+                            <p className="text-xs text-destructive">
+                              {t(
+                                'myProfile.passwordTooShortDesc',
+                                'A senha deve ter pelo menos 6 caracteres.'
+                              )}
+                            </p>
+                          )}
+                        </div>
+                        <div className="p7-profile-field">
+                          <Label htmlFor="confirmPassword">
+                            {t('myProfile.confirmNewPassword')}
+                          </Label>
+                          <div className="p7-profile-input-wrap">
+                            <Lock className="p7-profile-input-icon" />
+                            <Input
+                              id="confirmPassword"
+                              type="password"
+                              value={pwdForm.confirmPassword}
+                              onChange={(e) =>
+                                setPwdForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                              }
+                              className="p7-profile-input"
+                              aria-invalid={
+                                pwdForm.confirmPassword.length > 0 &&
+                                pwdForm.confirmPassword !== pwdForm.newPassword
+                              }
+                              aria-required="true"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsChangePwdOpen(false)}
+                          disabled={isChangingPwd}
+                        >
+                          {t('myProfile.cancel')}
+                        </Button>
+                        <Button onClick={handleSubmitChangePassword} disabled={isChangingPwd}>
+                          {isChangingPwd ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Lock className="mr-2 h-4 w-4" />
+                          )}
+                          {t('myProfile.savePassword')}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </DialogWithModalTracking>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout>
@@ -303,7 +649,6 @@ const MeuCadastro = () => {
           <p className="text-muted-foreground">{t('myProfile.subtitle')}</p>
         </div>
 
-        {/* Profile Photo */}
         <Card className="shadow-divine">
           <CardContent className="p-6">
             <div className="text-center space-y-4">
@@ -315,7 +660,6 @@ const MeuCadastro = () => {
                       alt={t('myProfile.photoAlt', { name: user.name })}
                       className="w-24 h-24 rounded-full object-cover border-4 border-primary/20"
                       onError={(e) => {
-                        // Fallback para inicial se a imagem falhar
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
                         const fallback = target.nextElementSibling as HTMLElement;
@@ -368,7 +712,6 @@ const MeuCadastro = () => {
           </CardContent>
         </Card>
 
-        {/* Personal Information */}
         <Card className="shadow-divine">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>{t('myProfile.personalInfo')}</CardTitle>

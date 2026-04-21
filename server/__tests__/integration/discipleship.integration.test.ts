@@ -3,7 +3,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { discipleshipRoutes } from '../../routes/discipleshipRoutes';
-import { createMockUser } from './setup';
+import { createMockUser, toTestServer } from './setup';
 import { getAuthUserId, getAuthUserRole } from '../../utils/authHelpers';
 
 vi.mock('../../utils/authHelpers', () => ({
@@ -38,7 +38,7 @@ function createTestApp() {
   discipleshipRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 describe('Discipleship Routes — Integration', () => {

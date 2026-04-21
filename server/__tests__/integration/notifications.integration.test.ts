@@ -14,7 +14,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { notificationRoutes } from '../../routes/notificationRoutes';
-import { createMockUser, generateTestToken } from './setup';
+import { createMockUser, generateTestToken, toTestServer } from './setup';
 
 // ── Mock repositories ───────────────────────────────────────────
 
@@ -49,7 +49,7 @@ function createTestApp() {
   notificationRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -137,9 +137,7 @@ describe('Notification Routes — Integration', () => {
 
   describe('GET /api/push/subscriptions', () => {
     it('should return push subscriptions for user', async () => {
-      const subscriptions = [
-        { id: 1, userId: 1, deviceName: 'Chrome', isActive: true },
-      ];
+      const subscriptions = [{ id: 1, userId: 1, deviceName: 'Chrome', isActive: true }];
       mockPushSubRepo.getByUserId.mockResolvedValue(subscriptions);
 
       const res = await request(app).get('/api/push/subscriptions?userId=1');
@@ -205,9 +203,7 @@ describe('Notification Routes — Integration', () => {
     });
 
     it('should return 400 when subscription is missing', async () => {
-      const res = await request(app)
-        .post('/api/push/subscribe')
-        .send({ userId: 1 });
+      const res = await request(app).post('/api/push/subscribe').send({ userId: 1 });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -278,9 +274,7 @@ describe('Notification Routes — Integration', () => {
 
   describe('POST /api/push/send', () => {
     it('should send push notifications', async () => {
-      mockPushService.sendPushNotifications.mockResolvedValue([
-        { userId: 1, success: true },
-      ]);
+      mockPushService.sendPushNotifications.mockResolvedValue([{ userId: 1, success: true }]);
 
       const res = await request(app)
         .post('/api/push/send')
@@ -303,12 +297,10 @@ describe('Notification Routes — Integration', () => {
     });
 
     it('should return 400 when userIds is missing', async () => {
-      const res = await request(app)
-        .post('/api/push/send')
-        .send({
-          title: 'Test',
-          body: 'Hello!',
-        });
+      const res = await request(app).post('/api/push/send').send({
+        title: 'Test',
+        body: 'Hello!',
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);

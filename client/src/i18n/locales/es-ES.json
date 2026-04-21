@@ -795,6 +795,7 @@
     "photoRemoveErrorTitle": "Error al eliminar foto",
     "photoRemoveErrorDesc": "No se pudo eliminar su foto. Inténtelo de nuevo.",
     "personalInfo": "Información Personal",
+    "personalInfoHint": "Revise los datos que aparecen en su perfil y ajuste solo lo necesario.",
     "edit": "Editar",
     "cancel": "Cancelar",
     "save": "Guardar",
@@ -824,12 +825,14 @@
     "changePasswordFail": "No se pudo cambiar la contraseña",
     "tryAgain": "Inténtelo de nuevo.",
     "passwordChangedTitle": "Contraseña cambiada",
-    "passwordChangedDesc": "Su contraseña fue actualizada con éxito."
+    "passwordChangedDesc": "Su contraseña fue actualizada con éxito.",
+    "profileHubTitle": "Centro del perfil"
   },
   "greetings": {
     "morning": "Buenos días",
     "afternoon": "Buenas tardes",
-    "evening": "Buenas noches"  },
+    "evening": "Buenas noches"
+  },
   "login": {
     "installApp": "\ud83d\udcf1 \u00a1Instala la app!",
     "howToInstall": "C\u00f3mo instalar 7Care",
@@ -1278,5 +1281,30 @@
     "statusActive": "Activa",
     "statusPaused": "Pausada",
     "statusDraft": "Borrador"
+  },
+  "legalV2": {
+    "guidedReading": "Lectura guiada",
+    "terms": {
+      "badge": "Términos",
+      "subtitle": "Transparencia, responsabilidad y uso seguro de la plataforma.",
+      "intro": "Estos términos organizan el uso de 7care de forma clara para quienes administran, acompañan y cuidan la vida de la iglesia día a día.",
+      "summaryUseValue": "Uso responsable",
+      "summaryUseLabel": "Reglas de uso, responsabilidades y límites de la plataforma.",
+      "summarySafetyValue": "Protección operativa",
+      "summarySafetyLabel": "Compromisos que ayudan a proteger la operación y la comunidad.",
+      "summaryLegalValue": "Transparencia legal",
+      "summaryLegalLabel": "Actualizaciones, gobernanza y respaldo jurídico del servicio."
+    },
+    "privacy": {
+      "badge": "Privacidad",
+      "subtitle": "Cómo protegemos datos, accesos e información sensible.",
+      "intro": "Este resumen muestra cómo 7care recopila, protege y utiliza la información para apoyar el cuidado pastoral con seguridad, claridad y responsabilidad.",
+      "summaryDataValue": "Recopilación y retención",
+      "summaryDataLabel": "Qué datos pueden recopilarse y durante cuánto tiempo se conservan.",
+      "summaryUsageValue": "Uso contextual",
+      "summaryUsageLabel": "Cómo la información ayuda al cuidado pastoral y a la operación.",
+      "summaryRightsValue": "Control del titular",
+      "summaryRightsLabel": "Derechos del usuario, visibilidad y canales para solicitar cambios."
+    }
   }
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils';
 
 // Base Skeleton component
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -27,8 +27,8 @@ function Skeleton({
   return (
     <div
       className={cn(
-        'bg-muted',
-        animate && 'animate-pulse',
+        'skeleton-fill',
+        animate && 'animate-pulse motion-reduce:animate-none',
         variantStyles[variant],
         className
       )}
@@ -36,6 +36,8 @@ function Skeleton({
         width: width ?? (variant === 'text' ? '100%' : undefined),
         height: height ?? (variant === 'text' ? '1em' : undefined),
       }}
+      aria-hidden="true"
+      data-slot="skeleton"
       {...props}
     />
   );
@@ -44,7 +46,7 @@ function Skeleton({
 // Card Skeleton
 function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn('rounded-lg border bg-card p-4 space-y-3', className)}>
+    <div className={cn('skeleton-panel rounded-lg border p-4 space-y-3', className)}>
       <div className="flex items-center space-x-4">
         <Skeleton variant="circular" width={40} height={40} />
         <div className="space-y-2 flex-1">
@@ -61,7 +63,7 @@ function SkeletonCard({ className }: { className?: string }) {
 // Table Row Skeleton
 function SkeletonTableRow({ columns = 5 }: { columns?: number }) {
   return (
-    <tr className="border-b">
+    <tr className="border-b border-border/60">
       {Array.from({ length: columns }).map((_, i) => (
         <td key={i} className="p-4">
           <Skeleton variant="text" height={16} width={i === 0 ? '70%' : '50%'} />
@@ -90,7 +92,7 @@ function SkeletonTable({
       <table className="w-full">
         {showHeader && (
           <thead>
-            <tr className="border-b bg-muted/50">
+            <tr className="skeleton-panel border-b">
               {Array.from({ length: columns }).map((_, i) => (
                 <th key={i} className="p-4 text-left">
                   <Skeleton variant="text" height={14} width="60%" />
@@ -112,7 +114,7 @@ function SkeletonTable({
 // User Card Skeleton
 function SkeletonUserCard({ className }: { className?: string }) {
   return (
-    <div className={cn('rounded-lg border bg-card p-4', className)}>
+    <div className={cn('skeleton-panel rounded-lg border p-4', className)}>
       <div className="flex items-start space-x-4">
         <Skeleton variant="circular" width={48} height={48} />
         <div className="flex-1 space-y-2">
@@ -150,7 +152,7 @@ function SkeletonForm({
           <Skeleton variant="text" height={14} width="60%" />
         </div>
       )}
-      
+
       <div className="space-y-4">
         {Array.from({ length: fields }).map((_, i) => (
           <div key={i} className="space-y-2">
@@ -175,7 +177,7 @@ function SkeletonStats({ count = 4 }: { count?: number }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-lg border bg-card p-6 space-y-3">
+        <div key={i} className="skeleton-panel rounded-lg border p-6 space-y-3">
           <div className="flex items-center justify-between">
             <Skeleton variant="text" height={14} width="60%" />
             <Skeleton variant="circular" width={24} height={24} />
@@ -189,15 +191,9 @@ function SkeletonStats({ count = 4 }: { count?: number }) {
 }
 
 // Chart Skeleton
-function SkeletonChart({ 
-  height = 300,
-  className 
-}: { 
-  height?: number;
-  className?: string;
-}) {
+function SkeletonChart({ height = 300, className }: { height?: number; className?: string }) {
   return (
-    <div className={cn('rounded-lg border bg-card p-4', className)}>
+    <div className={cn('skeleton-panel rounded-lg border p-4', className)}>
       <div className="space-y-2 mb-4">
         <Skeleton variant="text" height={18} width="30%" />
         <Skeleton variant="text" height={12} width="50%" />
@@ -270,11 +266,11 @@ function SkeletonProfileHeader({ className }: { className?: string }) {
 }
 
 // Page Header Skeleton
-function SkeletonPageHeader({ 
+function SkeletonPageHeader({
   showBreadcrumb = true,
   showActions = true,
-  className 
-}: { 
+  className,
+}: {
   showBreadcrumb?: boolean;
   showActions?: boolean;
   className?: string;
@@ -304,7 +300,7 @@ function SkeletonPageHeader({
   );
 }
 
-export { 
+export {
   Skeleton,
   SkeletonCard,
   SkeletonTable,
@@ -316,4 +312,4 @@ export {
   SkeletonList,
   SkeletonProfileHeader,
   SkeletonPageHeader,
-}
+};

@@ -130,18 +130,30 @@ export function Step5Validation({
       case 'not_found':
         return <XCircle className="w-5 h-5 text-red-600" />;
       default:
-        return <HelpCircle className="w-5 h-5 text-gray-400" />;
+        return <HelpCircle className="h-5 w-5 text-gray-400 dark:text-[var(--p7-text-3)]" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'exact_match':
-        return <Badge className="bg-green-100 text-green-800">Correspondência exata</Badge>;
+        return (
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300">
+            Correspondência exata
+          </Badge>
+        );
       case 'similar_found':
-        return <Badge className="bg-yellow-100 text-yellow-800">Similar encontrada</Badge>;
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300">
+            Similar encontrada
+          </Badge>
+        );
       case 'not_found':
-        return <Badge className="bg-red-100 text-red-800">Não encontrada</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300">
+            Não encontrada
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">Desconhecido</Badge>;
     }
@@ -164,19 +176,19 @@ export function Step5Validation({
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
             Validação de Igrejas
           </h2>
-          <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+          <p className="mt-2 text-sm text-gray-500 dark:text-[var(--p7-text-2)] sm:mt-3 sm:text-base md:text-lg">
             Nenhuma planilha foi importada. Você pode continuar sem importar membros.
           </p>
         </div>
 
-        <Alert className="rounded-2xl border-blue-200 bg-blue-50">
-          <HelpCircle className="h-5 w-5 text-blue-500" />
-          <AlertDescription className="ml-2 text-blue-700">
+        <Alert className="rounded-2xl border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40">
+          <HelpCircle className="h-5 w-5 text-blue-500 dark:text-blue-300" />
+          <AlertDescription className="ml-2 text-blue-700 dark:text-blue-200">
             Como você não importou uma planilha, as igrejas cadastradas manualmente serão usadas.
           </AlertDescription>
         </Alert>
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
+        <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-4 dark:border-[var(--p7-border)] sm:mt-10 sm:flex-row sm:justify-between sm:gap-3 sm:pt-6">
           <Button
             onClick={onBack}
             size="lg"
@@ -209,14 +221,17 @@ export function Step5Validation({
           <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
             Validando Igrejas
           </h2>
-          <p className="text-gray-500 mt-3 text-lg">
+          <p className="mt-3 text-lg text-gray-500 dark:text-[var(--p7-text-2)]">
             Estamos verificando as igrejas da sua planilha.
           </p>
         </div>
 
         <div className="space-y-4 max-w-2xl mx-auto">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="border border-gray-200 rounded-2xl p-5">
+            <div
+              key={i}
+              className="rounded-2xl border border-gray-200 p-5 dark:border-[var(--p7-border)] dark:bg-[var(--p7-surface-2)]"
+            >
               <div className="flex items-center gap-4">
                 <Skeleton className="w-12 h-12 rounded-xl" />
                 <div className="flex-1">
@@ -242,33 +257,43 @@ export function Step5Validation({
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           Validação de Igrejas
         </h2>
-        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+        <p className="mt-2 text-sm text-gray-500 dark:text-[var(--p7-text-2)] sm:mt-3 sm:text-base md:text-lg">
           Verifique as correspondências e escolha como processar cada igreja.
         </p>
       </div>
 
       {/* Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 sm:p-5 text-center">
+        <div className="rounded-2xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-4 text-center dark:border-green-900 dark:from-green-950/40 dark:to-emerald-950/30 sm:p-5">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
             <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-green-900">{exactMatches}</p>
-          <p className="text-xs sm:text-sm text-green-700 mt-1">Correspondências exatas</p>
+          <p className="text-2xl font-bold text-green-900 dark:text-green-100 sm:text-3xl">
+            {exactMatches}
+          </p>
+          <p className="mt-1 text-xs text-green-700 dark:text-green-300 sm:text-sm">
+            Correspondências exatas
+          </p>
         </div>
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-4 sm:p-5 text-center">
+        <div className="rounded-2xl border border-yellow-200 bg-gradient-to-br from-yellow-50 to-amber-50 p-4 text-center dark:border-yellow-900 dark:from-yellow-950/40 dark:to-amber-950/30 sm:p-5">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
             <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-yellow-900">{similarFound}</p>
-          <p className="text-xs sm:text-sm text-yellow-700 mt-1">Similares encontradas</p>
+          <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 sm:text-3xl">
+            {similarFound}
+          </p>
+          <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-300 sm:text-sm">
+            Similares encontradas
+          </p>
         </div>
-        <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-4 sm:p-5 text-center">
+        <div className="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-rose-50 p-4 text-center dark:border-red-900 dark:from-red-950/40 dark:to-rose-950/30 sm:p-5">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg">
             <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-red-900">{notFound}</p>
-          <p className="text-sm text-red-700 mt-1">Não encontradas</p>
+          <p className="text-2xl font-bold text-red-900 dark:text-red-100 sm:text-3xl">
+            {notFound}
+          </p>
+          <p className="mt-1 text-sm text-red-700 dark:text-red-300">Não encontradas</p>
         </div>
       </div>
 
@@ -328,7 +353,9 @@ export function Step5Validation({
                     {getStatusBadge(validation.status)}
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                        isExpanded ? 'bg-gray-100' : 'hover:bg-gray-100'
+                        isExpanded
+                          ? 'bg-gray-100 dark:bg-[var(--p7-surface-2)]'
+                          : 'hover:bg-gray-100 dark:hover:bg-[var(--p7-surface-2)]'
                       }`}
                     >
                       {isExpanded ? (
@@ -343,7 +370,7 @@ export function Step5Validation({
 
               {isExpanded && (
                 <div className="px-5 pb-5">
-                  <div className="border-t border-gray-200 pt-5">
+                  <div className="border-t border-gray-200 pt-5 dark:border-[var(--p7-border)]">
                     <RadioGroup
                       value={currentValidation?.action || 'create_new'}
                       onValueChange={(value) =>
@@ -462,7 +489,7 @@ export function Step5Validation({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
+      <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-4 dark:border-[var(--p7-border)] sm:mt-10 sm:flex-row sm:justify-between sm:gap-3 sm:pt-6">
         <Button
           onClick={onBack}
           size="lg"

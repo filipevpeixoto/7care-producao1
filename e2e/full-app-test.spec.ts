@@ -28,7 +28,7 @@
 
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3065';
+const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || '3064'}`;
 
 // ============================================================
 // SECTION 1: PUBLIC PAGES (No Auth Required)
@@ -39,7 +39,7 @@ test.describe('Public Pages', () => {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 
     // Logo should be visible
-    const logo = page.locator('img[alt="Logo"]');
+    const logo = page.locator('img[alt="Logo"], img[alt*="7Care"]');
     await expect(logo.first()).toBeVisible({ timeout: 15000 });
 
     // Email/username input
@@ -697,8 +697,14 @@ test.describe('Security', () => {
       headers['strict-transport-security'] ||
       headers['content-security-policy'];
 
-    // At minimum, HTTPS should be enforced
-    expect(page.url()).toMatch(/^https:\/\//);
+    const pageUrl = new URL(page.url());
+    const isLocalhost = pageUrl.hostname === 'localhost' || pageUrl.hostname === '127.0.0.1';
+
+    if (isLocalhost) {
+      expect(hasSecurityHeaders).toBeTruthy();
+    } else {
+      expect(page.url()).toMatch(/^https:\/\//);
+    }
   });
 
   test('password field does not autocomplete', async ({ page }) => {

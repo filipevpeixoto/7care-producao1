@@ -44,9 +44,19 @@ type EmptyStateProps = {
 
 export const UsersEmptyState = ({ isVisible }: EmptyStateProps) =>
   isVisible ? (
-    <div className="text-center py-8" data-testid="empty-state">
-      <UserIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-foreground mb-2">Nenhum usuário encontrado</h3>
-      <p className="text-muted-foreground">Tente ajustar os filtros de busca.</p>
+    <div
+      className="mx-auto max-w-lg rounded-[1.5rem] border border-border/70 bg-card/90 px-6 py-8 text-center shadow-sm"
+      data-testid="empty-state"
+    >
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <UserIcon className="h-7 w-7" />
+      </div>
+      <h3 className="mb-2 text-lg font-medium text-foreground">
+        Nenhum usuário corresponde aos filtros
+      </h3>
+      <p className="text-sm leading-6 text-muted-foreground">
+        Revise o termo de busca, a igreja e os filtros ativos para ampliar os resultados desta
+        lista.
+      </p>
     </div>
   ) : null;

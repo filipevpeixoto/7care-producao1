@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2, Sparkles, WifiOff } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
 import { StepIndicator } from '@/components/pastor-onboarding/StepIndicator';
 import { Step1Personal } from '@/components/pastor-onboarding/steps/Step1Personal';
@@ -37,6 +38,8 @@ export default function PastorOnboarding() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { skin } = useTheme();
+  const isV2 = skin === 'v2';
 
   const [validating, setValidating] = useState(true);
   const [inviteData, setInviteData] = useState<{ email: string; expiresAt: string } | null>(null);
@@ -80,6 +83,7 @@ export default function PastorOnboarding() {
   const hasToken = Boolean(token);
   const effectiveValidating = hasToken ? validating : false;
   const effectiveValidationError = hasToken ? validationError : t('pastorOnboarding.invalidToken');
+  const completedCount = data.completedSteps?.length || 0;
 
   // Validar token ao carregar
   useEffect(() => {
@@ -219,19 +223,47 @@ export default function PastorOnboarding() {
   // Loading state
   if (effectiveValidating) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center relative overflow-hidden">
+      <div
+        className={
+          isV2
+            ? 'min-h-screen bg-background px-3 py-3 sm:px-6 sm:py-6'
+            : 'min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center relative overflow-hidden'
+        }
+      >
         {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-        </div>
+        {!isV2 && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+          </div>
+        )}
 
-        <div className="relative z-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-12 max-w-md w-full mx-4 text-center shadow-2xl">
-          <Loader2 className="w-16 h-16 text-blue-400 mx-auto mb-6 animate-spin" />
-          <h2 className="text-2xl font-bold text-white mb-2">
-            {t('pastorOnboarding.validatingInvite')}
-          </h2>
-          <p className="text-blue-200">{t('pastorOnboarding.validatingDesc')}</p>
+        <div
+          className={
+            isV2
+              ? 'p7-shell p7-bridge-shell flex min-h-[calc(100vh-2rem)] items-center justify-center'
+              : 'flex min-h-screen w-full items-center justify-center'
+          }
+        >
+          <div
+            className={
+              isV2
+                ? 'w-full max-w-md rounded-[24px] border border-[var(--p7-border)] bg-[var(--p7-card)] p-12 text-center shadow-[0_20px_48px_rgba(13,34,72,.10)]'
+                : 'relative z-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-12 max-w-md w-full mx-4 text-center shadow-2xl'
+            }
+          >
+            <Loader2
+              className={`w-16 h-16 mx-auto mb-6 animate-spin ${isV2 ? 'text-primary' : 'text-blue-400'}`}
+            />
+            <h2
+              className={`mb-2 text-2xl font-bold ${isV2 ? 'text-[var(--p7-text)]' : 'text-white'}`}
+            >
+              {t('pastorOnboarding.validatingInvite')}
+            </h2>
+            <p className={isV2 ? 'text-[var(--p7-text-2)]' : 'text-blue-200'}>
+              {t('pastorOnboarding.validatingDesc')}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -254,185 +286,293 @@ export default function PastorOnboarding() {
 
   // Main wizard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-10 bg-white/5 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/7carelogonew.png" alt="7Care" className="h-10 w-auto" />
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  {t('pastorOnboarding.title')}
-                </h1>
-                <p className="text-blue-200/70 text-sm">{t('pastorOnboarding.subtitle')}</p>
-              </div>
-            </div>
-
-            {/* Badge */}
-            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
-              <Sparkles className="w-4 h-4 text-yellow-400" />
-              <span className="text-white/80 text-sm font-medium">
-                {t('pastorOnboarding.exclusiveInvite')}
-              </span>
-            </div>
+    <div
+      className={
+        isV2
+          ? 'min-h-screen bg-background px-3 py-3 sm:px-6 sm:py-6'
+          : 'min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative'
+      }
+    >
+      <div className={isV2 ? 'p7-shell p7-bridge-shell overflow-hidden' : ''}>
+        {/* Background decorations */}
+        {!isV2 && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl" />
           </div>
-        </div>
-      </header>
+        )}
 
-      {/* Banner Modo Offline - Destaque */}
-      <div className="relative z-10 bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-orange-500/20 border-b border-orange-400/30">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-br from-orange-400 to-amber-500 p-1.5 rounded-lg shadow-lg shadow-orange-500/30">
-                <WifiOff className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-white font-semibold text-sm">
-                {t('pastorOnboarding.offlineModeBadge')}
-              </span>
-            </div>
-            <span className="text-orange-200/80 text-xs sm:text-sm hidden sm:inline">
-              {t('pastorOnboarding.offlineModeDescDesktop')}
-            </span>
-            <span className="text-orange-200/80 text-xs sm:hidden">
-              {t('pastorOnboarding.offlineModeDescMobile')}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Step Indicator */}
-      <div className="relative z-10 bg-white/5 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-5xl mx-auto">
-          <StepIndicator
-            currentStep={currentStep}
-            completedSteps={data.completedSteps || []}
-            onStepClick={goToStep}
-          />
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Glass Card Container */}
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden">
-            {/* Error Alert */}
-            {error && (
-              <div className="bg-red-500/20 border-b border-red-500/30 px-6 py-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-red-200">{t('pastorOnboarding.error')}</p>
-                    <p className="text-sm text-red-300/80">{error}</p>
-                  </div>
-                  <button
-                    onClick={clearError}
-                    className="text-red-400 hover:text-red-300 transition-colors p-1"
+        {/* Header */}
+        <header
+          className={
+            isV2
+              ? 'relative z-10 bg-[var(--gradient-hero)]'
+              : 'relative z-10 bg-white/5 backdrop-blur-xl border-b border-white/10'
+          }
+        >
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/7carelogonew.png" alt="7Care" className="h-10 w-auto" />
+                <div>
+                  <h1
+                    className={`text-2xl font-bold ${isV2 ? 'text-white' : 'bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent'}`}
                   >
-                    ✕
-                  </button>
+                    {t('pastorOnboarding.title')}
+                  </h1>
+                  <p className={isV2 ? 'text-white/70 text-sm' : 'text-blue-200/70 text-sm'}>
+                    {t('pastorOnboarding.subtitle')}
+                  </p>
                 </div>
               </div>
-            )}
 
-            {/* Step Content - with white background for forms */}
-            <div className="bg-white rounded-b-3xl">
-              {currentStep === 1 && inviteData && (
-                <Step1Personal
-                  data={data.personal || { name: '', email: inviteData.email, phone: '' }}
-                  email={inviteData.email}
-                  onNext={handleStep1Next}
-                />
-              )}
+              {/* Badge */}
+              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
+                <Sparkles className="w-4 h-4 text-yellow-400" />
+                <span className="text-white/80 text-sm font-medium">
+                  {t('pastorOnboarding.exclusiveInvite')}
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
 
-              {currentStep === 2 && (
-                <Step2District
-                  data={data.district || { name: '' }}
-                  onNext={handleStep2Next}
-                  onBack={prevStep}
-                />
-              )}
-
-              {currentStep === 3 && (
-                <Step3Churches
-                  data={data.churches || []}
-                  onNext={handleStep3Next}
-                  onBack={prevStep}
-                />
-              )}
-
-              {currentStep === 4 && token && (
-                <Step4ExcelImport
-                  data={data.excelData}
-                  onUpdate={handleStep4Update}
-                  onNext={handleStep4Next}
-                  onBack={prevStep}
-                  token={token}
-                />
-              )}
-
-              {currentStep === 5 && token && (
-                <Step5Validation
-                  excelData={data.excelData}
-                  validations={data.churchValidation}
-                  onUpdate={handleStep5Update}
-                  onNext={handleStep5Next}
-                  onBack={prevStep}
-                  token={token}
-                />
-              )}
-
-              {currentStep === 6 && (
-                <Step8GamificationConfig
-                  data={data.gamificationConfig}
-                  onNext={handleStep6Next}
-                  onBack={prevStep}
-                />
-              )}
-
-              {currentStep === 7 && (
-                <StepSituationLevels
-                  data={data.situationLevels}
-                  onNext={handleStep7Next}
-                  onBack={prevStep}
-                />
-              )}
-
-              {currentStep === 8 && (
-                <Step7Password
-                  onSubmit={handleFinalSubmit}
-                  onBack={prevStep}
-                  isLoading={isLoading}
-                />
-              )}
+        {/* Banner Modo Offline - Destaque */}
+        <div
+          className={
+            isV2
+              ? 'relative z-10 border-b border-[var(--p7-border)] bg-[rgba(196,136,12,.10)]'
+              : 'relative z-10 bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-orange-500/20 border-b border-orange-400/30'
+          }
+        >
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="bg-gradient-to-br from-orange-400 to-amber-500 p-1.5 rounded-lg shadow-lg shadow-orange-500/30">
+                  <WifiOff className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white font-semibold text-sm">
+                  {t('pastorOnboarding.offlineModeBadge')}
+                </span>
+              </div>
+              <span className="text-orange-200/80 text-xs sm:text-sm hidden sm:inline">
+                {t('pastorOnboarding.offlineModeDescDesktop')}
+              </span>
+              <span className="text-orange-200/80 text-xs sm:hidden">
+                {t('pastorOnboarding.offlineModeDescMobile')}
+              </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Footer */}
-      <footer className="relative z-10 text-center py-8">
-        <p className="text-blue-200/50 text-sm">{t('pastorOnboarding.copyright')}</p>
-      </footer>
+        {isV2 && (
+          <div className="relative z-10 border-b border-[var(--p7-border)] bg-[var(--p7-card)]">
+            <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[var(--v2-gold)]">
+                  Jornada do convite
+                </div>
+                <div className="mt-1 text-sm text-[var(--p7-text-2)]">
+                  {inviteData?.email || 'Convite em processamento'} • passo {currentStep} de 8
+                </div>
+              </div>
 
-      <ProgressDialog
-        isOpen={isProgressDialogOpen}
-        onRequestClose={(open) => {
-          if (!open && (onboardingProgress.isComplete || onboardingProgress.isError)) {
-            handleCloseProgressDialog();
+              <div className="grid grid-cols-3 gap-2 lg:min-w-[360px]">
+                <div className="rounded-[18px] border border-[var(--p7-border)] bg-[var(--p7-surface-2)] px-3 py-3">
+                  <div className="text-[0.68rem] uppercase tracking-[0.12em] text-[var(--p7-text-3)]">
+                    Etapa atual
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--p7-text)]">
+                    {currentStep}/8
+                  </div>
+                </div>
+                <div className="rounded-[18px] border border-[var(--p7-border)] bg-[var(--p7-surface-2)] px-3 py-3">
+                  <div className="text-[0.68rem] uppercase tracking-[0.12em] text-[var(--p7-text-3)]">
+                    Concluídas
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--p7-text)]">
+                    {completedCount}
+                  </div>
+                </div>
+                <div className="rounded-[18px] border border-[var(--p7-border)] bg-[var(--p7-surface-2)] px-3 py-3">
+                  <div className="text-[0.68rem] uppercase tracking-[0.12em] text-[var(--p7-text-3)]">
+                    Próximo foco
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--p7-text)]">
+                    {currentStep < 8 ? `Etapa ${currentStep + 1}` : 'Finalizar'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step Indicator */}
+        <div
+          className={
+            isV2
+              ? 'relative z-10 border-b border-[var(--p7-border)] bg-[var(--p7-card)]'
+              : 'relative z-10 bg-white/5 backdrop-blur-sm border-b border-white/10'
           }
-        }}
-        progress={onboardingProgress}
-        onClose={handleCloseProgressDialog}
-      />
+        >
+          <div className="max-w-5xl mx-auto">
+            <StepIndicator
+              currentStep={currentStep}
+              completedSteps={data.completedSteps || []}
+              onStepClick={goToStep}
+            />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            {/* Glass Card Container */}
+            <div
+              className={
+                isV2
+                  ? 'overflow-hidden rounded-[24px] border border-[var(--p7-border)] bg-[var(--p7-card)] shadow-[0_20px_48px_rgba(13,34,72,.10)]'
+                  : 'bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden'
+              }
+            >
+              {/* Error Alert */}
+              {error && (
+                <div
+                  className={
+                    isV2
+                      ? 'border-b border-red-200 bg-red-50 px-6 py-4 dark:border-red-900 dark:bg-red-950/40'
+                      : 'bg-red-500/20 border-b border-red-500/30 px-6 py-4'
+                  }
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p
+                        className={
+                          isV2
+                            ? 'font-semibold text-red-700 dark:text-red-300'
+                            : 'font-semibold text-red-200'
+                        }
+                      >
+                        {t('pastorOnboarding.error')}
+                      </p>
+                      <p
+                        className={
+                          isV2
+                            ? 'text-sm text-red-600 dark:text-red-400'
+                            : 'text-sm text-red-300/80'
+                        }
+                      >
+                        {error}
+                      </p>
+                    </div>
+                    <button
+                      onClick={clearError}
+                      className={
+                        isV2
+                          ? 'p-1 text-red-500 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300'
+                          : 'text-red-400 hover:text-red-300 transition-colors p-1'
+                      }
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step Content - with white background for forms */}
+              <div className={isV2 ? 'bg-[var(--p7-card)]' : 'bg-white rounded-b-3xl'}>
+                {currentStep === 1 && inviteData && (
+                  <Step1Personal
+                    data={data.personal || { name: '', email: inviteData.email, phone: '' }}
+                    email={inviteData.email}
+                    onNext={handleStep1Next}
+                  />
+                )}
+
+                {currentStep === 2 && (
+                  <Step2District
+                    data={data.district || { name: '' }}
+                    onNext={handleStep2Next}
+                    onBack={prevStep}
+                  />
+                )}
+
+                {currentStep === 3 && (
+                  <Step3Churches
+                    data={data.churches || []}
+                    onNext={handleStep3Next}
+                    onBack={prevStep}
+                  />
+                )}
+
+                {currentStep === 4 && token && (
+                  <Step4ExcelImport
+                    data={data.excelData}
+                    onUpdate={handleStep4Update}
+                    onNext={handleStep4Next}
+                    onBack={prevStep}
+                    token={token}
+                  />
+                )}
+
+                {currentStep === 5 && token && (
+                  <Step5Validation
+                    excelData={data.excelData}
+                    validations={data.churchValidation}
+                    onUpdate={handleStep5Update}
+                    onNext={handleStep5Next}
+                    onBack={prevStep}
+                    token={token}
+                  />
+                )}
+
+                {currentStep === 6 && (
+                  <Step8GamificationConfig
+                    data={data.gamificationConfig}
+                    onNext={handleStep6Next}
+                    onBack={prevStep}
+                  />
+                )}
+
+                {currentStep === 7 && (
+                  <StepSituationLevels
+                    data={data.situationLevels}
+                    onNext={handleStep7Next}
+                    onBack={prevStep}
+                  />
+                )}
+
+                {currentStep === 8 && (
+                  <Step7Password
+                    onSubmit={handleFinalSubmit}
+                    onBack={prevStep}
+                    isLoading={isLoading}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <footer className="relative z-10 py-8 text-center">
+          <p className={isV2 ? 'text-sm text-[var(--p7-text-3)]' : 'text-blue-200/50 text-sm'}>
+            {t('pastorOnboarding.copyright')}
+          </p>
+        </footer>
+
+        <ProgressDialog
+          isOpen={isProgressDialogOpen}
+          onRequestClose={(open) => {
+            if (!open && (onboardingProgress.isComplete || onboardingProgress.isError)) {
+              handleCloseProgressDialog();
+            }
+          }}
+          progress={onboardingProgress}
+          onClose={handleCloseProgressDialog}
+        />
+      </div>
     </div>
   );
 }

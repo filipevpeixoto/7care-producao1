@@ -12,7 +12,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { meetingRoutes } from '../../routes/meetingRoutes';
-import { createMockUser } from './setup';
+import { createMockUser, toTestServer } from './setup';
 import { getAuthUserId } from '../../utils/authHelpers';
 
 // Mock auth helpers so we control userId without depending on JWT middleware
@@ -57,7 +57,7 @@ function createTestApp() {
   meetingRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -77,8 +77,20 @@ describe('Meeting Routes — Integration', () => {
   describe('GET /api/meetings', () => {
     it('should return list of meetings', async () => {
       const meetings = [
-        { id: 1, title: 'Meeting A', requesterId: 1, status: 'pending', scheduledAt: '2024-01-15T10:00:00Z' },
-        { id: 2, title: 'Meeting B', requesterId: 2, status: 'approved', scheduledAt: '2024-01-16T14:00:00Z' },
+        {
+          id: 1,
+          title: 'Meeting A',
+          requesterId: 1,
+          status: 'pending',
+          scheduledAt: '2024-01-15T10:00:00Z',
+        },
+        {
+          id: 2,
+          title: 'Meeting B',
+          requesterId: 2,
+          status: 'approved',
+          scheduledAt: '2024-01-16T14:00:00Z',
+        },
       ];
       mockMeetingRepo.getAll.mockResolvedValue(meetings);
 
@@ -149,19 +161,22 @@ describe('Meeting Routes — Integration', () => {
       const pastor = createMockUser({ role: 'pastor', districtId: 2 });
       mockUserRepo.getUserById.mockResolvedValue(pastor);
 
-      const districtUsers = [
-        { id: 10 }, { id: 11 },
-      ];
+      const districtUsers = [{ id: 10 }, { id: 11 }];
       mockUserRepo.getUsersByDistrictId.mockResolvedValue(districtUsers);
 
       const meetings = [
-        { id: 1, title: 'District Meeting', requesterId: 10, assignedToId: null, status: 'pending' },
+        {
+          id: 1,
+          title: 'District Meeting',
+          requesterId: 10,
+          assignedToId: null,
+          status: 'pending',
+        },
         { id: 2, title: 'Other Meeting', requesterId: 99, assignedToId: null, status: 'pending' },
       ];
       mockMeetingRepo.getAll.mockResolvedValue(meetings);
 
-      const res = await request(app)
-        .get('/api/meetings');
+      const res = await request(app).get('/api/meetings');
 
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(1);
@@ -182,13 +197,11 @@ describe('Meeting Routes — Integration', () => {
       };
       mockMeetingRepo.create.mockResolvedValue(createdMeeting);
 
-      const res = await request(app)
-        .post('/api/meetings')
-        .send({
-          title: 'New Meeting',
-          requesterId: 1,
-          scheduledAt: '2024-01-15T10:00:00Z',
-        });
+      const res = await request(app).post('/api/meetings').send({
+        title: 'New Meeting',
+        requesterId: 1,
+        scheduledAt: '2024-01-15T10:00:00Z',
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -197,45 +210,37 @@ describe('Meeting Routes — Integration', () => {
     });
 
     it('should return 400 for missing title', async () => {
-      const res = await request(app)
-        .post('/api/meetings')
-        .send({
-          requesterId: 1,
-          scheduledAt: '2024-01-15T10:00:00Z',
-        });
+      const res = await request(app).post('/api/meetings').send({
+        requesterId: 1,
+        scheduledAt: '2024-01-15T10:00:00Z',
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for missing requesterId', async () => {
-      const res = await request(app)
-        .post('/api/meetings')
-        .send({
-          title: 'Meeting',
-          scheduledAt: '2024-01-15T10:00:00Z',
-        });
+      const res = await request(app).post('/api/meetings').send({
+        title: 'Meeting',
+        scheduledAt: '2024-01-15T10:00:00Z',
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for missing scheduledAt', async () => {
-      const res = await request(app)
-        .post('/api/meetings')
-        .send({
-          title: 'Meeting',
-          requesterId: 1,
-        });
+      const res = await request(app).post('/api/meetings').send({
+        title: 'Meeting',
+        requesterId: 1,
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for empty body', async () => {
-      const res = await request(app)
-        .post('/api/meetings')
-        .send({});
+      const res = await request(app).post('/api/meetings').send({});
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -254,16 +259,14 @@ describe('Meeting Routes — Integration', () => {
       };
       mockMeetingRepo.create.mockResolvedValue(createdMeeting);
 
-      const res = await request(app)
-        .post('/api/meetings')
-        .send({
-          title: 'Urgent Meeting',
-          requesterId: 1,
-          scheduledAt: '2024-01-15T10:00:00Z',
-          priority: 'high',
-          isUrgent: true,
-          location: 'Office',
-        });
+      const res = await request(app).post('/api/meetings').send({
+        title: 'Urgent Meeting',
+        requesterId: 1,
+        scheduledAt: '2024-01-15T10:00:00Z',
+        priority: 'high',
+        isUrgent: true,
+        location: 'Office',
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -295,9 +298,7 @@ describe('Meeting Routes — Integration', () => {
     it('should return 404 for non-existent meeting', async () => {
       mockMeetingRepo.update.mockResolvedValue(null);
 
-      const res = await request(app)
-        .put('/api/meetings/999')
-        .send({ title: 'Updated' });
+      const res = await request(app).put('/api/meetings/999').send({ title: 'Updated' });
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);

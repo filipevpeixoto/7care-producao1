@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Login } from '../Login';
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -39,9 +40,11 @@ describe('Login', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <Login />
-        </MemoryRouter>
+        <ThemeProvider>
+          <MemoryRouter>
+            <Login />
+          </MemoryRouter>
+        </ThemeProvider>
       </QueryClientProvider>
     );
 

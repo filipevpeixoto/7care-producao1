@@ -73,3 +73,11 @@ src-tauri/target/
 .worktrees/
 .security-key
 logs/security/
+
+# Local tooling (Claude Code skills/agents, audit artifacts)
+.claude/
+.agents/
+artifacts/
+.impeccable.md
+Skill_Frontend.md
+skills-lock.json

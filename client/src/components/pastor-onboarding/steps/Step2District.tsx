@@ -52,10 +52,10 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
           <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 2 de 6</span>
         </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent dark:bg-none dark:text-[var(--p7-text)]">
           Seu Distrito
         </h2>
-        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+        <p className="mt-2 text-sm text-gray-500 dark:text-[var(--p7-text-2)] sm:mt-3 sm:text-base md:text-lg">
           Informe os dados do distrito que você pastoreia
         </p>
       </div>
@@ -70,17 +70,20 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
       <div className="space-y-6 max-w-lg mx-auto">
         {/* District name */}
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="name"
+            className="text-base font-semibold text-gray-700 dark:text-[var(--p7-text)]"
+          >
             Nome do Distrito <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Building2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400 dark:text-[var(--p7-text-3)]" />
             <Input
               id="name"
               type="text"
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="pl-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 transition-all"
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="h-14 rounded-xl border-2 border-blue-400 !bg-white pl-12 text-lg !text-gray-800 placeholder:text-blue-300 transition-all focus:border-blue-500 focus:ring-blue-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-[var(--v2-gold)] dark:focus:ring-[var(--v2-gold)]"
               placeholder="Ex: Distrito Central de São Paulo"
             />
           </div>
@@ -94,27 +97,33 @@ export function Step2District({ data, onNext, onBack }: Step2DistrictProps) {
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-base font-semibold text-gray-700">
-            Descrição <span className="text-gray-400 font-normal">(opcional)</span>
+          <Label
+            htmlFor="description"
+            className="text-base font-semibold text-gray-700 dark:text-[var(--p7-text)]"
+          >
+            Descrição{' '}
+            <span className="font-normal text-gray-400 dark:text-[var(--p7-text-3)]">
+              (opcional)
+            </span>
           </Label>
           <div className="relative">
-            <FileText className="absolute left-4 top-4 text-gray-400 w-5 h-5" />
+            <FileText className="absolute left-4 top-4 h-5 w-5 text-gray-400 dark:text-[var(--p7-text-3)]" />
             <Textarea
               id="description"
               value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="pl-12 min-h-[120px] text-base rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 transition-all resize-none"
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="min-h-[120px] resize-none rounded-xl border-2 border-blue-400 !bg-white pl-12 text-base !text-gray-800 placeholder:text-blue-300 transition-all focus:border-blue-500 focus:ring-blue-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-[var(--v2-gold)] dark:focus:ring-[var(--v2-gold)]"
               placeholder="Informações adicionais sobre o distrito..."
             />
           </div>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-400 dark:text-[var(--p7-text-3)]">
             Você pode descrever a região, número aproximado de membros, etc.
           </p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
+      <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-4 dark:border-[var(--p7-border)] sm:mt-10 sm:flex-row sm:justify-between sm:gap-3 sm:pt-6">
         <Button
           type="button"
           onClick={onBack}

@@ -61,24 +61,17 @@ export default defineConfig({
             {
               // NUNCA cachear rotas que dependem do usuário logado
               // Estas rotas retornam dados diferentes por usuário/pastor
-              urlPattern: /^https?:\/\/.*\/api\/(users|meetings|activities|prayer-requests|testimonies|members|visits|transfers|districts|churches|dashboard)/i,
+              urlPattern:
+                /^https?:\/\/.*\/api\/(users|meetings|activities|prayer-requests|testimonies|members|visits|transfers|districts|churches|dashboard)/i,
               handler: 'NetworkOnly', // Sempre buscar da rede, nunca cachear
             },
             {
-              // Cache de API pública/estática - Network First com fallback
+              // Segurança: nunca armazenar respostas de API no Service Worker.
+              // O app já possui camada offline própria via IndexedDB, isolada pelo cliente.
+              // Cachear /api aqui pode servir dados de outro usuário em troca de conta
+              // porque o Cache API não separa as respostas por Authorization header.
               urlPattern: /^https?:\/\/.*\/api\/.*/i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: '7care-api-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24, // 1 dia apenas
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-                networkTimeoutSeconds: 5,
-              },
+              handler: 'NetworkOnly',
             },
             {
               // Cache de imagens - Cache First
@@ -159,7 +152,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Code splitting simplificado para evitar dependências circulares
-        manualChunks: id => {
+        manualChunks: (id) => {
           // Apenas separar vendors grandes para melhor cache
           if (id.includes('node_modules')) {
             // React core - sempre junto
@@ -204,6 +197,12 @@ export default defineConfig({
     hmr: host ? { protocol: 'ws', host, port: 1421 } : undefined,
     watch: {
       ignored: ['**/src-tauri/**'],
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3064',
+        changeOrigin: true,
+      },
     },
   },
   envPrefix: ['VITE_', 'TAURI_ENV_'],

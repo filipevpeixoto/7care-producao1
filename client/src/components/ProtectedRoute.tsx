@@ -4,15 +4,18 @@
  * Redireciona para "/" (Login) se o usuário não estiver autenticado.
  */
 
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { getUserRole } from '@/lib/permissions';
+import { canAccessPath, getRoleHomePath } from '@/lib/routeAccess';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return null; // MobileLayout dentro das páginas já mostra loading spinner
@@ -20,6 +23,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+
+  if (!canAccessPath(user, location.pathname)) {
+    return <Navigate to={getRoleHomePath(getUserRole(user))} replace />;
   }
 
   return <>{children}</>;

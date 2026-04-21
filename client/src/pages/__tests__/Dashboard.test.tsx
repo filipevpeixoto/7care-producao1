@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 type MockUser = {
   id: number;
@@ -129,7 +130,9 @@ const createWrapper = () => {
 
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{children}</MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>{children}</MemoryRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

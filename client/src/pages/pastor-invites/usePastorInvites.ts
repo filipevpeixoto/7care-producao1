@@ -3,6 +3,16 @@ import { useToast } from '@/hooks/use-toast';
 import { type PastorInvite } from '@/types/pastor-invite';
 import { fetchWithAuth } from '@/lib/api';
 
+const normalizeInvitesResponse = (payload: unknown): PastorInvite[] => {
+  if (Array.isArray(payload)) return payload as PastorInvite[];
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as { data?: unknown; invites?: unknown };
+    if (Array.isArray(candidate.data)) return candidate.data as PastorInvite[];
+    if (Array.isArray(candidate.invites)) return candidate.invites as PastorInvite[];
+  }
+  return [];
+};
+
 export function usePastorInvites(userId: number | undefined, isSuperAdmin: boolean) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -12,7 +22,8 @@ export function usePastorInvites(userId: number | undefined, isSuperAdmin: boole
     queryFn: async () => {
       const response = await fetchWithAuth('/api/invites');
       if (!response.ok) throw new Error('Erro ao buscar convites');
-      return response.json();
+      const payload = await response.json();
+      return normalizeInvitesResponse(payload);
     },
     enabled: !!userId && isSuperAdmin,
     staleTime: 0,
@@ -121,7 +132,7 @@ export function usePastorInvites(userId: number | undefined, isSuperAdmin: boole
       }
       return response.json();
     },
-    onSuccess: data => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/invites'] });
       toast({
         title: 'Convites excluídos',

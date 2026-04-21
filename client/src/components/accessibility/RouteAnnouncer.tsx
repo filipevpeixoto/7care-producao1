@@ -25,7 +25,6 @@ const routeTitles: Record<string, string> = {
   '/push-notifications': 'Notificações Push',
   '/notifications': 'Histórico de Notificações',
   '/settings': 'Configurações',
-  '/appearance': 'Aparência',
   '/tasks': 'Tarefas',
   '/reports': 'Relatórios',
   '/my-reports': 'Meus Relatórios',
@@ -60,15 +59,14 @@ export function RouteAnnouncer() {
 
     if (!pageTitle) {
       // Tentar match por primeiro nível de rota (ex: /pastor-onboarding/abc → Onboarding)
-      const firstSegment = `/${  path.split('/').filter(Boolean)[0]}`;
+      const firstSegment = `/${path.split('/').filter(Boolean)[0]}`;
       pageTitle = routeTitles[firstSegment];
     }
 
     if (!pageTitle) {
       // Fallback: capitalizar o primeiro segmento
       const segment = path.split('/').filter(Boolean)[0] || '';
-      pageTitle =
-        segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+      pageTitle = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
     }
 
     const fullTitle = `${pageTitle} | ${APP_NAME}`;

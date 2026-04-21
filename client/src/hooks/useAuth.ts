@@ -26,9 +26,18 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AuthUser as User } from '@/../../shared/types/user';
 import type { AuthState } from '@/types/auth';
-import { saveUsersOffline, canAccessFullOfflineData, clearEncryptionKey } from '@/lib/offline';
+import {
+  saveUsersOffline,
+  canAccessFullOfflineData,
+  clearEncryptionKey,
+  clearAllOfflineData,
+  clearCacheTimestamps,
+} from '@/lib/offline';
 import { fetchWithAuth, TOKEN_STORAGE_KEY } from '@/lib/api';
 import { authLogger } from '@/lib/logger';
+
+const TASKS_CACHE_KEY = '7care_tasks_cache';
+const RELATIONSHIPS_STORAGE_KEY = 'relationships';
 
 /**
  * Limpa o cache de API do Service Worker
@@ -66,10 +75,50 @@ async function clearReactQueryCache(): Promise<void> {
 }
 
 /**
+ * Limpa dados offline persistidos por sessão/usuário anterior
+ */
+async function clearOfflineData(): Promise<void> {
+  try {
+    await clearAllOfflineData();
+    clearCacheTimestamps();
+    authLogger.debug('Dados offline limpos');
+  } catch (error) {
+    authLogger.warn('Erro ao limpar dados offline:', error);
+  }
+}
+
+/**
+ * Remove caches locais que não são isolados por usuário
+ */
+function clearUserScopedStorage(): void {
+  try {
+    localStorage.removeItem(TASKS_CACHE_KEY);
+    localStorage.removeItem(RELATIONSHIPS_STORAGE_KEY);
+
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+
+      if (key.startsWith('notifications_')) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+    authLogger.debug('Caches locais de usuário limpos');
+  } catch (error) {
+    authLogger.warn('Erro ao limpar localStorage de usuário:', error);
+  }
+}
+
+/**
  * Limpa todos os caches (Service Worker + React Query)
  */
 async function clearAllCaches(): Promise<void> {
-  await Promise.all([clearApiCache(), clearReactQueryCache()]);
+  clearUserScopedStorage();
+  await Promise.all([clearApiCache(), clearReactQueryCache(), clearOfflineData()]);
 }
 
 /** User type com propriedades estendidas */

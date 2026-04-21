@@ -14,14 +14,37 @@
  */
 
 import { useCallback } from 'react';
-import { useNavigate, type NavigateOptions } from 'react-router-dom';
+import { useNavigate, type NavigateOptions, type To } from 'react-router-dom';
+
+type ViewTransitionCapableDocument = Document & {
+  startViewTransition?: (updateCallback: () => void) => {
+    finished: Promise<void>;
+    ready: Promise<void>;
+    updateCallbackDone: Promise<void>;
+  };
+};
 
 export function useTransitionNavigate() {
   const navigate = useNavigate();
 
   return useCallback(
-    (to: string, options?: NavigateOptions) => {
-      navigate(to, { ...options, flushSync: true });
+    (to: To | number, options?: NavigateOptions) => {
+      const doc = document as ViewTransitionCapableDocument;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (typeof to === 'number') {
+        navigate(to);
+        return;
+      }
+
+      if (!doc.startViewTransition || prefersReducedMotion) {
+        navigate(to, { ...options, flushSync: true });
+        return;
+      }
+
+      doc.startViewTransition(() => {
+        navigate(to, { ...options, flushSync: true });
+      });
     },
     [navigate]
   );

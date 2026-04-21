@@ -14,7 +14,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { electionRoutes } from '../../routes/electionRoutes';
-import { createMockUser, generateTestToken } from './setup';
+import { createMockUser, generateTestToken, toTestServer } from './setup';
 
 // ── Build test app ──────────────────────────────────────────────
 
@@ -23,7 +23,7 @@ function createTestApp() {
   electionRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Mock userRepository (used by checkReadOnlyAccess middleware) ─
@@ -72,9 +72,7 @@ describe('Election Routes — Integration', () => {
     });
 
     it('rejeita POST /api/elections/start sem token', async () => {
-      const res = await request(app)
-        .post('/api/elections/start')
-        .send({ configId: 1 });
+      const res = await request(app).post('/api/elections/start').send({ configId: 1 });
       expect([401, 500]).toContain(res.status);
     });
 

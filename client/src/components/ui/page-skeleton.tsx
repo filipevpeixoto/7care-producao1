@@ -21,7 +21,7 @@ export const DashboardSkeleton = memo(() => (
     {/* Stats Cards */}
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-lg border p-4">
+        <div key={i} className="skeleton-panel rounded-lg border p-4">
           <Skeleton className="h-4 w-24 mb-2" />
           <Skeleton className="h-8 w-16" />
         </div>
@@ -87,9 +87,9 @@ export const ListSkeleton = memo(() => (
     </div>
 
     {/* Table/List */}
-    <div className="border rounded-lg">
+    <div className="skeleton-panel border rounded-lg">
       {/* Table Header */}
-      <div className="flex gap-4 p-4 border-b bg-muted/50">
+      <div className="skeleton-panel flex gap-4 border-b p-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-4 flex-1" />
         ))}
@@ -114,7 +114,7 @@ ListSkeleton.displayName = 'ListSkeleton';
 export const ChatSkeleton = memo(() => (
   <div className="flex h-[calc(100vh-4rem)]">
     {/* Sidebar */}
-    <div className="w-80 border-r p-4 hidden md:block">
+    <div className="skeleton-panel hidden w-80 border-r p-4 md:block">
       <Skeleton className="h-10 w-full mb-4" />
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex gap-3 p-3 mb-2">
@@ -130,7 +130,7 @@ export const ChatSkeleton = memo(() => (
     {/* Chat Area */}
     <div className="flex-1 flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b">
+      <div className="skeleton-panel flex items-center gap-3 border-b p-4">
         <Skeleton className="h-10 w-10 rounded-full" />
         <Skeleton className="h-5 w-32" />
       </div>
@@ -145,7 +145,7 @@ export const ChatSkeleton = memo(() => (
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t">
+      <div className="skeleton-panel border-t p-4">
         <Skeleton className="h-12 w-full rounded-lg" />
       </div>
     </div>
@@ -162,7 +162,7 @@ export const SettingsSkeleton = memo(() => (
 
     {/* Settings sections */}
     {Array.from({ length: 4 }).map((_, i) => (
-      <div key={i} className="border rounded-lg p-6">
+      <div key={i} className="skeleton-panel border rounded-lg p-6">
         <Skeleton className="h-6 w-32 mb-4" />
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, j) => (
@@ -187,7 +187,7 @@ SettingsSkeleton.displayName = 'SettingsSkeleton';
 export const GamificationSkeleton = memo(() => (
   <div className="flex flex-col gap-6 p-6">
     {/* User Profile Card */}
-    <div className="border rounded-lg p-6 flex items-center gap-6">
+    <div className="skeleton-panel border rounded-lg p-6 flex items-center gap-6">
       <Skeleton className="h-24 w-24 rounded-full" />
       <div className="flex-1">
         <Skeleton className="h-6 w-48 mb-2" />
@@ -203,7 +203,7 @@ export const GamificationSkeleton = memo(() => (
     {/* Stats */}
     <div className="grid gap-4 md:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="border rounded-lg p-4 text-center">
+        <div key={i} className="skeleton-panel border rounded-lg p-4 text-center">
           <Skeleton className="h-8 w-16 mx-auto mb-2" />
           <Skeleton className="h-4 w-20 mx-auto" />
         </div>
@@ -212,7 +212,7 @@ export const GamificationSkeleton = memo(() => (
 
     {/* Ranking */}
     <Skeleton className="h-6 w-32" />
-    <div className="border rounded-lg">
+    <div className="skeleton-panel border rounded-lg">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="flex items-center gap-4 p-4 border-b last:border-0">
           <Skeleton className="h-8 w-8" />

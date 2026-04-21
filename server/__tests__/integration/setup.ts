@@ -3,7 +3,9 @@
  * Creates a real Express app with mocked repositories for integration testing.
  * Tests the full middleware pipeline: CORS → body parser → sanitization → rate limit → auth → route → error handler.
  */
-import { vi } from 'vitest';
+import type { Express } from 'express';
+import type { Server } from 'http';
+import { afterEach, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 
 // ── Silence console noise ───────────────────────────────────────
@@ -106,7 +108,13 @@ vi.mock('../../neonConfig', () => ({
 // ── Mock NeonAdapter ────────────────────────────────────────────
 // NeonAdapter is used by optionalJwtAuth middleware to verify user exists.
 // Return a basic active user so JWT tokens set req.userId properly.
-const _neonMockUser = { id: 1, status: 'active', name: 'Test', email: 'test@7care.com', role: 'admin' };
+const _neonMockUser = {
+  id: 1,
+  status: 'active',
+  name: 'Test',
+  email: 'test@7care.com',
+  role: 'admin',
+};
 vi.mock('../../neonAdapter', () => ({
   NeonAdapter: vi.fn().mockImplementation(() => ({
     getUserById: vi.fn().mockResolvedValue(_neonMockUser),
@@ -116,6 +124,32 @@ vi.mock('../../neonAdapter', () => ({
     getUserById: vi.fn().mockResolvedValue(_neonMockUser),
   })),
 }));
+
+const activeServers: Server[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    activeServers.splice(0).map(
+      (server) =>
+        new Promise<void>((resolve, reject) => {
+          server.close((error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          });
+        })
+    )
+  );
+});
+
+/** Wraps an Express app in a real HTTP server for supertest compatibility. */
+export function toTestServer(app: Express): Server {
+  const server = app.listen(0);
+  activeServers.push(server);
+  return server;
+}
 
 // ── Shared mock factories ───────────────────────────────────────
 

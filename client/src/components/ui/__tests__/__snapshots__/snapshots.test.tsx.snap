@@ -221,15 +221,21 @@ exports[`Snapshot Tests - Componentes UI > Skeleton > deve renderizar múltiplos
     class="space-y-2"
   >
     <div
-      class="bg-muted animate-pulse rounded-md h-4 w-full"
+      aria-hidden="true"
+      class="skeleton-fill animate-pulse motion-reduce:animate-none rounded-md h-4 w-full"
+      data-slot="skeleton"
       style="width: 100%; height: 1em;"
     />
     <div
-      class="bg-muted animate-pulse rounded-md h-4 w-3/4"
+      aria-hidden="true"
+      class="skeleton-fill animate-pulse motion-reduce:animate-none rounded-md h-4 w-3/4"
+      data-slot="skeleton"
       style="width: 100%; height: 1em;"
     />
     <div
-      class="bg-muted animate-pulse rounded-md h-4 w-1/2"
+      aria-hidden="true"
+      class="skeleton-fill animate-pulse motion-reduce:animate-none rounded-md h-4 w-1/2"
+      data-slot="skeleton"
       style="width: 100%; height: 1em;"
     />
   </div>
@@ -239,7 +245,9 @@ exports[`Snapshot Tests - Componentes UI > Skeleton > deve renderizar múltiplos
 exports[`Snapshot Tests - Componentes UI > Skeleton > deve renderizar skeleton básico 1`] = `
 <div>
   <div
-    class="bg-muted animate-pulse rounded-md h-4 w-[250px]"
+    aria-hidden="true"
+    class="skeleton-fill animate-pulse motion-reduce:animate-none rounded-md h-4 w-[250px]"
+    data-slot="skeleton"
     style="width: 100%; height: 1em;"
   />
 </div>
@@ -248,7 +256,9 @@ exports[`Snapshot Tests - Componentes UI > Skeleton > deve renderizar skeleton b
 exports[`Snapshot Tests - Componentes UI > Skeleton > deve renderizar skeleton de avatar 1`] = `
 <div>
   <div
-    class="bg-muted animate-pulse h-12 w-12 rounded-full"
+    aria-hidden="true"
+    class="skeleton-fill animate-pulse motion-reduce:animate-none h-12 w-12 rounded-full"
+    data-slot="skeleton"
     style="width: 100%; height: 1em;"
   />
 </div>

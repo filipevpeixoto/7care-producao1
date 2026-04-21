@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/lib/api';
@@ -32,6 +33,7 @@ import { isPastor } from '@/lib/permissions';
 import { TaskCard } from './tasks/TaskCard';
 import { TasksEmptyState } from './tasks/TasksEmptyState';
 import type { Task } from './tasks/tasksTypes';
+import { TasksV2 } from './v2/TasksV2';
 
 const tasksLogger = createLogger('Tasks');
 
@@ -39,6 +41,7 @@ const tasksLogger = createLogger('Tasks');
 export default function Tasks() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { skin } = useTheme();
   const isImpersonating =
     typeof user === 'object' && user !== null && 'isImpersonating' in user
       ? Boolean((user as { isImpersonating?: boolean }).isImpersonating)
@@ -310,6 +313,113 @@ export default function Tasks() {
           </div>
         </div>
       </MobileLayout>
+    );
+  }
+
+  if (skin === 'v2') {
+    return (
+      <>
+        <MobileLayout variant="prototype">
+          <TasksV2
+            pendingTasks={pendingTasks}
+            inProgressTasks={inProgressTasks}
+            completedTasks={completedTasks}
+            onToggleStatus={handleToggleStatus}
+            onOpenCreate={() => setIsCreateDialogOpen(true)}
+          />
+        </MobileLayout>
+
+        <DialogWithModalTracking
+          modalId="create-task-modal-v2"
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+        >
+          <DialogContent className="p7-modal-card max-w-lg border-[var(--p7-border)] bg-[var(--grad-card)] text-[var(--p7-text)]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">{t('tasks.newTask')}</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-5">
+              <div className="rounded-[16px] bg-[var(--p7-surface-2)] px-4 py-3 text-sm leading-[1.55] text-[var(--p7-text-2)]">
+                Registre uma próxima ação clara, com prazo e contexto suficiente para a semana não
+                ficar espalhada.
+              </div>
+
+              <div>
+                <Label htmlFor="v2-task-title">{t('tasks.titleLabel')}</Label>
+                <Input
+                  id="v2-task-title"
+                  value={newTask.title}
+                  onChange={(event) => setNewTask({ ...newTask, title: event.target.value })}
+                  placeholder={t('tasks.titlePlaceholder')}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="v2-task-description">{t('tasks.descriptionLabel')}</Label>
+                <Textarea
+                  id="v2-task-description"
+                  value={newTask.description}
+                  onChange={(event) => setNewTask({ ...newTask, description: event.target.value })}
+                  placeholder={t('tasks.descriptionPlaceholder')}
+                  className="mt-1 min-h-[110px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>{t('tasks.priorityLabel')}</Label>
+                  <Select
+                    value={newTask.priority}
+                    onValueChange={(value: Task['priority']) =>
+                      setNewTask({ ...newTask, priority: value })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">{t('tasks.priorityLow')}</SelectItem>
+                      <SelectItem value="medium">{t('tasks.priorityMedium')}</SelectItem>
+                      <SelectItem value="high">{t('tasks.priorityHigh')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="v2-task-date">{t('tasks.dueDateLabel')}</Label>
+                  <Input
+                    id="v2-task-date"
+                    type="date"
+                    value={newTask.due_date}
+                    onChange={(event) => setNewTask({ ...newTask, due_date: event.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="v2-task-church">{t('tasks.churchLabel')}</Label>
+                <Input
+                  id="v2-task-church"
+                  value={newTask.church}
+                  onChange={(event) => setNewTask({ ...newTask, church: event.target.value })}
+                  placeholder={t('tasks.churchPlaceholder')}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  {t('common.cancel')}
+                </Button>
+                <Button onClick={handleCreateTask}>{t('tasks.createTask')}</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </DialogWithModalTracking>
+      </>
     );
   }
 

@@ -26,7 +26,7 @@ export function TableSkeleton({
 }: TableSkeletonProps) {
   const columnWidths = [60, 70, 80, 65, 75, 85, 90];
   return (
-    <div className="rounded-md border animate-pulse">
+    <div className="skeleton-panel rounded-md border">
       <Table>
         {showHeader && (
           <TableHeader>
@@ -75,7 +75,7 @@ export function TableSkeleton({
  */
 export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
   return (
-    <TableRow className="animate-pulse">
+    <TableRow>
       {Array.from({ length: columns }).map((_, i) => (
         <TableCell key={i}>
           <Skeleton className="h-4 w-full" />
@@ -90,7 +90,7 @@ export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
  */
 export function UserTableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="rounded-md border animate-pulse">
+    <div className="skeleton-panel rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>

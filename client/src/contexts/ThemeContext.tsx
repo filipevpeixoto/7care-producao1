@@ -1,11 +1,12 @@
 /**
  * Theme Context
- * Gerencia tema claro/escuro com persistência em localStorage
+ * Gerencia tema claro/escuro e skin visual com persistência em localStorage
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
+type Skin = 'classic' | 'v2';
 
 interface ThemeContextType {
   theme: Theme;
@@ -13,19 +14,21 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   isDark: boolean;
+  skin: Skin;
+  setSkin: (skin: Skin) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY = '7care_theme';
+const SKIN_STORAGE_KEY = '7care_skin';
 
-// Detecta preferência do sistema
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light';
+  if (typeof window.matchMedia !== 'function') return 'light';
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-// Carrega tema do localStorage
 function getStoredTheme(): Theme {
   if (typeof window === 'undefined') return 'system';
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -35,28 +38,38 @@ function getStoredTheme(): Theme {
   return 'system';
 }
 
+function getStoredSkin(): Skin {
+  if (typeof window === 'undefined') return 'classic';
+  const stored = localStorage.getItem(SKIN_STORAGE_KEY);
+  return stored === 'v2' ? 'v2' : 'classic';
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => getSystemTheme());
+  const [skin, setSkinState] = useState<Skin>(() => getStoredSkin());
   const resolvedTheme = theme === 'system' ? systemTheme : theme;
 
-  // Atualiza o tema resolvido quando o tema ou preferência do sistema muda
   useEffect(() => {
-    // Aplica classe no documento
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(resolvedTheme);
-    
-    // Atualiza meta tag para mobile
+
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       metaThemeColor.setAttribute('content', resolvedTheme === 'dark' ? '#1f2937' : '#ffffff');
     }
   }, [resolvedTheme]);
 
-  // Listener para mudanças na preferência do sistema
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('skin-classic', 'skin-v2');
+    root.classList.add(`skin-${skin}`);
+  }, [skin]);
+
   useEffect(() => {
     if (theme !== 'system') return;
+    if (typeof window.matchMedia !== 'function') return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => {
@@ -67,7 +80,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mediaQuery.removeEventListener('change', handler);
   }, [theme]);
 
-  // Persiste tema no localStorage
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem(STORAGE_KEY, newTheme);
@@ -76,10 +88,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Alterna entre temas
   const toggleTheme = useCallback(() => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   }, [resolvedTheme, setTheme]);
+
+  const setSkin = useCallback((newSkin: Skin) => {
+    setSkinState(newSkin);
+    localStorage.setItem(SKIN_STORAGE_KEY, newSkin);
+  }, []);
 
   const value: ThemeContextType = {
     theme,
@@ -87,13 +103,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme,
     toggleTheme,
     isDark: resolvedTheme === 'dark',
+    skin,
+    setSkin,
   };
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

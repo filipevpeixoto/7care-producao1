@@ -66,10 +66,10 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
           <span className="text-xs sm:text-sm font-medium text-blue-700">Passo 1 de 6</span>
         </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent dark:bg-none dark:text-[var(--p7-text)]">
           Seus Dados Pessoais
         </h2>
-        <p className="text-gray-500 mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+        <p className="mt-2 text-sm text-gray-500 dark:text-[var(--p7-text-2)] sm:mt-3 sm:text-base md:text-lg">
           Vamos começar com suas informações básicas
         </p>
       </div>
@@ -102,17 +102,20 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
       <div className="space-y-6 max-w-lg mx-auto">
         {/* Name */}
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="name"
+            className="text-base font-semibold text-gray-700 dark:text-[var(--p7-text)]"
+          >
             Nome Completo <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400 dark:text-[var(--p7-text-3)]" />
             <Input
               id="name"
               type="text"
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="pl-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 transition-all"
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="h-14 rounded-xl border-2 border-blue-400 !bg-white pl-12 text-lg !text-gray-800 placeholder:text-blue-300 transition-all focus:border-blue-500 focus:ring-blue-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-[var(--v2-gold)] dark:focus:ring-[var(--v2-gold)]"
               placeholder="Digite seu nome completo"
             />
           </div>
@@ -126,38 +129,46 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
 
         {/* Email (readonly) */}
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="email"
+            className="text-base font-semibold text-gray-700 dark:text-[var(--p7-text)]"
+          >
             Email
           </Label>
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400 dark:text-[var(--p7-text-3)]" />
             <Input
               id="email"
               type="email"
               value={formData.email}
               readOnly
-              className="pl-12 pr-12 h-14 text-lg rounded-xl !bg-white/90 border-2 border-blue-300 cursor-not-allowed !text-gray-600"
+              className="h-14 rounded-xl border-2 border-blue-300 !bg-white/90 pl-12 pr-12 text-lg !text-gray-600 cursor-not-allowed dark:border-[var(--p7-border)] dark:!bg-[var(--p7-surface-2)] dark:!text-[var(--p7-text-2)]"
             />
-            <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg">
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 transform text-lg text-gray-400 dark:text-[var(--p7-text-3)]">
               🔒
             </span>
           </div>
-          <p className="text-sm text-gray-400">Este é o email do convite e não pode ser alterado</p>
+          <p className="text-sm text-gray-400 dark:text-[var(--p7-text-3)]">
+            Este é o email do convite e não pode ser alterado
+          </p>
         </div>
 
         {/* Phone */}
         <div className="space-y-2">
-          <Label htmlFor="phone" className="text-base font-semibold text-gray-700">
+          <Label
+            htmlFor="phone"
+            className="text-base font-semibold text-gray-700 dark:text-[var(--p7-text)]"
+          >
             Telefone <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Phone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400 dark:text-[var(--p7-text-3)]" />
             <Input
               id="phone"
               type="tel"
               value={formData.phone}
-              onChange={e => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
-              className="pl-12 h-14 text-lg rounded-xl border-2 border-blue-400 !bg-white !text-gray-800 placeholder:text-blue-300 focus:border-blue-500 focus:ring-blue-500 transition-all"
+              onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
+              className="h-14 rounded-xl border-2 border-blue-400 !bg-white pl-12 text-lg !text-gray-800 placeholder:text-blue-300 transition-all focus:border-blue-500 focus:ring-blue-500 dark:border-[var(--p7-border)] dark:!bg-[var(--p7-card)] dark:!text-[var(--p7-text)] dark:placeholder:text-[var(--p7-text-3)] dark:focus:border-[var(--v2-gold)] dark:focus:ring-[var(--v2-gold)]"
               placeholder="(00) 00000-0000"
             />
           </div>
@@ -171,7 +182,7 @@ export function Step1Personal({ data, email, onNext }: Step1PersonalProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-100">
+      <div className="mt-6 flex justify-end border-t border-gray-100 pt-4 dark:border-[var(--p7-border)] sm:mt-10 sm:pt-6">
         <Button
           type="submit"
           size="lg"

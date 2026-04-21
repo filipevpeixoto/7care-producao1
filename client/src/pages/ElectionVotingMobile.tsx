@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { V2PageStack, V2SectionCard } from '@/components/v2/V2Scaffold';
+import { PrototypeShell } from './v2/PrototypeShell';
 import { fetchWithAuth } from '@/lib/api';
 import { electionLogger } from '@/lib/logger';
 import type { Candidate, ElectionData } from './election-voting/electionVotingTypes';
@@ -31,6 +34,7 @@ import { useTranslation } from 'react-i18next';
 export default function ElectionVotingMobile() {
   const { configId } = useParams<{ configId: string }>();
   const { user } = useAuth();
+  const { skin } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -474,6 +478,101 @@ export default function ElectionVotingMobile() {
 
   if (!electionData) {
     return <MissingDataState onRetry={handleRetry} />;
+  }
+
+  if (skin === 'v2') {
+    return (
+      <PrototypeShell
+        label="Eleição de Liderança"
+        title={electionData.election.church_name as string}
+        userName={user?.name}
+      >
+        <div className="p7-section">
+          <V2PageStack>
+            <V2SectionCard
+              title="Eleição de Liderança"
+              subtitle={electionData.election.church_name as string}
+            >
+              <PageHeader
+                churchName={electionData.election.church_name as string}
+                currentPosition={electionData.currentPosition}
+                totalPositions={electionData.totalPositions}
+                onBack={() => navigate('/dashboard')}
+              />
+            </V2SectionCard>
+
+            <V2SectionCard title={electionData.currentPositionName}>
+              <>
+                {electionData.phase === 'nomination' && electionData.hasNominated && (
+                  <NominationWaitingCard
+                    nominationCount={electionData.nominationCount || 0}
+                    maxNominations={electionData.maxNominationsPerVoter || 1}
+                  />
+                )}
+
+                {showWaitingCard && (
+                  <VoteWaitingCard
+                    votedCandidateName={electionData.votedCandidateName || ''}
+                    currentPositionName={electionData.currentPositionName}
+                  />
+                )}
+
+                {showFinalCard && electionData.winner && (
+                  <FinalCardWinner
+                    winner={electionData.winner}
+                    currentPositionName={electionData.currentPositionName}
+                    expectedVoters={expectedVoters}
+                  />
+                )}
+
+                {showFinalCard && !electionData.winner && (
+                  <FinalCardNoWinner currentPositionName={electionData.currentPositionName} />
+                )}
+
+                {!(
+                  (electionData.phase === 'nomination' && electionData.hasNominated) ||
+                  (electionData.phase === 'voting' && electionData.hasVoted)
+                ) && (
+                  <>
+                    <PhaseStatusCard
+                      phase={electionData.phase}
+                      title={getPhaseTitle(electionData?.phase)}
+                      description={getPhaseDescription(electionData)}
+                    />
+                    <PositionInfoCard
+                      currentPositionName={electionData.currentPositionName}
+                      currentPositionDescription={electionData.currentPositionDescription}
+                      candidatesCount={electionData.candidates.length}
+                      isNominationPhase={electionData.phase === 'nomination'}
+                      nominationCount={electionData.nominationCount || 0}
+                      maxNominations={electionData.maxNominationsPerVoter || 1}
+                    />
+                    <CandidatesSection
+                      electionData={electionData}
+                      searchTerm={searchTerm}
+                      setSearchTerm={setSearchTerm}
+                      selectedCandidate={selectedCandidate}
+                      setSelectedCandidate={setSelectedCandidate}
+                      submitting={submitting}
+                      handleRetry={handleRetry}
+                      handleNominateCandidate={handleNominateCandidate}
+                      handleVote={handleVote}
+                      toast={toast}
+                    />
+                  </>
+                )}
+              </>
+            </V2SectionCard>
+          </V2PageStack>
+        </div>
+        <PositionDescriptionModal
+          isOpen={showDescriptionModal}
+          onOpenChange={setShowDescriptionModal}
+          title={electionData?.currentPositionName}
+          description={electionData?.currentPositionDescription}
+        />
+      </PrototypeShell>
+    );
   }
 
   return (

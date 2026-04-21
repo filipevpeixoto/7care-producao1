@@ -10,7 +10,7 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3065';
+const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || '3064'}`;
 
 const viewports = [
   { name: 'Mobile', width: 375, height: 667 },

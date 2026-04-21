@@ -11,7 +11,7 @@ import { createApp, createNotFoundHandler, createErrorHandler } from '../../app'
 import { container } from '../../container';
 import { reportsRoutes } from '../../routes/reportsRoutes';
 import { sql } from '../../neonConfig';
-import { createMockUser, generateTestToken } from './setup';
+import { createMockUser, generateTestToken, toTestServer } from './setup';
 
 // ── Mock repos ──────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ function createTestApp() {
   reportsRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────

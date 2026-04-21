@@ -10,7 +10,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { userRoutes } from '../../routes/userRoutes';
-import { createMockUser, generateTestToken } from './setup';
+import { createMockUser, generateTestToken, toTestServer } from './setup';
 
 // ── Mock repos (registered before route init) ───────────────────
 
@@ -48,7 +48,7 @@ function createTestApp() {
   userRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -80,7 +80,9 @@ describe('User Routes — Integration', () => {
     });
 
     it('should support pagination query params', async () => {
-      const res = await request(app).get('/api/users?page=1&limit=10').set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app)
+        .get('/api/users?page=1&limit=10')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBeLessThanOrEqual(500);
     });
   });
@@ -88,7 +90,9 @@ describe('User Routes — Integration', () => {
   describe('GET /api/users/:id', () => {
     it('should accept numeric user id', async () => {
       mockUserRepo.getUserById.mockResolvedValue(createMockUser({ id: 5 }));
-      const res = await request(app).get('/api/users/5').set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app)
+        .get('/api/users/5')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBeLessThan(500);
     });
   });
@@ -100,28 +104,36 @@ describe('User Routes — Integration', () => {
     });
 
     it('should handle delete request for admin', async () => {
-      const res = await request(app).delete('/api/users/2').set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app)
+        .delete('/api/users/2')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBeLessThan(500);
     });
   });
 
   describe('GET /api/users/birthdays', () => {
     it('should return birthday data', async () => {
-      const res = await request(app).get('/api/users/birthdays').set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app)
+        .get('/api/users/birthdays')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBeLessThanOrEqual(500);
     });
   });
 
   describe('GET /api/users/chat-list', () => {
     it('should return chat list', async () => {
-      const res = await request(app).get('/api/users/chat-list').set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app)
+        .get('/api/users/chat-list')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBeLessThanOrEqual(500);
     });
   });
 
   describe('GET /api/my-interested', () => {
     it('should handle authenticated request', async () => {
-      const res = await request(app).get('/api/my-interested').set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app)
+        .get('/api/my-interested')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBeLessThan(500);
     });
   });

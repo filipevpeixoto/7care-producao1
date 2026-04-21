@@ -73,10 +73,12 @@ describe('Skeleton', () => {
     expect(screen.getByTestId('skeleton')).toHaveClass('custom-skeleton');
   });
 
-  it('applies base background style', () => {
+  it('applies base skeleton style contract', () => {
     render(<Skeleton data-testid="skeleton" />);
     const skeleton = screen.getByTestId('skeleton');
-    expect(skeleton).toHaveClass('bg-muted');
+    expect(skeleton).toHaveClass('skeleton-fill');
+    expect(skeleton).toHaveAttribute('data-slot', 'skeleton');
+    expect(skeleton).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('renders as div element', () => {

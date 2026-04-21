@@ -11,7 +11,7 @@ import request from 'supertest';
 import { createApp, createNotFoundHandler, createErrorHandler } from '../../app';
 import { container } from '../../container';
 import { churchRoutes } from '../../routes/churchRoutes';
-import { createMockUser } from './setup';
+import { createMockUser, toTestServer } from './setup';
 import { getAuthUserId } from '../../utils/authHelpers';
 
 // Mock auth helpers so we control userId without depending on JWT middleware
@@ -60,7 +60,7 @@ function createTestApp() {
   churchRoutes(app);
   app.use(createNotFoundHandler());
   app.use(createErrorHandler());
-  return app;
+  return toTestServer(app);
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -89,8 +89,7 @@ describe('Church Routes — Integration', () => {
       ];
       mockChurchRepo.getAllChurches.mockResolvedValue(churches);
 
-      const res = await request(app)
-        .get('/api/churches');
+      const res = await request(app).get('/api/churches');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -104,8 +103,7 @@ describe('Church Routes — Integration', () => {
       mockUserRepo.getUserById.mockResolvedValue(adminUser);
       mockChurchRepo.getAllChurches.mockResolvedValue([]);
 
-      const res = await request(app)
-        .get('/api/churches');
+      const res = await request(app).get('/api/churches');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -120,8 +118,7 @@ describe('Church Routes — Integration', () => {
       const districtChurches = [{ id: 3, name: 'District Church', address: 'Rua C' }];
       mockChurchRepo.getChurchesByDistrict.mockResolvedValue(districtChurches);
 
-      const res = await request(app)
-        .get('/api/churches');
+      const res = await request(app).get('/api/churches');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -140,8 +137,7 @@ describe('Church Routes — Integration', () => {
       ];
       mockChurchRepo.getAllChurches.mockResolvedValue(allChurches);
 
-      const res = await request(app)
-        .get('/api/churches');
+      const res = await request(app).get('/api/churches');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -157,9 +153,7 @@ describe('Church Routes — Integration', () => {
       const newChurch = { id: 10, name: 'New Church' };
       mockChurchRepo.getOrCreateChurch.mockResolvedValue(newChurch);
 
-      const res = await request(app)
-        .post('/api/churches')
-        .send({ name: 'New Church' });
+      const res = await request(app).post('/api/churches').send({ name: 'New Church' });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -168,18 +162,14 @@ describe('Church Routes — Integration', () => {
     });
 
     it('should return 400 with empty body', async () => {
-      const res = await request(app)
-        .post('/api/churches')
-        .send({});
+      const res = await request(app).post('/api/churches').send({});
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
     it('should return 400 when name is too short', async () => {
-      const res = await request(app)
-        .post('/api/churches')
-        .send({ name: 'A' });
+      const res = await request(app).post('/api/churches').send({ name: 'A' });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -197,9 +187,7 @@ describe('Church Routes — Integration', () => {
       mockChurchRepo.updateChurch.mockResolvedValue(updatedChurch);
       mockUserRepo.getAllUsers.mockResolvedValue([]);
 
-      const res = await request(app)
-        .patch('/api/churches/1')
-        .send({ name: 'Updated Name' });
+      const res = await request(app).patch('/api/churches/1').send({ name: 'Updated Name' });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -210,9 +198,7 @@ describe('Church Routes — Integration', () => {
       mockChurchRepo.getAllChurches.mockResolvedValue([]);
       mockChurchRepo.updateChurch.mockResolvedValue(null);
 
-      const res = await request(app)
-        .patch('/api/churches/999')
-        .send({ name: 'Updated Name' });
+      const res = await request(app).patch('/api/churches/999').send({ name: 'Updated Name' });
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
@@ -231,9 +217,7 @@ describe('Church Routes — Integration', () => {
       mockUserRepo.getAllUsers.mockResolvedValue(usersInOldChurch);
       mockUserRepo.updateUser.mockResolvedValue({});
 
-      const res = await request(app)
-        .patch('/api/churches/1')
-        .send({ name: 'New Church' });
+      const res = await request(app).patch('/api/churches/1').send({ name: 'New Church' });
 
       expect(res.status).toBe(200);
       expect(mockUserRepo.updateUser).toHaveBeenCalledTimes(2);
@@ -246,9 +230,7 @@ describe('Church Routes — Integration', () => {
 
   describe('GET /api/user/church', () => {
     it('should return church for valid user', async () => {
-      mockUserRepo.getUserById.mockResolvedValue(
-        createMockUser({ church: 'Central Church' })
-      );
+      mockUserRepo.getUserById.mockResolvedValue(createMockUser({ church: 'Central Church' }));
 
       const res = await request(app).get('/api/user/church?userId=1');
 

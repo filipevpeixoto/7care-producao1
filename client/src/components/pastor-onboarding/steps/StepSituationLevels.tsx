@@ -39,9 +39,11 @@ export function StepSituationLevels({ data, onNext, onBack }: StepSituationLevel
           <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl shadow-lg">
             <Layers className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">Níveis de Situação</h2>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-[var(--p7-text)]">
+            Níveis de Situação
+          </h2>
         </div>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-[var(--p7-text-2)]">
           Configure os níveis de situação para classificar seus interessados no discipulado
         </p>
       </div>
@@ -71,7 +73,7 @@ export function StepSituationLevels({ data, onNext, onBack }: StepSituationLevel
       />
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
+      <div className="mt-8 flex justify-between border-t border-gray-100 pt-6 dark:border-[var(--p7-border)]">
         <Button type="button" variant="outline" onClick={onBack} className="gap-2">
           <ArrowLeft className="w-4 h-4" />
           Voltar

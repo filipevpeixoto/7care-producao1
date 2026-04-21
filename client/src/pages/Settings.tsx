@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { settingsLogger } from '@/lib/logger';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Bell, Palette, Settings as SettingsIcon, Shield, SlidersHorizontal } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAdminAccess } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/v2/ThemeToggle';
+import { PrototypeAvatar, PrototypeStatusBar } from './v2/prototypeShared';
 import { useSystemLogo } from '@/hooks/useSystemLogo';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { SendNotificationModal } from '@/components/settings/SendNotificationModal';
@@ -29,6 +32,7 @@ import {
 } from './settings/AdminTabs';
 
 export default function Settings() {
+  const { skin } = useTheme();
   const { user } = useAuth();
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsData>(() => {
@@ -204,74 +208,242 @@ export default function Settings() {
   const isAdmin = hasAdminAccess(user);
   const defaultTab = 'notifications';
   const tabsConfig = getTabsConfig(isMemberOnlyNotifications, isAdmin);
+  const summaryTiles = [
+    {
+      label: 'Notificações',
+      value: settings.notifications.pushEnabled ? 'Ativas' : 'Revisar',
+      icon: Bell,
+      tone: 'navy',
+    },
+    {
+      label: 'Privacidade',
+      value: settings.privacy.profileVisible ? 'Aberta' : 'Restrita',
+      icon: Shield,
+      tone: 'glass',
+    },
+    {
+      label: 'Aparência',
+      value:
+        settings.appearance.theme === 'system'
+          ? 'Sistema'
+          : settings.appearance.theme === 'dark'
+            ? 'Escuro'
+            : 'Claro',
+      icon: Palette,
+      tone: 'gold',
+    },
+  ];
+  const profileSummary = isAdmin
+    ? 'Revise notificações, aparência e módulos administrativos sem navegar por telas espalhadas.'
+    : 'Ajuste o jeito como você recebe avisos, protege seus dados e usa o app no dia a dia.';
+
+  if (skin === 'v2') {
+    return (
+      <MobileLayout variant="prototype">
+        <div className="p7-shell">
+          <div className="p7-screen">
+            <PrototypeStatusBar />
+            <div className="p7-grad-header">
+              <div className="p7-header-row">
+                <div>
+                  <div className="p7-header-label">{t('settings.title')}</div>
+                  <div className="p7-header-title">Preferências</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <PrototypeAvatar name={user?.name} className="h-9 w-9 text-[0.8rem]" />
+                </div>
+              </div>
+            </div>
+            <div className="p7-scroll">
+              <div className="p7-stats-row" tabIndex={-1} aria-label="Resumo das preferências">
+                {summaryTiles.map((tile) => (
+                  <div key={tile.label} className={`p7-stat-card ${tile.tone}`}>
+                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[12px] bg-white/12">
+                      <tile.icon className="h-4 w-4" />
+                    </div>
+                    <div
+                      className={`text-[0.95rem] font-bold ${tile.tone === 'glass' ? 'text-[var(--p7-text)]' : 'text-white'}`}
+                    >
+                      {tile.value}
+                    </div>
+                    <div
+                      className={`text-[0.72rem] ${tile.tone === 'glass' ? 'text-[var(--p7-text-3)]' : 'text-white/70'}`}
+                    >
+                      {tile.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p7-section">
+                <div className="p7-card p7-card-p">
+                  <div className="mb-1 text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[var(--v2-gold)]">
+                    Central de ajustes
+                  </div>
+                  <p className="mb-4 text-[0.84rem] leading-[1.58] text-[var(--p7-text-2)]">
+                    {profileSummary}
+                  </p>
+
+                  <Tabs defaultValue={defaultTab} className="space-y-6">
+                    <DesktopTabsList tabs={tabsConfig} />
+                    <MobileTabsList tabs={tabsConfig} />
+
+                    <NotificationsTab
+                      settings={settings}
+                      updateSetting={updateSetting}
+                      isPushEnabled={isPushEnabled}
+                      isSupported={isSupported}
+                      subscribe={subscribe}
+                      unsubscribe={unsubscribe}
+                      saveSubscriptionToServer={saveSubscriptionToServer}
+                      removeSubscriptionFromServer={removeSubscriptionFromServer}
+                      setIsPushEnabled={setIsPushEnabled}
+                      toast={toast}
+                    />
+
+                    {!isMemberOnlyNotifications && (
+                      <PrivacyTab settings={settings} updateSetting={updateSetting} />
+                    )}
+
+                    {!isMemberOnlyNotifications && (
+                      <AppearanceTab
+                        settings={settings}
+                        updateSetting={updateSetting}
+                        user={user}
+                        isAdmin={isAdmin}
+                      />
+                    )}
+
+                    {isAdmin && <SystemTab />}
+                    {isAdmin && <DistrictSettingsTab />}
+                    {isAdmin && <PointsConfigurationTab />}
+                    {isAdmin && (
+                      <ChurchManagementTabSection
+                        user={user}
+                        userDistrictId={userDistrictId}
+                        userDistrictName={userDistrictName}
+                      />
+                    )}
+                    {isAdmin && (
+                      <CalendarManagementTabSection
+                        user={user}
+                        userDistrictId={userDistrictId}
+                        userDistrictName={userDistrictName}
+                      />
+                    )}
+                    {isAdmin && (
+                      <DataManagementTabSection
+                        user={user}
+                        userDistrictId={userDistrictId}
+                        userDistrictName={userDistrictName}
+                      />
+                    )}
+                  </Tabs>
+                </div>
+              </div>
+
+              {!isMemberOnlyNotifications && (
+                <div className="p7-section pb-4">
+                  <div className="p7-card p7-card-p">
+                    <div className="mb-3 flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4 text-[var(--v2-gold)]" />
+                      <div className="p7-card-title">
+                        {t('common.actions', { defaultValue: 'Ações' })}
+                      </div>
+                    </div>
+                    <p className="mb-4 text-[0.8rem] leading-[1.55] text-[var(--p7-text-3)]">
+                      Salve quando terminar de revisar sua rotina ou restaure o padrão se quiser
+                      começar do zero.
+                    </p>
+                    <ActionButtons
+                      isLoading={isLoading}
+                      handleSave={handleSave}
+                      handleReset={handleReset}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout>
       <div className="container mx-auto p-4 space-y-6">
-        <div className="flex items-center gap-3">
-          <SettingsIcon className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold text-foreground">{t('settings.title')}</h1>
-        </div>
+        <>
+          <div className="flex items-center gap-3">
+            <SettingsIcon className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">{t('settings.title')}</h1>
+          </div>
 
-        <Tabs defaultValue={defaultTab} className="space-y-6">
-          <DesktopTabsList tabs={tabsConfig} />
-          <MobileTabsList tabs={tabsConfig} />
+          <Tabs defaultValue={defaultTab} className="space-y-6">
+            <DesktopTabsList tabs={tabsConfig} />
+            <MobileTabsList tabs={tabsConfig} />
 
-          <NotificationsTab
-            settings={settings}
-            updateSetting={updateSetting}
-            isPushEnabled={isPushEnabled}
-            isSupported={isSupported}
-            subscribe={subscribe}
-            unsubscribe={unsubscribe}
-            saveSubscriptionToServer={saveSubscriptionToServer}
-            removeSubscriptionFromServer={removeSubscriptionFromServer}
-            setIsPushEnabled={setIsPushEnabled}
-            toast={toast}
-          />
-
-          {!isMemberOnlyNotifications && (
-            <PrivacyTab settings={settings} updateSetting={updateSetting} />
-          )}
-
-          {!isMemberOnlyNotifications && (
-            <AppearanceTab
+            <NotificationsTab
               settings={settings}
               updateSetting={updateSetting}
-              user={user}
-              isAdmin={isAdmin}
+              isPushEnabled={isPushEnabled}
+              isSupported={isSupported}
+              subscribe={subscribe}
+              unsubscribe={unsubscribe}
+              saveSubscriptionToServer={saveSubscriptionToServer}
+              removeSubscriptionFromServer={removeSubscriptionFromServer}
+              setIsPushEnabled={setIsPushEnabled}
+              toast={toast}
             />
-          )}
 
-          {isAdmin && <SystemTab />}
-          {isAdmin && <DistrictSettingsTab />}
-          {isAdmin && <PointsConfigurationTab />}
-          {isAdmin && (
-            <ChurchManagementTabSection
-              user={user}
-              userDistrictId={userDistrictId}
-              userDistrictName={userDistrictName}
-            />
-          )}
-          {isAdmin && (
-            <CalendarManagementTabSection
-              user={user}
-              userDistrictId={userDistrictId}
-              userDistrictName={userDistrictName}
-            />
-          )}
-          {isAdmin && (
-            <DataManagementTabSection
-              user={user}
-              userDistrictId={userDistrictId}
-              userDistrictName={userDistrictName}
-            />
-          )}
-        </Tabs>
+            {!isMemberOnlyNotifications && (
+              <PrivacyTab settings={settings} updateSetting={updateSetting} />
+            )}
 
-        {!isMemberOnlyNotifications && (
-          <ActionButtons isLoading={isLoading} handleSave={handleSave} handleReset={handleReset} />
-        )}
+            {!isMemberOnlyNotifications && (
+              <AppearanceTab
+                settings={settings}
+                updateSetting={updateSetting}
+                user={user}
+                isAdmin={isAdmin}
+              />
+            )}
+
+            {isAdmin && <SystemTab />}
+            {isAdmin && <DistrictSettingsTab />}
+            {isAdmin && <PointsConfigurationTab />}
+            {isAdmin && (
+              <ChurchManagementTabSection
+                user={user}
+                userDistrictId={userDistrictId}
+                userDistrictName={userDistrictName}
+              />
+            )}
+            {isAdmin && (
+              <CalendarManagementTabSection
+                user={user}
+                userDistrictId={userDistrictId}
+                userDistrictName={userDistrictName}
+              />
+            )}
+            {isAdmin && (
+              <DataManagementTabSection
+                user={user}
+                userDistrictId={userDistrictId}
+                userDistrictName={userDistrictName}
+              />
+            )}
+          </Tabs>
+
+          {!isMemberOnlyNotifications && (
+            <ActionButtons
+              isLoading={isLoading}
+              handleSave={handleSave}
+              handleReset={handleReset}
+            />
+          )}
+        </>
       </div>
 
       <SendNotificationModal

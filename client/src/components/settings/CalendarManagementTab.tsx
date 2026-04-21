@@ -4,16 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Users,
-  Download,
-  Upload,
-  Trash2,
-  Calendar,
-  Cloud,
-  Filter,
-  Building2,
-} from 'lucide-react';
+import { Users, Download, Upload, Trash2, Calendar, Cloud, Filter, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Event } from '@/types/domain';
 import { useLastImportDate } from '@/hooks/useLastImportDate';
@@ -23,6 +14,7 @@ import { GoogleCalendarConfigModal } from '@/components/calendar/GoogleCalendarC
 import { EventPermissionsModal } from '@/components/calendar/EventPermissionsModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { exportToExcel } from '@/lib/excel';
+import { fetchWithAuth } from '@/lib/api';
 
 interface CalendarManagementTabProps {
   user: Pick<import('@/types/domain').UserMember, 'id' | 'role' | 'church' | 'districtId'>;
@@ -30,7 +22,11 @@ interface CalendarManagementTabProps {
   userDistrictName: string;
 }
 
-export function CalendarManagementTab({ user, userDistrictId, userDistrictName }: CalendarManagementTabProps) {
+export function CalendarManagementTab({
+  user,
+  userDistrictId,
+  userDistrictName,
+}: CalendarManagementTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { updateLastImportDate } = useLastImportDate();
@@ -85,11 +81,8 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
     }
 
     try {
-      const response = await fetch('/api/events', {
+      const response = await fetchWithAuth('/api/events', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       const result = await response.json();
@@ -121,7 +114,7 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
 
   const handleExportCalendar = async () => {
     try {
-      const response = await fetch('/api/events');
+      const response = await fetchWithAuth('/api/events');
       const result = await response.json();
 
       if (!response.ok) {
@@ -188,7 +181,10 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
         }
       );
 
-      settingsLogger.debug('🔍 Debug Export - Dados processados para Excel:', exportData.slice(0, 3));
+      settingsLogger.debug(
+        '🔍 Debug Export - Dados processados para Excel:',
+        exportData.slice(0, 3)
+      );
 
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
@@ -254,9 +250,7 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
                 >
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-blue-600" />
-                    <span className="font-medium text-blue-900">
-                      Importar Dados de Usuários
-                    </span>
+                    <span className="font-medium text-blue-900">Importar Dados de Usuários</span>
                   </div>
                   <span className="text-sm text-blue-700 text-left">
                     Importar dados de pontuação do Power BI (.xlsx)
@@ -372,9 +366,9 @@ export function CalendarManagementTab({ user, userDistrictId, userDistrictName }
             <Alert>
               <Calendar className="h-4 w-4" />
               <AlertDescription>
-                <strong>Dica:</strong> Use o Google Drive para sincronização em tempo real
-                com uma planilha online. As alterações na planilha serão automaticamente
-                refletidas no calendário.
+                <strong>Dica:</strong> Use o Google Drive para sincronização em tempo real com uma
+                planilha online. As alterações na planilha serão automaticamente refletidas no
+                calendário.
               </AlertDescription>
             </Alert>
           </div>

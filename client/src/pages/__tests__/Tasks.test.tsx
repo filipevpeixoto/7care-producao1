@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ModalProvider } from '@/contexts/ModalContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const mockTasks = [
   {
@@ -26,7 +27,7 @@ vi.mock('@/hooks/useAuth', () => ({
       id: 1,
       name: 'Admin User',
       email: 'admin@test.com',
-      role: 'admin',
+      role: 'pastor',
       church: 'Igreja Central',
       districtId: 1,
     },
@@ -69,8 +70,7 @@ vi.mock('@/lib/api', () => ({
     if (url.includes('/api/users/district') || url === '/api/tasks/users') {
       return Promise.resolve({
         ok: true,
-        json: () =>
-          Promise.resolve([{ id: 1, name: 'Admin User', church: 'Igreja Central' }]),
+        json: () => Promise.resolve([{ id: 1, name: 'Admin User', church: 'Igreja Central' }]),
       });
     }
     return Promise.resolve({
@@ -97,9 +97,11 @@ const createWrapper = () => {
   });
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <ModalProvider>{children}</ModalProvider>
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <ModalProvider>{children}</ModalProvider>
+        </MemoryRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
@@ -107,6 +109,21 @@ const createWrapper = () => {
 describe('Tasks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    localStorage.setItem('7care_skin', 'classic');
+    localStorage.setItem('7care_theme', 'light');
   });
 
   it('renders the page heading after loading', async () => {
@@ -123,9 +140,7 @@ describe('Tasks', () => {
     render(<Tasks />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText('tasks.searchPlaceholder')
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('tasks.searchPlaceholder')).toBeInTheDocument();
     });
   });
 
@@ -137,5 +152,4 @@ describe('Tasks', () => {
       expect(screen.getByText('tasks.newTask')).toBeInTheDocument();
     });
   });
-
 });

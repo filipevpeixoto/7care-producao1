@@ -66,9 +66,7 @@ export const StatsCards = ({ stats }: { stats: StatsSummary }) => (
   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
     <Card>
       <CardContent className="p-4 text-center">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-          {stats.totalMy}
-        </div>
+        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalMy}</div>
         <div className="text-sm text-muted-foreground">Meus</div>
       </CardContent>
     </Card>
@@ -200,7 +198,11 @@ export const ChurchFilter = ({
 }: ChurchFilterProps) =>
   isAdmin ? (
     <div className="w-full md:w-80">
-      <Select aria-label="Filtrar por igreja" value={selectedChurch} onValueChange={setSelectedChurch}>
+      <Select
+        aria-label="Filtrar por igreja"
+        value={selectedChurch}
+        onValueChange={setSelectedChurch}
+      >
         <SelectTrigger>
           <SelectValue placeholder="Filtrar por igreja" />
         </SelectTrigger>
@@ -342,15 +344,17 @@ type EmptyStateProps = {
 
 export const EmptyState = ({ isVisible, selectedTab }: EmptyStateProps) =>
   isVisible ? (
-    <div className="text-center py-8">
-      <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-foreground mb-2">
+    <div className="mx-auto max-w-xl rounded-[1.5rem] border border-border/70 bg-card/90 px-6 py-8 text-center shadow-sm">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Heart className="h-7 w-7" />
+      </div>
+      <h3 className="mb-2 text-lg font-medium text-foreground">
         {selectedTab === 'my' ? 'Nenhum amigo vinculado' : 'Nenhum amigo encontrado'}
       </h3>
-      <p className="text-muted-foreground">
+      <p className="text-sm leading-6 text-muted-foreground">
         {selectedTab === 'my'
-          ? 'Você ainda não tem amigos vinculados. Solicite discipulado de amigos da igreja.'
-          : 'Tente ajustar os filtros de busca.'}
+          ? 'Você ainda não tem vínculos ativos. Aceite convites pendentes ou peça ao pastor para conectar você a alguém da igreja.'
+          : 'Não encontramos amigos com os filtros atuais. Tente limpar a busca ou selecionar outro status para ampliar a lista.'}
       </p>
     </div>
   ) : null;

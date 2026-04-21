@@ -47,6 +47,7 @@ export const NotificationsTab = ({
             <div className="text-xs text-muted-foreground">Receba atualizações por email</div>
           </div>
           <Switch
+            aria-label="Ativar notificações por email"
             checked={settings.notifications.emailEnabled}
             onCheckedChange={(checked) => updateSetting('notifications', 'emailEnabled', checked)}
             data-testid="switch-email-notifications"
@@ -61,6 +62,7 @@ export const NotificationsTab = ({
             <div className="text-xs text-muted-foreground">Notificações no dispositivo</div>
           </div>
           <Switch
+            aria-label="Ativar notificações push"
             checked={isPushEnabled}
             onCheckedChange={async (checked) => {
               settingsLogger.debug('Tentando alterar notificações push para:', checked);
@@ -131,8 +133,11 @@ export const NotificationsTab = ({
             <div className="text-xs text-muted-foreground">Avisos antes dos eventos</div>
           </div>
           <Switch
+            aria-label="Ativar lembretes de reuniões"
             checked={settings.notifications.meetingReminders}
-            onCheckedChange={(checked) => updateSetting('notifications', 'meetingReminders', checked)}
+            onCheckedChange={(checked) =>
+              updateSetting('notifications', 'meetingReminders', checked)
+            }
             data-testid="switch-meeting-reminders"
           />
         </div>
@@ -145,6 +150,7 @@ export const NotificationsTab = ({
             <div className="text-xs text-muted-foreground">Notificações de novas mensagens</div>
           </div>
           <Switch
+            aria-label="Ativar alertas de mensagens"
             checked={settings.notifications.messageAlerts}
             onCheckedChange={(checked) => updateSetting('notifications', 'messageAlerts', checked)}
             data-testid="switch-message-alerts"
@@ -159,6 +165,7 @@ export const NotificationsTab = ({
             <div className="text-xs text-muted-foreground">Resumo das atividades da semana</div>
           </div>
           <Switch
+            aria-label="Ativar relatório semanal"
             checked={settings.notifications.weeklyReport}
             onCheckedChange={(checked) => updateSetting('notifications', 'weeklyReport', checked)}
             data-testid="switch-weekly-report"

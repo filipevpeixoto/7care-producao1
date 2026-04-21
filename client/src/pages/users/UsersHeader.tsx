@@ -16,6 +16,7 @@ interface UsersHeaderProps {
   recalculationProgress: number;
   recalculationMessage: string;
   onCreateUser: () => void;
+  compact?: boolean;
 }
 
 export const UsersHeader = ({
@@ -26,17 +27,29 @@ export const UsersHeader = ({
   recalculationProgress,
   recalculationMessage,
   onCreateUser,
+  compact = false,
 }: UsersHeaderProps) => {
   const { t } = useTranslation();
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div className="flex items-center space-x-1.5 sm:space-x-2">
-          <UserIcon className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-          <h1 className="text-base sm:text-2xl font-bold text-foreground">
-            {user?.role === 'missionary' ? t('users.friends') : t('users.title')}
-          </h1>
+          <UserIcon className={`${compact ? 'h-4 w-4' : 'h-4 w-4 sm:h-6 sm:w-6'} text-primary`} />
+          {compact ? (
+            <div>
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--v2-text-3)]">
+                {t('users.quickActions', { defaultValue: 'Acoes de gestao' })}
+              </div>
+              <h2 className="text-sm font-semibold text-foreground sm:text-base">
+                {user?.role === 'missionary' ? t('users.friends') : t('users.title')}
+              </h2>
+            </div>
+          ) : (
+            <h1 className="text-base font-bold text-foreground sm:text-2xl">
+              {user?.role === 'missionary' ? t('users.friends') : t('users.title')}
+            </h1>
+          )}
           {pendingCount > 0 && (
             <Badge
               variant="destructive"
