@@ -1,7 +1,7 @@
 {
   "name": "church-plus-manager",
   "version": "1.0.0",
-  "description": "Sistema de gerenciamento para igrejas - Neon Database + Netlify",
+  "description": "Sistema de gerenciamento para igrejas - Neon Database + Vercel",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -20,9 +20,9 @@
     "build:full": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "NODE_OPTIONS='--max-old-space-size=4096' tsc",
-    "deploy": "npm run build && npx netlify deploy --prod --message \"$(git log -1 --pretty=%B)\"",
-    "deploy:preview": "npm run build && npx netlify deploy",
-    "deploy:status": "bash scripts/deploy-status.sh",
+    "deploy": "echo \"Production deploy is handled by Vercel after push to main.\"",
+    "deploy:preview": "echo \"Preview deploys are handled by Vercel for preview branches and PRs.\"",
+    "deploy:status": "echo \"Check deployment status in the Vercel dashboard.\"",
     "migrate-to-neon": "NODE_ENV=development tsx -e \"import('./server/migrateToNeon.js').then(m => m.migrateToNeon())\"",
     "migrate-google-calendar": "NODE_ENV=development tsx server/migrations/addGoogleCalendarIntegration.ts",
     "migrate-google-calendar:prod": "NODE_ENV=production tsx server/migrations/addGoogleCalendarIntegration.ts",
