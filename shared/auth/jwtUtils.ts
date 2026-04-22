@@ -2,7 +2,7 @@
  * Módulo compartilhado de autenticação JWT
  *
  * Este módulo fornece funções utilitárias para geração e verificação de tokens JWT,
- * podendo ser usado tanto pelo server/ quanto pelo netlify/.
+ * podendo ser usado tanto pelo server/ quanto pelos wrappers serverless legados.
  *
  * @module shared/auth/jwtUtils
  */
@@ -199,7 +199,7 @@ export function generateTokens(user: UserForToken, fingerprint?: string): TokenP
 }
 
 /**
- * Gera apenas access token (para Netlify Functions compatibilidade)
+ * Gera apenas access token (para compatibilidade com wrappers serverless legados)
  * @param user - Dados do usuário
  * @param expiresInSeconds - Tempo de expiração em segundos (default: 24h = 86400s)
  * @returns Access token
@@ -278,7 +278,7 @@ export function verifyRefreshToken(token: string, fingerprint?: string): JwtPayl
 
 /**
  * Verifica token genérico (sem verificar type)
- * Para compatibilidade com Netlify Functions
+ * Para compatibilidade com wrappers serverless legados
  * @param token - Token JWT a verificar
  * @returns Payload decodificado ou null se inválido
  */

@@ -1,13 +1,11 @@
 /**
- * Netlify/Vercel Serverless API Handler (Legacy)
+ * Legacy serverless API handler reused by Vercel.
  *
  * ARCHITECTURE NOTE:
  * This is a legacy monolithic serverless function (~20K lines).
- * It is used by BOTH deployment platforms:
- *   - Netlify: directly as a Netlify Function
- *   - Vercel:  via api/index.js wrapper
+ * Production now runs on Vercel, which accesses this file through `api/index.js`.
  *
- * DO NOT DELETE this file — it would break both Vercel and Netlify deployments.
+ * DO NOT DELETE this file yet — it would break the current Vercel serverless wrapper.
  *
  * The modern Express server (server/app.ts) with repository pattern
  * is the preferred architecture. This file should be gradually deprecated
@@ -1189,7 +1187,7 @@ exports.handler = async (event, context) => {
   const startTime = Date.now();
   
   // Configurar CORS
-  const defaultOrigins = 'https://7care.netlify.app,https://7care.vercel.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
+  const defaultOrigins = 'https://7care.vercel.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
     .split(',').map((origin) => origin.trim()).filter(Boolean);
   const requestOrigin = event.headers.origin || event.headers.Origin;
@@ -7038,7 +7036,7 @@ exports.handler = async (event, context) => {
         }
 
         if (!positions || positions.length === 0) {
-          console.log('❌ Nenhuma posição configurada na eleição (Netlify function)');
+          console.log('❌ Nenhuma posição configurada na eleição (serverless handler legado)');
           return {
             statusCode: 400,
             headers: { 'Content-Type': 'application/json' },
@@ -7048,7 +7046,7 @@ exports.handler = async (event, context) => {
 
         const currentPosition = election[0].current_position || 0;
         if (currentPosition >= positions.length) {
-          console.log('❌ Posição atual inválida (Netlify function):', currentPosition, 'de', positions.length);
+          console.log('❌ Posição atual inválida (serverless handler legado):', currentPosition, 'de', positions.length);
           return {
             statusCode: 400,
             headers: { 'Content-Type': 'application/json' },
@@ -7097,7 +7095,7 @@ exports.handler = async (event, context) => {
         }
         
         // Log detalhado do removed_candidates
-        console.log('🔍 [VOTING] Config carregado (Netlify):', {
+        console.log('🔍 [VOTING] Config carregado (handler legado):', {
           configId,
           removed_candidates_raw: config[0]?.removed_candidates,
           removed_candidates_type: typeof config[0]?.removed_candidates,
@@ -7591,7 +7589,7 @@ exports.handler = async (event, context) => {
           }
         }
 
-        console.log('📊 Status da votação (Netlify function)', {
+        console.log('📊 Status da votação (serverless handler legado)', {
           configId,
           position: currentPositionName,
           currentPhase,
@@ -12733,7 +12731,7 @@ exports.handler = async (event, context) => {
         global.pointsConfigCache = null;
         
         // OTIMIZAÇÃO: Retornar resposta imediatamente e recalcular em background
-        // Isso evita timeout 504 em Netlify Functions (limite de 10s)
+        // Isso evita timeout 504 em runtimes serverless com limite curto
         console.log('🔄 Marcando recálculo para iniciar...');
         
         // RETORNAR IMEDIATAMENTE - Evitar timeout 504

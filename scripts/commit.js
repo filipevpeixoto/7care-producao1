@@ -129,8 +129,8 @@ async function main() {
     if (push.toLowerCase() === 's') {
       log('\n📤 Enviando para GitHub...', colors.yellow);
       execSync('git push origin main', { stdio: 'inherit' });
-      log('\n✅ Push concluído! Deploy automático será iniciado no Netlify.', colors.green);
-      log('🌐 Acesse: https://app.netlify.com/sites/meu7care/deploys\n', colors.cyan);
+      log('\n✅ Push concluído! O deploy automático deve ser iniciado pela Vercel.', colors.green);
+      log('🌐 Acompanhe no painel da Vercel do projeto.\n', colors.cyan);
     } else {
       log('\n📝 Lembre-se de fazer push depois: git push origin main\n', colors.yellow);
     }
@@ -145,4 +145,3 @@ async function main() {
 }
 
 main();
-

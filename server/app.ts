@@ -80,7 +80,7 @@ export function createApp(): express.Express {
   // CORS — origens explícitas (nunca wildcard *)
   app.use((req: Request, res: Response, next: NextFunction) => {
     const defaultOrigins =
-      'https://7care.vercel.app,https://7care.netlify.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
+      'https://7care.vercel.app,http://localhost:3064,http://localhost:5173,http://localhost:3065,tauri://localhost,https://tauri.localhost';
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
       .split(',')
       .map((origin) => origin.trim())

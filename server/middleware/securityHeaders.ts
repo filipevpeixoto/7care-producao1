@@ -40,7 +40,6 @@ const getCspDirectives = () => {
       'https://api.sentry.io',
       'https://*.sentry.io',
       'https://7care.vercel.app',
-      'https://7care.netlify.app',
       ...(isDev ? ['ws://localhost:*', 'wss://localhost:*', 'http://localhost:*'] : []),
     ].filter(Boolean),
     frameSrc: ["'self'"],

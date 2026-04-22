@@ -43,7 +43,7 @@ function verifyToken(token) {
 
 /**
  * Middleware de autenticação - extrai usuário do token ou header
- * @param {Object} event - Evento da função Netlify
+ * @param {Object} event - Evento do wrapper serverless legado
  * @param {Object} sql - Conexão com banco de dados
  * @returns {Object} Resultado da autenticação
  */

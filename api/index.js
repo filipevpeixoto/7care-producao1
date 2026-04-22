@@ -2,27 +2,26 @@
  * Vercel Serverless Function - Entry Point
  *
  * ARCHITECTURE NOTE:
- * This file wraps netlify/functions/api.js for Vercel deployment.
- * Both Vercel AND Netlify depend on the same api.js handler.
+ * Production runs on Vercel.
+ * This file wraps the legacy serverless handler stored in `netlify/functions/api.js`.
  *
- * DO NOT DELETE netlify/functions/api.js — it would break BOTH platforms.
+ * DO NOT DELETE `netlify/functions/api.js` yet — Vercel still depends on it through this wrapper.
  *
  * Dependency chain:
- *   Vercel:  api/index.js  →  netlify/functions/api.js
- *   Netlify: netlify/functions/api.js (direct)
+ *   Vercel: api/index.js -> netlify/functions/api.js
  *
  * DEPRECATION PLAN:
  * When migrating fully to the Express server (server/app.ts),
- * both this file and netlify/functions/api.js can be removed together.
+ * both this file and the legacy handler can be removed together.
  * The Express server already handles all routes via server/routes/*.
  */
-// Vercel Serverless Function - wrapper para a função Netlify
-import netlifyHandler from '../netlify/functions/api.js';
+// Vercel Serverless Function - wrapper para o handler legado
+import legacyHandler from '../netlify/functions/api.js';
 
 const { URL, URLSearchParams, console } = globalThis;
 
 export default async (req, res) => {
-  if (!netlifyHandler || !netlifyHandler.handler) {
+  if (!legacyHandler || !legacyHandler.handler) {
     return res.status(500).json({ error: 'Handler not loaded' });
   }
 
@@ -54,7 +53,7 @@ export default async (req, res) => {
   };
 
   try {
-    const response = await netlifyHandler.handler(event, {});
+    const response = await legacyHandler.handler(event, {});
     
     if (response.headers) {
       Object.entries(response.headers).forEach(([key, value]) => {

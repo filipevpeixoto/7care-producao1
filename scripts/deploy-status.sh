@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script para verificar status do deploy no Netlify
+# Script para verificar status do deploy na Vercel
 
 echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║           📊 STATUS DO DEPLOY - 7care                         ║"
+echo "║           📊 STATUS DO DEPLOY NA VERCEL - 7care               ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -37,8 +37,8 @@ echo ""
 echo -e "${YELLOW}📋 Comandos Disponíveis:${NC}"
 echo ""
 echo "  npm run commit          - Commit interativo"
-echo "  npm run deploy          - Deploy manual para produção"
-echo "  npm run deploy:preview  - Deploy de preview"
+echo "  git push origin main    - Dispara deploy de produção pela Vercel"
+echo "  git push em branch/PR   - Gera preview deploy na Vercel"
 echo "  npm run status          - Status do site"
 echo "  npm run logs            - Logs do último deploy"
 echo ""

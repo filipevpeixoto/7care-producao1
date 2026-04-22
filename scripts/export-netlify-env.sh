@@ -1,5 +1,6 @@
 #!/bin/bash
-# Script para exportar variáveis do Netlify para .env
+# Script legado para exportar variáveis do Netlify para .env
+# Use apenas em migrações antigas; produção atual roda na Vercel.
 
 echo "📥 Exportando variáveis de ambiente do Netlify..."
 

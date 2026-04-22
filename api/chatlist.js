@@ -1,5 +1,5 @@
-// Vercel Serverless Function - wrapper para chatlist
-import netlifyHandler from '../netlify/functions/chatlist.js';
+// Vercel Serverless Function - wrapper para o handler legado de chatlist
+import legacyHandler from '../netlify/functions/chatlist.js';
 
 const { console } = globalThis;
 
@@ -15,7 +15,7 @@ export default async (req, res) => {
   const context = {};
 
   try {
-    const response = await netlifyHandler.handler(event, context);
+    const response = await legacyHandler.handler(event, context);
     
     if (response.headers) {
       Object.entries(response.headers).forEach(([key, value]) => {

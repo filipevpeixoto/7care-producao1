@@ -75,7 +75,7 @@ function getRateLimitType(path, method) {
 
 /**
  * Verifica se a requisição está dentro do limite
- * @param {Object} event - Evento da função Netlify
+ * @param {Object} event - Evento do wrapper serverless legado
  * @returns {Object} Resultado da verificação
  */
 function checkRateLimit(event) {
@@ -157,7 +157,7 @@ function getRateLimitHeaders(result) {
 
 /**
  * Middleware de rate limiting
- * @param {Object} event - Evento da função Netlify
+ * @param {Object} event - Evento do wrapper serverless legado
  * @param {Object} headers - Headers base da resposta
  * @returns {Object|null} Resposta de erro ou null se permitido
  */

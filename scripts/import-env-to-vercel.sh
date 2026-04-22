@@ -6,7 +6,7 @@ echo "🚀 Importando variáveis de ambiente para o Vercel..."
 # Verifica se .env existe
 if [ ! -f .env ]; then
   echo "❌ Arquivo .env não encontrado!"
-  echo "💡 Copie suas variáveis do Netlify para um arquivo .env na raiz do projeto"
+  echo "💡 Adicione suas variáveis atuais em um arquivo .env na raiz do projeto"
   exit 1
 fi
 

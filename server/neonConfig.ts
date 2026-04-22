@@ -57,7 +57,7 @@ async function withRetry<T>(
     logger.warn(
       `⚠️ Erro de conexão, tentando novamente em ${delay}ms (${retries} tentativas restantes)...`
     );
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     // Exponential backoff com jitter
     const nextDelay = Math.min(delay * 2 + Math.random() * 100, RETRY_CONFIG.maxDelayMs);
@@ -101,7 +101,13 @@ export const sql = sqlBase as unknown as <T = Record<string, unknown>>(
 export async function sqlTransaction(
   queries: Array<Promise<Record<string, unknown>[]>>
 ): Promise<Array<Record<string, unknown>[]>> {
-  return (sqlBase as unknown as { transaction: (queries: Array<Promise<Record<string, unknown>[]>>) => Promise<Array<Record<string, unknown>[]>> }).transaction(queries);
+  return (
+    sqlBase as unknown as {
+      transaction: (
+        queries: Array<Promise<Record<string, unknown>[]>>
+      ) => Promise<Array<Record<string, unknown>[]>>;
+    }
+  ).transaction(queries);
 }
 
 // Wrapper para operações de banco com retry
@@ -112,7 +118,7 @@ export async function dbQuery<T>(operation: () => Promise<T>): Promise<T> {
 // Configuração para desenvolvimento local
 export const isDevelopment = process.env.NODE_ENV === 'development';
 
-// Configuração para produção (Netlify)
+// Configuração para produção
 export const isProduction = process.env.NODE_ENV === 'production';
 
 // Métricas de conexão para monitoramento
@@ -142,7 +148,10 @@ export function getConnectionMetrics(): ConnectionMetrics {
 /**
  * Wrapper para operações de banco com métricas, retry e slow query logging
  */
-export async function dbQueryWithMetrics<T>(operation: () => Promise<T>, queryLabel?: string): Promise<T> {
+export async function dbQueryWithMetrics<T>(
+  operation: () => Promise<T>,
+  queryLabel?: string
+): Promise<T> {
   const startTime = Date.now();
   metrics.totalQueries++;
 

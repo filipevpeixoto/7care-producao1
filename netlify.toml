@@ -1,3 +1,6 @@
+# Configuração legada mantida apenas para compatibilidade histórica.
+# Produção web atual usa Vercel.
+
 [build]
   command = "npm install --legacy-peer-deps && npm run build && cp -r client/public/* dist/ 2>/dev/null || true && cp client/src/assets/mountain-*.png dist/ 2>/dev/null || true"
   publish = "dist"

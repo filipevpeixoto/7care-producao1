@@ -3,7 +3,7 @@
  * Protege endpoints contra abuso e ataques de força bruta
  *
  * NOTA: express-rate-limit usa MemoryStore por padrão.
- * Em serverless (Vercel/Netlify), cada instance tem seu próprio store.
+ * Em ambientes serverless, cada instância tem seu próprio store.
  * Para rate limiting distribuído, configurar REDIS_URL e instalar rate-limit-redis.
  * Quando Redis estiver disponível, será usado automaticamente.
  */
@@ -22,9 +22,9 @@ function getRedisStore(): Options['store'] | undefined {
 
   try {
     // Tentar importar rate-limit-redis dinamicamente
-     
+
     const { RedisStore } = require('rate-limit-redis');
-     
+
     const { createClient } = require('redis');
 
     const client = createClient({ url: redisUrl });
